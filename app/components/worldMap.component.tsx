@@ -18,6 +18,9 @@ export function WorldMapComponent() {
   const isDraggingRef = useRef(false);
   const clickedOnLocationRef = useRef<string | null>(null);
   const zoomRef = useRef(1);
+  const colorCanvasRef = useRef<HTMLCanvasElement>(null);
+  const borderCanvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [, forceUpdate] = useState({});
 
   const triggerRender = useCallback(() => {
@@ -87,15 +90,34 @@ export function WorldMapComponent() {
     clickedOnLocationRef.current = locationName;
   };
 
-  useEffect(() => {
-    const colorCanvas = document.getElementById(
-      "color_map"
-    ) as HTMLCanvasElement;
+  const setInitialPosition = () => {
+    // Position user at coordinates X: 7934, Y: 1991
+    const colorCanvas = colorCanvasRef.current;
+    const borderCanvas = borderCanvasRef.current;
+    const container = containerRef.current;
 
-    const borderCanvas = document.getElementById(
-      "border_map"
-    ) as HTMLCanvasElement;
-    const container = document.getElementById("container");
+    if (!colorCanvas || !borderCanvas || !container) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const centerX = containerRect.width / 2;
+    const centerY = containerRect.height / 2;
+    const targetX = 7934;
+    const targetY = 1991;
+    const zoom = zoomRef.current;
+
+    const newLeft = centerX - targetX * zoom;
+    const newTop = centerY - targetY * zoom;
+
+    colorCanvas.style.left = newLeft + "px";
+    colorCanvas.style.top = newTop + "px";
+    borderCanvas.style.left = newLeft + "px";
+    borderCanvas.style.top = newTop + "px";
+  };
+
+  useEffect(() => {
+    const colorCanvas = colorCanvasRef.current;
+    const borderCanvas = borderCanvasRef.current;
+    const container = containerRef.current;
 
     if (!colorCanvas || !borderCanvas || !container || !mappingData) return;
 
@@ -106,24 +128,6 @@ export function WorldMapComponent() {
       console.log("canvas context is nullish");
       return;
     }
-
-    const setInitialPosition = () => {
-      // Position user at coordinates X: 7934, Y: 1991
-      const containerRect = container.getBoundingClientRect();
-      const centerX = containerRect.width / 2;
-      const centerY = containerRect.height / 2;
-      const targetX = 7934;
-      const targetY = 1991;
-      const zoom = zoomRef.current;
-
-      const newLeft = centerX - targetX * zoom;
-      const newTop = centerY - targetY * zoom;
-
-      colorCanvas.style.left = newLeft + "px";
-      colorCanvas.style.top = newTop + "px";
-      borderCanvas.style.left = newLeft + "px";
-      borderCanvas.style.top = newTop + "px";
-    };
 
     // effect variables: these will only be used inside this effect until destruction
     let startX = 0;
@@ -209,13 +213,9 @@ export function WorldMapComponent() {
   }, [mappingData, triggerRender]);
 
   const applyZoomLevel = (newZoom: number) => {
-    const colorCanvas = document.getElementById(
-      "color_map"
-    ) as HTMLCanvasElement;
-    const borderCanvas = document.getElementById(
-      "border_map"
-    ) as HTMLCanvasElement;
-    const container = document.getElementById("container") as HTMLElement;
+    const colorCanvas = colorCanvasRef.current;
+    const borderCanvas = borderCanvasRef.current;
+    const container = containerRef.current;
 
     if (!colorCanvas || !borderCanvas || !container) return;
 
@@ -268,7 +268,7 @@ export function WorldMapComponent() {
 
   return (
     <div
-      id="container"
+      ref={containerRef}
       className="relative w-screen h-screen"
       style={{
         overflow: "hidden",
@@ -277,12 +277,14 @@ export function WorldMapComponent() {
       }}
     >
       <canvas
+        ref={colorCanvasRef}
         className="absolute z-0"
         height={mapInfos.height}
         width={mapInfos.width}
         id="color_map"
       ></canvas>
       <canvas
+        ref={borderCanvasRef}
         className="absolute z-1"
         height={mapInfos.height}
         width={mapInfos.width}

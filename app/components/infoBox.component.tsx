@@ -1,11 +1,11 @@
-interface InfoBoxComponentProps {
-  locationName: string;
-}
+import { useContext } from "react";
+import { AppContext } from "../app-context-provider";
 
-export function InfoBoxComponent(props: InfoBoxComponentProps) {
+export function InfoBoxComponent() {
+  const context = useContext(AppContext);
   return (
     <div className="fixed bottom-5 right-5 rounded-md min-w-64 flex flex-col z-10 bg-white text-7xl">
-      <p>{props.locationName}</p>
+      <p>{context?.selectedLocation}</p>
     </div>
   );
 }

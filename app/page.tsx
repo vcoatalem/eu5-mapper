@@ -33,12 +33,16 @@ async function extractMappingData(): Promise<Record<string, string> | null> {
 
     for (const line of lines) {
       if (line.trim().startsWith("#") || line.trim() === "") {
-        continue; // Skip comments and empty lines
+        continue;
       }
 
-      const [locationName, hexCode] = line.split("=");
-      /* console.log({ locationName, hexCode }); */
-      res[hexCode.trim()] = locationName.trim();
+      const [locationName, rest] = line.split("=");
+      if (!locationName || !rest) continue;
+
+      const hexCode = rest.split("#")[0].trim();
+      if (!hexCode) continue;
+
+      res[hexCode] = locationName.trim();
     }
 
     return res;

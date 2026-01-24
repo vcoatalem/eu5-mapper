@@ -1,16 +1,7 @@
 "use client";
 
-import { parse } from "path";
-import {
-  Dispatch,
-  SetStateAction,
-  use,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
-import { InfoBoxComponent } from "./components/infoBox.component";
-import { AppContext, AppContextProvider } from "./app-context-provider";
+import { useContext, useEffect } from "react";
+import { AppContext } from "./app-context-provider";
 import { LoadingScreenComponent } from "./components/loadingScreen.component";
 import { WorldMapComponent } from "./components/worldMap.component";
 

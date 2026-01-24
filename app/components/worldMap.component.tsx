@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useContext, useEffect } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { InfoBoxComponent } from "./infoBox.component";
 import { AppContext } from "../app-context-provider";
 
@@ -9,106 +9,273 @@ const mapInfos = {
   borderMapFileName: "test/locations_borders.png",
 };
 
-function handleMouseEvent(
-  colorCanvas: HTMLCanvasElement,
-  mapping: Record<string, string>,
-  event: MouseEvent,
-  dispatchFn: Dispatch<SetStateAction<string | null>>
-) {
-  /* console.log("handleImageHover", event); */
-
-  //TODO: make sure colorCanvas and borderCanvas getBoundingClientRect are the same
-  const rect = colorCanvas.getBoundingClientRect();
-  const x = event.clientX - rect.left;
-  const y = event.clientY - rect.top;
-
-  const imageData = colorCanvas
-    .getContext("2d", { willReadFrequently: true })
-    ?.getImageData(x, y, mapInfos.width, mapInfos.height);
-
-  if (!imageData) {
-    console.log("no image data at coordinates", { x, y });
-    return;
-  }
-  const [r, g, b] = [
-    parseInt(`${imageData.data[0]}`),
-    parseInt(`${imageData.data[1]}`),
-    parseInt(`${imageData.data[2]}`),
-  ];
-
-  const hexStr = [
-    r.toString(16).padStart(2, "0"),
-    g.toString(16).padStart(2, "0"),
-    b.toString(16).padStart(2, "0"),
-  ].join("");
-
-  const locationName = mapping[hexStr] || "??";
-
-  if (locationName === "??") {
-    console.log("could not find hex code for color", hexStr);
-  }
-  dispatchFn(locationName);
-}
-
 export function WorldMapComponent() {
   const { setSelectedLocation, mappingData } = useContext(AppContext);
   if (!setSelectedLocation || !mappingData) {
     throw new Error("context is not set up properly");
   }
 
+  const isDraggingRef = useRef(false);
+  const clickedOnLocationRef = useRef<string | null>(null);
+  const zoomRef = useRef(1);
+  const [, forceUpdate] = useState({});
+
+  const triggerRender = useCallback(() => {
+    forceUpdate({});
+  }, []);
+
+  const searchLocationOnMouse = (
+    colorCanvas: HTMLCanvasElement,
+    mapping: Record<string, string>,
+    event: MouseEvent
+  ) => {
+    const zoom = zoomRef.current;
+    const rect = colorCanvas.getBoundingClientRect();
+
+    // Get click position in screen coordinates
+    const clickScreenX = event.clientX;
+    const clickScreenY = event.clientY;
+
+    // Get canvas position in screen coordinates
+    const canvasScreenLeft = rect.left;
+    const canvasScreenTop = rect.top;
+
+    // Calculate position relative to canvas's rendered position
+    const relX = clickScreenX - canvasScreenLeft;
+    const relY = clickScreenY - canvasScreenTop;
+
+    // Convert from rendered (zoomed) coordinates back to original image coordinates
+    // The canvas is scaled at origin 0,0, so we need to account for the CSS positioning
+    const imageX = relX / zoom;
+    const imageY = relY / zoom;
+
+    const imageData = colorCanvas
+      .getContext("2d", { willReadFrequently: true })
+      ?.getImageData(imageX, imageY, 1, 1);
+
+    if (!imageData) {
+      console.log("no image data at coordinates", {
+        imageX,
+        imageY,
+        relX,
+        relY,
+        zoom,
+      });
+      return;
+    }
+    const [r, g, b] = [
+      parseInt(`${imageData.data[0]}`),
+      parseInt(`${imageData.data[1]}`),
+      parseInt(`${imageData.data[2]}`),
+    ];
+
+    const hexStr = [
+      r.toString(16).padStart(2, "0"),
+      g.toString(16).padStart(2, "0"),
+      b.toString(16).padStart(2, "0"),
+    ].join("");
+
+    const locationName = mapping[hexStr] || "??";
+    if (locationName === "??") {
+      console.log("could not find hex code for color", hexStr);
+    }
+    console.log("set clicked on location", locationName, {
+      imageX,
+      imageY,
+      hexStr,
+    });
+    clickedOnLocationRef.current = locationName;
+  };
+
   useEffect(() => {
     const colorCanvas = document.getElementById(
       "color_map"
     ) as HTMLCanvasElement;
-    if (colorCanvas) {
-      console.log("found canvas element", colorCanvas);
-      const ctx = colorCanvas.getContext("2d");
-
-      if (!ctx) {
-        console.log("canvas context is nullish");
-        return;
-      }
-
-      const img = new Image();
-      img.src = mapInfos.colorMapFileName;
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0);
-      };
-    } else {
-      console.log("could not find color map canvas element element");
-    }
 
     const borderCanvas = document.getElementById(
       "border_map"
     ) as HTMLCanvasElement;
-    if (borderCanvas) {
-      console.log("found border canvas element", borderCanvas);
-      const ctx = borderCanvas.getContext("2d");
+    const container = document.getElementById("container");
 
-      if (!ctx) {
-        console.log("border canvas context is nullish");
-        return;
+    if (!colorCanvas || !borderCanvas || !container || !mappingData) return;
+
+    const colorContext = colorCanvas.getContext("2d");
+    const borderContext = borderCanvas.getContext("2d");
+
+    if (!colorContext || !borderContext) {
+      console.log("canvas context is nullish");
+      return;
+    }
+
+    const setInitialPosition = () => {
+      // Position user at coordinates X: 7934, Y: 1991
+      const containerRect = container.getBoundingClientRect();
+      const centerX = containerRect.width / 2;
+      const centerY = containerRect.height / 2;
+      const targetX = 7934;
+      const targetY = 1991;
+      const zoom = zoomRef.current;
+
+      const newLeft = centerX - targetX * zoom;
+      const newTop = centerY - targetY * zoom;
+
+      colorCanvas.style.left = newLeft + "px";
+      colorCanvas.style.top = newTop + "px";
+      borderCanvas.style.left = newLeft + "px";
+      borderCanvas.style.top = newTop + "px";
+    };
+
+    // effect variables: these will only be used inside this effect until destruction
+    let startX = 0;
+    let startY = 0;
+    let scrollLeft = 0;
+    let scrollTop = 0;
+    let dragDistance = 0;
+    const MIN_DRAG_DISTANCE = 5;
+
+    const colorImage = new Image();
+    colorImage.src = mapInfos.colorMapFileName;
+    colorImage.onload = () => {
+      colorContext.drawImage(colorImage, 0, 0);
+    };
+
+    const borderImage = new Image();
+    borderImage.src = mapInfos.borderMapFileName;
+    borderImage.onload = () => {
+      borderContext.drawImage(borderImage, 0, 0);
+    };
+
+    const handleMouseDown = (e: MouseEvent) => {
+      console.log("mousedown");
+      isDraggingRef.current = true;
+      triggerRender();
+      dragDistance = 0;
+      startX = e.clientX;
+      startY = e.clientY;
+      const rect = colorCanvas.getBoundingClientRect();
+      scrollLeft = rect.left;
+      scrollTop = rect.top;
+      searchLocationOnMouse(colorCanvas, mappingData, e);
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      e.preventDefault();
+
+      const x = e.clientX - startX;
+      const y = e.clientY - startY;
+      dragDistance = Math.sqrt(x * x + y * y);
+      if (dragDistance > MIN_DRAG_DISTANCE) {
+        setSelectedLocation(null);
       }
 
-      const img = new Image();
-      img.src = mapInfos.borderMapFileName;
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0);
-      };
+      colorCanvas.style.left = scrollLeft + x + "px";
+      colorCanvas.style.top = scrollTop + y + "px";
+      borderCanvas.style.left = scrollLeft + x + "px";
+      borderCanvas.style.top = scrollTop + y + "px";
+    };
 
-      const handleClick = (event: MouseEvent) =>
-        handleMouseEvent(colorCanvas, mappingData, event, setSelectedLocation);
+    const handleMouseUp = () => {
+      /* console.log("mouseup", {
+        dragDistance,
+        isDraggingRef: isDraggingRef.current,
+        clickedOnLocation: clickedOnLocationRef.current,
+      }); */
+      if (dragDistance < MIN_DRAG_DISTANCE && clickedOnLocationRef.current) {
+        setSelectedLocation(clickedOnLocationRef.current);
+      }
+      isDraggingRef.current = false;
+      triggerRender();
+    };
 
-      borderCanvas.addEventListener("click", handleClick);
+    const handleMouseLeave = () => {
+      isDraggingRef.current = false;
+      triggerRender();
+    };
 
-      return () => {
-        borderCanvas.removeEventListener("click", handleClick);
-      };
-    }
-  }, [setSelectedLocation, mappingData]);
+    borderCanvas.addEventListener("mousedown", handleMouseDown);
+    borderCanvas.addEventListener("mousemove", handleMouseMove);
+    borderCanvas.addEventListener("mouseup", handleMouseUp);
+    borderCanvas.addEventListener("mouseleave", handleMouseLeave);
+
+    setInitialPosition();
+
+    return () => {
+      borderCanvas.removeEventListener("mousedown", handleMouseDown);
+      borderCanvas.removeEventListener("mousemove", handleMouseMove);
+      borderCanvas.removeEventListener("mouseup", handleMouseUp);
+      borderCanvas.removeEventListener("mouseleave", handleMouseLeave);
+    };
+  }, [mappingData, triggerRender]);
+
+  const applyZoomLevel = (newZoom: number) => {
+    const colorCanvas = document.getElementById(
+      "color_map"
+    ) as HTMLCanvasElement;
+    const borderCanvas = document.getElementById(
+      "border_map"
+    ) as HTMLCanvasElement;
+    const container = document.getElementById("container") as HTMLElement;
+
+    if (!colorCanvas || !borderCanvas || !container) return;
+
+    const containerRect = container.getBoundingClientRect();
+
+    // Calculate center of viewport
+    const centerX = containerRect.width / 2;
+    const centerY = containerRect.height / 2;
+
+    // Get current position and zoom
+    const currentLeft = parseFloat(colorCanvas.style.left) || 0;
+    const currentTop = parseFloat(colorCanvas.style.top) || 0;
+    const oldZoom = zoomRef.current;
+
+    // Calculate the point on the canvas that's at the center of the viewport
+    const canvasCenterX = (centerX - currentLeft) / oldZoom;
+    const canvasCenterY = (centerY - currentTop) / oldZoom;
+
+    // Calculate new position so that the same canvas point remains at the viewport center
+    const newLeft = centerX - canvasCenterX * newZoom;
+    const newTop = centerY - canvasCenterY * newZoom;
+
+    zoomRef.current = newZoom;
+
+    colorCanvas.style.transform = `scale(${newZoom})`;
+    borderCanvas.style.transform = `scale(${newZoom})`;
+    colorCanvas.style.transformOrigin = "0 0";
+    borderCanvas.style.transformOrigin = "0 0";
+    colorCanvas.style.left = newLeft + "px";
+    colorCanvas.style.top = newTop + "px";
+    borderCanvas.style.left = newLeft + "px";
+    borderCanvas.style.top = newTop + "px";
+  };
+
+  const handleZoomOut = (event: React.MouseEvent<HTMLButtonElement>) => {
+    console.log("zoom out", event);
+    event.preventDefault();
+    setSelectedLocation(null);
+    const newZoom = Math.max(0.1, zoomRef.current - 0.1);
+    applyZoomLevel(newZoom);
+  };
+
+  const handleZoomIn = (event: React.MouseEvent<HTMLButtonElement>) => {
+    console.log("zoom in", event);
+    event.preventDefault();
+    setSelectedLocation(null);
+    const newZoom = Math.min(5, zoomRef.current + 0.1);
+    applyZoomLevel(newZoom);
+  };
 
   return (
-    <div className="relative">
+    <div
+      id="container"
+      className="relative w-screen h-screen"
+      style={{
+        overflow: "hidden",
+        position: "relative",
+        cursor: isDraggingRef.current ? "grabbing" : "default",
+      }}
+    >
       <canvas
         className="absolute z-0"
         height={mapInfos.height}
@@ -122,6 +289,20 @@ export function WorldMapComponent() {
         id="border_map"
       ></canvas>
       <InfoBoxComponent />
+      <div className="fixed border-white gap-2 flex flex-row right-5 bottom-5 z-10 text-white">
+        <button
+          onClick={handleZoomOut}
+          className="w-8 border-white border-2 border-radius-md bg-black px-2"
+        >
+          -
+        </button>
+        <button
+          onClick={handleZoomIn}
+          className="w-8 border-white border-2 border-radius-md bg-black px-2"
+        >
+          +
+        </button>
+      </div>
     </div>
   );
 }

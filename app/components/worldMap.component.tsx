@@ -49,6 +49,7 @@ export function WorldMapComponent() {
           break;
         case "result":
           console.log("[WORKER RESULT] ", event.data.message);
+          drawCoordinates(event.data.message);
           break;
       }
     });
@@ -198,6 +199,28 @@ export function WorldMapComponent() {
       }
     });
   }, []);
+
+  const drawCoordinates = useCallback(
+    (coordinates: Array<{ x: number; y: number }>) => {
+      console.log("enter drawCoordinates with coordinates:", coordinates);
+      const drawingCtx = drawingCanvasRef.current?.getContext("2d");
+
+      coordinates.forEach(({ x, y }) => {
+        const newPixelData = drawingCtx?.createImageData(1, 1);
+        if (!newPixelData) {
+          throw new Error("could not create image data on drawing context");
+        }
+        const [r, g, b, alpha] = [255, 255, 255, 255];
+        newPixelData.data[0] = r;
+        newPixelData.data[1] = g;
+        newPixelData.data[2] = b;
+        newPixelData.data[3] = alpha;
+        drawingCtx?.putImageData(newPixelData, x, y);
+        console.log("put image data done");
+      });
+    },
+    [drawingCanvasRef]
+  );
 
   useEffect(() => {
     console.log("enter useEffect for setup worldmap component");

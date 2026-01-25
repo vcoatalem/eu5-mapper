@@ -2,7 +2,7 @@ from sys import argv
 from PIL import Image
 import numpy as np
 
-def createColorBorders(color_map_filename: str, output_file: str = "borders.png", border_color: str = "#85c5f2"):
+def createColorBorders(color_map_filename: str, output_file: str = "borders.png", border_color: str = "#3a454d"):
     """
     Creates a transparent image with borders between different colored regions.
     

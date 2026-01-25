@@ -1,12 +1,24 @@
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import {
+  RefObject,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { InfoBoxComponent } from "./infoBox.component";
 import { AppContext } from "../app-context-provider";
+import path from "path";
 
 const mapInfos = {
   width: 16384,
   height: 8192,
   colorMapFileName: "test/locations.png",
-  borderMapFileName: "test/locations_borders.png",
+  borderMapFileName: "test/border_layer.png",
+  waterMapFileName: "test/water_layer.png",
+  blackBackgroundFileName: "test/black_layer.png",
+  //borderMapFileName: "test/locations_borders.png",
+  //waterMapFileName: "test/water-layer.png",
 };
 
 export function WorldMapComponent() {
@@ -20,7 +32,33 @@ export function WorldMapComponent() {
   const zoomRef = useRef(1);
   const colorCanvasRef = useRef<HTMLCanvasElement>(null);
   const borderCanvasRef = useRef<HTMLCanvasElement>(null);
+  const waterCanvasRef = useRef<HTMLCanvasElement>(null);
+  const blackCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const layers: Array<{ ref: RefObject<any>; zIndex: number; path: string }> = [
+    {
+      ref: colorCanvasRef,
+      zIndex: 0,
+      path: mapInfos.colorMapFileName,
+    },
+    {
+      ref: borderCanvasRef,
+      zIndex: 5,
+      path: mapInfos.borderMapFileName,
+    },
+    {
+      ref: waterCanvasRef,
+      zIndex: 3,
+      path: mapInfos.waterMapFileName,
+    },
+    {
+      ref: blackCanvasRef,
+      zIndex: 1,
+      path: mapInfos.blackBackgroundFileName,
+    },
+  ];
+
   const [, forceUpdate] = useState({});
 
   const triggerRender = useCallback(() => {
@@ -108,10 +146,18 @@ export function WorldMapComponent() {
     const newLeft = centerX - targetX * zoom;
     const newTop = centerY - targetY * zoom;
 
-    colorCanvas.style.left = newLeft + "px";
+    layers.forEach((layer) => {
+      const canvas = layer.ref.current;
+      if (canvas) {
+        canvas.style.left = newLeft + "px";
+        canvas.style.top = newTop + "px";
+      }
+    });
+
+    /*  colorCanvas.style.left = newLeft + "px";
     colorCanvas.style.top = newTop + "px";
     borderCanvas.style.left = newLeft + "px";
-    borderCanvas.style.top = newTop + "px";
+    borderCanvas.style.top = newTop + "px"; */
   };
 
   useEffect(() => {
@@ -121,8 +167,12 @@ export function WorldMapComponent() {
 
     if (!colorCanvas || !borderCanvas || !container || !mappingData) return;
 
-    const colorContext = colorCanvas.getContext("2d");
-    const borderContext = borderCanvas.getContext("2d");
+    const colorContext = colorCanvas.getContext("2d", {
+      willReadFrequently: true,
+    });
+    const borderContext = borderCanvas.getContext("2d", {
+      willReadFrequently: true,
+    });
 
     if (!colorContext || !borderContext) {
       console.log("canvas context is nullish");
@@ -137,17 +187,16 @@ export function WorldMapComponent() {
     let dragDistance = 0;
     const MIN_DRAG_DISTANCE = 5;
 
-    const colorImage = new Image();
-    colorImage.src = mapInfos.colorMapFileName;
-    colorImage.onload = () => {
-      colorContext.drawImage(colorImage, 0, 0);
-    };
-
-    const borderImage = new Image();
-    borderImage.src = mapInfos.borderMapFileName;
-    borderImage.onload = () => {
-      borderContext.drawImage(borderImage, 0, 0);
-    };
+    layers.forEach((layer) => {
+      const img = new Image();
+      img.src = layer.path;
+      img.onload = () => {
+        const ctx = layer.ref.current?.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+        }
+      };
+    });
 
     const handleMouseDown = (e: MouseEvent) => {
       console.log("mousedown");
@@ -173,10 +222,18 @@ export function WorldMapComponent() {
         setSelectedLocation(null);
       }
 
-      colorCanvas.style.left = scrollLeft + x + "px";
+      layers.forEach((layer) => {
+        const canvas = layer.ref.current;
+        if (canvas) {
+          canvas.style.left = scrollLeft + x + "px";
+          canvas.style.top = scrollTop + y + "px";
+        }
+      });
+
+      /*    colorCanvas.style.left = scrollLeft + x + "px";
       colorCanvas.style.top = scrollTop + y + "px";
       borderCanvas.style.left = scrollLeft + x + "px";
-      borderCanvas.style.top = scrollTop + y + "px";
+      borderCanvas.style.top = scrollTop + y + "px"; */
     };
 
     const handleMouseUp = () => {
@@ -216,8 +273,9 @@ export function WorldMapComponent() {
     const colorCanvas = colorCanvasRef.current;
     const borderCanvas = borderCanvasRef.current;
     const container = containerRef.current;
+    const waterCanvas = waterCanvasRef.current;
 
-    if (!colorCanvas || !borderCanvas || !container) return;
+    if (!colorCanvas || !borderCanvas || !waterCanvas || !container) return;
 
     const containerRect = container.getBoundingClientRect();
 
@@ -240,21 +298,26 @@ export function WorldMapComponent() {
 
     zoomRef.current = newZoom;
 
-    colorCanvas.style.transform = `scale(${newZoom})`;
-    borderCanvas.style.transform = `scale(${newZoom})`;
-    colorCanvas.style.transformOrigin = "0 0";
-    borderCanvas.style.transformOrigin = "0 0";
-    colorCanvas.style.left = newLeft + "px";
-    colorCanvas.style.top = newTop + "px";
-    borderCanvas.style.left = newLeft + "px";
-    borderCanvas.style.top = newTop + "px";
+    layers.forEach((layer) => {
+      const canvas = layer.ref.current;
+      if (canvas) {
+        canvas.style.transform = `scale(${newZoom})`;
+        canvas.style.transformOrigin = "0 0";
+        canvas.style.left = newLeft + "px";
+        canvas.style.top = newTop + "px";
+      }
+    });
   };
+
+  const zoomSteps = [0.1, 0.3, 0.7, 1, 1.5, 3, 5];
 
   const handleZoomOut = (event: React.MouseEvent<HTMLButtonElement>) => {
     console.log("zoom out", event);
     event.preventDefault();
     setSelectedLocation(null);
-    const newZoom = Math.max(0.1, zoomRef.current - 0.1);
+    //const newZoom = Math.max(0.1, zoomRef.current - 0.1);
+    const currentZoom = zoomSteps.indexOf(zoomRef.current);
+    const newZoom = zoomSteps[Math.max(0, currentZoom - 1)];
     applyZoomLevel(newZoom);
   };
 
@@ -262,7 +325,11 @@ export function WorldMapComponent() {
     console.log("zoom in", event);
     event.preventDefault();
     setSelectedLocation(null);
-    const newZoom = Math.min(5, zoomRef.current + 0.1);
+
+    const currentZoom = zoomSteps.indexOf(zoomRef.current);
+    const newZoom = zoomSteps[Math.min(zoomSteps.length - 1, currentZoom + 1)];
+    //
+    /* const newZoom = Math.min(5, zoomRef.current + 0.1); */
     applyZoomLevel(newZoom);
   };
 
@@ -276,20 +343,16 @@ export function WorldMapComponent() {
         cursor: isDraggingRef.current ? "grabbing" : "default",
       }}
     >
-      <canvas
-        ref={colorCanvasRef}
-        className="absolute z-0"
-        height={mapInfos.height}
-        width={mapInfos.width}
-        id="color_map"
-      ></canvas>
-      <canvas
-        ref={borderCanvasRef}
-        className="absolute z-1"
-        height={mapInfos.height}
-        width={mapInfos.width}
-        id="border_map"
-      ></canvas>
+      {layers.map((layer) => (
+        <canvas
+          ref={layer.ref}
+          height={mapInfos.height}
+          width={mapInfos.width}
+          key={layer.zIndex}
+          className={"absolute"}
+          style={{ zIndex: layer.zIndex, imageRendering: "pixelated" }}
+        ></canvas>
+      ))}
       <InfoBoxComponent />
       <div className="fixed border-white gap-2 flex flex-row right-5 bottom-5 z-10 text-white">
         <button

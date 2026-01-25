@@ -2,11 +2,9 @@
 
 import { Dispatch, SetStateAction, useState } from "react";
 import { createContext } from "react";
-import { ILocationDataMap, ISelectedLocationInfo } from "./lib/types";
+import { ISelectedLocationInfo } from "./lib/types";
 
 interface IAppContext {
-  mappingData: ILocationDataMap | null;
-  setMappingData: Dispatch<SetStateAction<ILocationDataMap | null>>; //TODO: mappingData might be better placed in a GameLogicRegistry app-wide singleton
   selectedLocation: ISelectedLocationInfo | null;
   setSelectedLocation: Dispatch<SetStateAction<ISelectedLocationInfo | null>>;
 }
@@ -22,15 +20,12 @@ export const AppContextProvider = ({
 }) => {
   const [selectedLocation, setSelectedLocation] =
     useState<ISelectedLocationInfo | null>(null);
-  const [mappingData, setMappingData] = useState<ILocationDataMap | null>(null);
 
   return (
     <AppContext.Provider
       value={{
         selectedLocation,
         setSelectedLocation,
-        mappingData,
-        setMappingData,
       }}
     >
       {children}

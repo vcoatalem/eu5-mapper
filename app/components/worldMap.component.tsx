@@ -11,6 +11,10 @@ import { AppContext } from "../appContextProvider";
 import { GameLogicController } from "../lib/gameLogicController";
 import { ISelectedLocationInfo } from "../lib/types";
 import { DrawingLogicController } from "../lib/drawingLogicController";
+import { WorkerManager } from "../lib/workerManager";
+import { IWorkerManagerObserver } from "../lib/workerTypes";
+import { LoadingScreenComponent } from "./loadingScreen.component";
+import { GameDataRegistry } from "../lib/gameDataRegistry";
 
 const mapInfos = {
   width: 16384,
@@ -22,8 +26,8 @@ const mapInfos = {
 };
 
 export function WorldMapComponent() {
-  const { setSelectedLocation, mappingData } = useContext(AppContext);
-  if (!setSelectedLocation || !mappingData) {
+  const { setSelectedLocation } = useContext(AppContext);
+  if (!setSelectedLocation) {
     throw new Error("context is not set up properly");
   }
 
@@ -38,30 +42,91 @@ export function WorldMapComponent() {
   const drawingCanvasRef = useRef<HTMLCanvasElement>(null);
   const topLayerRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const workerRef = useRef<Worker>(null);
+  const workerManagerRef = useRef<WorkerManager>(null);
   const gameLogicRef = useRef(new GameLogicController());
   const drawingLogicRef = useRef<DrawingLogicController>(null);
   const [, forceUpdate] = useState({});
+  const [workerStatus, setWorkerStatus] = useState({
+    activeTasks: 0,
+    queuedTasks: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
+  const layersRenderedRef = useRef(0);
+  const totalLayersRef = useRef(0);
 
-  const initializeWorkerAndCanvas = (): Worker => {
-    const worker = new Worker(new URL("canvas-worker.js", import.meta.url));
-    const workerCanvas = new OffscreenCanvas(mapInfos.width, mapInfos.height);
-    worker.postMessage({ type: "init", canvas: workerCanvas }, [workerCanvas]);
-    worker.addEventListener("message", (event) => {
-      switch (event.data.type) {
-        case "log":
-          console.log("[WORKER] ", event.data.message);
-          break;
-        case "result":
-          console.log("[WORKER RESULT] ", event.data);
-          drawingLogicRef.current?.addCoordinate(
-            event.data.colorHex,
-            event.data.coordinates
-          );
-          break;
+  const initializeWorkerAndCanvas = (): void => {
+    if (workerManagerRef.current) {
+      workerManagerRef.current.terminate();
+    }
+
+    const workerManager = new WorkerManager(
+      new URL("canvas-worker.js", import.meta.url).href,
+      4
+    );
+
+    // Subscribe to worker status updates
+    const observer: IWorkerManagerObserver = {
+      onTasksChanged: (activeTasks, queuedTasks) => {
+        setWorkerStatus({ activeTasks, queuedTasks });
+      },
+    };
+    workerManager.subscribe(observer);
+
+    workerManagerRef.current = workerManager;
+  };
+
+  const waitForInitialization = async (): Promise<void> => {
+    try {
+      const registry = GameDataRegistry.getInstance();
+
+      // Wait for game data registry to be ready
+      await registry.waitForInitialization();
+
+      if (!registry.isReady()) {
+        throw new Error(
+          registry.getError() || "Failed to initialize game data"
+        );
       }
-    });
-    return worker;
+
+      // Wait for all layers to be rendered
+      await new Promise<void>((resolve) => {
+        const checkLayersRendered = () => {
+          if (
+            layersRenderedRef.current === totalLayersRef.current &&
+            totalLayersRef.current > 0
+          ) {
+            resolve();
+          }
+        };
+
+        // Check immediately in case layers are already rendered
+        checkLayersRendered();
+
+        // Set up an interval to check periodically
+        const interval = setInterval(checkLayersRendered, 50);
+
+        // Cleanup interval after a timeout (e.g., 30 seconds)
+        const timeout = setTimeout(() => {
+          clearInterval(interval);
+          resolve(); // Resolve anyway to prevent infinite loading
+        }, 30000);
+
+        return () => {
+          clearInterval(interval);
+          clearTimeout(timeout);
+        };
+      });
+
+      setLoadingError(null);
+      setIsLoading(false);
+    } catch (error) {
+      const errorMsg =
+        error instanceof Error ? error.message : "Initialization failed";
+      setLoadingError(errorMsg);
+      setIsLoading(false);
+      console.error("[WorldMapComponent] Initialization error:", errorMsg);
+    }
   };
 
   const createBlackCanvas = (ctx: CanvasRenderingContext2D) => {
@@ -104,7 +169,7 @@ export function WorldMapComponent() {
     },
     {
       ref: drawingCanvasRef,
-      zIndex: 6,
+      zIndex: 4,
       createMethod: createTransparentCanvas,
     },
   ];
@@ -163,11 +228,7 @@ export function WorldMapComponent() {
         b.toString(16).padStart(2, "0"),
       ].join("");
 
-      /* console.log("will search for ", hexStr, "in ", mappingData); */
-      const locationName = gameLogicRef.current.findLocationName(
-        hexStr,
-        mappingData
-      );
+      const locationName = gameLogicRef.current.findLocationName(hexStr);
       console.log("set clicked on location", locationName, {
         imageX,
         imageY,
@@ -213,13 +274,14 @@ export function WorldMapComponent() {
       return;
     }
 
-    workerRef.current = initializeWorkerAndCanvas();
+    initializeWorkerAndCanvas();
+    waitForInitialization();
 
     const colorCanvas = colorCanvasRef.current;
     const borderCanvas = borderCanvasRef.current;
     const container = containerRef.current;
 
-    if (!colorCanvas || !borderCanvas || !container || !mappingData) return;
+    if (!colorCanvas || !borderCanvas || !container) return;
 
     const colorContext = colorCanvas.getContext("2d", {
       willReadFrequently: true,
@@ -241,6 +303,10 @@ export function WorldMapComponent() {
     let dragDistance = 0;
     const MIN_DRAG_DISTANCE = 5;
 
+    // Count all layers that need to be rendered
+    totalLayersRef.current = layers.length;
+    layersRenderedRef.current = 0;
+
     layers.forEach((layer) => {
       const img = new Image();
       const ctx = layer.ref.current?.getContext("2d");
@@ -252,24 +318,50 @@ export function WorldMapComponent() {
         img.src = layer.path;
         img.onload = () => {
           ctx.drawImage(img, 0, 0);
-          if (layer.initializeWorkerCanvas && workerRef.current) {
+          layersRenderedRef.current++;
+          console.log(
+            `[Layer Rendered] ${layersRenderedRef.current}/${totalLayersRef.current}`
+          );
+          if (layer.initializeWorkerCanvas && workerManagerRef.current) {
             createImageBitmap(colorCanvas).then((bitmap) => {
-              workerRef.current.postMessage({
-                type: "drawImage",
-                imageBitmap: bitmap,
-              });
+              if (workerManagerRef.current) {
+                // Initialize all workers with the image
+                for (let i = 0; i < 4; i++) {
+                  const taskId = `initWithImage-${i}`;
+                  workerManagerRef.current.queueTask({
+                    id: taskId,
+                    type: "initWithImage",
+                    payload: {
+                      type: "initWithImage",
+                      imageBitmap: bitmap,
+                      canvasWidth: mapInfos.width,
+                      canvasHeight: mapInfos.height,
+                    },
+                    callbacks: {
+                      onSuccess: () => {
+                        console.log(`[INIT WITH IMAGE COMPLETE] Worker ${i}`);
+                      },
+                      onError: (error) => {
+                        console.error(
+                          `[INIT WITH IMAGE ERROR] Worker ${i}`,
+                          error
+                        );
+                      },
+                    },
+                  });
+                }
+              }
             });
           }
         };
       } else if (layer.createMethod) {
         layer.createMethod(ctx);
+        layersRenderedRef.current++;
       } else {
         console.log(
           "layer needs to have either a path (file) or createMethod specified"
         );
       }
-
-      // TODO: remove loading screen only after all canvas have loaded
     });
 
     const topLayer = layers.sort((a, b) => b.zIndex - a.zIndex)[0];
@@ -326,15 +418,35 @@ export function WorldMapComponent() {
       ) {
         setSelectedLocation(clickedOnLocationRef.current);
         gameLogicRef.current.selectLocation(
-          clickedOnLocationRef.current.hexColor,
-          mappingData
+          clickedOnLocationRef.current.hexColor
         );
-        if (workerRef.current) {
-          workerRef.current.postMessage({
-            type: "task",
-            canvasWidth: colorCanvas.width,
-            canvasHeight: colorCanvas.height,
-            colorHex: clickedOnLocationRef.current?.hexColor,
+        if (workerManagerRef.current) {
+          const taskId = `colorSearch-${clickedOnLocationRef.current.hexColor}`;
+          workerManagerRef.current.queueTask({
+            id: taskId,
+            type: "colorSearch",
+            payload: {
+              type: "colorSearch",
+              canvasWidth: colorCanvas.width,
+              canvasHeight: colorCanvas.height,
+              colorHex: clickedOnLocationRef.current?.hexColor,
+            },
+            callbacks: {
+              onSuccess: (result: unknown) => {
+                const data = result as {
+                  coordinates: Array<{ x: number; y: number }>;
+                  colorHex: string;
+                };
+                drawingLogicRef.current?.addCoordinate(
+                  data.colorHex,
+                  data.coordinates
+                );
+                console.log("[COLOR SEARCH COMPLETE]", data);
+              },
+              onError: (error) => {
+                console.error("[COLOR SEARCH ERROR]", error);
+              },
+            },
           });
         }
       }
@@ -368,10 +480,10 @@ export function WorldMapComponent() {
         topLayerRef.current.removeEventListener("mouseup", handleMouseUp);
         topLayerRef.current.removeEventListener("mouseleave", handleMouseLeave);
       }
-      workerRef.current?.terminate();
+      workerManagerRef.current?.terminate();
       initializedRef.current = false;
     };
-  }, [mappingData]);
+  }, []);
 
   const applyZoomLevel = (newZoom: number) => {
     const colorCanvas = colorCanvasRef.current;
@@ -454,21 +566,36 @@ export function WorldMapComponent() {
           style={{ zIndex: layer.zIndex, imageRendering: "pixelated" }}
         ></canvas>
       ))}
-      <InfoBoxComponent />
-      <div className="fixed border-white gap-2 flex flex-row right-5 bottom-5 z-10 text-white">
-        <button
-          onClick={handleZoomOut}
-          className="w-8 border-white border-2 border-radius-md bg-black px-2"
-        >
-          -
-        </button>
-        <button
-          onClick={handleZoomIn}
-          className="w-8 border-white border-2 border-radius-md bg-black px-2"
-        >
-          +
-        </button>
-      </div>
+      {isLoading && (
+        <LoadingScreenComponent
+          message={loadingError ? `Error: ${loadingError}` : "Loading..."}
+        />
+      )}
+      {!isLoading && !loadingError && (
+        <>
+          <InfoBoxComponent />
+          <div className="fixed border-white gap-2 flex flex-col right-5 bottom-5 z-10 text-white">
+            <div className="text-sm bg-black px-2 py-1 border border-white border-radius-md">
+              <div>Tasks: {workerStatus.activeTasks} active</div>
+              <div>Queue: {workerStatus.queuedTasks}</div>
+            </div>
+            <div className="flex flex-row gap-2">
+              <button
+                onClick={handleZoomOut}
+                className="w-8 border-white border-2 border-radius-md bg-black px-2"
+              >
+                -
+              </button>
+              <button
+                onClick={handleZoomIn}
+                className="w-8 border-white border-2 border-radius-md bg-black px-2"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

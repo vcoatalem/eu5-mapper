@@ -2,26 +2,24 @@ const getAllCoordinatesOfColor = (ctx, width, height, hexColor) => {
   try {
     const coordinates = [];
     const imageData = ctx.getImageData(0, 0, width, height);
-
-    /*    self.postMessage({
-      type: "log",
-      message: `got imageData: ${JSON.stringify(imageData.data.slice(0, 200))}`,
-    }); */
+    const data = imageData.data; // Cache array reference
+    const len = data.length;
 
     const rTarget = parseInt(hexColor.slice(0, 2), 16);
     const gTarget = parseInt(hexColor.slice(2, 4), 16);
     const bTarget = parseInt(hexColor.slice(4, 6), 16);
 
-    for (let y = 0; y < imageData.height; y++) {
-      for (let x = 0; x < imageData.width; x++) {
-        const index = (y * imageData.width + x) * 4;
-        const r = imageData.data[index];
-        const g = imageData.data[index + 1];
-        const b = imageData.data[index + 2];
+    // Direct array iteration is faster than nested loops
+    for (let i = 0; i < len; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
 
-        if (r === rTarget && g === gTarget && b === bTarget) {
-          coordinates.push({ x, y });
-        }
+      if (r === rTarget && g === gTarget && b === bTarget) {
+        const pixelIndex = i / 4;
+        const x = pixelIndex % width;
+        const y = Math.floor(pixelIndex / width);
+        coordinates.push({ x, y });
       }
     }
 
@@ -37,67 +35,91 @@ const getAllCoordinatesOfColor = (ctx, width, height, hexColor) => {
 let canvasCtx;
 
 self.onmessage = function (e) {
+  const taskId = e.data.taskId;
+
   self.postMessage({
     type: "log",
     message: `worker got event: ${JSON.stringify(e.data)}`,
+    taskId: taskId,
   });
+
   switch (e.data.type) {
-    case "init":
+    case "initWithImage":
       try {
-        canvasCtx = e.data.canvas.getContext("2d", {
+        // Create a new OffscreenCanvas for this worker
+        const canvas = new OffscreenCanvas(
+          e.data.canvasWidth,
+          e.data.canvasHeight
+        );
+        canvasCtx = canvas.getContext("2d", {
           willReadFrequently: true,
         });
-        self.postMessage({
-          type: "log",
-          message: "worker initialized with canvas",
-        });
-      } catch (e) {
-        self.postMessage({
-          type: "log",
-          message: `something went wrong during canvas init: ${JSON.stringify(
-            e
-          )}`,
-        });
-      }
 
-      break;
-    case "drawImage":
-      try {
+        // Draw the image bitmap onto the canvas
         canvasCtx.drawImage(e.data.imageBitmap, 0, 0);
+
         self.postMessage({
           type: "log",
-          message: "worker drew image on canvas",
+          message: "worker initialized with image",
+          taskId: taskId,
         });
-      } catch (e) {
         self.postMessage({
-          type: "log",
-          message: `something went wrong during canvas bitmap drawing: ${JSON.stringify(
-            e
-          )}`,
+          type: "result",
+          taskId: taskId,
+          data: { success: true, message: "Canvas initialized with image" },
+        });
+      } catch (err) {
+        self.postMessage({
+          type: "error",
+          taskId: taskId,
+          message: `something went wrong during canvas init with image: ${err.message}`,
         });
       }
       break;
-    case "task":
+
+    case "colorSearch":
+      try {
+        if (!canvasCtx) {
+          throw new Error(
+            "Canvas context not initialized. Must call 'init' first."
+          );
+        }
+
+        self.postMessage({
+          type: "log",
+          message: "worker processing color search task",
+          taskId: taskId,
+        });
+
+        const coordinates = getAllCoordinatesOfColor(
+          canvasCtx,
+          e.data.canvasWidth,
+          e.data.canvasHeight,
+          e.data.colorHex
+        );
+
+        self.postMessage({
+          type: "result",
+          taskId: taskId,
+          data: {
+            coordinates: coordinates,
+            colorHex: e.data.colorHex,
+          },
+        });
+      } catch (err) {
+        self.postMessage({
+          type: "error",
+          taskId: taskId,
+          message: `Color search failed: ${err.message}`,
+        });
+      }
+      break;
+
+    default:
       self.postMessage({
-        type: "log",
-        message: "worker got task",
-      });
-      const coordinates = getAllCoordinatesOfColor(
-        canvasCtx,
-        e.data.canvasWidth,
-        e.data.canvasHeight,
-        e.data.colorHex
-      );
-      self.postMessage({
-        type: "result",
-        coordinates: coordinates,
-        colorHex: e.data.colorHex,
+        type: "error",
+        taskId: taskId,
+        message: `Unknown task type: ${e.data.type}`,
       });
   }
-  /*   const canvas = e.data.canvas;
-  const ctx = canvas.getContext("2d", { willReadFrequently: true });
-
-  const coordinates = getAllCoordinatesOfColor(canvas, e.data.hexColor);
-
-  console.log("coordinates computed in worker:", coordinates); */
 };

@@ -33,6 +33,10 @@ export class DrawingLogicController {
       );
     }
     this.canvasContext = context;
+
+    this.gameLogicController.subscribe(() => {
+      this.drawGameState();
+    });
   }
 
   private drawGameState(): void {

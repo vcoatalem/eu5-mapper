@@ -1,6 +1,3 @@
-import { useContext, useEffect } from "react";
-import { AppContext } from "../appContextProvider";
-
 interface LoadingScreenProps {
   message?: string;
 }

@@ -26,8 +26,8 @@ const mapInfos = {
 };
 
 export function WorldMapComponent() {
-  const { setSelectedLocation } = useContext(AppContext);
-  if (!setSelectedLocation) {
+  const { setSelectedLocation, setHoveredLocation } = useContext(AppContext);
+  if (!setSelectedLocation || !setHoveredLocation) {
     throw new Error("context is not set up properly");
   }
 
@@ -178,25 +178,17 @@ export function WorldMapComponent() {
     forceUpdate({});
   }, []);
 
-  const searchLocationOnMouse = useCallback(
-    (colorCanvas: HTMLCanvasElement, event: MouseEvent) => {
+  const getLocationAtPointer = useCallback(
+    (
+      colorCanvas: HTMLCanvasElement,
+      event: MouseEvent
+    ): ISelectedLocationInfo | null => {
       const zoom = zoomRef.current;
       const rect = colorCanvas.getBoundingClientRect();
 
-      // Get click position in screen coordinates
-      const clickScreenX = event.clientX;
-      const clickScreenY = event.clientY;
+      const relX = event.clientX - rect.left;
+      const relY = event.clientY - rect.top;
 
-      // Get canvas position in screen coordinates
-      const canvasScreenLeft = rect.left;
-      const canvasScreenTop = rect.top;
-
-      // Calculate position relative to canvas's rendered position
-      const relX = clickScreenX - canvasScreenLeft;
-      const relY = clickScreenY - canvasScreenTop;
-
-      // Convert from rendered (zoomed) coordinates back to original image coordinates
-      // The canvas is scaled at origin 0,0, so we need to account for the CSS positioning
       const imageX = relX / zoom;
       const imageY = relY / zoom;
 
@@ -204,18 +196,10 @@ export function WorldMapComponent() {
         .getContext("2d", { willReadFrequently: true })
         ?.getImageData(imageX, imageY, 1, 1);
 
-      console.log("imageData", imageData);
-
       if (!imageData) {
-        console.log("no image data at coordinates", {
-          imageX,
-          imageY,
-          relX,
-          relY,
-          zoom,
-        });
-        return;
+        return null;
       }
+
       const [r, g, b] = [
         parseInt(`${imageData.data[0]}`),
         parseInt(`${imageData.data[1]}`),
@@ -229,12 +213,7 @@ export function WorldMapComponent() {
       ].join("");
 
       const locationName = gameLogicRef.current.findLocationName(hexStr);
-      console.log("set clicked on location", locationName, {
-        imageX,
-        imageY,
-        hexStr,
-      });
-      clickedOnLocationRef.current = { name: locationName, hexColor: hexStr };
+      return { name: locationName, hexColor: hexStr };
     },
     []
   );
@@ -387,10 +366,14 @@ export function WorldMapComponent() {
       const rect = colorCanvas.getBoundingClientRect();
       scrollLeft = rect.left;
       scrollTop = rect.top;
-      searchLocationOnMouse(colorCanvas, e);
+      const location = getLocationAtPointer(colorCanvas, e);
+      clickedOnLocationRef.current = location;
     };
 
     const handleMouseMove = (e: MouseEvent) => {
+      const hoverLocation = getLocationAtPointer(colorCanvas, e);
+      setHoveredLocation(hoverLocation);
+
       if (!isDraggingRef.current) return;
       e.preventDefault();
 
@@ -456,7 +439,23 @@ export function WorldMapComponent() {
 
     const handleMouseLeave = () => {
       isDraggingRef.current = false;
+      setHoveredLocation(null);
       triggerRender();
+    };
+
+    const handleWheel = (e: WheelEvent) => {
+      if (!topLayerRef.current) return;
+      e.preventDefault();
+      const direction = e.deltaY < 0 ? -1 : 1; // up = zoom out (reversed)
+      const currentZoomIndex = zoomSteps.indexOf(zoomRef.current);
+      const nextIndex = Math.min(
+        Math.max(0, currentZoomIndex + direction),
+        zoomSteps.length - 1
+      );
+      const nextZoom = zoomSteps[nextIndex];
+      if (nextZoom !== zoomRef.current) {
+        applyZoomLevel(nextZoom);
+      }
     };
 
     console.log({ topLayerRefForCreate: topLayerRef });
@@ -466,6 +465,9 @@ export function WorldMapComponent() {
       topLayerRef.current.addEventListener("mousemove", handleMouseMove);
       topLayerRef.current.addEventListener("mouseup", handleMouseUp);
       topLayerRef.current.addEventListener("mouseleave", handleMouseLeave);
+      topLayerRef.current.addEventListener("wheel", handleWheel, {
+        passive: false,
+      });
     }
 
     setInitialPosition();
@@ -479,6 +481,7 @@ export function WorldMapComponent() {
         topLayerRef.current.removeEventListener("mousemove", handleMouseMove);
         topLayerRef.current.removeEventListener("mouseup", handleMouseUp);
         topLayerRef.current.removeEventListener("mouseleave", handleMouseLeave);
+        topLayerRef.current.removeEventListener("wheel", handleWheel);
       }
       workerManagerRef.current?.terminate();
       initializedRef.current = false;

@@ -17,14 +17,12 @@ export class GameLogicController {
 
   public selectLocation(
     hexColor: string,
-    mappingData: ILocationDataMap,
-    coordinates: Array<{ x: number; y: number }>
+    mappingData: ILocationDataMap
   ): boolean {
     const storedLocation = this.selectedLocations[hexColor];
     if (!storedLocation) {
       this.selectedLocations[hexColor] = {
         hexColor,
-        coordinates,
         name: this.findLocationName(hexColor, mappingData),
       };
 

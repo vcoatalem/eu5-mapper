@@ -10,6 +10,7 @@ import { InfoBoxComponent } from "./infoBox.component";
 import { AppContext } from "../appContextProvider";
 import { GameLogicController } from "../lib/gameLogicController";
 import { ISelectedLocationInfo } from "../lib/types";
+import { DrawingLogicController } from "../lib/drawingLogicController";
 
 const mapInfos = {
   width: 16384,
@@ -39,6 +40,7 @@ export function WorldMapComponent() {
   const containerRef = useRef<HTMLDivElement>(null);
   const workerRef = useRef<Worker>(null);
   const gameLogicRef = useRef(new GameLogicController());
+  const drawingLogicRef = useRef<DrawingLogicController>(null);
   const [, forceUpdate] = useState({});
 
   const initializeWorkerAndCanvas = (): Worker => {
@@ -52,17 +54,10 @@ export function WorldMapComponent() {
           break;
         case "result":
           console.log("[WORKER RESULT] ", event.data);
-          gameLogicRef.current.selectLocation(
+          drawingLogicRef.current?.addCoordinate(
             event.data.colorHex,
-            mappingData,
             event.data.coordinates
           );
-          const allCoordinates = gameLogicRef.current
-            .getAllSelectedLocations()
-            .flatMap((locations) => locations.coordinates)
-            .filter((coord) => !!coord);
-          console.log({ allCoordinates });
-          drawCoordinates(allCoordinates);
           break;
       }
     });
@@ -210,36 +205,6 @@ export function WorldMapComponent() {
     });
   }, []);
 
-  const drawCoordinates = useCallback(
-    (coordinates: Array<{ x: number; y: number }>) => {
-      console.log("enter drawCoordinates with coordinates:", coordinates);
-      const drawingCtx = drawingCanvasRef.current?.getContext("2d");
-      if (!drawingCtx) {
-        throw new Error("could not get drawing context");
-      }
-      const imageData = drawingCtx.createImageData(
-        mapInfos.width,
-        mapInfos.height
-      );
-
-      const data = imageData.data;
-
-      // Plot all pixels at once
-      coordinates.forEach(({ x, y }) => {
-        const index = (y * mapInfos.width + x) * 4;
-        data[index] = 255; // R
-        data[index + 1] = 255; // G
-        data[index + 2] = 255; // B
-        data[index + 3] = 255; // A
-      });
-
-      // Draw once
-      drawingCtx.putImageData(imageData, 0, 0);
-      console.log("put image data done");
-    },
-    [drawingCanvasRef]
-  );
-
   useEffect(() => {
     console.log("enter useEffect for setup worldmap component");
 
@@ -314,6 +279,12 @@ export function WorldMapComponent() {
       throw new Error("could not set top layer ref");
     }
 
+    drawingLogicRef.current = new DrawingLogicController(
+      drawingCanvasRef.current!,
+      { width: mapInfos.width, height: mapInfos.height },
+      gameLogicRef.current
+    );
+
     const handleMouseDown = (e: MouseEvent) => {
       console.log("mousedown");
       isDraggingRef.current = true;
@@ -354,6 +325,10 @@ export function WorldMapComponent() {
         clickedOnLocationRef.current?.name
       ) {
         setSelectedLocation(clickedOnLocationRef.current);
+        gameLogicRef.current.selectLocation(
+          clickedOnLocationRef.current.hexColor,
+          mappingData
+        );
         if (workerRef.current) {
           workerRef.current.postMessage({
             type: "task",

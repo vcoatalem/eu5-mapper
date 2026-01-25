@@ -1,0 +1,72 @@
+import { GameLogicController } from "./gameLogicController";
+import { ICoordinate } from "./types";
+
+export class DrawingLogicController {
+  private canvas: HTMLCanvasElement;
+  private canvasContext: CanvasRenderingContext2D;
+  private mapInfos: { width: number; height: number };
+  private coordinateMap: Record<string, Array<ICoordinate>> = {};
+  private gameLogicController: GameLogicController | null = null;
+
+  public addCoordinate(hexColor: string, coordinates: ICoordinate[]): void {
+    if (!this.coordinateMap[hexColor]) {
+      this.coordinateMap[hexColor] = coordinates;
+    }
+
+    this.drawGameState();
+  }
+
+  constructor(
+    canvas: HTMLCanvasElement,
+    mapInfos: { width: number; height: number },
+    gameLogicController: GameLogicController
+  ) {
+    this.canvas = canvas;
+    this.mapInfos = mapInfos;
+    this.gameLogicController = gameLogicController;
+    const context = this.canvas.getContext("2d", {
+      willReadFrequently: true,
+    });
+    if (!context) {
+      throw new Error(
+        "DrawingLogicController constructor error: could not get drawing context"
+      );
+    }
+    this.canvasContext = context;
+  }
+
+  private drawGameState(): void {
+    if (!this.gameLogicController) {
+      throw new Error(
+        "no game logic controller set in drawing logic controller"
+      );
+    }
+    const coordinates: Array<ICoordinate> = this.gameLogicController
+      .getAllSelectedLocations()
+      .map((loc) => loc.hexColor)
+      .flatMap((hexColor) => this.coordinateMap[hexColor] || null)
+      .filter((coord) => !!coord);
+
+    console.log("will put coordinates:", coordinates.length, coordinates);
+
+    const imageData = this.canvasContext.createImageData(
+      this.mapInfos.width,
+      this.mapInfos.height
+    );
+
+    const data = imageData.data;
+
+    // Plot all pixels at once
+    coordinates.forEach(({ x, y }) => {
+      const index = (y * this.mapInfos.width + x) * 4;
+      data[index] = 255; // R
+      data[index + 1] = 255; // G
+      data[index + 2] = 255; // B
+      data[index + 3] = 255; // A
+    });
+
+    // Draw once
+    this.canvasContext.putImageData(imageData, 0, 0);
+    console.log("put image data done");
+  }
+}

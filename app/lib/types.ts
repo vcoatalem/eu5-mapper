@@ -3,7 +3,6 @@
 export interface ISelectedLocationInfo {
   hexColor: string;
   name: string;
-  coordinates?: Array<ICoordinate>;
   // todo: fill
   locationLevel?: "none" | "rural" | "town" | "city";
 }

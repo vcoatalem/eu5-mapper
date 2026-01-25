@@ -10,7 +10,24 @@ export interface ISelectedLocationInfo {
 export interface ILocationGameData {
   // todo: fill
   name: string;
-  type?: "forest" | "grassland";
+  topography:
+    | "unknown"
+    | "hills"
+    | "wetlands"
+    | "mountains"
+    | "flatlands"
+    | "farmland"
+    | "lakes"
+    | "plateau"
+    | "ocean"
+    | "coastal_ocean"
+    | "narrows"
+    | "inland_sea"
+    | "ocean_wasteland"
+    | "mountain_wasteland";
+  vegetation: null | "forest" | "woods" | "sparse" | "jungle" | "desert";
+  isSea?: boolean;
+  isLake?: boolean;
   unconstructible?: boolean;
 }
 

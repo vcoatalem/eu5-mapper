@@ -22,7 +22,6 @@ const mapInfos = {
   colorMapFileName: "test/locations.png",
   borderMapFileName: "test/border_layer.png",
   waterMapFileName: "test/water_layer.png",
-  blackBackgroundFileName: "test/black_layer.png",
 };
 
 export function WorldMapComponent() {

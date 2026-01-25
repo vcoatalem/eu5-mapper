@@ -20,7 +20,7 @@ export async function GameDataProvider({
   locationDataPath = "game_data/world_map/0.0.11/location_templates.txt",
   mapConfigPath = "game_data/world_map/0.0.11/default.map",
 }: GameDataProviderProps) {
-  let gameData: ILocationDataMap | null = {};
+  let locationDataMap: ILocationDataMap | null = {};
   let error: string | null = null;
 
   try {
@@ -72,7 +72,7 @@ export async function GameDataProvider({
         data.topography === "ocean_wasteland" ||
         data.topography === "narrows";
 
-      gameData[hexColor] = {
+      locationDataMap[hexColor] = {
         ...data,
         name: locationName,
         isLake,
@@ -81,8 +81,8 @@ export async function GameDataProvider({
       };
     }
 
-    if (!gameData) {
-      gameData = null;
+    if (!locationDataMap) {
+      locationDataMap = null;
       throw new Error("Failed to load game data");
     }
   } catch (err) {
@@ -92,7 +92,7 @@ export async function GameDataProvider({
   }
 
   return (
-    <GameDataClientProvider value={{ gameData, error }}>
+    <GameDataClientProvider value={{ locationDataMap, error }}>
       {children}
     </GameDataClientProvider>
   );

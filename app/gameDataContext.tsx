@@ -4,7 +4,7 @@ import { createContext, useContext, ReactNode } from "react";
 import { ILocationDataMap } from "./lib/types";
 
 interface GameDataContextType {
-  gameData: ILocationDataMap | null;
+  locationDataMap: ILocationDataMap | null;
   error: string | null;
 }
 

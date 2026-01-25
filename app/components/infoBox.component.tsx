@@ -4,7 +4,9 @@ import { useGameData } from "../gameDataContext";
 import { ILocationGameData } from "../lib/types";
 
 const buildLocationDisplay = (locationData: ILocationGameData): JSX.Element => {
-  console.log("Building location display for:", locationData);
+  if (!locationData) {
+    return <span>No data available</span>;
+  }
   return (
     <div className="flex flex-col">
       <span className="font-bold text-lg">{locationData.name}</span>
@@ -20,7 +22,7 @@ const buildLocationDisplay = (locationData: ILocationGameData): JSX.Element => {
 export function InfoBoxComponent() {
   const context = useContext(AppContext);
   const gameData = useGameData();
-  if (!gameData || !gameData.gameData) {
+  if (!gameData || !gameData.locationDataMap) {
     throw new Error("gameData is not loaded");
   }
 
@@ -30,7 +32,7 @@ export function InfoBoxComponent() {
     null;
 
   const locationDisplay = hexColor ? (
-    buildLocationDisplay(gameData.gameData[hexColor])
+    buildLocationDisplay(gameData.locationDataMap[hexColor])
   ) : (
     <span></span>
   );

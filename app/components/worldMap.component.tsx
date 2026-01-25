@@ -23,13 +23,14 @@ const mapInfos = {
   borderMapFileName: "test/border_layer.png",
   waterMapFileName: "test/water_layer.png",
   riverMapFileName: "test/river_layer.png",
+  unownableTerrainMapFileName: "test/unownable_layer.png",
 };
 
 export function WorldMapComponent() {
   const { setSelectedLocation, setHoveredLocation } = useContext(AppContext);
-  const { gameData } = useGameData();
+  const { locationDataMap } = useGameData();
 
-  if (!gameData) {
+  if (!locationDataMap) {
     throw new Error("gameData is not loaded");
   }
 
@@ -48,9 +49,10 @@ export function WorldMapComponent() {
   const drawingCanvasRef = useRef<HTMLCanvasElement>(null);
   const riverCanvasRef = useRef<HTMLCanvasElement>(null);
   const topLayerRef = useRef<HTMLCanvasElement>(null);
+  const unownableTerrainCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const workerManagerRef = useRef<WorkerManager>(null);
-  const gameLogicRef = useRef(new GameLogicController(gameData));
+  const gameLogicRef = useRef(new GameLogicController(locationDataMap));
   const drawingLogicRef = useRef<DrawingLogicController>(null);
   const [, forceUpdate] = useState({});
   const [workerStatus, setWorkerStatus] = useState({
@@ -155,7 +157,7 @@ export function WorldMapComponent() {
     },
     {
       ref: waterCanvasRef,
-      zIndex: 3,
+      zIndex: 6,
       path: mapInfos.waterMapFileName,
     },
     {
@@ -172,6 +174,11 @@ export function WorldMapComponent() {
       ref: riverCanvasRef,
       zIndex: 7,
       path: mapInfos.riverMapFileName,
+    },
+    {
+      ref: unownableTerrainCanvasRef,
+      zIndex: 5,
+      path: mapInfos.unownableTerrainMapFileName,
     },
   ];
 

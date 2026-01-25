@@ -3,11 +3,16 @@
 import { Dispatch, SetStateAction, useState } from "react";
 import { createContext } from "react";
 
+export interface ILocation {
+  name: string;
+  colorHex: string;
+}
+
 interface IAppContext {
   mappingData: Record<string, string> | null;
   setMappingData: Dispatch<SetStateAction<Record<string, string> | null>>;
-  selectedLocation: string | null;
-  setSelectedLocation: Dispatch<SetStateAction<string | null>>;
+  selectedLocation: ILocation | null;
+  setSelectedLocation: Dispatch<SetStateAction<ILocation | null>>;
 }
 
 const emptyContext = {} as IAppContext;
@@ -19,7 +24,9 @@ export const AppContextProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<ILocation | null>(
+    null
+  );
   const [mappingData, setMappingData] = useState<Record<string, string> | null>(
     null
   );

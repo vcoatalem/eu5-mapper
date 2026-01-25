@@ -10,7 +10,7 @@ async function extractMappingData(): Promise<Record<string, string> | null> {
     try {
       const response = await fetch("test/00_default.txt");
       const data = await response.text();
-      console.log(data);
+      /* console.log(data); */
       return data;
     } catch (error) {
       console.error("Failed to load mapping data:", error);

@@ -7,8 +7,7 @@ import {
   useState,
 } from "react";
 import { InfoBoxComponent } from "./infoBox.component";
-import { AppContext } from "../app-context-provider";
-import path from "path";
+import { AppContext, ILocation } from "../app-context-provider";
 
 const mapInfos = {
   width: 16384,
@@ -17,8 +16,6 @@ const mapInfos = {
   borderMapFileName: "test/border_layer.png",
   waterMapFileName: "test/water_layer.png",
   blackBackgroundFileName: "test/black_layer.png",
-  //borderMapFileName: "test/locations_borders.png",
-  //waterMapFileName: "test/water-layer.png",
 };
 
 export function WorldMapComponent() {
@@ -28,19 +25,58 @@ export function WorldMapComponent() {
   }
 
   const isDraggingRef = useRef(false);
-  const clickedOnLocationRef = useRef<string | null>(null);
+  const initializedRef = useRef(false);
+  const clickedOnLocationRef = useRef<ILocation | null>(null);
   const zoomRef = useRef(1);
   const colorCanvasRef = useRef<HTMLCanvasElement>(null);
   const borderCanvasRef = useRef<HTMLCanvasElement>(null);
   const waterCanvasRef = useRef<HTMLCanvasElement>(null);
   const blackCanvasRef = useRef<HTMLCanvasElement>(null);
+  const drawingCanvasRef = useRef<HTMLCanvasElement>(null);
+  const topLayerRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const workerRef = useRef<Worker>(null);
+  const [, forceUpdate] = useState({});
 
-  const layers: Array<{ ref: RefObject<any>; zIndex: number; path: string }> = [
+  const initializeWorkerAndCanvas = (): Worker => {
+    const worker = new Worker(new URL("canvas-worker.js", import.meta.url));
+    const workerCanvas = new OffscreenCanvas(mapInfos.width, mapInfos.height);
+    worker.postMessage({ type: "init", canvas: workerCanvas }, [workerCanvas]);
+    worker.addEventListener("message", (event) => {
+      switch (event.data.type) {
+        case "log":
+          console.log("[WORKER] ", event.data.message);
+          break;
+        case "result":
+          console.log("[WORKER RESULT] ", event.data.message);
+          break;
+      }
+    });
+    return worker;
+  };
+
+  const createBlackCanvas = (ctx: CanvasRenderingContext2D) => {
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, mapInfos.width, mapInfos.height);
+  };
+
+  const createTransparentCanvas = (ctx: CanvasRenderingContext2D) => {
+    // by default, canvas is transparent
+    return;
+  };
+
+  const layers: Array<{
+    ref: RefObject<HTMLCanvasElement | null>;
+    zIndex: number;
+    path?: string;
+    createMethod?: (ctx: CanvasRenderingContext2D) => unknown;
+    initializeWorkerCanvas?: boolean;
+  }> = [
     {
       ref: colorCanvasRef,
       zIndex: 0,
       path: mapInfos.colorMapFileName,
+      initializeWorkerCanvas: true,
     },
     {
       ref: borderCanvasRef,
@@ -55,80 +91,88 @@ export function WorldMapComponent() {
     {
       ref: blackCanvasRef,
       zIndex: 1,
-      path: mapInfos.blackBackgroundFileName,
+      createMethod: createBlackCanvas,
+    },
+    {
+      ref: drawingCanvasRef,
+      zIndex: 6,
+      createMethod: createTransparentCanvas,
     },
   ];
-
-  const [, forceUpdate] = useState({});
 
   const triggerRender = useCallback(() => {
     forceUpdate({});
   }, []);
 
-  const searchLocationOnMouse = (
-    colorCanvas: HTMLCanvasElement,
-    mapping: Record<string, string>,
-    event: MouseEvent
-  ) => {
-    const zoom = zoomRef.current;
-    const rect = colorCanvas.getBoundingClientRect();
+  const searchLocationOnMouse = useCallback(
+    (
+      colorCanvas: HTMLCanvasElement,
+      mapping: Record<string, string>,
+      event: MouseEvent
+    ) => {
+      const zoom = zoomRef.current;
+      const rect = colorCanvas.getBoundingClientRect();
 
-    // Get click position in screen coordinates
-    const clickScreenX = event.clientX;
-    const clickScreenY = event.clientY;
+      // Get click position in screen coordinates
+      const clickScreenX = event.clientX;
+      const clickScreenY = event.clientY;
 
-    // Get canvas position in screen coordinates
-    const canvasScreenLeft = rect.left;
-    const canvasScreenTop = rect.top;
+      // Get canvas position in screen coordinates
+      const canvasScreenLeft = rect.left;
+      const canvasScreenTop = rect.top;
 
-    // Calculate position relative to canvas's rendered position
-    const relX = clickScreenX - canvasScreenLeft;
-    const relY = clickScreenY - canvasScreenTop;
+      // Calculate position relative to canvas's rendered position
+      const relX = clickScreenX - canvasScreenLeft;
+      const relY = clickScreenY - canvasScreenTop;
 
-    // Convert from rendered (zoomed) coordinates back to original image coordinates
-    // The canvas is scaled at origin 0,0, so we need to account for the CSS positioning
-    const imageX = relX / zoom;
-    const imageY = relY / zoom;
+      // Convert from rendered (zoomed) coordinates back to original image coordinates
+      // The canvas is scaled at origin 0,0, so we need to account for the CSS positioning
+      const imageX = relX / zoom;
+      const imageY = relY / zoom;
 
-    const imageData = colorCanvas
-      .getContext("2d", { willReadFrequently: true })
-      ?.getImageData(imageX, imageY, 1, 1);
+      const imageData = colorCanvas
+        .getContext("2d", { willReadFrequently: true })
+        ?.getImageData(imageX, imageY, 1, 1);
 
-    if (!imageData) {
-      console.log("no image data at coordinates", {
+      console.log("imageData", imageData);
+
+      if (!imageData) {
+        console.log("no image data at coordinates", {
+          imageX,
+          imageY,
+          relX,
+          relY,
+          zoom,
+        });
+        return;
+      }
+      const [r, g, b] = [
+        parseInt(`${imageData.data[0]}`),
+        parseInt(`${imageData.data[1]}`),
+        parseInt(`${imageData.data[2]}`),
+      ];
+
+      const hexStr = [
+        r.toString(16).padStart(2, "0"),
+        g.toString(16).padStart(2, "0"),
+        b.toString(16).padStart(2, "0"),
+      ].join("");
+
+      const locationName = mapping[hexStr] || "??";
+      if (locationName === "??") {
+        console.log("could not find hex code for color", hexStr);
+      }
+      console.log("set clicked on location", locationName, {
         imageX,
         imageY,
-        relX,
-        relY,
-        zoom,
+        hexStr,
       });
-      return;
-    }
-    const [r, g, b] = [
-      parseInt(`${imageData.data[0]}`),
-      parseInt(`${imageData.data[1]}`),
-      parseInt(`${imageData.data[2]}`),
-    ];
+      clickedOnLocationRef.current = { name: locationName, colorHex: hexStr };
+    },
+    []
+  );
 
-    const hexStr = [
-      r.toString(16).padStart(2, "0"),
-      g.toString(16).padStart(2, "0"),
-      b.toString(16).padStart(2, "0"),
-    ].join("");
-
-    const locationName = mapping[hexStr] || "??";
-    if (locationName === "??") {
-      console.log("could not find hex code for color", hexStr);
-    }
-    console.log("set clicked on location", locationName, {
-      imageX,
-      imageY,
-      hexStr,
-    });
-    clickedOnLocationRef.current = locationName;
-  };
-
-  const setInitialPosition = () => {
+  const setInitialPosition = useCallback(() => {
     // Position user at coordinates X: 7934, Y: 1991
     const colorCanvas = colorCanvasRef.current;
     const borderCanvas = borderCanvasRef.current;
@@ -153,14 +197,18 @@ export function WorldMapComponent() {
         canvas.style.top = newTop + "px";
       }
     });
-
-    /*  colorCanvas.style.left = newLeft + "px";
-    colorCanvas.style.top = newTop + "px";
-    borderCanvas.style.left = newLeft + "px";
-    borderCanvas.style.top = newTop + "px"; */
-  };
+  }, []);
 
   useEffect(() => {
+    console.log("enter useEffect for setup worldmap component");
+
+    if (initializedRef.current) {
+      console.log("worldmap component already initialized, skipping");
+      return;
+    }
+
+    workerRef.current = initializeWorkerAndCanvas();
+
     const colorCanvas = colorCanvasRef.current;
     const borderCanvas = borderCanvasRef.current;
     const container = containerRef.current;
@@ -189,14 +237,41 @@ export function WorldMapComponent() {
 
     layers.forEach((layer) => {
       const img = new Image();
-      img.src = layer.path;
-      img.onload = () => {
-        const ctx = layer.ref.current?.getContext("2d");
-        if (ctx) {
+      const ctx = layer.ref.current?.getContext("2d");
+      if (!ctx) {
+        console.log("could not get layer ref context");
+        return;
+      }
+      if (layer.path) {
+        img.src = layer.path;
+        img.onload = () => {
           ctx.drawImage(img, 0, 0);
-        }
-      };
+          if (layer.initializeWorkerCanvas && workerRef.current) {
+            createImageBitmap(colorCanvas).then((bitmap) => {
+              workerRef.current.postMessage({
+                type: "drawImage",
+                imageBitmap: bitmap,
+              });
+            });
+          }
+        };
+      } else if (layer.createMethod) {
+        layer.createMethod(ctx);
+      } else {
+        console.log(
+          "layer needs to have either a path (file) or createMethod specified"
+        );
+      }
+
+      // TODO: remove loading screen only after all canvas have loaded
     });
+
+    const topLayer = layers.sort((a, b) => b.zIndex - a.zIndex)[0];
+    if (topLayer.ref.current) {
+      topLayerRef.current = topLayer.ref.current;
+    } else {
+      throw new Error("could not set top layer ref");
+    }
 
     const handleMouseDown = (e: MouseEvent) => {
       console.log("mousedown");
@@ -229,21 +304,23 @@ export function WorldMapComponent() {
           canvas.style.top = scrollTop + y + "px";
         }
       });
-
-      /*    colorCanvas.style.left = scrollLeft + x + "px";
-      colorCanvas.style.top = scrollTop + y + "px";
-      borderCanvas.style.left = scrollLeft + x + "px";
-      borderCanvas.style.top = scrollTop + y + "px"; */
     };
 
     const handleMouseUp = () => {
-      /* console.log("mouseup", {
-        dragDistance,
-        isDraggingRef: isDraggingRef.current,
-        clickedOnLocation: clickedOnLocationRef.current,
-      }); */
-      if (dragDistance < MIN_DRAG_DISTANCE && clickedOnLocationRef.current) {
+      console.log("handleMouseUp");
+      if (
+        dragDistance < MIN_DRAG_DISTANCE &&
+        clickedOnLocationRef.current?.name
+      ) {
         setSelectedLocation(clickedOnLocationRef.current);
+        if (workerRef.current) {
+          workerRef.current.postMessage({
+            type: "task",
+            canvasWidth: colorCanvas.width,
+            canvasHeight: colorCanvas.height,
+            colorHex: clickedOnLocationRef.current?.colorHex,
+          });
+        }
       }
       isDraggingRef.current = false;
       triggerRender();
@@ -254,20 +331,31 @@ export function WorldMapComponent() {
       triggerRender();
     };
 
-    borderCanvas.addEventListener("mousedown", handleMouseDown);
-    borderCanvas.addEventListener("mousemove", handleMouseMove);
-    borderCanvas.addEventListener("mouseup", handleMouseUp);
-    borderCanvas.addEventListener("mouseleave", handleMouseLeave);
+    console.log({ topLayerRefForCreate: topLayerRef });
+    if (topLayerRef.current) {
+      console.log("add mouse event listeners");
+      topLayerRef.current.addEventListener("mousedown", handleMouseDown);
+      topLayerRef.current.addEventListener("mousemove", handleMouseMove);
+      topLayerRef.current.addEventListener("mouseup", handleMouseUp);
+      topLayerRef.current.addEventListener("mouseleave", handleMouseLeave);
+    }
 
     setInitialPosition();
+    initializedRef.current = true;
 
     return () => {
-      borderCanvas.removeEventListener("mousedown", handleMouseDown);
-      borderCanvas.removeEventListener("mousemove", handleMouseMove);
-      borderCanvas.removeEventListener("mouseup", handleMouseUp);
-      borderCanvas.removeEventListener("mouseleave", handleMouseLeave);
+      console.log({ topLayerRefForDestroy: topLayerRef });
+      if (topLayerRef.current) {
+        console.log("remove mouse event listeners");
+        topLayerRef.current.removeEventListener("mousedown", handleMouseDown);
+        topLayerRef.current.removeEventListener("mousemove", handleMouseMove);
+        topLayerRef.current.removeEventListener("mouseup", handleMouseUp);
+        topLayerRef.current.removeEventListener("mouseleave", handleMouseLeave);
+      }
+      workerRef.current?.terminate();
+      initializedRef.current = false;
     };
-  }, [mappingData, triggerRender]);
+  }, [mappingData]);
 
   const applyZoomLevel = (newZoom: number) => {
     const colorCanvas = colorCanvasRef.current;
@@ -310,7 +398,6 @@ export function WorldMapComponent() {
   };
 
   const zoomSteps = [0.1, 0.3, 0.7, 1, 1.5, 3, 5];
-
   const handleZoomOut = (event: React.MouseEvent<HTMLButtonElement>) => {
     console.log("zoom out", event);
     event.preventDefault();
@@ -328,8 +415,6 @@ export function WorldMapComponent() {
 
     const currentZoom = zoomSteps.indexOf(zoomRef.current);
     const newZoom = zoomSteps[Math.min(zoomSteps.length - 1, currentZoom + 1)];
-    //
-    /* const newZoom = Math.min(5, zoomRef.current + 0.1); */
     applyZoomLevel(newZoom);
   };
 

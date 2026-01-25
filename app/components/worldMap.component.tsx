@@ -22,6 +22,7 @@ const mapInfos = {
   colorMapFileName: "test/locations.png",
   borderMapFileName: "test/border_layer.png",
   waterMapFileName: "test/water_layer.png",
+  riverMapFileName: "test/river_layer.png",
 };
 
 export function WorldMapComponent() {
@@ -39,6 +40,7 @@ export function WorldMapComponent() {
   const waterCanvasRef = useRef<HTMLCanvasElement>(null);
   const blackCanvasRef = useRef<HTMLCanvasElement>(null);
   const drawingCanvasRef = useRef<HTMLCanvasElement>(null);
+  const riverCanvasRef = useRef<HTMLCanvasElement>(null);
   const topLayerRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const workerManagerRef = useRef<WorkerManager>(null);
@@ -153,7 +155,7 @@ export function WorldMapComponent() {
     },
     {
       ref: borderCanvasRef,
-      zIndex: 5,
+      zIndex: 10,
       path: mapInfos.borderMapFileName,
     },
     {
@@ -170,6 +172,11 @@ export function WorldMapComponent() {
       ref: drawingCanvasRef,
       zIndex: 4,
       createMethod: createTransparentCanvas,
+    },
+    {
+      ref: riverCanvasRef,
+      zIndex: 7,
+      path: mapInfos.riverMapFileName,
     },
   ];
 

@@ -11,18 +11,24 @@ interface GameDataProviderProps {
   children: ReactNode;
   locationNameColorPath?: string;
   locationDataPath?: string;
+  mapConfigPath?: string;
 }
 
 export async function GameDataProvider({
   children,
   locationNameColorPath = "game_data/locations_color_mapping/0.0.11/00_default.txt",
   locationDataPath = "game_data/world_map/0.0.11/location_templates.txt",
+  mapConfigPath = "game_data/world_map/0.0.11/default.map",
 }: GameDataProviderProps) {
   let gameData: ILocationDataMap | null = {};
   let error: string | null = null;
 
   try {
-    const [{ colorToName, nameToColor }, locationData] = await Promise.all([
+    const [
+      { colorToName, nameToColor },
+      locationData,
+      { nonOwnable, impassableMountains },
+    ] = await Promise.all([
       (async () => {
         const locationNameColorFilePath = join(
           process.cwd(),
@@ -46,20 +52,32 @@ export async function GameDataProvider({
 
         return GameDataParser.parseLocationData(locationDataFileContent);
       })(),
+      (async () => {
+        const mapConfigFilePath = join(process.cwd(), mapConfigPath);
+        const mapConfigFileContent = await readFile(mapConfigFilePath, "utf-8");
+
+        return GameDataParser.parseMapConfig(mapConfigFileContent);
+      })(),
     ]);
 
     for (const [locationName, data] of Object.entries(locationData)) {
       const hexColor = nameToColor[locationName];
+      const isNonOwnable = nonOwnable.has(locationName);
+      const isImpassableMountain = impassableMountains.has(locationName);
+      const isLake = data.topography === "lakes";
+      const isSea =
+        data.topography === "ocean" ||
+        data.topography === "coastal_ocean" ||
+        data.topography === "inland_sea" ||
+        data.topography === "ocean_wasteland" ||
+        data.topography === "narrows";
+
       gameData[hexColor] = {
         ...data,
         name: locationName,
-        isLake: data.topography === "lakes",
-        isSea:
-          data.topography === "ocean" ||
-          data.topography === "coastal_ocean" ||
-          data.topography === "inland_sea" ||
-          data.topography === "ocean_wasteland" ||
-          data.topography === "narrows",
+        isLake,
+        isSea,
+        ownable: !isNonOwnable && !isImpassableMountain && !isLake && !isSea,
       };
     }
 

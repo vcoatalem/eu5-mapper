@@ -28,7 +28,7 @@ export interface ILocationGameData {
   vegetation: null | "forest" | "woods" | "sparse" | "jungle" | "desert";
   isSea?: boolean;
   isLake?: boolean;
-  unconstructible?: boolean;
+  ownable?: boolean;
 }
 
 export type ILocationDataMap<ColorHex extends string = string> = Record<

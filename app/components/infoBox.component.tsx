@@ -12,6 +12,7 @@ const buildLocationDisplay = (locationData: ILocationGameData): JSX.Element => {
       {locationData.vegetation && (
         <span>Vegetation: {locationData.vegetation}</span>
       )}
+      {!locationData.ownable && <span>Not Ownable</span>}
     </div>
   );
 };

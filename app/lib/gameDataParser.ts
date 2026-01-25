@@ -75,4 +75,59 @@ export class GameDataParser {
 
     return res;
   }
+
+  public static parseMapConfig(data: string): {
+    nonOwnable: Set<string>;
+    impassableMountains: Set<string>;
+  } {
+    const nonOwnable = new Set<string>();
+    const impassableMountains = new Set<string>();
+
+    let currentSection: "none" | "non_ownable" | "impassable_mountains" =
+      "none";
+
+    const lines = data.split("\n");
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+
+      // Check for section headers
+      if (trimmedLine.startsWith("non_ownable")) {
+        currentSection = "non_ownable";
+        continue;
+      }
+      if (trimmedLine.startsWith("impassable_mountains")) {
+        currentSection = "impassable_mountains";
+        continue;
+      }
+
+      // Check if we're leaving a section
+      if (trimmedLine === "}") {
+        currentSection = "none";
+        continue;
+      }
+
+      // Skip comments and empty lines
+      if (trimmedLine.startsWith("#") || trimmedLine === "") {
+        continue;
+      }
+
+      // If we're in a section, extract location names
+      if (currentSection !== "none") {
+        // Split by whitespace and filter out comments
+        const locationNames = trimmedLine
+          .split(/\s+/)
+          .filter((name) => name && !name.startsWith("#"));
+
+        for (const locationName of locationNames) {
+          if (currentSection === "non_ownable") {
+            nonOwnable.add(locationName);
+          } else if (currentSection === "impassable_mountains") {
+            impassableMountains.add(locationName);
+          }
+        }
+      }
+    }
+
+    return { nonOwnable, impassableMountains };
+  }
 }

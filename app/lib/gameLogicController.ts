@@ -1,5 +1,4 @@
 import { ILocationDataMap, ISelectedLocationInfo } from "./types";
-import { GameDataRegistry } from "./gameDataRegistry";
 
 export type SelectedLocationsListener = (
   selectedLocations: ISelectedLocationInfo[]
@@ -7,20 +6,19 @@ export type SelectedLocationsListener = (
 
 export class GameLogicController {
   private selectedLocations: Record<string, ISelectedLocationInfo | null> = {};
-  private registry: GameDataRegistry;
+  private locationData: ILocationDataMap | null;
   private listeners: SelectedLocationsListener[] = [];
 
-  constructor() {
-    this.registry = GameDataRegistry.getInstance();
+  constructor(locationData: ILocationDataMap | null) {
+    this.locationData = locationData;
   }
 
   public findLocationName(hexColor: string): string {
-    const mappingData = this.registry.getLocationData();
-    if (!mappingData) {
-      console.warn("Location data not available in registry");
+    if (!this.locationData) {
+      console.warn("Location data not available");
       return "??";
     }
-    const name = mappingData[hexColor]?.name;
+    const name = this.locationData[hexColor]?.name;
     if (!name) {
       console.log("could not find name for color", hexColor);
       return "??";

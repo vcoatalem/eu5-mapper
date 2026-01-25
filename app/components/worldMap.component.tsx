@@ -9,12 +9,12 @@ import {
 import { InfoBoxComponent } from "./infoBox.component";
 import { AppContext } from "../appContextProvider";
 import { GameLogicController } from "../lib/gameLogicController";
-import { ISelectedLocationInfo } from "../lib/types";
+import { ISelectedLocationInfo, ILocationDataMap } from "../lib/types";
 import { DrawingLogicController } from "../lib/drawingLogicController";
 import { WorkerManager } from "../lib/workerManager";
 import { IWorkerManagerObserver } from "../lib/workerTypes";
 import { LoadingScreenComponent } from "./loadingScreen.component";
-import { GameDataRegistry } from "../lib/gameDataRegistry";
+import { useGameData } from "../gameDataContext";
 
 const mapInfos = {
   width: 16384,
@@ -27,6 +27,12 @@ const mapInfos = {
 
 export function WorldMapComponent() {
   const { setSelectedLocation, setHoveredLocation } = useContext(AppContext);
+  const { gameData } = useGameData();
+
+  if (!gameData) {
+    throw new Error("gameData is not loaded");
+  }
+
   if (!setSelectedLocation || !setHoveredLocation) {
     throw new Error("context is not set up properly");
   }
@@ -44,7 +50,7 @@ export function WorldMapComponent() {
   const topLayerRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const workerManagerRef = useRef<WorkerManager>(null);
-  const gameLogicRef = useRef(new GameLogicController());
+  const gameLogicRef = useRef(new GameLogicController(gameData));
   const drawingLogicRef = useRef<DrawingLogicController>(null);
   const [, forceUpdate] = useState({});
   const [workerStatus, setWorkerStatus] = useState({
@@ -79,17 +85,6 @@ export function WorldMapComponent() {
 
   const waitForInitialization = async (): Promise<void> => {
     try {
-      const registry = GameDataRegistry.getInstance();
-
-      // Wait for game data registry to be ready
-      await registry.waitForInitialization();
-
-      if (!registry.isReady()) {
-        throw new Error(
-          registry.getError() || "Failed to initialize game data"
-        );
-      }
-
       // Wait for all layers to be rendered
       await new Promise<void>((resolve) => {
         const checkLayersRendered = () => {

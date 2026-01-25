@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { AppContext } from "../app-context-provider";
+import { AppContext } from "../appContextProvider";
 
 export function InfoBoxComponent() {
   const context = useContext(AppContext);

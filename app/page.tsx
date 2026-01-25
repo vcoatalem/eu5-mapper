@@ -1,16 +1,16 @@
 "use client";
 
 import { useContext, useEffect } from "react";
-import { AppContext } from "./app-context-provider";
+import { AppContext } from "./appContextProvider";
 import { LoadingScreenComponent } from "./components/loadingScreen.component";
 import { WorldMapComponent } from "./components/worldMap.component";
+import { ILocationDataMap, ILocationGameData } from "./lib/types";
 
-async function extractMappingData(): Promise<Record<string, string> | null> {
-  const getData = async () => {
+async function extractMappingData(): Promise<ILocationDataMap> {
+  const getData = async (): Promise<string | null> => {
     try {
       const response = await fetch("test/00_default.txt");
       const data = await response.text();
-      /* console.log(data); */
       return data;
     } catch (error) {
       console.error("Failed to load mapping data:", error);
@@ -18,9 +18,9 @@ async function extractMappingData(): Promise<Record<string, string> | null> {
     }
   };
 
-  const parseInfo = (data: string): Record<string, string> => {
+  const parseInfo = (data: string): ILocationDataMap => {
     const lines = data.split("\n");
-    const res: Record<string, string> = {};
+    const res: ILocationDataMap = {};
 
     for (const line of lines) {
       if (line.trim().startsWith("#") || line.trim() === "") {
@@ -33,7 +33,9 @@ async function extractMappingData(): Promise<Record<string, string> | null> {
       const hexCode = rest.split("#")[0].trim();
       if (!hexCode) continue;
 
-      res[hexCode] = locationName.trim();
+      res[hexCode] = {
+        name: locationName.trim(),
+      };
     }
 
     return res;
@@ -41,8 +43,9 @@ async function extractMappingData(): Promise<Record<string, string> | null> {
 
   const data = await getData();
   if (!data) {
-    return null;
+    throw new Error("could not get game data");
   }
+
   return parseInfo(data);
 }
 

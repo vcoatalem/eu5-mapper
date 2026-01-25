@@ -3,10 +3,10 @@ const getAllCoordinatesOfColor = (ctx, width, height, hexColor) => {
     const coordinates = [];
     const imageData = ctx.getImageData(0, 0, width, height);
 
-    self.postMessage({
+    /*    self.postMessage({
       type: "log",
       message: `got imageData: ${JSON.stringify(imageData.data.slice(0, 200))}`,
-    });
+    }); */
 
     const rTarget = parseInt(hexColor.slice(0, 2), 16);
     const gTarget = parseInt(hexColor.slice(2, 4), 16);
@@ -90,7 +90,8 @@ self.onmessage = function (e) {
       );
       self.postMessage({
         type: "result",
-        message: coordinates,
+        coordinates: coordinates,
+        colorHex: e.data.colorHex,
       });
   }
   /*   const canvas = e.data.canvas;

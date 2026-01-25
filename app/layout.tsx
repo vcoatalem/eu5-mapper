@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { AppContextProvider } from "./app-context-provider";
+import { AppContextProvider } from "./appContextProvider";
 import "./globals.css";
 
 const geistSans = Geist({

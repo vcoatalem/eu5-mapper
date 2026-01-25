@@ -1,5 +1,5 @@
 import { useContext, useEffect } from "react";
-import { AppContext } from "../app-context-provider";
+import { AppContext } from "../appContextProvider";
 
 export function LoadingScreenComponent() {
   return (

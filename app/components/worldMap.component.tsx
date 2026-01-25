@@ -7,7 +7,9 @@ import {
   useState,
 } from "react";
 import { InfoBoxComponent } from "./infoBox.component";
-import { AppContext, ILocation } from "../app-context-provider";
+import { AppContext } from "../appContextProvider";
+import { GameLogicController } from "../lib/gameLogicController";
+import { ISelectedLocationInfo } from "../lib/types";
 
 const mapInfos = {
   width: 16384,
@@ -26,7 +28,7 @@ export function WorldMapComponent() {
 
   const isDraggingRef = useRef(false);
   const initializedRef = useRef(false);
-  const clickedOnLocationRef = useRef<ILocation | null>(null);
+  const clickedOnLocationRef = useRef<ISelectedLocationInfo | null>(null);
   const zoomRef = useRef(1);
   const colorCanvasRef = useRef<HTMLCanvasElement>(null);
   const borderCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -36,6 +38,7 @@ export function WorldMapComponent() {
   const topLayerRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const workerRef = useRef<Worker>(null);
+  const gameLogicRef = useRef(new GameLogicController());
   const [, forceUpdate] = useState({});
 
   const initializeWorkerAndCanvas = (): Worker => {
@@ -48,8 +51,18 @@ export function WorldMapComponent() {
           console.log("[WORKER] ", event.data.message);
           break;
         case "result":
-          console.log("[WORKER RESULT] ", event.data.message);
-          drawCoordinates(event.data.message);
+          console.log("[WORKER RESULT] ", event.data);
+          gameLogicRef.current.selectLocation(
+            event.data.colorHex,
+            mappingData,
+            event.data.coordinates
+          );
+          const allCoordinates = gameLogicRef.current
+            .getAllSelectedLocations()
+            .flatMap((locations) => locations.coordinates)
+            .filter((coord) => !!coord);
+          console.log({ allCoordinates });
+          drawCoordinates(allCoordinates);
           break;
       }
     });
@@ -106,11 +119,7 @@ export function WorldMapComponent() {
   }, []);
 
   const searchLocationOnMouse = useCallback(
-    (
-      colorCanvas: HTMLCanvasElement,
-      mapping: Record<string, string>,
-      event: MouseEvent
-    ) => {
+    (colorCanvas: HTMLCanvasElement, event: MouseEvent) => {
       const zoom = zoomRef.current;
       const rect = colorCanvas.getBoundingClientRect();
 
@@ -159,16 +168,17 @@ export function WorldMapComponent() {
         b.toString(16).padStart(2, "0"),
       ].join("");
 
-      const locationName = mapping[hexStr] || "??";
-      if (locationName === "??") {
-        console.log("could not find hex code for color", hexStr);
-      }
+      /* console.log("will search for ", hexStr, "in ", mappingData); */
+      const locationName = gameLogicRef.current.findLocationName(
+        hexStr,
+        mappingData
+      );
       console.log("set clicked on location", locationName, {
         imageX,
         imageY,
         hexStr,
       });
-      clickedOnLocationRef.current = { name: locationName, colorHex: hexStr };
+      clickedOnLocationRef.current = { name: locationName, hexColor: hexStr };
     },
     []
   );
@@ -204,20 +214,28 @@ export function WorldMapComponent() {
     (coordinates: Array<{ x: number; y: number }>) => {
       console.log("enter drawCoordinates with coordinates:", coordinates);
       const drawingCtx = drawingCanvasRef.current?.getContext("2d");
+      if (!drawingCtx) {
+        throw new Error("could not get drawing context");
+      }
+      const imageData = drawingCtx.createImageData(
+        mapInfos.width,
+        mapInfos.height
+      );
 
+      const data = imageData.data;
+
+      // Plot all pixels at once
       coordinates.forEach(({ x, y }) => {
-        const newPixelData = drawingCtx?.createImageData(1, 1);
-        if (!newPixelData) {
-          throw new Error("could not create image data on drawing context");
-        }
-        const [r, g, b, alpha] = [255, 255, 255, 255];
-        newPixelData.data[0] = r;
-        newPixelData.data[1] = g;
-        newPixelData.data[2] = b;
-        newPixelData.data[3] = alpha;
-        drawingCtx?.putImageData(newPixelData, x, y);
-        console.log("put image data done");
+        const index = (y * mapInfos.width + x) * 4;
+        data[index] = 255; // R
+        data[index + 1] = 255; // G
+        data[index + 2] = 255; // B
+        data[index + 3] = 255; // A
       });
+
+      // Draw once
+      drawingCtx.putImageData(imageData, 0, 0);
+      console.log("put image data done");
     },
     [drawingCanvasRef]
   );
@@ -306,7 +324,7 @@ export function WorldMapComponent() {
       const rect = colorCanvas.getBoundingClientRect();
       scrollLeft = rect.left;
       scrollTop = rect.top;
-      searchLocationOnMouse(colorCanvas, mappingData, e);
+      searchLocationOnMouse(colorCanvas, e);
     };
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -341,7 +359,7 @@ export function WorldMapComponent() {
             type: "task",
             canvasWidth: colorCanvas.width,
             canvasHeight: colorCanvas.height,
-            colorHex: clickedOnLocationRef.current?.colorHex,
+            colorHex: clickedOnLocationRef.current?.hexColor,
           });
         }
       }

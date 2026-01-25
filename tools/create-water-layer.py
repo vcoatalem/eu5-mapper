@@ -92,7 +92,7 @@ def fillWaterCodes(waterCodes: list[str], colorMapFilename: str, output_file: st
 
   # Create output RGBA image
   output_array = np.zeros((height, width, 4), dtype=np.uint8)
-  output_array[mask] = [0, 0, 255, 255]
+  output_array[mask] = [39, 39, 171, 255]
 
   output = Image.fromarray(output_array, 'RGBA')
   output.save(output_file)

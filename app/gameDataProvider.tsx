@@ -6,23 +6,26 @@ import { join } from "path";
 import { ILocationDataMap, ILocationIdentifierMap } from "./lib/types";
 import { GameDataClientProvider } from "./gameDataContext";
 import { GameDataParser } from "./lib/gameDataParser";
+import { GameDataLoader } from "./lib/gameDataLoader";
 
 interface GameDataProviderProps {
   children: ReactNode;
-  locationNameColorPath?: string;
+  /*   locationNameColorPath?: string;
   locationDataPath?: string;
-  mapConfigPath?: string;
+  locationsDataPath?: string; */
 }
 
 export async function GameDataProvider({
   children,
-  locationNameColorPath = "game_data/locations_color_mapping/0.0.11/00_default.txt",
+}: /*   locationNameColorPath = "game_data/locations_color_mapping/0.0.11/00_default.txt",
   locationDataPath = "game_data/world_map/0.0.11/location_templates.txt",
-  mapConfigPath = "game_data/world_map/0.0.11/default.map",
-}: GameDataProviderProps) {
+  locationsDataPath: mapConfigPath = "game_data/world_map/0.0.11/default.map", */
+GameDataProviderProps) {
   let locationDataMap: ILocationDataMap = {};
   let colorToNameMap: ILocationIdentifierMap = {};
   let error: string | null = null;
+
+  const files = await GameDataLoader.getGameFilesForVersion("0.0.11");
 
   try {
     const [
@@ -31,12 +34,8 @@ export async function GameDataProvider({
       { nonOwnable, impassableMountains },
     ] = await Promise.all([
       (async () => {
-        const locationNameColorFilePath = join(
-          process.cwd(),
-          locationNameColorPath
-        );
         const locationNameColorFileContent = await readFile(
-          locationNameColorFilePath,
+          files.locationsColorMappingFilePath,
           "utf-8"
         );
 
@@ -45,17 +44,18 @@ export async function GameDataProvider({
         );
       })(),
       (async () => {
-        const locationDataFilePath = join(process.cwd(), locationDataPath);
         const locationDataFileContent = await readFile(
-          locationDataFilePath,
+          files.locationDataFilePath,
           "utf-8"
         );
 
         return GameDataParser.parseLocationData(locationDataFileContent);
       })(),
       (async () => {
-        const mapConfigFilePath = join(process.cwd(), mapConfigPath);
-        const mapConfigFileContent = await readFile(mapConfigFilePath, "utf-8");
+        const mapConfigFileContent = await readFile(
+          files.provincesDataFilePath,
+          "utf-8"
+        );
 
         return GameDataParser.parseMapConfig(mapConfigFileContent);
       })(),

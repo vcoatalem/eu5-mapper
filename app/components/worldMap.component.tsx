@@ -28,7 +28,11 @@ const mapInfos = {
 
 export function WorldMapComponent() {
   const { setSelectedLocation, setHoveredLocation } = useContext(AppContext);
-  const { locationDataMap, colorToNameMap } = useGameData();
+  const {
+    locationDataMap,
+    colorToNameMap,
+    error: gameDataLoadingError,
+  } = useGameData();
 
   if (!locationDataMap) {
     throw new Error("gameData is not loaded");
@@ -363,7 +367,8 @@ export function WorldMapComponent() {
     drawingLogicRef.current = new DrawingLogicController(
       drawingCanvasRef.current!,
       { width: mapInfos.width, height: mapInfos.height },
-      gameLogicRef.current
+      gameLogicRef.current,
+      locationDataMap
     );
 
     const handleMouseDown = (e: MouseEvent) => {
@@ -411,7 +416,7 @@ export function WorldMapComponent() {
         if (workerManagerRef.current) {
           const hexColor =
             locationDataMap[clickedOnLocationRef.current].hexColor;
-          const taskId = `colorSearch-${hexColor}`;
+          const taskId = `colorSearch-${clickedOnLocationRef.current}`;
           workerManagerRef.current.queueTask({
             id: taskId,
             type: "colorSearch",
@@ -420,15 +425,16 @@ export function WorldMapComponent() {
               canvasWidth: colorCanvas.width,
               canvasHeight: colorCanvas.height,
               colorHex: hexColor,
+              locationName: clickedOnLocationRef.current,
             },
             callbacks: {
               onSuccess: (result: unknown) => {
                 const data = result as {
                   coordinates: Array<{ x: number; y: number }>;
-                  colorHex: string;
+                  locationName: string;
                 };
                 drawingLogicRef.current?.addCoordinate(
-                  data.colorHex,
+                  data.locationName,
                   data.coordinates
                 );
                 console.log("[COLOR SEARCH COMPLETE]", data);
@@ -566,22 +572,25 @@ export function WorldMapComponent() {
         cursor: isDraggingRef.current ? "grabbing" : "default",
       }}
     >
-      {layers.map((layer) => (
-        <canvas
-          ref={layer.ref}
-          height={mapInfos.height}
-          width={mapInfos.width}
-          key={layer.zIndex}
-          className={"absolute"}
-          style={{ zIndex: layer.zIndex, imageRendering: "pixelated" }}
-        ></canvas>
-      ))}
-      {isLoading && (
+      {gameDataLoadingError ? (
+        <LoadingScreenComponent message={gameDataLoadingError} />
+      ) : (
+        layers.map((layer) => (
+          <canvas
+            ref={layer.ref}
+            height={mapInfos.height}
+            width={mapInfos.width}
+            key={layer.zIndex}
+            className={"absolute"}
+            style={{ zIndex: layer.zIndex, imageRendering: "pixelated" }}
+          ></canvas>
+        ))
+      )}
+      {isLoading ? (
         <LoadingScreenComponent
           message={loadingError ? `Error: ${loadingError}` : "Loading..."}
         />
-      )}
-      {!isLoading && !loadingError && (
+      ) : (
         <>
           <InfoBoxComponent />
           <div className="fixed border-white gap-2 flex flex-col right-5 bottom-5 z-10 text-white">

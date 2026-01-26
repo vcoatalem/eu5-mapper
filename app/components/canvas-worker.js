@@ -103,7 +103,7 @@ self.onmessage = function (e) {
           taskId: taskId,
           data: {
             coordinates: coordinates,
-            colorHex: e.data.colorHex,
+            locationName: e.data.locationName,
           },
         });
       } catch (err) {

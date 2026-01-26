@@ -1,16 +1,20 @@
 import { GameLogicController } from "./gameLogicController";
-import { ICoordinate } from "./types";
+import { ICoordinate, ILocationDataMap, ILocationIdentifier } from "./types";
 
 export class DrawingLogicController {
   private canvas: HTMLCanvasElement;
   private canvasContext: CanvasRenderingContext2D;
   private mapInfos: { width: number; height: number };
-  private coordinateMap: Record<string, Array<ICoordinate>> = {};
+  private coordinateMap: Record<ILocationIdentifier, Array<ICoordinate>> = {};
   private gameLogicController: GameLogicController | null = null;
+  private locationDataMap: ILocationDataMap | null = null;
 
-  public addCoordinate(hexColor: string, coordinates: ICoordinate[]): void {
-    if (!this.coordinateMap[hexColor]) {
-      this.coordinateMap[hexColor] = coordinates;
+  public addCoordinate(
+    name: ILocationIdentifier,
+    coordinates: ICoordinate[]
+  ): void {
+    if (!this.coordinateMap[name]) {
+      this.coordinateMap[name] = coordinates;
     }
 
     this.drawGameState();
@@ -19,11 +23,13 @@ export class DrawingLogicController {
   constructor(
     canvas: HTMLCanvasElement,
     mapInfos: { width: number; height: number },
-    gameLogicController: GameLogicController
+    gameLogicController: GameLogicController,
+    locationDataMap: ILocationDataMap
   ) {
     this.canvas = canvas;
     this.mapInfos = mapInfos;
     this.gameLogicController = gameLogicController;
+    this.locationDataMap = locationDataMap;
     const context = this.canvas.getContext("2d", {
       willReadFrequently: true,
     });
@@ -45,10 +51,14 @@ export class DrawingLogicController {
         "no game logic controller set in drawing logic controller"
       );
     }
+
+    if (!this.locationDataMap) {
+      throw new Error("no location data map set in drawing logic controller");
+    }
+
     const coordinates: Array<ICoordinate> = this.gameLogicController
       .getAllSelectedLocations()
-      .map((loc) => loc.hexColor)
-      .flatMap((hexColor) => this.coordinateMap[hexColor] || null)
+      .flatMap((locationName) => this.coordinateMap[locationName] || null)
       .filter((coord) => !!coord);
 
     console.log("will put coordinates:", coordinates.length, coordinates);

@@ -411,40 +411,44 @@ export function WorldMapComponent() {
     const handleMouseUp = () => {
       console.log("handleMouseUp");
       if (dragDistance < MIN_DRAG_DISTANCE && clickedOnLocationRef.current) {
-        setSelectedLocation(clickedOnLocationRef.current);
-        gameLogicRef.current.selectLocation(clickedOnLocationRef.current);
-
-        if (workerManagerRef.current) {
-          const hexColor =
-            locationDataMap[clickedOnLocationRef.current].hexColor;
-          const taskId = `colorSearch-${clickedOnLocationRef.current}`;
-          workerManagerRef.current.queueTask({
-            id: taskId,
-            type: "colorSearch",
-            payload: {
+        console.log({
+          clickedLocation: locationDataMap[clickedOnLocationRef.current],
+        });
+        if (locationDataMap[clickedOnLocationRef.current].ownable) {
+          setSelectedLocation(clickedOnLocationRef.current);
+          gameLogicRef.current.selectLocation(clickedOnLocationRef.current);
+          if (workerManagerRef.current) {
+            const hexColor =
+              locationDataMap[clickedOnLocationRef.current].hexColor;
+            const taskId = `colorSearch-${clickedOnLocationRef.current}`;
+            workerManagerRef.current.queueTask({
+              id: taskId,
               type: "colorSearch",
-              canvasWidth: colorCanvas.width,
-              canvasHeight: colorCanvas.height,
-              colorHex: hexColor,
-              locationName: clickedOnLocationRef.current,
-            },
-            callbacks: {
-              onSuccess: (result: unknown) => {
-                const data = result as {
-                  coordinates: Array<{ x: number; y: number }>;
-                  locationName: string;
-                };
-                drawingLogicRef.current?.addCoordinate(
-                  data.locationName,
-                  data.coordinates
-                );
-                console.log("[COLOR SEARCH COMPLETE]", data);
+              payload: {
+                type: "colorSearch",
+                canvasWidth: colorCanvas.width,
+                canvasHeight: colorCanvas.height,
+                colorHex: hexColor,
+                locationName: clickedOnLocationRef.current,
               },
-              onError: (error) => {
-                console.error("[COLOR SEARCH ERROR]", error);
+              callbacks: {
+                onSuccess: (result: unknown) => {
+                  const data = result as {
+                    coordinates: Array<{ x: number; y: number }>;
+                    locationName: string;
+                  };
+                  drawingLogicRef.current?.addCoordinate(
+                    data.locationName,
+                    data.coordinates
+                  );
+                  console.log("[COLOR SEARCH COMPLETE]", data);
+                },
+                onError: (error) => {
+                  console.error("[COLOR SEARCH ERROR]", error);
+                },
               },
-            },
-          });
+            });
+          }
         }
       }
       isDraggingRef.current = false;

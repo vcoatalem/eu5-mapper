@@ -2,7 +2,6 @@
 
 import { ReactNode } from "react";
 import { readFile } from "fs/promises";
-import { join } from "path";
 import { ILocationDataMap, ILocationIdentifierMap } from "./lib/types";
 import { GameDataClientProvider } from "./gameDataContext";
 import { GameDataParser } from "./lib/gameDataParser";
@@ -10,17 +9,9 @@ import { GameDataLoader } from "./lib/gameDataLoader";
 
 interface GameDataProviderProps {
   children: ReactNode;
-  /*   locationNameColorPath?: string;
-  locationDataPath?: string;
-  locationsDataPath?: string; */
 }
 
-export async function GameDataProvider({
-  children,
-}: /*   locationNameColorPath = "game_data/locations_color_mapping/0.0.11/00_default.txt",
-  locationDataPath = "game_data/world_map/0.0.11/location_templates.txt",
-  locationsDataPath: mapConfigPath = "game_data/world_map/0.0.11/default.map", */
-GameDataProviderProps) {
+export async function GameDataProvider({ children }: GameDataProviderProps) {
   let locationDataMap: ILocationDataMap = {};
   let colorToNameMap: ILocationIdentifierMap = {};
   let error: string | null = null;
@@ -53,7 +44,7 @@ GameDataProviderProps) {
       })(),
       (async () => {
         const mapConfigFileContent = await readFile(
-          files.provincesDataFilePath,
+          files.locationClassificationFilePath,
           "utf-8"
         );
 

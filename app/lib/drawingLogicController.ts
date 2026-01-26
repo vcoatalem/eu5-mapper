@@ -61,8 +61,6 @@ export class DrawingLogicController {
       .flatMap((locationName) => this.coordinateMap[locationName] || null)
       .filter((coord) => !!coord);
 
-    console.log("will put coordinates:", coordinates.length, coordinates);
-
     const imageData = this.canvasContext.createImageData(
       this.mapInfos.width,
       this.mapInfos.height

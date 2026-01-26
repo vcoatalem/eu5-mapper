@@ -1,15 +1,11 @@
 // do not import other files in this file
 
-export interface ISelectedLocationInfo {
-  hexColor: string;
-  name: string;
-  // todo: fill
-  locationLevel?: "none" | "rural" | "town" | "city";
-}
+export type ILocationIdentifier = string; // location name
 
 export interface ILocationGameData {
   // todo: fill
   name: string;
+  hexColor: string;
   topography:
     | "unknown"
     | "hills"
@@ -31,10 +27,15 @@ export interface ILocationGameData {
   ownable?: boolean;
 }
 
-export type ILocationDataMap<ColorHex extends string = string> = Record<
-  ColorHex,
+export type ILocationDataMap<LocationName extends string = string> = Record<
+  LocationName,
   ILocationGameData
 >;
+
+export type ILocationIdentifierMap<
+  HexColor extends string = string,
+  LocationName extends string = string
+> = Record<HexColor, LocationName>;
 
 export interface ICoordinate {
   x: number;

@@ -26,13 +26,11 @@ export function InfoBoxComponent() {
     throw new Error("gameData is not loaded");
   }
 
-  const hexColor =
-    context?.hoveredLocation?.hexColor ??
-    context?.selectedLocation?.hexColor ??
-    null;
+  const locationName =
+    context?.hoveredLocation ?? context?.selectedLocation ?? null;
 
-  const locationDisplay = hexColor ? (
-    buildLocationDisplay(gameData.locationDataMap[hexColor])
+  const locationDisplay = locationName ? (
+    buildLocationDisplay(gameData.locationDataMap[locationName])
   ) : (
     <span></span>
   );

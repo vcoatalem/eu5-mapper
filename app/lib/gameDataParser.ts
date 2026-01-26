@@ -1,4 +1,4 @@
-import { ILocationDataMap, ILocationGameData } from "./types";
+import { ILocationGameData } from "./types";
 
 export class GameDataParser {
   public static parseLocationNameAndColorHex(data: string): {

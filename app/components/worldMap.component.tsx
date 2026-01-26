@@ -9,7 +9,7 @@ import {
 import { InfoBoxComponent } from "./infoBox.component";
 import { AppContext } from "../appContextProvider";
 import { GameLogicController } from "../lib/gameLogicController";
-import { ISelectedLocationInfo, ILocationDataMap } from "../lib/types";
+import { ILocationIdentifier } from "../lib/types";
 import { DrawingLogicController } from "../lib/drawingLogicController";
 import { WorkerManager } from "../lib/workerManager";
 import { IWorkerManagerObserver } from "../lib/workerTypes";
@@ -28,7 +28,7 @@ const mapInfos = {
 
 export function WorldMapComponent() {
   const { setSelectedLocation, setHoveredLocation } = useContext(AppContext);
-  const { locationDataMap } = useGameData();
+  const { locationDataMap, colorToNameMap } = useGameData();
 
   if (!locationDataMap) {
     throw new Error("gameData is not loaded");
@@ -40,7 +40,7 @@ export function WorldMapComponent() {
 
   const isDraggingRef = useRef(false);
   const initializedRef = useRef(false);
-  const clickedOnLocationRef = useRef<ISelectedLocationInfo | null>(null);
+  const clickedOnLocationRef = useRef<ILocationIdentifier | null>(null);
   const zoomRef = useRef(1);
   const colorCanvasRef = useRef<HTMLCanvasElement>(null);
   const borderCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -52,7 +52,9 @@ export function WorldMapComponent() {
   const unownableTerrainCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const workerManagerRef = useRef<WorkerManager>(null);
-  const gameLogicRef = useRef(new GameLogicController(locationDataMap));
+  const gameLogicRef = useRef(
+    new GameLogicController(locationDataMap, colorToNameMap)
+  );
   const drawingLogicRef = useRef<DrawingLogicController>(null);
   const [, forceUpdate] = useState({});
   const [workerStatus, setWorkerStatus] = useState({
@@ -190,7 +192,7 @@ export function WorldMapComponent() {
     (
       colorCanvas: HTMLCanvasElement,
       event: MouseEvent
-    ): ISelectedLocationInfo | null => {
+    ): ILocationIdentifier | null => {
       const zoom = zoomRef.current;
       const rect = colorCanvas.getBoundingClientRect();
 
@@ -221,7 +223,7 @@ export function WorldMapComponent() {
       ].join("");
 
       const locationName = gameLogicRef.current.findLocationName(hexStr);
-      return { name: locationName, hexColor: hexStr };
+      return locationName;
     },
     []
   );
@@ -365,7 +367,6 @@ export function WorldMapComponent() {
     );
 
     const handleMouseDown = (e: MouseEvent) => {
-      console.log("mousedown");
       isDraggingRef.current = true;
       triggerRender();
       dragDistance = 0;
@@ -403,16 +404,14 @@ export function WorldMapComponent() {
 
     const handleMouseUp = () => {
       console.log("handleMouseUp");
-      if (
-        dragDistance < MIN_DRAG_DISTANCE &&
-        clickedOnLocationRef.current?.name
-      ) {
+      if (dragDistance < MIN_DRAG_DISTANCE && clickedOnLocationRef.current) {
         setSelectedLocation(clickedOnLocationRef.current);
-        gameLogicRef.current.selectLocation(
-          clickedOnLocationRef.current.hexColor
-        );
+        gameLogicRef.current.selectLocation(clickedOnLocationRef.current);
+
         if (workerManagerRef.current) {
-          const taskId = `colorSearch-${clickedOnLocationRef.current.hexColor}`;
+          const hexColor =
+            locationDataMap[clickedOnLocationRef.current].hexColor;
+          const taskId = `colorSearch-${hexColor}`;
           workerManagerRef.current.queueTask({
             id: taskId,
             type: "colorSearch",
@@ -420,7 +419,7 @@ export function WorldMapComponent() {
               type: "colorSearch",
               canvasWidth: colorCanvas.width,
               canvasHeight: colorCanvas.height,
-              colorHex: clickedOnLocationRef.current?.hexColor,
+              colorHex: hexColor,
             },
             callbacks: {
               onSuccess: (result: unknown) => {

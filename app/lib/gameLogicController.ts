@@ -1,24 +1,35 @@
-import { ILocationDataMap, ISelectedLocationInfo } from "./types";
+import {
+  ILocationIdentifier,
+  ILocationDataMap,
+  ILocationIdentifierMap,
+} from "./types";
 
 export type SelectedLocationsListener = (
-  selectedLocations: ISelectedLocationInfo[]
+  selectedLocations: ILocationIdentifier[]
 ) => void;
 
+type LocationName = string;
+
 export class GameLogicController {
-  private selectedLocations: Record<string, ISelectedLocationInfo | null> = {};
-  private locationData: ILocationDataMap | null;
+  private selectedLocations: Record<LocationName, ILocationIdentifier> = {};
+  private locationIdentifierMap: ILocationIdentifierMap = {};
+  private locationData: ILocationDataMap | null; // surely we will need this as well ?
   private listeners: SelectedLocationsListener[] = [];
 
-  constructor(locationData: ILocationDataMap | null) {
+  constructor(
+    locationData: ILocationDataMap | null,
+    locationIdentifierMap: ILocationIdentifierMap
+  ) {
     this.locationData = locationData;
+    this.locationIdentifierMap = locationIdentifierMap;
   }
 
   public findLocationName(hexColor: string): string {
-    if (!this.locationData) {
+    if (!this.locationIdentifierMap) {
       console.warn("Location data not available");
       return "??";
     }
-    const name = this.locationData[hexColor]?.name;
+    const name = this.locationIdentifierMap[hexColor];
     if (!name) {
       console.log("could not find name for color", hexColor);
       return "??";
@@ -26,21 +37,18 @@ export class GameLogicController {
     return name;
   }
 
-  public selectLocation(hexColor: string): boolean {
-    const storedLocation = this.selectedLocations[hexColor];
+  public selectLocation(locationName: string): boolean {
+    const storedLocation = this.selectedLocations[locationName];
     if (!storedLocation) {
-      this.selectedLocations[hexColor] = {
-        hexColor,
-        name: this.findLocationName(hexColor),
-      };
+      this.selectedLocations[locationName] = locationName;
     } else {
-      this.selectedLocations[hexColor] = null;
+      delete this.selectedLocations[locationName];
     }
     this.notifyListeners();
     return !storedLocation;
   }
 
-  public getAllSelectedLocations(): ISelectedLocationInfo[] {
+  public getAllSelectedLocations(): ILocationIdentifier[] {
     return Object.entries(this.selectedLocations)
       .map(([_, location]) => location)
       .filter((location) => !!location);

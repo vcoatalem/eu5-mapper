@@ -3,7 +3,7 @@
 import { ReactNode } from "react";
 import { readFile } from "fs/promises";
 import { join } from "path";
-import { ILocationDataMap } from "./lib/types";
+import { ILocationDataMap, ILocationIdentifierMap } from "./lib/types";
 import { GameDataClientProvider } from "./gameDataContext";
 import { GameDataParser } from "./lib/gameDataParser";
 
@@ -20,7 +20,8 @@ export async function GameDataProvider({
   locationDataPath = "game_data/world_map/0.0.11/location_templates.txt",
   mapConfigPath = "game_data/world_map/0.0.11/default.map",
 }: GameDataProviderProps) {
-  let locationDataMap: ILocationDataMap | null = {};
+  let locationDataMap: ILocationDataMap = {};
+  let colorToNameMap: ILocationIdentifierMap = {};
   let error: string | null = null;
 
   try {
@@ -72,17 +73,24 @@ export async function GameDataProvider({
         data.topography === "ocean_wasteland" ||
         data.topography === "narrows";
 
-      locationDataMap[hexColor] = {
+      if (locationDataMap[locationName]) {
+        console.warn(
+          `[GameDataProvider] Duplicate location name found: ${locationName}`
+        );
+      }
+
+      locationDataMap[locationName] = {
         ...data,
         name: locationName,
+        hexColor: hexColor,
         isLake,
         isSea,
         ownable: !isNonOwnable && !isImpassableMountain && !isLake && !isSea,
       };
+      colorToNameMap = colorToName;
     }
 
     if (!locationDataMap) {
-      locationDataMap = null;
       throw new Error("Failed to load game data");
     }
   } catch (err) {
@@ -92,7 +100,7 @@ export async function GameDataProvider({
   }
 
   return (
-    <GameDataClientProvider value={{ locationDataMap, error }}>
+    <GameDataClientProvider value={{ locationDataMap, colorToNameMap, error }}>
       {children}
     </GameDataClientProvider>
   );

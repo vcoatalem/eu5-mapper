@@ -2,13 +2,13 @@
 
 import { Dispatch, SetStateAction, useState } from "react";
 import { createContext } from "react";
-import { ISelectedLocationInfo } from "./lib/types";
+import { ILocationIdentifier } from "./lib/types";
 
 interface IAppContext {
-  selectedLocation: ISelectedLocationInfo | null;
-  setSelectedLocation: Dispatch<SetStateAction<ISelectedLocationInfo | null>>;
-  hoveredLocation: ISelectedLocationInfo | null;
-  setHoveredLocation: Dispatch<SetStateAction<ISelectedLocationInfo | null>>;
+  selectedLocation: ILocationIdentifier | null;
+  setSelectedLocation: Dispatch<SetStateAction<ILocationIdentifier | null>>;
+  hoveredLocation: ILocationIdentifier | null;
+  setHoveredLocation: Dispatch<SetStateAction<ILocationIdentifier | null>>;
 }
 
 const emptyContext = {} as IAppContext;
@@ -21,9 +21,9 @@ export const AppContextProvider = ({
   children: React.ReactNode;
 }) => {
   const [selectedLocation, setSelectedLocation] =
-    useState<ISelectedLocationInfo | null>(null);
+    useState<ILocationIdentifier | null>(null);
   const [hoveredLocation, setHoveredLocation] =
-    useState<ISelectedLocationInfo | null>(null);
+    useState<ILocationIdentifier | null>(null);
 
   return (
     <AppContext.Provider

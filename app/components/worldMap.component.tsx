@@ -70,6 +70,7 @@ export function WorldMapComponent() {
   const layersRenderedRef = useRef(0);
   const totalLayersRef = useRef(0);
 
+  const workerPoolSize = 4;
   const initializeWorkerAndCanvas = (): void => {
     if (workerManagerRef.current) {
       workerManagerRef.current.terminate();
@@ -77,7 +78,7 @@ export function WorldMapComponent() {
 
     const workerManager = new WorkerManager(
       new URL("canvas-worker.js", import.meta.url).href,
-      4
+      workerPoolSize
     );
 
     // Subscribe to worker status updates
@@ -319,7 +320,7 @@ export function WorldMapComponent() {
             createImageBitmap(colorCanvas).then((bitmap) => {
               if (workerManagerRef.current) {
                 // Initialize all workers with the image
-                for (let i = 0; i < 4; i++) {
+                for (let i = 0; i < workerPoolSize; i++) {
                   const taskId = `initWithImage-${i}`;
                   workerManagerRef.current.queueTask({
                     id: taskId,

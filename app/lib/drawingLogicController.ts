@@ -1,5 +1,5 @@
 import { GameLogicController } from "./gameLogicController";
-import { ICoordinate, IGameData, ILocationIdentifier } from "./types";
+import { ICoordinate, IGameData, ILocationIdentifier } from "./types/general";
 
 export class DrawingLogicController {
   private areaDrawingCanvas: HTMLCanvasElement;

@@ -1,9 +1,26 @@
 import { JSX, useContext } from "react";
 import { AppContext } from "../appContextProvider";
-import { ILocationGameData } from "../lib/types";
+import { ILocationGameData } from "../lib/types/general";
 import styles from "../styles/Gui.module.css";
+import { CompactGraph } from "../lib/graph";
+import { NeighborInfo } from "../lib/types/pathfinding";
 
-const buildLocationDisplay = (locationData: ILocationGameData): JSX.Element => {
+const buildLocationDisplay = (
+  locationData: ILocationGameData,
+  adjacencyGraph: CompactGraph,
+): JSX.Element => {
+  const neighborLocationsNames = adjacencyGraph.getNeighborNodesNames(
+    locationData.name,
+  );
+
+  const getConnectionType = (neighbor: NeighborInfo): string => {
+    if (neighbor.isPort) return "port";
+    if (neighbor.isLand) return "land";
+    if (neighbor.isSea) return "sea";
+    if (neighbor.isRiver) return "river";
+    return "unknown";
+  };
+
   if (!locationData) {
     return <span>No data available</span>;
   }
@@ -27,6 +44,19 @@ const buildLocationDisplay = (locationData: ILocationGameData): JSX.Element => {
         </span>
       )}
 
+      {neighborLocationsNames.length > 0 && (
+        <div className="flex flex-col">
+          <span className="font-semibold mt-2">Neighbors:</span>
+          <ul className="list-disc list-inside">
+            {neighborLocationsNames.map((neighbor) => (
+              <li key={neighbor.name}>
+                {neighbor.name} (through: {getConnectionType(neighbor)} )
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <hr className="border border-stone-600 my-2 mt-auto"></hr>
 
       {locationData.hierarchy && (
@@ -43,16 +73,24 @@ const buildLocationDisplay = (locationData: ILocationGameData): JSX.Element => {
 
 export function InfoBoxComponent() {
   const context = useContext(AppContext);
-
-  if (!context || !context.gameData) {
-    throw new Error("gameData is not loaded");
+  if (!context) {
+    throw new Error("InfoBoxComponent must be used within AppContextProvider");
+  }
+  if (!context.gameData) {
+    throw new Error("Game data is not available in InfoBoxComponent");
+  }
+  if (!context.adjacencyGraph) {
+    throw new Error("Adjacency graph is not available in InfoBoxComponent");
   }
 
   const locationName =
     context?.hoveredLocation ?? context?.selectedLocation ?? null;
 
   const locationDisplay = locationName ? (
-    buildLocationDisplay(context.gameData.locationDataMap[locationName])
+    buildLocationDisplay(
+      context.gameData.locationDataMap[locationName],
+      context.adjacencyGraph,
+    )
   ) : (
     <span></span>
   );

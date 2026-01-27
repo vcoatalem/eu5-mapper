@@ -8,13 +8,9 @@ import {
   createContext,
 } from "react";
 import { useParams } from "next/navigation";
-import {
-  ILocationIdentifier,
-  ILocationDataMap,
-  ILocationIdentifierMap,
-  IBuildingTemplate,
-  IGameData,
-} from "./lib/types";
+import { ILocationIdentifier, IGameData } from "./lib/types/general";
+import { CompactGraph } from "./lib/graph";
+import { ParserHelper } from "./lib/parserHelper";
 
 interface IAppContext {
   selectedLocation: ILocationIdentifier | null;
@@ -22,6 +18,7 @@ interface IAppContext {
   hoveredLocation: ILocationIdentifier | null;
   setHoveredLocation: Dispatch<SetStateAction<ILocationIdentifier | null>>;
   gameData: IGameData | null;
+  adjacencyGraph: CompactGraph | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -44,6 +41,7 @@ export const AppContextProvider = ({
 
   // Game data state
   const [gameData, setGameData] = useState<IGameData | null>(null);
+  const [adjacencyGraph, setAdjacencyGraph] = useState<CompactGraph | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,25 +55,27 @@ export const AppContextProvider = ({
 
         const basePath = `/${version}/game_data`;
 
-        // Fetch all JSON files in parallel
-        const [locationDataRes, colorToNameRes, buildingsRes] =
+        // Fetch all JSON files and CSV in parallel
+        const [locationDataRes, colorToNameRes, buildingsRes, adjacencyRes] =
           await Promise.all([
             fetch(`${basePath}/location-data-map.json`),
             fetch(`${basePath}/color-to-name-map.json`),
             fetch(`${basePath}/buildings-template-map.json`),
+            fetch(`${basePath}/adjacency-data.csv`),
           ]);
 
-        if (!locationDataRes.ok || !colorToNameRes.ok || !buildingsRes.ok) {
+        if (!locationDataRes.ok || !colorToNameRes.ok || !buildingsRes.ok || !adjacencyRes.ok) {
           throw new Error(
             `Failed to load game data files for version ${version}`,
           );
         }
 
-        const [locationDataMap, colorToNameMap, buildingsTemplateMap] =
+        const [locationDataMap, colorToNameMap, buildingsTemplateMap, adjacencyCsv] =
           await Promise.all([
             locationDataRes.json(),
             colorToNameRes.json(),
             buildingsRes.json(),
+            adjacencyRes.text(),
           ]);
 
         setGameData({
@@ -87,6 +87,20 @@ export const AppContextProvider = ({
         console.log(
           `[AppContext] Game data loaded: ${Object.keys(locationDataMap).length} locations`,
         );
+
+        // Parse adjacency CSV and build graph
+        console.log(`[AppContext] Building adjacency graph...`);
+        const graph = ParserHelper.parseAdjacencyCSV(adjacencyCsv);
+        
+        setAdjacencyGraph(graph);
+        const stats = graph.getStats();
+        console.log(`[AppContext] Adjacency graph built:`, stats);
+        console.log(`  - Nodes: ${stats.nodes}`);
+        console.log(`  - Total edges: ${stats.edges}`);
+        console.log(`  - River edges: ${stats.riverEdges}`);
+        console.log(`  - Land edges: ${stats.landEdges}`);
+        console.log(`  - Sea edges: ${stats.seaEdges}`);
+        console.log(`  - Port edges: ${stats.portEdges}`);
       } catch (err) {
         const errorMsg =
           err instanceof Error ? err.message : "Failed to load game data";
@@ -108,6 +122,7 @@ export const AppContextProvider = ({
         hoveredLocation,
         setHoveredLocation,
         gameData,
+        adjacencyGraph,
         isLoading,
         error,
       }}

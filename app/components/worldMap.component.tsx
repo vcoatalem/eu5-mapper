@@ -10,7 +10,7 @@ import styles from "../styles/Gui.module.css";
 import { InfoBoxComponent } from "./infoBox.component";
 import { AppContext } from "../appContextProvider";
 import { GameLogicController } from "../lib/gameLogicController";
-import { ILocationIdentifier } from "../lib/types";
+import { ILocationIdentifier } from "../lib/types/general";
 import { DrawingLogicController } from "../lib/drawingLogicController";
 import { WorkerManager } from "../lib/workerManager";
 import { LoadingScreenComponent } from "./loadingScreen.component";

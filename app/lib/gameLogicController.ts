@@ -3,7 +3,7 @@ import {
   ILocationIdentifier,
   IConstructibleLocation,
   IGameData,
-} from "./types";
+} from "./types/general";
 
 export class GameLogicController extends Observable<
   Record<ILocationIdentifier, IConstructibleLocation>

@@ -60,7 +60,7 @@ interface IBuildingInstance {
   createdByUser: boolean; // can be destroyed if false ? should check
 }
 
-interface IConstructibleLocation {
+export interface IConstructibleLocation {
   level: "rural" | "town" | "city";
   buildings: IBuildingInstance[];
 }

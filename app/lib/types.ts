@@ -6,6 +6,7 @@ export interface ILocationGameData {
   // todo: fill
   name: string;
   hexColor: string;
+  constructibleLocationCoordinate?: ICoordinate;
   topography:
     | "unknown"
     | "hills"
@@ -40,9 +41,12 @@ type PlacementRestrictions =
   | "is_adjacent_to_lake"
   | "has_road";
 
-interface IBuildingTemplate {
+type BuildingType = "rural" | "urban" | "city" | "common";
+
+export interface IBuildingTemplate {
   name: string;
   levels: number;
+  type: BuildingType;
   harborCapacity: number[]; // harbor capacity increment per level
   proximityCostReductionPercentage: number[]; // percentage reduction per level
   placementRestriction?: [PlacementRestrictions];

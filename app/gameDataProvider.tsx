@@ -2,7 +2,11 @@
 
 import { ReactNode } from "react";
 import { readFile } from "fs/promises";
-import { ILocationDataMap, ILocationIdentifierMap } from "./lib/types";
+import {
+  ILocationDataMap,
+  ILocationIdentifierMap,
+  IBuildingTemplate,
+} from "./lib/types";
 import { GameDataClientProvider } from "./gameDataContext";
 import { GameDataParser } from "./lib/gameDataParser";
 import { GameDataLoader } from "./lib/gameDataLoader";
@@ -24,44 +28,33 @@ export async function GameDataProvider({ children }: GameDataProviderProps) {
       locationData,
       { nonOwnable, impassableMountains },
       hierarchy,
+      cityCoordinates,
+      buildingsData,
     ] = await Promise.all([
-      (async () => {
-        const locationNameColorFileContent = await readFile(
-          files.locationsColorMappingFilePath,
-          "utf-8"
-        );
+      readFile(files.locationsColorMappingFilePath, "utf-8").then((content) =>
+        GameDataParser.parseLocationNameAndColorHex(content)
+      ),
+      readFile(files.locationDataFilePath, "utf-8").then((content) =>
+        GameDataParser.parseLocationData(content)
+      ),
 
-        return GameDataParser.parseLocationNameAndColorHex(
-          locationNameColorFileContent
-        );
-      })(),
-      (async () => {
-        const locationDataFileContent = await readFile(
-          files.locationDataFilePath,
-          "utf-8"
-        );
+      readFile(files.locationClassificationFilePath, "utf-8").then((content) =>
+        GameDataParser.parseMapConfig(content)
+      ),
+      readFile(files.provincesDataFilePath, "utf-8").then((content) =>
+        GameDataParser.parseLocationHierarchy(content)
+      ),
 
-        return GameDataParser.parseLocationData(locationDataFileContent);
-      })(),
-      (async () => {
-        const mapConfigFileContent = await readFile(
-          files.locationClassificationFilePath,
-          "utf-8"
-        );
+      readFile(files.locationsCityCoordinatesMapFilePath, "utf-8").then(
+        (content) => GameDataParser.parseCityCoordinates(content)
+      ),
 
-        return GameDataParser.parseMapConfig(mapConfigFileContent);
-      })(),
-
-      (async () => {
-        const hierarchyFileContent = await readFile(
-          files.provincesDataFilePath,
-          "utf-8"
-        );
-        return GameDataParser.parseLocationHierarchy(hierarchyFileContent);
-      })(),
+      readFile(files.buildingsDataFilePath, "utf-8").then(
+        (content) => JSON.parse(content) as Array<IBuildingTemplate>
+      ),
     ]);
 
-    console.log("hierarchy", hierarchy);
+    console.log({ buildingsData });
 
     for (const [locationName, data] of Object.entries(locationData)) {
       const hexColor = nameToColor[locationName];
@@ -89,6 +82,7 @@ export async function GameDataProvider({ children }: GameDataProviderProps) {
         isSea,
         ownable: !isNonOwnable && !isImpassableMountain && !isLake && !isSea,
         hierarchy: hierarchy[locationName],
+        constructibleLocationCoordinate: cityCoordinates[locationName],
       };
       colorToNameMap = colorToName;
     }

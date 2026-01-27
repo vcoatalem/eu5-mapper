@@ -20,6 +20,13 @@ const buildLocationDisplay = (locationData: ILocationGameData): JSX.Element => {
         )}
       </div>
 
+      {locationData.constructibleLocationCoordinate && (
+        <span>
+          {locationData.constructibleLocationCoordinate.x},
+          {locationData.constructibleLocationCoordinate.y}
+        </span>
+      )}
+
       <hr className="border border-stone-600 my-2 mt-auto"></hr>
 
       {locationData.hierarchy && (

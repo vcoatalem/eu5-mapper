@@ -185,7 +185,7 @@ export class GameDataParser {
           currentProvinceLocations = [];
           insideProvince = false;
         }
-        
+
         hierarchyStack.pop();
         continue;
       }
@@ -260,5 +260,44 @@ export class GameDataParser {
     }
 
     return locationHierarchy;
+  }
+
+  public static parseCityCoordinates(
+    data: string
+  ): Record<string, { x: number; y: number }> {
+    const locationCoordinates: Record<string, { x: number; y: number }> = {};
+    const lines = data.split("\n");
+
+    let currentLocationId: string | null = null;
+
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+
+      // Skip comments and empty lines
+      if (trimmedLine.startsWith("#") || trimmedLine === "") {
+        continue;
+      }
+
+      // Check for id line: id=location_name
+      const idMatch = trimmedLine.match(/^id=(\w+)/);
+      if (idMatch) {
+        currentLocationId = idMatch[1];
+        continue;
+      }
+
+      // Check for position line: position={ X Z Y }
+      const positionMatch = trimmedLine.match(
+        /^position=\{\s*([\d.-]+)\s+[\d.-]+\s+([\d.-]+)\s*\}/
+      );
+      if (positionMatch && currentLocationId) {
+        const x = parseFloat(positionMatch[1]);
+        const y = parseFloat(positionMatch[2]);
+
+        locationCoordinates[currentLocationId] = { x, y };
+        currentLocationId = null;
+      }
+    }
+
+    return locationCoordinates;
   }
 }

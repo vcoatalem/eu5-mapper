@@ -1,0 +1,56 @@
+[
+  {
+    "name": "bridge",
+    "type": "common",
+    "levels": 1,
+    "harborCapacity": [0],
+    "proximityCostReductionPercentage": [5],
+    "placementRestriction": ["has_road", "has_river"],
+    "locationRestriction": [],
+    "countryRestriction": []
+  },
+  {
+    "name": "canal",
+    "type": "city",
+    "levels": 1,
+    "harborCapacity": [0],
+    "proximityCostReductionPercentage": [5],
+    "locationRestriction": [],
+    "countryRestriction": []
+  },
+  {
+    "name": "dock",
+    "type": "urban",
+    "levels": 4,
+    "harborCapacity": [0.1, 0.15, 0.25, 0.3]
+  },
+  {
+    "name": "wharf",
+    "type": "urban",
+    "levels": 1,
+    "harborCapacity": [0.1],
+    "proximityCostReductionPercentage": [],
+    "locationRestriction": [],
+    "countryRestriction": []
+  },
+  {
+    "name": "protected harbor",
+    "type": "urban",
+    "levels": 1,
+    "harborCapacity": [0.1],
+    "proximityCostReductionPercentage": [],
+    "locationRestriction": [],
+    "countryRestriction": []
+  },
+  {
+    "name": "fishing village",
+    "type": "rural",
+    "levels": 10,
+    "harborCapacity": [
+      0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.16, 0.18, 0.2
+    ],
+    "proximityCostReductionPercentage": [],
+    "locationRestriction": [],
+    "countryRestriction": []
+  }
+]

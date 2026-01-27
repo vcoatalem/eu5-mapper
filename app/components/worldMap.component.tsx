@@ -302,38 +302,27 @@ export function WorldMapComponent() {
             `[WorldMapInit] initialized layer ${layer.name}. Total progress: ${layersRenderedRef.current}/${totalLayersRef.current}`,
           );
           if (layer.initializeWorkerCanvas && workerManagerRef.current) {
-            createImageBitmap(img).then((bitmap) => {
-              for (let i = 0; i < workerPoolSize; i++) {
-                const offscreenCanvas = new OffscreenCanvas(
-                  mapInfos.width,
-                  mapInfos.height,
-                );
+            const imageData = ctx.getImageData(
+              0,
+              0,
+              mapInfos.width,
+              mapInfos.height,
+            );
 
-                const taskId = `initWithImage-${i}`;
-                workerManagerRef.current!.queueTask({
-                  id: taskId,
+            for (let i = 0; i < workerPoolSize; i++) {
+              const taskId = `initWithImage-${i}`;
+              const pixelDataCopy = new Uint8ClampedArray(imageData.data);
+              workerManagerRef.current?.queueTask({
+                id: taskId,
+                type: "initWithImage",
+                payload: {
                   type: "initWithImage",
-                  payload: {
-                    type: "initWithImage",
-                    canvas: offscreenCanvas,
-                    imageBitmap: bitmap,
-                    canvasWidth: mapInfos.width,
-                    canvasHeight: mapInfos.height,
-                  },
-                  callbacks: {
-                    onSuccess: () => {
-                      console.log(`[INIT WITH IMAGE COMPLETE] Worker ${i}`);
-                    },
-                    onError: (error) => {
-                      console.error(
-                        `[INIT WITH IMAGE ERROR] Worker ${i}`,
-                        error,
-                      );
-                    },
-                  },
-                });
-              }
-            });
+                  pixelDataBuffer: pixelDataCopy.buffer,
+                  canvasWidth: mapInfos.width,
+                  canvasHeight: mapInfos.height,
+                },
+              });
+            }
           }
         };
       } else if (layer.createMethod) {

@@ -10,7 +10,7 @@ export interface WorkerTask {
   id: string;
   type: string;
   payload: unknown;
-  callbacks: WorkerTaskCallbacks;
+  callbacks?: WorkerTaskCallbacks;
 }
 
 export interface WorkerProgress {

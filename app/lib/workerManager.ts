@@ -24,10 +24,10 @@ export class WorkerManager {
     for (let i = 0; i < this.workerPoolSize; i++) {
       const worker = new Worker(this.workerScriptPath);
       worker.addEventListener("message", (event) =>
-        this.handleWorkerMessage(event.data, worker),
+        this.handleWorkerMessage(event.data, worker)
       );
       worker.addEventListener("error", (event) =>
-        this.handleWorkerError(event, worker),
+        this.handleWorkerError(event, worker)
       );
       this.workers.push(worker);
       this.workerAssignments.set(worker, null); // Mark as available
@@ -39,14 +39,14 @@ export class WorkerManager {
     // Check if task has already been processed
     if (this.processedTaskIds.has(task.id)) {
       console.warn(
-        `[WorkerManager] Task ${task.id} has already been processed, skipping`,
+        `[WorkerManager] Task ${task.id} has already been processed, skipping`
       );
       return;
     }
 
     this.taskQueue.push(task);
     console.log(
-      `[WorkerManager] Task queued. Queue size: ${this.taskQueue.length}`,
+      `[WorkerManager] Task queued. Queue size: ${this.taskQueue.length}`
     );
     this.notifyObservers();
     this.processQueue();
@@ -62,7 +62,7 @@ export class WorkerManager {
 
     if (!availableWorker) {
       console.log(
-        `[WorkerManager] No available workers. Queue size: ${this.taskQueue.length}`,
+        `[WorkerManager] No available workers. Queue size: ${this.taskQueue.length}`
       );
       return;
     }
@@ -139,7 +139,7 @@ export class WorkerManager {
     const task = this.activeTasks.get(taskId);
     if (!task) {
       console.warn(
-        `[WorkerManager] Received message for unknown task: ${taskId}`,
+        `[WorkerManager] Received message for unknown task: ${taskId}`
       );
       return;
     }
@@ -150,7 +150,7 @@ export class WorkerManager {
         break;
 
       case "progress":
-        if (task.callbacks.onProgress) {
+        if (task.callbacks?.onProgress) {
           task.callbacks.onProgress({
             taskId,
             percentage: (message.data as any)?.percentage || 0,
@@ -160,7 +160,7 @@ export class WorkerManager {
         break;
 
       case "result":
-        task.callbacks.onSuccess(message.data);
+        task.callbacks?.onSuccess(message.data);
         this.activeTasks.delete(taskId);
         this.processedTaskIds.add(taskId);
         this.workerAssignments.set(worker, null); // Free up worker
@@ -170,7 +170,7 @@ export class WorkerManager {
         break;
 
       case "error":
-        task.callbacks.onError(new Error(message.message || "Unknown error"));
+        task.callbacks?.onError(new Error(message.message || "Unknown error"));
         this.activeTasks.delete(taskId);
         this.processedTaskIds.add(taskId);
         this.workerAssignments.set(worker, null); // Free up worker

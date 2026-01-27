@@ -43,7 +43,7 @@ const buildLocationDisplay = (locationData: ILocationGameData): JSX.Element => {
 
 export function InfoBoxComponent() {
   const context = useContext(AppContext);
-  
+
   if (!context || !context.gameData) {
     throw new Error("gameData is not loaded");
   }

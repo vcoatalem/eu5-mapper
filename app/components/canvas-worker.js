@@ -22,8 +22,7 @@ const getAllCoordinatesOfColor = (data32, width, targetColor32) => {
   }
 };
 
-let offscreenCanvas;
-let offscreenContext;
+let pixelData32; // Uint32Array for fast pixel access
 let canvasWidth;
 let canvasHeight;
 
@@ -48,32 +47,20 @@ self.onmessage = function (e) {
       try {
         canvasWidth = e.data.canvasWidth;
         canvasHeight = e.data.canvasHeight;
-        offscreenCanvas = e.data.canvas;
-        offscreenContext = offscreenCanvas.getContext("2d", {
-          willReadFrequently: true,
-        });
+        
+        // Receive ArrayBuffer and wrap in Uint8ClampedArray
+        const pixelDataBuffer = e.data.pixelDataBuffer;
+        const pixelData8 = new Uint8ClampedArray(pixelDataBuffer);
+        
+        // Create Uint32Array view for fast pixel comparison
+        pixelData32 = new Uint32Array(pixelData8.buffer);
 
-        if (!offscreenContext) {
-          throw new Error("Failed to get 2D context from OffscreenCanvas");
-        }
-
-        // Draw the ImageBitmap onto the OffscreenCanvas
-        if (e.data.imageBitmap) {
-          offscreenContext.drawImage(e.data.imageBitmap, 0, 0);
-        }
-
-        const pixelCount = canvasWidth * canvasHeight;
-        self.postMessage({
-          type: "log",
-          message: `worker initialized with ${pixelCount} pixels`,
-          taskId: taskId,
-        });
         self.postMessage({
           type: "result",
           taskId: taskId,
           data: {
             success: true,
-            message: "Worker initialized with offscreen canvas",
+            message: "Worker initialized with pixel data",
           },
         });
       } catch (err) {
@@ -87,26 +74,11 @@ self.onmessage = function (e) {
 
     case "colorSearch":
       try {
-        if (!offscreenContext || !offscreenCanvas) {
+        if (!pixelData32) {
           throw new Error(
             "Image data not initialized. Must call 'initWithImage' first.",
           );
         }
-
-        self.postMessage({
-          type: "log",
-          message: "worker processing color search task",
-          taskId: taskId,
-        });
-
-        // Get image data from OffscreenCanvas
-        const imageData = offscreenContext.getImageData(
-          0,
-          0,
-          canvasWidth,
-          canvasHeight,
-        );
-        const imageData32 = new Uint32Array(imageData.data.buffer);
 
         // Convert hex to 32-bit color (ABGR format for little-endian)
         const r = parseInt(e.data.colorHex.slice(0, 2), 16);
@@ -115,7 +87,7 @@ self.onmessage = function (e) {
         const targetColor32 = (b << 16) | (g << 8) | r;
 
         const coordinates = getAllCoordinatesOfColor(
-          imageData32,
+          pixelData32,
           canvasWidth,
           targetColor32,
         );

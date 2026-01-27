@@ -130,4 +130,135 @@ export class GameDataParser {
 
     return { nonOwnable, impassableMountains };
   }
+
+  public static parseLocationHierarchy(data: string): Record<
+    string,
+    {
+      continent: string;
+      subcontinent: string;
+      region: string;
+      area: string;
+      province: string;
+    }
+  > {
+    const locationHierarchy: Record<
+      string,
+      {
+        continent: string;
+        subcontinent: string;
+        region: string;
+        area: string;
+        province: string;
+      }
+    > = {};
+    const lines = data.split("\n");
+
+    const hierarchyStack: string[] = [];
+    let insideProvince = false;
+    let currentProvinceLocations: string[] = [];
+
+    for (const line of lines) {
+      // Skip comments and empty lines
+      if (line.trim().startsWith("#") || line.trim() === "") {
+        continue;
+      }
+
+      // Count leading tabs to determine depth
+      const leadingTabs = line.match(/^\t*/)?.[0].length ?? 0;
+
+      // Handle closing braces
+      if (line.trim() === "}") {
+        // If we were inside a province, process collected locations
+        if (insideProvince && currentProvinceLocations.length > 0) {
+          const hierarchyValue = {
+            continent: hierarchyStack[0] ?? "",
+            subcontinent: hierarchyStack[1] ?? "",
+            region: hierarchyStack[2] ?? "",
+            area: hierarchyStack[3] ?? "",
+            province: hierarchyStack[4] ?? "",
+          };
+
+          for (const locationName of currentProvinceLocations) {
+            locationHierarchy[locationName] = hierarchyValue;
+          }
+
+          currentProvinceLocations = [];
+          insideProvince = false;
+        }
+        
+        hierarchyStack.pop();
+        continue;
+      }
+
+      // Check for single-line province definition: province = { loc1 loc2 ... }
+      const singleLineMatch = line.match(
+        /^\t*(\w+_province)\s*=\s*\{\s*(.+?)\s*\}/
+      );
+      if (singleLineMatch) {
+        const provinceName = singleLineMatch[1];
+        const locationsLine = singleLineMatch[2];
+
+        // Update the province in hierarchy stack
+        hierarchyStack[leadingTabs] = provinceName;
+        hierarchyStack.length = leadingTabs + 1;
+
+        // Extract individual location names
+        const locationNames = locationsLine
+          .split(/\s+/)
+          .filter(
+            (name) =>
+              name && !name.startsWith("#") && name !== "{" && name !== "}"
+          );
+
+        // Build hierarchy object
+        const hierarchyValue = {
+          continent: hierarchyStack[0] ?? "",
+          subcontinent: hierarchyStack[1] ?? "",
+          region: hierarchyStack[2] ?? "",
+          area: hierarchyStack[3] ?? "",
+          province: hierarchyStack[4] ?? "",
+        };
+
+        // Assign this hierarchy to all locations in this province
+        for (const locationName of locationNames) {
+          locationHierarchy[locationName] = hierarchyValue;
+        }
+        continue;
+      }
+
+      // Check for multi-line province definition start: province = {
+      const multiLineProvinceMatch = line.match(/^\t*(\w+_province)\s*=\s*\{$/);
+      if (multiLineProvinceMatch) {
+        const provinceName = multiLineProvinceMatch[1];
+        hierarchyStack[leadingTabs] = provinceName;
+        hierarchyStack.length = leadingTabs + 1;
+        insideProvince = true;
+        currentProvinceLocations = [];
+        continue;
+      }
+
+      // Check if this line contains an opening brace (non-province)
+      const openBraceMatch = line.match(/^\t*(\w+)\s*=\s*\{/);
+      if (openBraceMatch && !openBraceMatch[1].endsWith("_province")) {
+        const name = openBraceMatch[1];
+        hierarchyStack[leadingTabs] = name;
+        hierarchyStack.length = leadingTabs + 1;
+        continue;
+      }
+
+      // If we're inside a province definition, collect location names
+      if (insideProvince) {
+        const locationNames = line
+          .trim()
+          .split(/\s+/)
+          .filter(
+            (name) =>
+              name && !name.startsWith("#") && name !== "{" && name !== "}"
+          );
+        currentProvinceLocations.push(...locationNames);
+      }
+    }
+
+    return locationHierarchy;
+  }
 }

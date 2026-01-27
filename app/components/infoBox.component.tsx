@@ -8,14 +8,29 @@ const buildLocationDisplay = (locationData: ILocationGameData): JSX.Element => {
     return <span>No data available</span>;
   }
   return (
-    <div className="flex flex-col">
-      <span className="font-bold text-lg">{locationData.name}</span>
-      <span>Topography: {locationData.topography}</span>
-      {locationData.vegetation && (
-        <span>Vegetation: {locationData.vegetation}</span>
+    <>
+      <div className="flex flex-col h-full">
+        <span className="font-bold text-lg">{locationData.name}</span>
+        <span className="text-stone-600">
+          {!locationData.ownable && <span>Not Ownable</span>}
+        </span>
+        <span>Topography: {locationData.topography}</span>
+        {locationData.vegetation && (
+          <span>Vegetation: {locationData.vegetation}</span>
+        )}
+      </div>
+
+      <hr className="border border-stone-600 my-2 mt-auto"></hr>
+
+      {locationData.hierarchy && (
+        <div className="flex flex-col">
+          <span className="text-wrap">
+            Part of {locationData.hierarchy.province}
+          </span>
+          <span>({locationData.hierarchy.subcontinent})</span>
+        </div>
       )}
-      {!locationData.ownable && <span>Not Ownable</span>}
-    </div>
+    </>
   );
 };
 
@@ -36,7 +51,10 @@ export function InfoBoxComponent() {
   );
 
   return (
-    <div className="fixed bottom-5 left-5 rounded-sm min-w-64 min-h-32 flex flex-col z-10 bg-black border border-white text-md text-white p-2">
+    <div
+      className="fixed bottom-5 left-5 rounded-sm min-w-64 min-h-96
+     flex flex-col z-10 bg-black border border-white text-md text-white p-2"
+    >
       {locationDisplay}
     </div>
   );

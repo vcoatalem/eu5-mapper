@@ -23,6 +23,7 @@ export async function GameDataProvider({ children }: GameDataProviderProps) {
       { colorToName, nameToColor },
       locationData,
       { nonOwnable, impassableMountains },
+      hierarchy,
     ] = await Promise.all([
       (async () => {
         const locationNameColorFileContent = await readFile(
@@ -50,7 +51,17 @@ export async function GameDataProvider({ children }: GameDataProviderProps) {
 
         return GameDataParser.parseMapConfig(mapConfigFileContent);
       })(),
+
+      (async () => {
+        const hierarchyFileContent = await readFile(
+          files.provincesDataFilePath,
+          "utf-8"
+        );
+        return GameDataParser.parseLocationHierarchy(hierarchyFileContent);
+      })(),
     ]);
+
+    console.log("hierarchy", hierarchy);
 
     for (const [locationName, data] of Object.entries(locationData)) {
       const hexColor = nameToColor[locationName];
@@ -77,6 +88,7 @@ export async function GameDataProvider({ children }: GameDataProviderProps) {
         isLake,
         isSea,
         ownable: !isNonOwnable && !isImpassableMountain && !isLake && !isSea,
+        hierarchy: hierarchy[locationName],
       };
       colorToNameMap = colorToName;
     }

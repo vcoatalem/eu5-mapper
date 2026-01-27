@@ -1,32 +1,76 @@
-from sys import argv
-from PIL import Image
-import numpy as np
+#!/usr/bin/env python3
+"""
+Generate a transparent RGBA image with borders between regions.
 
-def createColorBorders(color_map_filename: str, output_file: str = "borders.png", border_color: str = "#3a454d"):
-    """
-    Creates a transparent image with borders between different colored regions.
+Usage:
+  python3 create-border-layer.py <version> [--game-data-path <path>] [--output <file>]
+
+Example:
+  python3 create-border-layer.py 0.0.11
+  python3 create-border-layer.py 0.0.11 --output custom_borders.png
+"""
+
+import sys
+import numpy as np
+from PIL import Image
+from game_data_loader import GameDataLoader
+
+# Border color - consistent with terrain layer
+BORDER_COLOR = (106, 106, 106, 255)  # Grey borders
+
+
+def parse_arguments():
+    """Parse command line arguments."""
+    if len(sys.argv) < 2:
+        print("Usage: python create-border-layer.py <version> [--game-data-path <path>] [--output <file>]")
+        print("Example: python create-border-layer.py 0.0.11")
+        print("         python create-border-layer.py 0.0.11 --output custom_borders.png")
+        sys.exit(1)
     
-    Args:
-        color_map_filename: Path to input image with plain color areas
-        output_file: Path to save output image with borders
-        border_color: Hex color for the borders (default: #85c5f2)
-    """
-    print(f"Creating borders from {color_map_filename}...")
+    version = sys.argv[1]
+    game_data_path = None
+    output_file = "border_layer.png"
     
-    # Convert border color to RGB
-    border_hex = border_color.lstrip('#')
-    border_rgb = tuple(int(border_hex[i:i+2], 16) for i in (0, 2, 4))
-    print(f"Border color: {border_rgb}")
+    i = 2
+    while i < len(sys.argv):
+        if sys.argv[i] == '--game-data-path' and i + 1 < len(sys.argv):
+            game_data_path = sys.argv[i + 1]
+            i += 2
+        elif sys.argv[i] == '--output' and i + 1 < len(sys.argv):
+            output_file = sys.argv[i + 1]
+            i += 2
+        else:
+            i += 1
     
-    # Load image
-    print("Loading image...")
-    img = Image.open(color_map_filename).convert('RGB')
+    return version, game_data_path, output_file
+
+
+def main():
+    version, game_data_path, output_file = parse_arguments()
+    
+    print(f"Loading game data for version {version}...")
+    if game_data_path:
+        print(f"Using custom game data path: {game_data_path}")
+    
+    # Load file paths using GameDataLoader
+    try:
+        loader = GameDataLoader(folder_path=game_data_path)
+        game_files = loader.get_game_files_for_version(version)
+        print(f"✓ Found locations map: {game_files.locations_map}")
+    except (FileNotFoundError, ValueError) as e:
+        print(f"Error loading game data: {e}")
+        sys.exit(1)
+    
+    print("\nLoading locations image...")
+    img = Image.open(game_files.locations_map).convert('RGB')
     img_array = np.array(img)
     height, width = img_array.shape[:2]
+    print(f"Image size: {width}x{height}")
     
-    print(f"Processing {width}x{height} image...")
+    print(f"Border color: RGB{BORDER_COLOR[:3]}")
     
     # Convert RGB to single integer for easier comparison
+    print("Converting image data...")
     color_ints = (img_array[:,:,0].astype(np.uint32) << 16) | \
                  (img_array[:,:,1].astype(np.uint32) << 8) | \
                  img_array[:,:,2].astype(np.uint32)
@@ -41,17 +85,19 @@ def createColorBorders(color_map_filename: str, output_file: str = "borders.png"
     # Check vertical borders (compare with bottom neighbor)
     border_mask[:-1, :] |= (color_ints[:-1, :] != color_ints[1:, :])
     
-    print(f"Found {np.sum(border_mask)} border pixels")
+    border_pixels = np.sum(border_mask)
+    print(f"Found {border_pixels:,} border pixels")
     
-    # Create output RGBA image
+    # Create output RGBA image with transparent background
+    print("Creating output image...")
     output_array = np.zeros((height, width, 4), dtype=np.uint8)
-    output_array[border_mask] = [border_rgb[0], border_rgb[1], border_rgb[2], 255]
+    output_array[border_mask] = BORDER_COLOR
     
-    print("Saving output...")
+    print(f"Saving to {output_file}...")
     output = Image.fromarray(output_array, 'RGBA')
     output.save(output_file)
     print("Done!")
 
-output_file: str = "border_layer.png"
 
-createColorBorders(argv[1], output_file)
+if __name__ == '__main__':
+    main()

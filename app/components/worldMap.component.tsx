@@ -13,7 +13,6 @@ import { GameLogicController } from "../lib/gameLogicController";
 import { ILocationIdentifier } from "../lib/types";
 import { DrawingLogicController } from "../lib/drawingLogicController";
 import { WorkerManager } from "../lib/workerManager";
-import { IWorkerManagerObserver } from "../lib/workerTypes";
 import { LoadingScreenComponent } from "./loadingScreen.component";
 import { ZoomController } from "../lib/zoomController";
 
@@ -38,11 +37,10 @@ export function WorldMapComponent() {
   const isDraggingRef = useRef(false);
   const initializedRef = useRef(false);
   const clickedOnLocationRef = useRef<ILocationIdentifier | null>(null);
-  const zoomRef = useRef(1);
   const colorCanvasRef = useRef<HTMLCanvasElement>(null);
-  /* const borderCanvasRef = useRef<HTMLCanvasElement>(null); */
   const terrainCanvasRef = useRef<HTMLCanvasElement>(null);
   const blackCanvasRef = useRef<HTMLCanvasElement>(null);
+  const borderCanvasRef = useRef<HTMLCanvasElement>(null);
   const areaDrawingCanvasRef = useRef<HTMLCanvasElement>(null);
   const topLayerRef = useRef<HTMLCanvasElement>(null);
   const constructibleCanvasRef = useRef<HTMLCanvasElement>(null); //TODO: hide this canvas when zoom level is low
@@ -72,12 +70,9 @@ export function WorldMapComponent() {
       workerPoolSize,
     );
 
-    const observer: IWorkerManagerObserver = {
-      onTasksChanged: (activeTasks, queuedTasks) => {
-        setWorkerStatus({ activeTasks, queuedTasks });
-      },
-    };
-    workerManager.subscribe(observer);
+    workerManager.subscribe((status) => {
+      setWorkerStatus(status);
+    });
 
     workerManagerRef.current = workerManager;
   };
@@ -156,6 +151,12 @@ export function WorldMapComponent() {
       createMethod: createBlackCanvas,
     },
     {
+      name: "borderLayer",
+      ref: borderCanvasRef,
+      zIndex: 6,
+      path: mapInfos.borderMapFileName,
+    },
+    {
       name: "areaDrawingLayer",
       ref: areaDrawingCanvasRef,
       zIndex: 4,
@@ -177,73 +178,6 @@ export function WorldMapComponent() {
 
   const triggerRender = useCallback(() => {
     forceUpdate({});
-  }, []);
-
-  const getLocationAtPointer = useCallback(
-    (
-      colorCanvas: HTMLCanvasElement,
-      event: MouseEvent,
-    ): ILocationIdentifier | null => {
-      const zoom = zoomRef.current;
-      const rect = colorCanvas.getBoundingClientRect();
-
-      const relX = event.clientX - rect.left;
-      const relY = event.clientY - rect.top;
-
-      const imageX = relX / zoom;
-      const imageY = relY / zoom;
-
-      const imageData = colorCanvas
-        .getContext("2d", { willReadFrequently: true })
-        ?.getImageData(imageX, imageY, 1, 1);
-
-      if (!imageData) {
-        return null;
-      }
-
-      const [r, g, b] = [
-        parseInt(`${imageData.data[0]}`),
-        parseInt(`${imageData.data[1]}`),
-        parseInt(`${imageData.data[2]}`),
-      ];
-
-      const hexStr = [
-        r.toString(16).padStart(2, "0"),
-        g.toString(16).padStart(2, "0"),
-        b.toString(16).padStart(2, "0"),
-      ].join("");
-
-      const locationName =
-        gameLogicRef.current?.findLocationName(hexStr) ?? null;
-      return locationName;
-    },
-    [],
-  );
-
-  const setInitialPosition = useCallback(() => {
-    // Position user at coordinates X: 7934, Y: 1991
-    const colorCanvas = colorCanvasRef.current;
-    const container = containerRef.current;
-
-    if (!colorCanvas || !container) return;
-
-    const containerRect = container.getBoundingClientRect();
-    const centerX = containerRect.width / 2;
-    const centerY = containerRect.height / 2;
-    const targetX = 7934;
-    const targetY = 1991;
-    const zoom = zoomRef.current;
-
-    const newLeft = centerX - targetX * zoom;
-    const newTop = centerY - targetY * zoom;
-
-    layers.forEach((layer) => {
-      const canvas = layer.ref.current;
-      if (canvas) {
-        canvas.style.left = newLeft + "px";
-        canvas.style.top = newTop + "px";
-      }
-    });
   }, []);
 
   useEffect(() => {
@@ -276,12 +210,72 @@ export function WorldMapComponent() {
     }
 
     // effect variables: these will only be used inside this effect until destruction
+    let currentZoom = 1;
     let startX = 0;
     let startY = 0;
     let scrollLeft = 0;
     let scrollTop = 0;
     let dragDistance = 0;
     const MIN_DRAG_DISTANCE = 5;
+
+    const getLocationAtPointer = (
+      colorCanvas: HTMLCanvasElement,
+      event: MouseEvent,
+    ): ILocationIdentifier | null => {
+      const rect = colorCanvas.getBoundingClientRect();
+
+      const relX = event.clientX - rect.left;
+      const relY = event.clientY - rect.top;
+
+      const imageX = relX / currentZoom;
+      const imageY = relY / currentZoom;
+
+      const imageData = colorCanvas
+        .getContext("2d", { willReadFrequently: true })
+        ?.getImageData(imageX, imageY, 1, 1);
+
+      if (!imageData) {
+        return null;
+      }
+
+      const [r, g, b] = [
+        parseInt(`${imageData.data[0]}`),
+        parseInt(`${imageData.data[1]}`),
+        parseInt(`${imageData.data[2]}`),
+      ];
+
+      const hexStr = [
+        r.toString(16).padStart(2, "0"),
+        g.toString(16).padStart(2, "0"),
+        b.toString(16).padStart(2, "0"),
+      ].join("");
+
+      const locationName =
+        gameLogicRef.current?.findLocationName(hexStr) ?? null;
+      return locationName;
+    };
+
+    const setInitialPosition = () => {
+      // Position user at coordinates X: 7934, Y: 1991
+      if (!colorCanvas || !container) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const centerX = containerRect.width / 2;
+      const centerY = containerRect.height / 2;
+      const targetX = 7934;
+      const targetY = 1991;
+
+      const newLeft = centerX - targetX * currentZoom;
+      const newTop = centerY - targetY * currentZoom;
+
+      layers.forEach((layer) => {
+        const canvas = layer.ref.current;
+        if (canvas) {
+          canvas.style.left = newLeft + "px";
+          canvas.style.top = newTop + "px";
+        }
+      });
+    };
 
     // Count all layers that need to be rendered
     totalLayersRef.current = layers.length;
@@ -458,8 +452,16 @@ export function WorldMapComponent() {
       }
     };
 
-    zoomControllerRef.current.subscribe(({ zoomLevel }) => {
-      applyZoomLevel(zoomLevel);
+    zoomControllerRef.current.subscribe(({ zoomLevel, oldZoomLevel }) => {
+      /* console.log("zoom level changed", { zoomLevel, oldZoomLevel }); */
+      currentZoom = zoomLevel;
+      applyZoomLevel(zoomLevel, oldZoomLevel);
+
+      if (zoomLevel < 1 && oldZoomLevel >= 1) {
+        borderCanvasRef.current!.style.visibility = "hidden";
+      } else if (zoomLevel >= 1 && oldZoomLevel < 1) {
+        borderCanvasRef.current!.style.visibility = "visible";
+      }
     });
 
     console.log({ topLayerRefForCreate: topLayerRef });
@@ -492,7 +494,7 @@ export function WorldMapComponent() {
     };
   }, [gameData]);
 
-  const applyZoomLevel = (newZoom: number) => {
+  const applyZoomLevel = (newZoom: number, oldZoom: number) => {
     const colorCanvas = colorCanvasRef.current;
     const container = containerRef.current;
 
@@ -507,7 +509,6 @@ export function WorldMapComponent() {
     // Get current position and zoom
     const currentLeft = parseFloat(colorCanvas.style.left) || 0;
     const currentTop = parseFloat(colorCanvas.style.top) || 0;
-    const oldZoom = zoomRef.current;
 
     // Calculate the point on the canvas that's at the center of the viewport
     const canvasCenterX = (centerX - currentLeft) / oldZoom;
@@ -516,8 +517,6 @@ export function WorldMapComponent() {
     // Calculate new position so that the same canvas point remains at the viewport center
     const newLeft = centerX - canvasCenterX * newZoom;
     const newTop = centerY - canvasCenterY * newZoom;
-
-    zoomRef.current = newZoom;
 
     layers.forEach((layer) => {
       const canvas = layer.ref.current;
@@ -564,7 +563,10 @@ export function WorldMapComponent() {
             width={mapInfos.width}
             key={layer.zIndex}
             className={"absolute"}
-            style={{ zIndex: layer.zIndex, imageRendering: "pixelated" }}
+            style={{
+              zIndex: layer.zIndex,
+              imageRendering: "pixelated",
+            }}
           ></canvas>
         ))
       )}

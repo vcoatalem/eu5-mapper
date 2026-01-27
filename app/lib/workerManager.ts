@@ -1,20 +1,22 @@
-import {
-  WorkerTask,
-  WorkerMessage,
-  IWorkerManagerObserver,
-} from "./workerTypes";
+import { WorkerTask, WorkerMessage } from "./workerTypes";
+import { Observable } from "./observable";
 
-export class WorkerManager {
+export interface WorkerManagerStatus {
+  activeTasks: number;
+  queuedTasks: number;
+}
+
+export class WorkerManager extends Observable<WorkerManagerStatus> {
   private workers: Worker[] = [];
   private taskQueue: WorkerTask[] = [];
   private activeTasks: Map<string, WorkerTask> = new Map();
   private workerAssignments: Map<Worker, string | null> = new Map();
   private processedTaskIds: Set<string> = new Set();
-  private observers: IWorkerManagerObserver[] = [];
   private workerPoolSize: number;
   private workerScriptPath: string;
 
   constructor(workerScriptPath: string, poolSize: number = 4) {
+    super();
     this.workerScriptPath = workerScriptPath;
     this.workerPoolSize = Math.max(1, poolSize);
     this.initializeWorkers();
@@ -48,7 +50,10 @@ export class WorkerManager {
     console.log(
       `[WorkerManager] Task queued. Queue size: ${this.taskQueue.length}`,
     );
-    this.notifyObservers();
+    this.notifyListeners({
+      activeTasks: this.activeTasks.size,
+      queuedTasks: this.taskQueue.length,
+    });
     this.processQueue();
   }
 
@@ -116,7 +121,10 @@ export class WorkerManager {
       availableWorker.postMessage(messagePayload);
     }
 
-    this.notifyObservers();
+    this.notifyListeners({
+      activeTasks: this.activeTasks.size,
+      queuedTasks: this.taskQueue.length,
+    });
     // Continue processing if there are more tasks
     this.processQueue();
   }
@@ -165,7 +173,10 @@ export class WorkerManager {
         this.processedTaskIds.add(taskId);
         this.workerAssignments.set(worker, null); // Free up worker
         console.log(`[WorkerManager] Task completed: ${taskId}`);
-        this.notifyObservers();
+        this.notifyListeners({
+          activeTasks: this.activeTasks.size,
+          queuedTasks: this.taskQueue.length,
+        });
         this.processQueue(); // Process next task in queue
         break;
 
@@ -175,7 +186,10 @@ export class WorkerManager {
         this.processedTaskIds.add(taskId);
         this.workerAssignments.set(worker, null); // Free up worker
         console.error(`[WorkerManager] Task failed: ${taskId}`);
-        this.notifyObservers();
+        this.notifyListeners({
+          activeTasks: this.activeTasks.size,
+          queuedTasks: this.taskQueue.length,
+        });
         this.processQueue(); // Process next task in queue
         break;
     }
@@ -184,26 +198,6 @@ export class WorkerManager {
   private handleWorkerError(event: ErrorEvent, worker: Worker): void {
     console.error("[WorkerManager] Worker error:", event);
     // In production, would need more sophisticated error recovery
-  }
-
-  public subscribe(observer: IWorkerManagerObserver): void {
-    this.observers.push(observer);
-  }
-
-  public unsubscribe(observer: IWorkerManagerObserver): void {
-    const index = this.observers.indexOf(observer);
-    if (index > -1) {
-      this.observers.splice(index, 1);
-    }
-  }
-
-  private notifyObservers(): void {
-    const activeTasks = this.activeTasks.size;
-    const queuedTasks = this.taskQueue.length;
-
-    this.observers.forEach((observer) => {
-      observer.onTasksChanged(activeTasks, queuedTasks);
-    });
   }
 
   public getStatus(): {

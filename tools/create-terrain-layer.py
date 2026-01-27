@@ -28,7 +28,6 @@ SEA_COLOR = (26, 77, 122, 255)      # Dark blue for seas
 LAKE_COLOR = (91, 143, 196, 255)    # Medium blue for lakes
 RIVER_COLOR = (107, 155, 209, 255)  # Light blue for rivers
 BLOCKING_COLOR = (58, 58, 58, 255)  # Dark grey for blocking/non-ownable terrain
-BORDER_COLOR = (106, 106, 106, 255) # Border color
 
 
 
@@ -259,22 +258,6 @@ def main():
     lake_mask = np.isin(img_int, lake_rgb_ints)
     output_array[lake_mask] = LAKE_COLOR
     
-    # Layer 5: Add borders
-    print("\nDetecting borders between regions...")
-    border_mask = np.zeros((height, width), dtype=bool)
-    
-    # Check horizontal borders (compare with right neighbor)
-    border_mask[:, :-1] |= (img_int[:, :-1] != img_int[:, 1:])
-    
-    # Check vertical borders (compare with bottom neighbor)
-    border_mask[:-1, :] |= (img_int[:-1, :] != img_int[1:, :])
-    
-    border_pixels = np.sum(border_mask)
-    print(f"Found {border_pixels:,} border pixels")
-    
-    # Apply borders to all detected borders (including between ownable territories)
-    output_array[border_mask] = BORDER_COLOR
-    
     # Count pixels marked
     sea_pixels = np.sum(sea_mask)
     lake_pixels = np.sum(lake_mask)
@@ -287,7 +270,6 @@ def main():
     print(f"  Rivers: {river_pixels:,} pixels")
     print(f"  Seas: {sea_pixels:,} pixels")
     print(f"  Lakes: {lake_pixels:,} pixels")
-    print(f"  Borders: {np.sum(border_mask):,} pixels")
     
     print(f"\nSaving to {output_file}...")
     output_img = Image.fromarray(output_array, mode='RGBA')

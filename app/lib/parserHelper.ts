@@ -27,10 +27,11 @@ export class ParserHelper {
       graph.addEdge(
         locationA,
         locationB,
-        isRiver || isLake, // treat lakes as rivers for graph purposes
+        isRiver,
         isLand,
         isSea,
         isPort,
+        isLake,
       );
     }
 

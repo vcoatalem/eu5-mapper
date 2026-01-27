@@ -1,5 +1,5 @@
 import {
-  CostFunctionString,
+  CostFunction,
   EdgeInfo,
   GraphStats,
   Neighbor,
@@ -43,6 +43,7 @@ export class CompactGraph {
     isLand: boolean = false,
     isSea: boolean = false,
     isPort: boolean = false,
+    isLake: boolean = false,
   ): void {
     const aId = this._getNodeId(a);
     const bId = this._getNodeId(b);
@@ -58,6 +59,7 @@ export class CompactGraph {
       isLand,
       isSea,
       isPort,
+      isLake,
     });
   }
 
@@ -72,6 +74,7 @@ export class CompactGraph {
         isLand: false,
         isSea: false,
         isPort: false,
+        isLake: false,
       };
     }
 
@@ -85,6 +88,7 @@ export class CompactGraph {
         isLand: false,
         isSea: false,
         isPort: false,
+        isLake: false,
       };
     }
 
@@ -96,6 +100,7 @@ export class CompactGraph {
           isLand: edge.isLand,
           isSea: edge.isSea,
           isPort: edge.isPort,
+          isLake: edge.isLake,
         }
       : {
           exists: false,
@@ -103,6 +108,7 @@ export class CompactGraph {
           isLand: false,
           isSea: false,
           isPort: false,
+          isLake: false,
         };
   }
 
@@ -119,7 +125,7 @@ export class CompactGraph {
 
     // Check edges where this node is the "to"
     for (const [from, edges] of this.adjacency.entries()) {
-      if (from >= nodeId) break;
+      if (from === nodeId) continue; // Skip self
 
       for (const edge of edges) {
         if (edge.neighbor === nodeId) {
@@ -129,6 +135,7 @@ export class CompactGraph {
             isLand: edge.isLand,
             isSea: edge.isSea,
             isPort: edge.isPort,
+            isLake: edge.isLake,
           });
         }
       }
@@ -141,13 +148,14 @@ export class CompactGraph {
       isLand: n.isLand,
       isSea: n.isSea,
       isPort: n.isPort,
+      isLake: n.isLake,
     }));
   }
 
   reachableWithinCost(
     startNode: string,
     costLimit: number,
-    getCost: CostFunctionString,
+    getCost: CostFunction,
   ): Map<string, number> {
     const startId = this.nodeToId.get(startNode);
     if (startId === undefined) return new Map();
@@ -174,7 +182,7 @@ export class CompactGraph {
         neighbors.push(...this.adjacency.get(node)!);
       }
       for (const [from, edges] of this.adjacency.entries()) {
-        if (from >= node) break;
+        if (from === node) continue; // Skip self
         for (const edge of edges) {
           if (edge.neighbor === node) {
             neighbors.push({
@@ -183,12 +191,20 @@ export class CompactGraph {
               isLand: edge.isLand,
               isSea: edge.isSea,
               isPort: edge.isPort,
+              isLake: edge.isLake,
             });
           }
         }
       }
 
-      for (const { neighbor, isRiver, isLand, isSea, isPort } of neighbors) {
+      for (const {
+        neighbor,
+        isRiver,
+        isLand,
+        isSea,
+        isPort,
+        isLake,
+      } of neighbors) {
         const neighborStr = this._getNodeString(neighbor);
         const edgeCost = getCost(
           nodeStr,
@@ -197,6 +213,7 @@ export class CompactGraph {
           isLand,
           isSea,
           isPort,
+          isLake,
         );
         const newCost = cost + edgeCost;
 
@@ -224,6 +241,7 @@ export class CompactGraph {
     let landEdges = 0;
     let seaEdges = 0;
     let portEdges = 0;
+    let lakeEdges = 0;
 
     for (const neighbors of this.adjacency.values()) {
       totalEdges += neighbors.length;
@@ -231,6 +249,7 @@ export class CompactGraph {
       landEdges += neighbors.filter((n) => n.isLand).length;
       seaEdges += neighbors.filter((n) => n.isSea).length;
       portEdges += neighbors.filter((n) => n.isPort).length;
+      lakeEdges += neighbors.filter((n) => n.isLake).length;
     }
 
     return {
@@ -240,6 +259,7 @@ export class CompactGraph {
       landEdges,
       seaEdges,
       portEdges,
+      lakeEdges,
     };
   }
 }

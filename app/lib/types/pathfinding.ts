@@ -4,6 +4,7 @@ export interface EdgeInfo {
   isLand: boolean;
   isSea: boolean;
   isPort: boolean;
+  isLake: boolean;
 }
 
 export interface Neighbor {
@@ -12,6 +13,7 @@ export interface Neighbor {
   isLand: boolean;
   isSea: boolean;
   isPort: boolean;
+  isLake: boolean;
 }
 
 export interface NeighborInfo {
@@ -20,6 +22,7 @@ export interface NeighborInfo {
   isLand: boolean;
   isSea: boolean;
   isPort: boolean;
+  isLake: boolean;
 }
 
 export interface GraphStats {
@@ -29,13 +32,15 @@ export interface GraphStats {
   landEdges: number;
   seaEdges: number;
   portEdges: number;
+  lakeEdges: number;
 }
 
-export type CostFunctionString = (
+export type CostFunction = (
   from: string,
   to: string,
   isRiver: boolean,
   isLand: boolean,
   isSea: boolean,
   isPort: boolean,
+  isLake: boolean,
 ) => number;

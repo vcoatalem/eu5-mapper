@@ -18,6 +18,7 @@ const buildLocationDisplay = (
     if (neighbor.isLand) return "land";
     if (neighbor.isSea) return "sea";
     if (neighbor.isRiver) return "river";
+    if (neighbor.isLake) return "lake";
     return "unknown";
   };
 

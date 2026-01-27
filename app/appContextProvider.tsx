@@ -112,6 +112,7 @@ export const AppContextProvider = ({
         console.log(`  - Land edges: ${stats.landEdges}`);
         console.log(`  - Sea edges: ${stats.seaEdges}`);
         console.log(`  - Port edges: ${stats.portEdges}`);
+        console.log(`  - Lake edges: ${stats.lakeEdges}`);
       } catch (err) {
         const errorMsg =
           err instanceof Error ? err.message : "Failed to load game data";

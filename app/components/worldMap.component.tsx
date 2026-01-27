@@ -32,6 +32,7 @@ export function WorldMapComponent() {
     gameData,
     isLoading: gameDataLoading,
     error: gameDataLoadingError,
+    adjacencyGraph,
   } = useContext(AppContext);
 
   const isDraggingRef = useRef(false);
@@ -395,6 +396,15 @@ export function WorldMapComponent() {
           clickedLocation:
             gameData.locationDataMap[clickedOnLocationRef.current],
         });
+
+        const reachable = adjacencyGraph?.reachableWithinCost(
+          clickedOnLocationRef.current,
+          100,
+          gameLogicRef.current.proximityCostFunction,
+        );
+
+        console.log({ reachable });
+
         if (gameData.locationDataMap[clickedOnLocationRef.current].ownable) {
           setSelectedLocation(clickedOnLocationRef.current);
           gameLogicRef.current.selectLocation(clickedOnLocationRef.current);

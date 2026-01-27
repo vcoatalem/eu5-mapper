@@ -41,7 +41,9 @@ export const AppContextProvider = ({
 
   // Game data state
   const [gameData, setGameData] = useState<IGameData | null>(null);
-  const [adjacencyGraph, setAdjacencyGraph] = useState<CompactGraph | null>(null);
+  const [adjacencyGraph, setAdjacencyGraph] = useState<CompactGraph | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,19 +66,28 @@ export const AppContextProvider = ({
             fetch(`${basePath}/adjacency-data.csv`),
           ]);
 
-        if (!locationDataRes.ok || !colorToNameRes.ok || !buildingsRes.ok || !adjacencyRes.ok) {
+        if (
+          !locationDataRes.ok ||
+          !colorToNameRes.ok ||
+          !buildingsRes.ok ||
+          !adjacencyRes.ok
+        ) {
           throw new Error(
             `Failed to load game data files for version ${version}`,
           );
         }
 
-        const [locationDataMap, colorToNameMap, buildingsTemplateMap, adjacencyCsv] =
-          await Promise.all([
-            locationDataRes.json(),
-            colorToNameRes.json(),
-            buildingsRes.json(),
-            adjacencyRes.text(),
-          ]);
+        const [
+          locationDataMap,
+          colorToNameMap,
+          buildingsTemplateMap,
+          adjacencyCsv,
+        ] = await Promise.all([
+          locationDataRes.json(),
+          colorToNameRes.json(),
+          buildingsRes.json(),
+          adjacencyRes.text(),
+        ]);
 
         setGameData({
           locationDataMap,
@@ -91,7 +102,7 @@ export const AppContextProvider = ({
         // Parse adjacency CSV and build graph
         console.log(`[AppContext] Building adjacency graph...`);
         const graph = ParserHelper.parseAdjacencyCSV(adjacencyCsv);
-        
+
         setAdjacencyGraph(graph);
         const stats = graph.getStats();
         console.log(`[AppContext] Adjacency graph built:`, stats);

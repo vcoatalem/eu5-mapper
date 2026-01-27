@@ -17,7 +17,7 @@ export class GameDataParser {
       const [locationName, rest] = line.split("=");
       if (!locationName || !rest) continue;
 
-      const hexCode = rest.split("#")[0].trim();
+      const hexCode = rest.split("#")[0].trim().padStart(6, "0");
       if (!hexCode) continue;
 
       colorToName[hexCode] = locationName.trim();

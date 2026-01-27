@@ -15,6 +15,7 @@ import { DrawingLogicController } from "../lib/drawingLogicController";
 import { WorkerManager } from "../lib/workerManager";
 import { IWorkerManagerObserver } from "../lib/workerTypes";
 import { LoadingScreenComponent } from "./loadingScreen.component";
+import { ZoomController } from "../lib/zoomController";
 
 const mapInfos = {
   width: 16384,
@@ -49,6 +50,7 @@ export function WorldMapComponent() {
   const workerManagerRef = useRef<WorkerManager>(null);
   const gameLogicRef = useRef<GameLogicController>(null);
   const drawingLogicRef = useRef<DrawingLogicController>(null);
+  const zoomControllerRef = useRef<ZoomController>(new ZoomController());
   const [, forceUpdate] = useState({});
   const [workerStatus, setWorkerStatus] = useState({
     activeTasks: 0,
@@ -449,17 +451,16 @@ export function WorldMapComponent() {
     const handleWheel = (e: WheelEvent) => {
       if (!topLayerRef.current) return;
       e.preventDefault();
-      const direction = e.deltaY < 0 ? -1 : 1; // up = zoom out (reversed)
-      const currentZoomIndex = zoomSteps.indexOf(zoomRef.current);
-      const nextIndex = Math.min(
-        Math.max(0, currentZoomIndex + direction),
-        zoomSteps.length - 1,
-      );
-      const nextZoom = zoomSteps[nextIndex];
-      if (nextZoom !== zoomRef.current) {
-        applyZoomLevel(nextZoom);
+      if (e.deltaY < 0) {
+        zoomControllerRef.current.zoomOut();
+      } else {
+        zoomControllerRef.current.zoomIn();
       }
     };
+
+    zoomControllerRef.current.subscribe(({ zoomLevel }) => {
+      applyZoomLevel(zoomLevel);
+    });
 
     console.log({ topLayerRefForCreate: topLayerRef });
     if (topLayerRef.current) {
@@ -529,25 +530,18 @@ export function WorldMapComponent() {
     });
   };
 
-  const zoomSteps = [0.1, 0.3, 0.7, 1, 1.5, 3, 5];
   const handleZoomOut = (event: React.MouseEvent<HTMLButtonElement>) => {
     console.log("zoom out", event);
     event.preventDefault();
     setSelectedLocation(null);
-    //const newZoom = Math.max(0.1, zoomRef.current - 0.1);
-    const currentZoom = zoomSteps.indexOf(zoomRef.current);
-    const newZoom = zoomSteps[Math.max(0, currentZoom - 1)];
-    applyZoomLevel(newZoom);
+    zoomControllerRef.current.zoomOut();
   };
 
   const handleZoomIn = (event: React.MouseEvent<HTMLButtonElement>) => {
     console.log("zoom in", event);
     event.preventDefault();
     setSelectedLocation(null);
-
-    const currentZoom = zoomSteps.indexOf(zoomRef.current);
-    const newZoom = zoomSteps[Math.min(zoomSteps.length - 1, currentZoom + 1)];
-    applyZoomLevel(newZoom);
+    zoomControllerRef.current.zoomIn();
   };
 
   return (

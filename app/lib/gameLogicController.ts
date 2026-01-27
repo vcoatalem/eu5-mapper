@@ -1,22 +1,20 @@
+import { Observable } from "./observable";
 import {
   ILocationIdentifier,
-  ILocationDataMap,
-  ILocationIdentifierMap,
   IConstructibleLocation,
   IGameData,
 } from "./types";
 
-export type OwnedLocationsListener = (
-  ownedLocations: Record<ILocationIdentifier, IConstructibleLocation>,
-) => void;
-
-export class GameLogicController {
+export class GameLogicController extends Observable<
+  Record<ILocationIdentifier, IConstructibleLocation>
+> {
   private ownedLocations: Record<ILocationIdentifier, IConstructibleLocation> =
     {};
+
   private gameData: IGameData | null = null;
-  private listeners: OwnedLocationsListener[] = [];
 
   constructor(gameData: IGameData) {
+    super();
     this.gameData = gameData;
   }
 
@@ -39,7 +37,7 @@ export class GameLogicController {
     } else {
       delete this.ownedLocations[locationName];
     }
-    this.notifyListeners();
+    this.notifyListeners(this.ownedLocations);
     return !storedLocation;
   }
 
@@ -48,22 +46,5 @@ export class GameLogicController {
     IConstructibleLocation
   > {
     return this.ownedLocations;
-  }
-
-  public subscribe(listener: OwnedLocationsListener): void {
-    this.listeners.push(listener);
-  }
-
-  public unsubscribe(listener: OwnedLocationsListener): void {
-    const index = this.listeners.indexOf(listener);
-    if (index > -1) {
-      this.listeners.splice(index, 1);
-    }
-  }
-
-  private notifyListeners(): void {
-    this.listeners.forEach((listener) => {
-      listener(this.ownedLocations);
-    });
   }
 }

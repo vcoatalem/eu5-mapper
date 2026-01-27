@@ -2,19 +2,19 @@ import {
   ILocationIdentifier,
   ILocationDataMap,
   ILocationIdentifierMap,
+  IConstructibleLocation,
 } from "./types";
 
-export type SelectedLocationsListener = (
-  selectedLocations: ILocationIdentifier[]
+export type OwnedLocationsListener = (
+  ownedLocations: Record<ILocationIdentifier, IConstructibleLocation>
 ) => void;
 
-type LocationName = string;
-
 export class GameLogicController {
-  private selectedLocations: Record<LocationName, ILocationIdentifier> = {};
+  private ownedLocations: Record<ILocationIdentifier, IConstructibleLocation> =
+    {};
   private locationIdentifierMap: ILocationIdentifierMap = {};
   private locationData: ILocationDataMap | null; // surely we will need this as well ?
-  private listeners: SelectedLocationsListener[] = [];
+  private listeners: OwnedLocationsListener[] = [];
 
   constructor(
     locationData: ILocationDataMap | null,
@@ -38,27 +38,31 @@ export class GameLogicController {
   }
 
   public selectLocation(locationName: string): boolean {
-    const storedLocation = this.selectedLocations[locationName];
+    const storedLocation = this.ownedLocations[locationName];
     if (!storedLocation) {
-      this.selectedLocations[locationName] = locationName;
+      this.ownedLocations[locationName] = {
+        level: "rural",
+        buildings: [],
+      };
     } else {
-      delete this.selectedLocations[locationName];
+      delete this.ownedLocations[locationName];
     }
     this.notifyListeners();
     return !storedLocation;
   }
 
-  public getAllSelectedLocations(): ILocationIdentifier[] {
-    return Object.entries(this.selectedLocations)
-      .map(([_, location]) => location)
-      .filter((location) => !!location);
+  public getAllSelectedLocations(): Record<
+    ILocationIdentifier,
+    IConstructibleLocation
+  > {
+    return this.ownedLocations;
   }
 
-  public subscribe(listener: SelectedLocationsListener): void {
+  public subscribe(listener: OwnedLocationsListener): void {
     this.listeners.push(listener);
   }
 
-  public unsubscribe(listener: SelectedLocationsListener): void {
+  public unsubscribe(listener: OwnedLocationsListener): void {
     const index = this.listeners.indexOf(listener);
     if (index > -1) {
       this.listeners.splice(index, 1);
@@ -66,9 +70,8 @@ export class GameLogicController {
   }
 
   private notifyListeners(): void {
-    const currentSelectedLocations = this.getAllSelectedLocations();
     this.listeners.forEach((listener) => {
-      listener(currentSelectedLocations);
+      listener(this.ownedLocations);
     });
   }
 }

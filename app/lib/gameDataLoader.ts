@@ -30,7 +30,7 @@ export class GameDataLoader {
    */
   private static getClosestVersion = (
     availableVersions: string[],
-    targetVersion: GameVersion
+    targetVersion: GameVersion,
   ): string => {
     if (availableVersions.includes(targetVersion)) {
       return targetVersion;
@@ -51,7 +51,7 @@ export class GameDataLoader {
     }
     if (!closestMatch) {
       throw new Error(
-        `Could not find any suitable version for target version ${targetVersion}`
+        `Could not find any suitable version for target version ${targetVersion}`,
       );
     }
 
@@ -59,16 +59,16 @@ export class GameDataLoader {
   };
 
   public static async getGameFilesForVersion(
-    version: GameVersion
+    version: GameVersion,
   ): Promise<GameDataFiles> {
     const gameFiles: Partial<GameDataFiles> = {};
 
     for (const [key, baseFolderName] of Object.entries(baseFolderNames) as [
       keyof GameDataFiles,
-      string
+      string,
     ][]) {
       const versionsAvailable = await fs.promises.readdir(
-        join(this.folderPath, baseFolderName)
+        join(this.folderPath, baseFolderName),
       );
 
       console.log("versions available for " + key + ": " + versionsAvailable);
@@ -76,14 +76,14 @@ export class GameDataLoader {
       const foundVersion = this.getClosestVersion(versionsAvailable, version);
 
       const versionFiles = await fs.promises.readdir(
-        join(this.folderPath, baseFolderName, foundVersion)
+        join(this.folderPath, baseFolderName, foundVersion),
       );
 
       gameFiles[key] = join(
         this.folderPath,
         baseFolderName,
         foundVersion,
-        versionFiles[0]
+        versionFiles[0],
       ); // assuming only one file per version
     }
     console.log("game files resolved:", gameFiles);

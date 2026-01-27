@@ -2,6 +2,7 @@ import { JSX, use, useContext } from "react";
 import { AppContext } from "../appContextProvider";
 import { useGameData } from "../gameDataContext";
 import { ILocationGameData } from "../lib/types";
+import styles from "../styles/Gui.module.css";
 
 const buildLocationDisplay = (locationData: ILocationGameData): JSX.Element => {
   if (!locationData) {
@@ -59,8 +60,7 @@ export function InfoBoxComponent() {
 
   return (
     <div
-      className="fixed bottom-5 left-5 rounded-sm min-w-64 min-h-96
-     flex flex-col z-10 bg-black border border-white text-md text-white p-2"
+      className={`${styles.guiElement} fixed bottom-5 left-5 rounded-sm min-w-64 min-h-96 flex flex-col bg-black border border-white text-md text-white p-2`}
     >
       {locationDisplay}
     </div>

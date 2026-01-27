@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
+import styles from "../styles/Gui.module.css";
 import { InfoBoxComponent } from "./infoBox.component";
 import { AppContext } from "../appContextProvider";
 import { GameLogicController } from "../lib/gameLogicController";
@@ -21,9 +22,8 @@ const mapInfos = {
   height: 8192,
   colorMapFileName: "test/locations.png",
   borderMapFileName: "test/border_layer.png",
-  waterMapFileName: "test/water_layer.png",
+  terrainLayerFileName: "test/terrain_layer.png",
   riverMapFileName: "test/river_layer.png",
-  unownableTerrainMapFileName: "test/unownable_layer.png",
 };
 
 export function WorldMapComponent() {
@@ -47,17 +47,16 @@ export function WorldMapComponent() {
   const clickedOnLocationRef = useRef<ILocationIdentifier | null>(null);
   const zoomRef = useRef(1);
   const colorCanvasRef = useRef<HTMLCanvasElement>(null);
-  const borderCanvasRef = useRef<HTMLCanvasElement>(null);
-  const waterCanvasRef = useRef<HTMLCanvasElement>(null);
+  /* const borderCanvasRef = useRef<HTMLCanvasElement>(null); */
+  const terrainCanvasRef = useRef<HTMLCanvasElement>(null);
   const blackCanvasRef = useRef<HTMLCanvasElement>(null);
-  const drawingCanvasRef = useRef<HTMLCanvasElement>(null);
-  const riverCanvasRef = useRef<HTMLCanvasElement>(null);
+  const areaDrawingCanvasRef = useRef<HTMLCanvasElement>(null);
   const topLayerRef = useRef<HTMLCanvasElement>(null);
-  const unownableTerrainCanvasRef = useRef<HTMLCanvasElement>(null);
+  const constructibleCanvasRef = useRef<HTMLCanvasElement>(null); //TODO: hide this canvas when zoom level is low
   const containerRef = useRef<HTMLDivElement>(null);
   const workerManagerRef = useRef<WorkerManager>(null);
   const gameLogicRef = useRef(
-    new GameLogicController(locationDataMap, colorToNameMap)
+    new GameLogicController(locationDataMap, colorToNameMap),
   );
   const drawingLogicRef = useRef<DrawingLogicController>(null);
   const [, forceUpdate] = useState({});
@@ -78,7 +77,7 @@ export function WorldMapComponent() {
 
     const workerManager = new WorkerManager(
       new URL("canvas-worker.js", import.meta.url).href,
-      workerPoolSize
+      workerPoolSize,
     );
 
     // Subscribe to worker status updates
@@ -135,7 +134,7 @@ export function WorldMapComponent() {
   };
 
   const createBlackCanvas = (ctx: CanvasRenderingContext2D) => {
-    ctx.fillStyle = "black";
+    ctx.fillStyle = "#4a4a4a";
     ctx.fillRect(0, 0, mapInfos.width, mapInfos.height);
   };
 
@@ -145,6 +144,7 @@ export function WorldMapComponent() {
   };
 
   const layers: Array<{
+    name: string;
     ref: RefObject<HTMLCanvasElement | null>;
     zIndex: number;
     path?: string;
@@ -152,40 +152,35 @@ export function WorldMapComponent() {
     initializeWorkerCanvas?: boolean;
   }> = [
     {
+      name: "colorLayer",
       ref: colorCanvasRef,
       zIndex: 0,
       path: mapInfos.colorMapFileName,
       initializeWorkerCanvas: true,
     },
     {
-      ref: borderCanvasRef,
-      zIndex: 10,
-      path: mapInfos.borderMapFileName,
-    },
-    {
-      ref: waterCanvasRef,
-      zIndex: 6,
-      path: mapInfos.waterMapFileName,
-    },
-    {
+      name: "blackLayer",
       ref: blackCanvasRef,
       zIndex: 1,
       createMethod: createBlackCanvas,
     },
     {
-      ref: drawingCanvasRef,
+      name: "areaDrawingLayer",
+      ref: areaDrawingCanvasRef,
       zIndex: 4,
       createMethod: createTransparentCanvas,
     },
     {
-      ref: riverCanvasRef,
-      zIndex: 7,
-      path: mapInfos.riverMapFileName,
+      name: "terrainLayer",
+      ref: terrainCanvasRef,
+      zIndex: 5,
+      path: mapInfos.terrainLayerFileName,
     },
     {
-      ref: unownableTerrainCanvasRef,
-      zIndex: 5,
-      path: mapInfos.unownableTerrainMapFileName,
+      name: "constructibleLayer",
+      ref: constructibleCanvasRef,
+      zIndex: 12,
+      createMethod: createTransparentCanvas,
     },
   ];
 
@@ -196,7 +191,7 @@ export function WorldMapComponent() {
   const getLocationAtPointer = useCallback(
     (
       colorCanvas: HTMLCanvasElement,
-      event: MouseEvent
+      event: MouseEvent,
     ): ILocationIdentifier | null => {
       const zoom = zoomRef.current;
       const rect = colorCanvas.getBoundingClientRect();
@@ -230,16 +225,15 @@ export function WorldMapComponent() {
       const locationName = gameLogicRef.current.findLocationName(hexStr);
       return locationName;
     },
-    []
+    [],
   );
 
   const setInitialPosition = useCallback(() => {
     // Position user at coordinates X: 7934, Y: 1991
     const colorCanvas = colorCanvasRef.current;
-    const borderCanvas = borderCanvasRef.current;
     const container = containerRef.current;
 
-    if (!colorCanvas || !borderCanvas || !container) return;
+    if (!colorCanvas || !container) return;
 
     const containerRect = container.getBoundingClientRect();
     const centerX = containerRect.width / 2;
@@ -272,19 +266,15 @@ export function WorldMapComponent() {
     waitForInitialization();
 
     const colorCanvas = colorCanvasRef.current;
-    const borderCanvas = borderCanvasRef.current;
     const container = containerRef.current;
 
-    if (!colorCanvas || !borderCanvas || !container) return;
+    if (!colorCanvas || !container) return;
 
     const colorContext = colorCanvas.getContext("2d", {
       willReadFrequently: true,
     });
-    const borderContext = borderCanvas.getContext("2d", {
-      willReadFrequently: true,
-    });
 
-    if (!colorContext || !borderContext) {
+    if (!colorContext) {
       console.log("canvas context is nullish");
       return;
     }
@@ -311,39 +301,43 @@ export function WorldMapComponent() {
       if (layer.path) {
         img.src = layer.path;
         img.onload = () => {
+          console.log(`[WorldMapInit] loaded image for layer ${layer.name}`);
           ctx.drawImage(img, 0, 0);
           layersRenderedRef.current++;
           console.log(
-            `[Layer Rendered] ${layersRenderedRef.current}/${totalLayersRef.current}`
+            `[WorldMapInit] initialized layer ${layer.name}. Total progress: ${layersRenderedRef.current}/${totalLayersRef.current}`,
           );
           if (layer.initializeWorkerCanvas && workerManagerRef.current) {
-            createImageBitmap(colorCanvas).then((bitmap) => {
-              if (workerManagerRef.current) {
-                // Initialize all workers with the image
-                for (let i = 0; i < workerPoolSize; i++) {
-                  const taskId = `initWithImage-${i}`;
-                  workerManagerRef.current.queueTask({
-                    id: taskId,
+            createImageBitmap(img).then((bitmap) => {
+              for (let i = 0; i < workerPoolSize; i++) {
+                const offscreenCanvas = new OffscreenCanvas(
+                  mapInfos.width,
+                  mapInfos.height,
+                );
+
+                const taskId = `initWithImage-${i}`;
+                workerManagerRef.current!.queueTask({
+                  id: taskId,
+                  type: "initWithImage",
+                  payload: {
                     type: "initWithImage",
-                    payload: {
-                      type: "initWithImage",
-                      imageBitmap: bitmap,
-                      canvasWidth: mapInfos.width,
-                      canvasHeight: mapInfos.height,
+                    canvas: offscreenCanvas,
+                    imageBitmap: bitmap,
+                    canvasWidth: mapInfos.width,
+                    canvasHeight: mapInfos.height,
+                  },
+                  callbacks: {
+                    onSuccess: () => {
+                      console.log(`[INIT WITH IMAGE COMPLETE] Worker ${i}`);
                     },
-                    callbacks: {
-                      onSuccess: () => {
-                        console.log(`[INIT WITH IMAGE COMPLETE] Worker ${i}`);
-                      },
-                      onError: (error) => {
-                        console.error(
-                          `[INIT WITH IMAGE ERROR] Worker ${i}`,
-                          error
-                        );
-                      },
+                    onError: (error) => {
+                      console.error(
+                        `[INIT WITH IMAGE ERROR] Worker ${i}`,
+                        error,
+                      );
                     },
-                  });
-                }
+                  },
+                });
               }
             });
           }
@@ -351,9 +345,12 @@ export function WorldMapComponent() {
       } else if (layer.createMethod) {
         layer.createMethod(ctx);
         layersRenderedRef.current++;
-      } else {
         console.log(
-          "layer needs to have either a path (file) or createMethod specified"
+          `[WorldMapInit] initialized layer ${layer.name}. Total progress: ${layersRenderedRef.current}/${totalLayersRef.current}`,
+        );
+      } else {
+        console.error(
+          "[WorldMapInit] layer needs to have either a path (file) or createMethod specified",
         );
       }
     });
@@ -366,10 +363,11 @@ export function WorldMapComponent() {
     }
 
     drawingLogicRef.current = new DrawingLogicController(
-      drawingCanvasRef.current!,
+      areaDrawingCanvasRef.current!,
+      constructibleCanvasRef.current!,
       { width: mapInfos.width, height: mapInfos.height },
       gameLogicRef.current,
-      locationDataMap
+      locationDataMap,
     );
 
     const handleMouseDown = (e: MouseEvent) => {
@@ -439,7 +437,7 @@ export function WorldMapComponent() {
                   };
                   drawingLogicRef.current?.addCoordinate(
                     data.locationName,
-                    data.coordinates
+                    data.coordinates,
                   );
                   console.log("[COLOR SEARCH COMPLETE]", data);
                 },
@@ -468,7 +466,7 @@ export function WorldMapComponent() {
       const currentZoomIndex = zoomSteps.indexOf(zoomRef.current);
       const nextIndex = Math.min(
         Math.max(0, currentZoomIndex + direction),
-        zoomSteps.length - 1
+        zoomSteps.length - 1,
       );
       const nextZoom = zoomSteps[nextIndex];
       if (nextZoom !== zoomRef.current) {
@@ -508,11 +506,9 @@ export function WorldMapComponent() {
 
   const applyZoomLevel = (newZoom: number) => {
     const colorCanvas = colorCanvasRef.current;
-    const borderCanvas = borderCanvasRef.current;
     const container = containerRef.current;
-    const waterCanvas = waterCanvasRef.current;
 
-    if (!colorCanvas || !borderCanvas || !waterCanvas || !container) return;
+    if (!colorCanvas || !container) return;
 
     const containerRect = container.getBoundingClientRect();
 
@@ -596,9 +592,11 @@ export function WorldMapComponent() {
           message={loadingError ? `Error: ${loadingError}` : "Loading..."}
         />
       ) : (
-        <>
+        <div>
           <InfoBoxComponent />
-          <div className="fixed border-white gap-2 flex flex-col right-5 bottom-5 z-10 text-white">
+          <div
+            className={`${styles.guiElement} fixed border-white gap-2 flex flex-col right-5 bottom-5 text-white`}
+          >
             <div className="text-sm bg-black px-2 py-1 border border-white border-radius-md">
               <div>Tasks: {workerStatus.activeTasks} active</div>
               <div>Queue: {workerStatus.queuedTasks}</div>
@@ -618,7 +616,7 @@ export function WorldMapComponent() {
               </button>
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

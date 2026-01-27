@@ -1,11 +1,16 @@
 "use client";
 
 import { createContext, useContext, ReactNode } from "react";
-import { ILocationDataMap, ILocationIdentifierMap } from "./lib/types";
+import {
+  IBuildingTemplate,
+  ILocationDataMap,
+  ILocationIdentifierMap,
+} from "./lib/types";
 
 interface GameDataContextType {
   locationDataMap: ILocationDataMap | null;
-  colorToLocationMap: ILocationIdentifierMap;
+  colorToNameMap: ILocationIdentifierMap;
+  buildingsTemplateMap: Record<string, IBuildingTemplate>;
   error: string | null;
 }
 

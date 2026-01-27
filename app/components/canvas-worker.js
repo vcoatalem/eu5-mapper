@@ -47,12 +47,10 @@ self.onmessage = function (e) {
       try {
         canvasWidth = e.data.canvasWidth;
         canvasHeight = e.data.canvasHeight;
-        
+
         // Receive ArrayBuffer and wrap in Uint8ClampedArray
         const pixelDataBuffer = e.data.pixelDataBuffer;
-        const pixelData8 = new Uint8ClampedArray(pixelDataBuffer);
-        
-        // Create Uint32Array view for fast pixel comparison
+        const pixelData8 = new Uint8ClampedArray(pixelDataBuffer); // Create Uint32Array view for fast pixel comparison
         pixelData32 = new Uint32Array(pixelData8.buffer);
 
         self.postMessage({

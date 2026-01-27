@@ -1,12 +1,5 @@
-import { initialize } from "next/dist/server/lib/render-server";
 import { GameLogicController } from "./gameLogicController";
-import {
-  IBuildingTemplate,
-  ICoordinate,
-  ILocationDataMap,
-  ILocationIdentifier,
-} from "./types";
-import { useGameData } from "../gameDataContext";
+import { ICoordinate, IGameData, ILocationIdentifier } from "./types";
 
 export class DrawingLogicController {
   private areaDrawingCanvas: HTMLCanvasElement;
@@ -16,7 +9,7 @@ export class DrawingLogicController {
   private mapInfos: { width: number; height: number };
   private coordinateMap: Record<ILocationIdentifier, Array<ICoordinate>> = {};
   private gameLogicController: GameLogicController | null = null;
-  private locationDataMap: ILocationDataMap | null = null;
+  private gameData: IGameData | null = null;
 
   private drawCircle(x: number, y: number, radius: number): void {
     this.constructibleDrawingContext.beginPath();
@@ -83,13 +76,13 @@ export class DrawingLogicController {
     constructibleDrawingCanvas: HTMLCanvasElement,
     mapInfos: { width: number; height: number },
     gameLogicController: GameLogicController,
-    locationDataMap: ILocationDataMap,
+    gameData: IGameData,
   ) {
     this.areaDrawingCanvas = areaDrawingCanvas;
     this.constructibleDrawingCanvas = constructibleDrawingCanvas;
     this.mapInfos = mapInfos;
     this.gameLogicController = gameLogicController;
-    this.locationDataMap = locationDataMap;
+    this.gameData = gameData;
     const areaDrawingContext = this.areaDrawingCanvas.getContext("2d", {});
     if (!areaDrawingContext) {
       throw new Error(
@@ -117,10 +110,6 @@ export class DrawingLogicController {
       throw new Error(
         "no game logic controller set in drawing logic controller",
       );
-    }
-
-    if (!this.locationDataMap) {
-      throw new Error("no location data map set in drawing logic controller");
     }
 
     const coordinates: Array<ICoordinate> = Object.entries(
@@ -159,9 +148,6 @@ export class DrawingLogicController {
         "no game logic controller set in drawing logic controller",
       );
     }
-    if (!this.locationDataMap) {
-      throw new Error("no location data map set in drawing logic controller");
-    }
 
     // Clear the canvas first TODO: see if this is needed
     this.constructibleDrawingContext.clearRect(
@@ -180,7 +166,7 @@ export class DrawingLogicController {
       allOwnedLocations,
     )) {
       const locationCoordinates =
-        this.locationDataMap[locationIdentifier]
+        this.gameData?.locationDataMap[locationIdentifier]
           .constructibleLocationCoordinate;
 
       if (locationCoordinates) {

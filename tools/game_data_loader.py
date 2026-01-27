@@ -18,6 +18,12 @@ class GameDataFiles:
     color_mapping: str
     default_map: str
     ports_file: str
+    location_classification: str
+    location_data: str
+    provinces_data: str
+    locations_color_mapping: str
+    locations_city_coordinates: str
+    buildings_data: str
 
 
 class GameDataLoader:
@@ -32,6 +38,12 @@ class GameDataLoader:
         'color_mapping': 'locations_color_mapping',
         'default_map': 'locations_classification',
         'ports_file': 'ports',
+        'location_classification': 'locations_classification',
+        'location_data': 'locations_data',
+        'provinces_data': 'provinces_data',
+        'locations_color_mapping': 'locations_color_mapping',
+        'locations_city_coordinates': 'locations_city_coordinates',
+        'buildings_data': 'buildings_data',
     }
     
     FILE_NAMES = {
@@ -40,6 +52,12 @@ class GameDataLoader:
         'color_mapping': '00_default.txt',
         'default_map': 'default.map',
         'ports_file': 'ports.csv',
+        'location_classification': 'default.map',
+        'location_data': 'location_templates.txt',
+        'provinces_data': 'definitions.txt',
+        'locations_color_mapping': '00_default.txt',
+        'locations_city_coordinates': 'generated_map_object_locators_city.txt',
+        'buildings_data': 'buildings.json',
     }
     
     def __init__(self, folder_path: Optional[str] = None):

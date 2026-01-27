@@ -15,7 +15,6 @@ import { DrawingLogicController } from "../lib/drawingLogicController";
 import { WorkerManager } from "../lib/workerManager";
 import { IWorkerManagerObserver } from "../lib/workerTypes";
 import { LoadingScreenComponent } from "./loadingScreen.component";
-import { useGameData } from "../gameDataContext";
 
 const mapInfos = {
   width: 16384,
@@ -27,20 +26,13 @@ const mapInfos = {
 };
 
 export function WorldMapComponent() {
-  const { setSelectedLocation, setHoveredLocation } = useContext(AppContext);
   const {
-    locationDataMap,
-    colorToNameMap,
+    setSelectedLocation,
+    setHoveredLocation,
+    gameData,
+    isLoading: gameDataLoading,
     error: gameDataLoadingError,
-  } = useGameData();
-
-  if (!locationDataMap) {
-    throw new Error("gameData is not loaded");
-  }
-
-  if (!setSelectedLocation || !setHoveredLocation) {
-    throw new Error("context is not set up properly");
-  }
+  } = useContext(AppContext);
 
   const isDraggingRef = useRef(false);
   const initializedRef = useRef(false);
@@ -55,9 +47,7 @@ export function WorldMapComponent() {
   const constructibleCanvasRef = useRef<HTMLCanvasElement>(null); //TODO: hide this canvas when zoom level is low
   const containerRef = useRef<HTMLDivElement>(null);
   const workerManagerRef = useRef<WorkerManager>(null);
-  const gameLogicRef = useRef(
-    new GameLogicController(locationDataMap, colorToNameMap),
-  );
+  const gameLogicRef = useRef<GameLogicController>(null);
   const drawingLogicRef = useRef<DrawingLogicController>(null);
   const [, forceUpdate] = useState({});
   const [workerStatus, setWorkerStatus] = useState({
@@ -80,7 +70,6 @@ export function WorldMapComponent() {
       workerPoolSize,
     );
 
-    // Subscribe to worker status updates
     const observer: IWorkerManagerObserver = {
       onTasksChanged: (activeTasks, queuedTasks) => {
         setWorkerStatus({ activeTasks, queuedTasks });
@@ -222,7 +211,8 @@ export function WorldMapComponent() {
         b.toString(16).padStart(2, "0"),
       ].join("");
 
-      const locationName = gameLogicRef.current.findLocationName(hexStr);
+      const locationName =
+        gameLogicRef.current?.findLocationName(hexStr) ?? null;
       return locationName;
     },
     [],
@@ -256,6 +246,10 @@ export function WorldMapComponent() {
 
   useEffect(() => {
     console.log("enter useEffect for setup worldmap component");
+
+    if (!gameData) {
+      return;
+    }
 
     if (initializedRef.current) {
       console.log("worldmap component already initialized, skipping");
@@ -362,12 +356,14 @@ export function WorldMapComponent() {
       throw new Error("could not set top layer ref");
     }
 
+    gameLogicRef.current = new GameLogicController(gameData);
+
     drawingLogicRef.current = new DrawingLogicController(
       areaDrawingCanvasRef.current!,
       constructibleCanvasRef.current!,
       { width: mapInfos.width, height: mapInfos.height },
       gameLogicRef.current,
-      locationDataMap,
+      gameData,
     );
 
     const handleMouseDown = (e: MouseEvent) => {
@@ -407,17 +403,19 @@ export function WorldMapComponent() {
     };
 
     const handleMouseUp = () => {
+      if (!gameLogicRef.current) return;
       console.log("handleMouseUp");
       if (dragDistance < MIN_DRAG_DISTANCE && clickedOnLocationRef.current) {
         console.log({
-          clickedLocation: locationDataMap[clickedOnLocationRef.current],
+          clickedLocation:
+            gameData.locationDataMap[clickedOnLocationRef.current],
         });
-        if (locationDataMap[clickedOnLocationRef.current].ownable) {
+        if (gameData.locationDataMap[clickedOnLocationRef.current].ownable) {
           setSelectedLocation(clickedOnLocationRef.current);
           gameLogicRef.current.selectLocation(clickedOnLocationRef.current);
           if (workerManagerRef.current) {
             const hexColor =
-              locationDataMap[clickedOnLocationRef.current].hexColor;
+              gameData.locationDataMap[clickedOnLocationRef.current].hexColor;
             const taskId = `colorSearch-${clickedOnLocationRef.current}`;
             workerManagerRef.current.queueTask({
               id: taskId,
@@ -502,7 +500,7 @@ export function WorldMapComponent() {
       workerManagerRef.current?.terminate();
       initializedRef.current = false;
     };
-  }, []);
+  }, [gameData]);
 
   const applyZoomLevel = (newZoom: number) => {
     const colorCanvas = colorCanvasRef.current;

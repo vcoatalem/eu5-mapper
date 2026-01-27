@@ -3,38 +3,30 @@ import {
   ILocationDataMap,
   ILocationIdentifierMap,
   IConstructibleLocation,
+  IGameData,
 } from "./types";
 
 export type OwnedLocationsListener = (
-  ownedLocations: Record<ILocationIdentifier, IConstructibleLocation>
+  ownedLocations: Record<ILocationIdentifier, IConstructibleLocation>,
 ) => void;
 
 export class GameLogicController {
   private ownedLocations: Record<ILocationIdentifier, IConstructibleLocation> =
     {};
-  private locationIdentifierMap: ILocationIdentifierMap = {};
-  private locationData: ILocationDataMap | null; // surely we will need this as well ?
+  private gameData: IGameData | null = null;
   private listeners: OwnedLocationsListener[] = [];
 
-  constructor(
-    locationData: ILocationDataMap | null,
-    locationIdentifierMap: ILocationIdentifierMap
-  ) {
-    this.locationData = locationData;
-    this.locationIdentifierMap = locationIdentifierMap;
+  constructor(gameData: IGameData) {
+    this.gameData = gameData;
   }
 
   public findLocationName(hexColor: string): string {
-    if (!this.locationIdentifierMap) {
-      console.warn("Location data not available");
-      return "??";
-    }
-    const name = this.locationIdentifierMap[hexColor];
+    const name = this.gameData?.colorToNameMap[hexColor];
     if (!name) {
       console.log("could not find name for color", hexColor);
       return "??";
     }
-    return name;
+    return name ?? "??";
   }
 
   public selectLocation(locationName: string): boolean {

@@ -1,7 +1,19 @@
 "use client";
 
-import { WorldMapComponent } from "./components/worldMap.component";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
-  return <WorldMapComponent />;
+  const router = useRouter();
+
+  useEffect(() => {
+    // Redirect to default version
+    router.replace("/0.0.11");
+  }, [router]);
+
+  return (
+    <div className="flex items-center justify-center h-screen">
+      <p className="text-white">Redirecting...</p>
+    </div>
+  );
 }

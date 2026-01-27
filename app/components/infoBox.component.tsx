@@ -1,6 +1,5 @@
-import { JSX, use, useContext } from "react";
+import { JSX, useContext } from "react";
 import { AppContext } from "../appContextProvider";
-import { useGameData } from "../gameDataContext";
 import { ILocationGameData } from "../lib/types";
 import styles from "../styles/Gui.module.css";
 
@@ -44,8 +43,8 @@ const buildLocationDisplay = (locationData: ILocationGameData): JSX.Element => {
 
 export function InfoBoxComponent() {
   const context = useContext(AppContext);
-  const gameData = useGameData();
-  if (!gameData || !gameData.locationDataMap) {
+  
+  if (!context || !context.gameData) {
     throw new Error("gameData is not loaded");
   }
 
@@ -53,7 +52,7 @@ export function InfoBoxComponent() {
     context?.hoveredLocation ?? context?.selectedLocation ?? null;
 
   const locationDisplay = locationName ? (
-    buildLocationDisplay(gameData.locationDataMap[locationName])
+    buildLocationDisplay(context.gameData.locationDataMap[locationName])
   ) : (
     <span></span>
   );

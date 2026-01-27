@@ -87,10 +87,16 @@ export type ILocationDataMap<LocationName extends string = string> = Record<
 
 export type ILocationIdentifierMap<
   HexColor extends string = string,
-  LocationName extends string = string
+  LocationName extends string = string,
 > = Record<HexColor, LocationName>;
 
 export interface ICoordinate {
   x: number;
   y: number;
+}
+
+export interface IGameData {
+  locationDataMap: ILocationDataMap;
+  colorToNameMap: ILocationIdentifierMap;
+  buildingsTemplateMap: Record<string, IBuildingTemplate>;
 }

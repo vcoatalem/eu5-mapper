@@ -10,7 +10,6 @@ const buildLocationDisplay = (
   adjacencyGraph: CompactGraph,
   gameState: IGameState,
 ): JSX.Element => {
-
   const owned = gameState.ownedLocations[locationData.name];
 
   if (!locationData) {
@@ -28,9 +27,7 @@ const buildLocationDisplay = (
 
         <div className="flex items-center gap-4 text-sm">
           <span>🏔️ {locationData.topography}</span>
-          {locationData.vegetation && (
-            <span>🌿 {locationData.vegetation}</span>
-          )}
+          {locationData.vegetation && <span>🌿 {locationData.vegetation}</span>}
           <span>📈 Dev: {locationData.development}</span>
           <span>👥 Pop: {locationData.population}</span>
           <span>{owned ? "✓ Owned" : "○ Not Owned"}</span>
@@ -80,7 +77,9 @@ export function InfoBoxComponent() {
   );
 
   return (
-    <div className={`w-full h-10 flex items-center bg-black/80 backdrop-blur-sm border-t border-stone-700`}>
+    <div
+      className={`w-full h-10 flex items-center bg-black/80 backdrop-blur-sm border-t border-stone-700`}
+    >
       {locationDisplay}
     </div>
   );

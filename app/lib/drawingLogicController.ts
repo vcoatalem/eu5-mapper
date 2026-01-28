@@ -10,6 +10,7 @@ import {
   ILocationIdentifier,
 } from "./types/general";
 import { greenToRedGradient } from "./drawing/greenToRedGradient.const";
+import { workerManager } from "./workerManager";
 
 export class DrawingLogicController {
   private areaDrawingCanvas: HTMLCanvasElement;
@@ -118,6 +119,20 @@ export class DrawingLogicController {
       );
     }
     this.constructibleDrawingContext = drawingContext;
+
+    workerManager.subscribe(({ lastCompletedTask }) => {
+      if (lastCompletedTask && lastCompletedTask.type === "colorSearch") {
+        const data = lastCompletedTask.data as {
+          locationName: ILocationIdentifier;
+          coordinates: ICoordinate[];
+        };
+        this.addCoordinate(
+          data.locationName,
+          data.coordinates as ICoordinate[],
+        );
+        console.log("[DrawingLogicController] got color task result", data);
+      }
+    });
 
     gameStateController.subscribe((gameState) => {
       console.log("gameStateController subscribe");

@@ -1,42 +1,28 @@
-// Worker infrastructure types - domain agnostic
+export type TaskType = "colorSearch" | "initWithImage";
 
-export interface WorkerTaskCallbacks {
-  onSuccess: (result: unknown) => void;
-  onError: (error: Error) => void;
-  onProgress?: (progress: WorkerProgress) => void;
+export interface IWorkerManagerStatus {
+  activeTasks: number;
+  queuedTasks: number;
+  lastCompletedTask: IWorkerTaskResult | null;
 }
 
-export interface WorkerTask {
+export interface IWorkerTask {
   id: string;
-  type: string;
+  type: TaskType;
   payload: unknown;
-  callbacks?: WorkerTaskCallbacks;
 }
 
-export interface WorkerProgress {
+export interface IWorkerTaskResult {
   taskId: string;
-  percentage: number;
-  message?: string;
+  type: TaskType;
+  success: boolean;
+  error: string | null;
+  data: unknown;
 }
 
-export interface WorkerTaskResult {
-  taskId: string;
-  type: string;
-  result: unknown;
-}
-
-export interface WorkerTaskError {
-  taskId: string;
-  error: string;
-}
-
-export interface WorkerMessage {
-  type: "log" | "result" | "error" | "progress";
+export interface IWorkerMessage {
+  type: "log" | "result" | "error";
   taskId?: string;
   data?: unknown;
   message?: string;
-}
-
-export interface IWorkerManagerObserver {
-  onTasksChanged: (activeTasks: number, queuedTasks: number) => void;
 }

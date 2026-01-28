@@ -1,15 +1,14 @@
-import { WorkerTask, WorkerMessage } from "./workerTypes";
+import {
+  IWorkerTask,
+  IWorkerMessage,
+  IWorkerManagerStatus,
+} from "./workerTypes";
 import { Observable } from "./observable";
 
-export interface WorkerManagerStatus {
-  activeTasks: number;
-  queuedTasks: number;
-}
-
-class WorkerManager extends Observable<WorkerManagerStatus> {
+class WorkerManager extends Observable<IWorkerManagerStatus> {
   private workers: Worker[] = [];
-  private taskQueue: WorkerTask[] = [];
-  private activeTasks: Map<string, WorkerTask> = new Map();
+  private taskQueue: IWorkerTask[] = [];
+  private activeTasks: Map<string, IWorkerTask> = new Map();
   private workerAssignments: Map<Worker, string | null> = new Map();
   private processedTaskIds: Set<string> = new Set();
   private workerPoolSize: number = 0;
@@ -20,6 +19,7 @@ class WorkerManager extends Observable<WorkerManagerStatus> {
     this.subject = {
       activeTasks: 0,
       queuedTasks: 0,
+      lastCompletedTask: null,
     };
   }
 
@@ -40,15 +40,18 @@ class WorkerManager extends Observable<WorkerManagerStatus> {
     console.log(`[WorkerManager] Initialized ${this.workerPoolSize} workers`);
   }
 
-  private updateStatus(): void {
+  private updateStatus(
+    completedTask?: IWorkerManagerStatus["lastCompletedTask"],
+  ): void {
     this.subject = {
       activeTasks: this.activeTasks.size,
       queuedTasks: this.taskQueue.length,
+      lastCompletedTask: completedTask ?? this.subject.lastCompletedTask,
     };
     this.notifyListeners();
   }
 
-  public queueTask(task: WorkerTask): void {
+  public queueTask(task: IWorkerTask): void {
     // Check if task has already been processed
     if (this.processedTaskIds.has(task.id)) {
       console.warn(
@@ -138,7 +141,7 @@ class WorkerManager extends Observable<WorkerManagerStatus> {
     return this.workerAssignments.get(worker) !== null;
   }
 
-  private handleWorkerMessage(message: WorkerMessage, worker: Worker): void {
+  private handleWorkerMessage(message: IWorkerMessage, worker: Worker): void {
     const taskId = message.taskId;
 
     if (!taskId) {
@@ -162,33 +165,35 @@ class WorkerManager extends Observable<WorkerManagerStatus> {
         console.log(`[WORKER ${taskId}]`, message.message);
         break;
 
-      case "progress":
-        if (task.callbacks?.onProgress) {
-          task.callbacks.onProgress({
-            taskId,
-            percentage: (message.data as any)?.percentage || 0,
-            message: (message.data as any)?.message,
-          });
-        }
-        break;
-
       case "result":
-        task.callbacks?.onSuccess(message.data);
+        //task.callbacks?.onSuccess(message.data);
         this.activeTasks.delete(taskId);
         this.processedTaskIds.add(taskId);
         this.workerAssignments.set(worker, null); // Free up worker
         console.log(`[WorkerManager] Task completed: ${taskId}`);
-        this.updateStatus();
+        this.updateStatus({
+          taskId,
+          type: task.type,
+          success: true,
+          error: null,
+          data: message.data,
+        });
         this.processQueue(); // Process next task in queue
         break;
 
       case "error":
-        task.callbacks?.onError(new Error(message.message || "Unknown error"));
+        //task.callbacks?.onError(new Error(message.message || "Unknown error"));
         this.activeTasks.delete(taskId);
         this.processedTaskIds.add(taskId);
         this.workerAssignments.set(worker, null); // Free up worker
         console.error(`[WorkerManager] Task failed: ${taskId}`);
-        this.updateStatus();
+        this.updateStatus({
+          taskId,
+          type: task.type,
+          success: false,
+          error: message.message || "Unknown error",
+          data: null,
+        });
         this.processQueue(); // Process next task in queue
         break;
     }
@@ -199,7 +204,7 @@ class WorkerManager extends Observable<WorkerManagerStatus> {
     // In production, would need more sophisticated error recovery
   }
 
-  public getStatus(): {
+  /*   public getStatus(): {
     activeTasks: number;
     queuedTasks: number;
     poolSize: number;
@@ -209,7 +214,7 @@ class WorkerManager extends Observable<WorkerManagerStatus> {
       queuedTasks: this.taskQueue.length,
       poolSize: this.workerPoolSize,
     };
-  }
+  } */
 
   public terminate(): void {
     if (this.workers.length === 0) {

@@ -8,7 +8,7 @@ import {
 } from "../lib/types/general";
 import { ConstructibleHelper } from "../lib/constructible.helper";
 import { AppContext } from "../appContextProvider";
-import { getBuildingImage } from "../lib/drawing/buildingsImageMap.const";
+import { getGuiImage } from "../lib/drawing/namedGuiImagesMap.const";
 
 const capitalPicker = (
   location: ILocationIdentifier,
@@ -58,14 +58,49 @@ const buildingList = (
               }
             >
               <img
-                src={getBuildingImage(building.name)}
+                src={getGuiImage(building.name)}
                 alt={building.name}
-                width={16}
-                height={16}
+                width={24}
+                height={24}
               />
             </span>
           );
         })}
+    </div>
+  );
+};
+
+const locationRankPicker = (
+  locationName: ILocationIdentifier,
+  constructible: IConstructibleLocation,
+) => {
+  console.log({ constructible });
+  return (
+    <div className="ml-2 flex flex-row space-x-1">
+      {(["rural", "town", "city"] as IConstructibleLocation["level"][]).map(
+        (rank) => (
+          <button
+            key={rank}
+            disabled={constructible.level === rank}
+            className={
+              constructible.level === rank
+                ? `disabled:backdrop-grayscale-75 bg-yellow-300`
+                : `bg-black hover:bg-yellow-400`
+            }
+            onClick={() =>
+              gameStateController.changeLocationRank(locationName, rank)
+            }
+          >
+            <img
+              className="p-1"
+              src={getGuiImage(rank)}
+              alt={rank}
+              width={24}
+              height={24}
+            ></img>
+          </button>
+        ),
+      )}
     </div>
   );
 };
@@ -84,10 +119,13 @@ export function ConstructibleMenusComponent() {
 
   /*  console.log("ConstructibleMenusComponent render"); */
   return (
-    <div className="min-h-96 w-96 overflow-y-auto max-h-[50vh]">
+    <div className="min-h-96 w-40 hover:w-[600px] overflow-y-auto overflow-x-hidden max-h-[50vh] transition-[width] duration-300 ease-in-out">
       {Object.entries(gameState.ownedLocations).map(
         ([locationName, constructibleData]) => (
-          <div key={locationName} className="py-1 flex flex-row items-center">
+          <div
+            key={locationName}
+            className="py-1 h-8 flex flex-row items-center whitespace-nowrap"
+          >
             <div className="font-bold w-32 truncate ... flex-none">
               <span className="text-md ">{locationName}</span>
             </div>
@@ -95,6 +133,7 @@ export function ConstructibleMenusComponent() {
               locationName,
               gameState.capitalLocation === locationName,
             )}
+            {locationRankPicker(locationName, constructibleData)}
             {buildingList(
               locationName,
               gameData,

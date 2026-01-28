@@ -1,7 +1,7 @@
 "use client";
 
 import { Observable } from "./observable";
-import { IGameData, IGameState } from "./types/general";
+import { IConstructibleLocation, IGameData, IGameState } from "./types/general";
 
 class GameStateController extends Observable<IGameState> {
   private gameData: IGameData | null = null;
@@ -69,6 +69,20 @@ class GameStateController extends Observable<IGameState> {
       );
     }
     this.subject.capitalLocation = locationName;
+    this.notifyListeners();
+  }
+
+  public changeLocationRank(
+    locationName: string,
+    newRank: IConstructibleLocation["level"],
+  ): void {
+    const location = this.subject.ownedLocations[locationName];
+    if (!location) {
+      throw new Error(
+        `Cannot change rank of unowned location: ${locationName}`,
+      );
+    }
+    location.level = newRank;
     this.notifyListeners();
   }
 }

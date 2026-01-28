@@ -3,7 +3,7 @@
   "riverCostReduction": 30,
   "proximityCostIncreasePercentage": {
     "topography": {
-      "flatlands": 0,
+      "flatland": 0,
       "hills": 25,
       "wetlands": 25,
       "mountains": 50,

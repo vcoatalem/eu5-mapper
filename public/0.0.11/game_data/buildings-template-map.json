@@ -6,7 +6,10 @@
     "localProximitySource": 0,
     "harborCapacity": [0],
     "proximityCostReductionPercentage": [5],
-    "placementRestriction": ["has_road", "has_river"],
+    "placementRestriction": {
+      "mode": "all",
+      "conditions": ["has_road", "is_on_river"]
+    },
     "locationRestriction": [],
     "countryRestriction": []
   },
@@ -17,6 +20,10 @@
     "localProximitySource": 0,
     "harborCapacity": [0],
     "proximityCostReductionPercentage": [5],
+    "placementRestriction": {
+      "mode": "any",
+      "conditions": ["is_coastal", "is_on_river", "is_on_lake"]
+    },
     "locationRestriction": [],
     "countryRestriction": []
   },
@@ -34,7 +41,10 @@
     "localProximitySource": 0,
     "harborCapacity": [0.1],
     "proximityCostReductionPercentage": [],
-    "locationRestriction": [],
+    "placementRestriction": {
+      "mode": "all",
+      "conditions": ["is_coastal"]
+    },
     "countryRestriction": []
   },
   "protected harbor": {
@@ -43,7 +53,10 @@
     "levels": 1,
     "harborCapacity": [0.1],
     "proximityCostReductionPercentage": [],
-    "locationRestriction": [],
+    "placementRestriction": {
+      "mode": "all",
+      "conditions": ["is_coastal"]
+    },
     "countryRestriction": []
   },
   "fishing village": {
@@ -54,7 +67,10 @@
       0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.16, 0.18, 0.2
     ],
     "proximityCostReductionPercentage": [],
-    "locationRestriction": [],
+    "placementRestriction": {
+      "mode": "all",
+      "conditions": ["is_coastal"]
+    },
     "countryRestriction": []
   },
   "bailiff": {

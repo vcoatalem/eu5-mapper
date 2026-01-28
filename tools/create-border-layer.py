@@ -10,6 +10,7 @@ Example:
   python3 create-border-layer.py 0.0.11 --output custom_borders.png
 """
 
+import os
 import sys
 import numpy as np
 from PIL import Image
@@ -29,7 +30,7 @@ def parse_arguments():
     
     version = sys.argv[1]
     game_data_path = None
-    output_file = "border_layer.png"
+    output_file = None  # Will be set to default later
     
     i = 2
     while i < len(sys.argv):
@@ -47,6 +48,13 @@ def parse_arguments():
 
 def main():
     version, game_data_path, output_file = parse_arguments()
+    
+    # Set default output directory if not specified
+    if output_file is None:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        output_dir = os.path.join(script_dir, 'output', version)
+        os.makedirs(output_dir, exist_ok=True)
+        output_file = os.path.join(output_dir, 'border_layer.png')
     
     print(f"Loading game data for version {version}...")
     if game_data_path:

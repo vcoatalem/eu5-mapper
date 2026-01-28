@@ -16,6 +16,7 @@ Example:
   python3 create-terrain-layer.py 0.0.11 --output terrain_with_rivers.png
 """
 
+import os
 import sys
 import numpy as np
 from PIL import Image
@@ -41,7 +42,7 @@ def parse_arguments():
     
     version = sys.argv[1]
     game_data_path = None
-    output_file = "terrain_layer.png"
+    output_file = None  # Will be set to default later
     river_map = None
     
     i = 2
@@ -95,6 +96,13 @@ def parse_non_ownable_impassable(default_map_file):
 
 def main():
     version, game_data_path, output_file, river_map = parse_arguments()
+    
+    # Set default output directory if not specified
+    if output_file is None:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        output_dir = os.path.join(script_dir, 'output', version)
+        os.makedirs(output_dir, exist_ok=True)
+        output_file = os.path.join(output_dir, 'terrain_layer.png')
     
     print(f"Loading game data for version {version}...")
     if game_data_path:

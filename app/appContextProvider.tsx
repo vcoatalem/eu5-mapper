@@ -123,35 +123,6 @@ export const AppContextProvider = ({
         console.log(`  - Sea edges: ${stats.seaEdges}`);
         console.log(`  - Port edges: ${stats.portEdges}`);
         console.log(`  - Lake edges: ${stats.lakeEdges}`);
-
-        // Set isCoastal, isOnRiver, and isOnLake properties on locationDataMap
-        console.log(
-          `[AppContext] Setting location coastal, river, and lake properties...`,
-        );
-        let coastalCount = 0;
-        let riverCount = 0;
-        let lakeCount = 0;
-
-        for (const locationName in locationDataMap) {
-          //TODO: lets add these to the script that generates static data files, as they prove to be quite long to compute
-          const neighbors = graph.getNeighborNodesNames(locationName);
-
-          const hasPortEdge = neighbors.some((n) => n.isPort);
-          const hasRiverEdge = neighbors.some((n) => n.isRiver);
-          const hasLakeEdge = neighbors.some((n) => n.isLake);
-
-          locationDataMap[locationName].isCoastal = hasPortEdge;
-          locationDataMap[locationName].isOnRiver = hasRiverEdge;
-          locationDataMap[locationName].isOnLake = hasLakeEdge;
-
-          if (hasPortEdge) coastalCount++;
-          if (hasRiverEdge) riverCount++;
-          if (hasLakeEdge) lakeCount++;
-        }
-
-        console.log(`  - Coastal locations: ${coastalCount}`);
-        console.log(`  - River locations: ${riverCount}`);
-        console.log(`  - Lake locations: ${lakeCount}`);
       } catch (err) {
         const errorMsg =
           err instanceof Error ? err.message : "Failed to load game data";

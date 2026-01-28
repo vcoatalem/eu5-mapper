@@ -90,7 +90,9 @@ def get_region_pixels(img_array, color):
 def precompute_river_locations(rivers_array, locations_array, color_to_name, cache_file=None, existing_cache=None):
     """
     Precompute which locations each river (connected component) flows through.
-    Returns a dict mapping (loc1, loc2) -> set of river_ids
+    Returns:
+        - dict mapping (loc1, loc2) -> set of river_ids
+        - dict mapping location_name -> set of river hex colors
     
     Args:
         cache_file: If provided, will incrementally save progress to this file
@@ -105,11 +107,13 @@ def precompute_river_locations(rivers_array, locations_array, color_to_name, cac
         location_pair_to_rivers = existing_cache['location_pair_to_rivers']
         processed_components = existing_cache['processed_components']
         next_river_id = existing_cache['next_river_id']
+        location_to_river_colors = existing_cache.get('location_to_river_colors', defaultdict(set))
         print(f"Resuming from cache: {len(location_pair_to_rivers)} location pairs, {len(processed_components)} components processed")
     else:
         location_pair_to_rivers = defaultdict(set)
         processed_components = set()
         next_river_id = 0
+        location_to_river_colors = defaultdict(set)
     
     # Identify river pixels (not white 255,255,255 and not pink 255,0,255)
     white = np.array([255, 255, 255])
@@ -141,7 +145,7 @@ def precompute_river_locations(rivers_array, locations_array, color_to_name, cac
     
     if total_to_process == 0:
         print("All components already processed!")
-        return location_pair_to_rivers
+        return location_pair_to_rivers, location_to_river_colors
     
     # Process all components with a single progress bar
     pbar = tqdm(total=total_to_process, desc="Processing river components")
@@ -172,6 +176,10 @@ def precompute_river_locations(rivers_array, locations_array, color_to_name, cac
                 if loc_name:
                     touched_locations.add(loc_name)
             
+            # Store river color for each location it touches (even single locations)
+            for loc_name in touched_locations:
+                location_to_river_colors[loc_name].add(river_color_hex)
+            
             # Only store rivers that touch at least 2 locations
             if len(touched_locations) >= 2:
                 river_id = next_river_id
@@ -193,20 +201,21 @@ def precompute_river_locations(rivers_array, locations_array, color_to_name, cac
             
             # Periodically save to cache
             if cache_file and components_since_save >= save_interval:
-                save_river_cache(cache_file, location_pair_to_rivers, processed_components, next_river_id)
+                save_river_cache(cache_file, location_pair_to_rivers, processed_components, next_river_id, location_to_river_colors)
                 components_since_save = 0
     
     pbar.close()
     
     # Final save
     if cache_file:
-        save_river_cache(cache_file, location_pair_to_rivers, processed_components, next_river_id)
+        save_river_cache(cache_file, location_pair_to_rivers, processed_components, next_river_id, location_to_river_colors)
     
     print(f"Found {len(location_pair_to_rivers)} location pairs with river connections")
+    print(f"Found {len(location_to_river_colors)} locations with rivers")
     
-    return location_pair_to_rivers
+    return location_pair_to_rivers, location_to_river_colors
 
-def save_river_cache(cache_file, location_pair_to_rivers, processed_components, next_river_id):
+def save_river_cache(cache_file, location_pair_to_rivers, processed_components, next_river_id, location_to_river_colors=None):
     """Save river computation results and progress to cache file."""
     # Convert set values to lists for JSON serialization
     serializable_data = {
@@ -217,6 +226,12 @@ def save_river_cache(cache_file, location_pair_to_rivers, processed_components, 
         'processed_components': list(processed_components),
         'next_river_id': next_river_id
     }
+    
+    if location_to_river_colors:
+        serializable_data['location_to_river_colors'] = {
+            loc: list(colors) 
+            for loc, colors in location_to_river_colors.items()
+        }
     
     cache_dir = Path(cache_file).parent
     cache_dir.mkdir(exist_ok=True)
@@ -258,12 +273,19 @@ def load_river_cache(cache_file):
     processed_components = set(data['processed_components'])
     next_river_id = data['next_river_id']
     
+    # Load location_to_river_colors if available
+    location_to_river_colors = defaultdict(set)
+    if 'location_to_river_colors' in data:
+        for loc, colors in data['location_to_river_colors'].items():
+            location_to_river_colors[loc] = set(colors)
+    
     print(f"Loaded {len(location_pair_to_rivers)} location pairs, {len(processed_components)} processed components from cache")
     
     return {
         'location_pair_to_rivers': location_pair_to_rivers,
         'processed_components': processed_components,
-        'next_river_id': next_river_id
+        'next_river_id': next_river_id,
+        'location_to_river_colors': location_to_river_colors
     }
 
 def determine_access_type(loc1, loc2, sea_zones, lakes, 
@@ -341,7 +363,7 @@ def main():
     
     # Identify wasteland locations
     wasteland_locations = {name for name, data in location_data.items() 
-                          if data.get('topography') and 'wasteland' in data['topography']}
+                          if data.topography and 'wasteland' in data.topography}
     print(f"Found {len(wasteland_locations)} wasteland locations to exclude")
     
     # Check for cached river computation
@@ -360,7 +382,7 @@ def main():
         print("\nSkipping cache (--no-cache flag)")
     
     # Compute or resume river connections
-    location_pair_to_rivers = precompute_river_locations(
+    location_pair_to_rivers, location_to_river_colors = precompute_river_locations(
         rivers_array, locations_array, color_to_name,
         cache_file=cache_file if use_cache else None,
         existing_cache=existing_cache
@@ -408,14 +430,35 @@ def main():
     
     # Sort results alphabetically
     results.sort()
+
+
+    # Create output directory
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_dir = os.path.join(script_dir, 'output', version)
+    os.makedirs(output_dir, exist_ok=True)
     
     # Write output CSV
-    output_file = 'adjacency-data.csv'
+    output_file = os.path.join(output_dir, 'adjacency-data.csv')
     print(f"\nWriting to {output_file}...")
     with open(output_file, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         writer.writerow(['locationA', 'locationB', 'accessType'])
         writer.writerows(results)
+    
+    # Write location-to-river-colors mapping
+    river_colors_output = os.path.join(output_dir, 'location-river-colors.json')
+    print(f"\nWriting location-river-colors mapping to {river_colors_output}...")
+    
+    # Convert defaultdict to regular dict and sets to lists for JSON serialization
+    river_colors_data = {
+        loc: list(colors) 
+        for loc, colors in sorted(location_to_river_colors.items())
+    }
+    
+    with open(river_colors_output, 'w', encoding='utf-8') as f:
+        json.dump(river_colors_data, f, indent=2)
+    
+    print(f"✓ Wrote {len(river_colors_data)} locations with river data")
     
     print("Done!")
     

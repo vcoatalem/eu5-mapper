@@ -11,6 +11,7 @@ import {
 } from "./types/general";
 import { greenToRedGradient } from "./drawing/greenToRedGradient.const";
 import { workerManager } from "./workerManager";
+import { ObservableCombiner } from "./observableCombiner";
 
 export class DrawingLogicController {
   private areaDrawingCanvas: HTMLCanvasElement;
@@ -20,7 +21,6 @@ export class DrawingLogicController {
   private mapInfos: { width: number; height: number };
   private coordinateMap: Record<ILocationIdentifier, Array<ICoordinate>> = {};
   private gameData: IGameData | null = null;
-  private lastKnownGameState: IGameState | null = null;
   private lastKnownProximityComputationResults: IProximityComputationResults | null =
     null;
 
@@ -90,9 +90,6 @@ export class DrawingLogicController {
     if (!this.coordinateMap[name]) {
       this.coordinateMap[name] = coordinates;
     }
-
-    // this is less than ideal. Need to find a better solution so that we don't have to keep 'lastKnown...' attributes in this class.
-    this.drawAreas();
   }
 
   constructor(
@@ -120,7 +117,11 @@ export class DrawingLogicController {
     }
     this.constructibleDrawingContext = drawingContext;
 
-    workerManager.subscribe(({ lastCompletedTask }) => {
+    new ObservableCombiner([
+      workerManager,
+      gameStateController,
+      proximityComputationController,
+    ]).subscribe(([{ lastCompletedTask }, gameState, proximityEvaluation]) => {
       if (lastCompletedTask && lastCompletedTask.type === "colorSearch") {
         const data = lastCompletedTask.data as {
           locationName: ILocationIdentifier;
@@ -132,37 +133,16 @@ export class DrawingLogicController {
         );
         console.log("[DrawingLogicController] got color task result", data);
       }
-    });
 
-    gameStateController.subscribe((gameState) => {
-      console.log("gameStateController subscribe");
-      // TODO: separate subscription for drawing areas and drawing constructibles
-      this.lastKnownGameState = gameState;
-      this.drawAreas();
-      this.drawConstructible();
-    });
-
-    proximityComputationController.subscribe((reachable) => {
-      console.log("proximityComputationController subscribe");
-      console.log("reachable areas: ", {
-        reachable,
-        context: {
-          gameState: this.lastKnownGameState,
-          proximity: this.lastKnownProximityComputationResults,
-        },
-      });
-      this.lastKnownProximityComputationResults = reachable;
-
-      this.drawAreas();
-      //this.drawPathFindingHeatMap(reachable);
+      this.drawAreas(gameState, proximityEvaluation);
+      this.drawConstructible(gameState);
     });
   }
 
-  private drawAreas(): void {
-    if (!this.lastKnownGameState) {
-      return;
-    }
-
+  private drawAreas(
+    gameState: IGameState,
+    proximityEvaluation: IProximityComputationResults,
+  ): void {
     const imageData = this.areaDrawingContext.createImageData(
       this.mapInfos.width,
       this.mapInfos.height,
@@ -170,24 +150,17 @@ export class DrawingLogicController {
 
     const data = imageData.data;
 
-    for (const location of Object.keys(
-      this.lastKnownGameState.ownedLocations,
-    )) {
+    for (const location of Object.keys(gameState.ownedLocations)) {
       const coordinates = this.coordinateMap[location];
       if (!coordinates) {
         continue;
       }
-      const proximityEvaluation =
-        this.lastKnownProximityComputationResults?.proximityCostsForCapital?.get(
-          location ?? "",
-        );
-      console.log("proximity evaluation for location", {
-        location,
-        proximityEvaluation,
-      });
+      const evaluation =
+        proximityEvaluation.proximityCostsForCapital?.get(location) ??
+        undefined;
       const [r, g, b] =
-        proximityEvaluation !== undefined
-          ? greenToRedGradient[Math.round(proximityEvaluation)]
+        evaluation !== undefined
+          ? greenToRedGradient[Math.round(evaluation)]
           : [208, 208, 208];
 
       for (const { x, y } of coordinates) {
@@ -204,11 +177,11 @@ export class DrawingLogicController {
     console.log("put image data done");
   }
 
-  private drawConstructible(): void {
-    if (!this.lastKnownGameState) {
+  private drawConstructible(gameState: IGameState): void {
+    /*     if (!this.lastKnownGameState) {
       throw new Error("no game state found");
     }
-
+ */
     // Clear the canvas first TODO: see if this is needed
     this.constructibleDrawingContext.clearRect(
       0,
@@ -218,7 +191,7 @@ export class DrawingLogicController {
     );
 
     // read game logic controller for currently owned constructibles
-    const allOwnedLocations = this.lastKnownGameState.ownedLocations;
+    const allOwnedLocations = gameState.ownedLocations;
 
     // Draw all constructibles in one batch
     for (const [locationIdentifier, constructible] of Object.entries(
@@ -235,7 +208,7 @@ export class DrawingLogicController {
         const canvasY = this.mapInfos.height - locationCoordinates.y;
 
         const color =
-          this.lastKnownGameState.capitalLocation === locationIdentifier
+          gameState.capitalLocation === locationIdentifier
             ? "rgb(250, 219, 17)"
             : "rgb(208, 208, 208)";
 

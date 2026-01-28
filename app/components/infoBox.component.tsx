@@ -42,6 +42,7 @@ const buildLocationDisplay = (
         )}
       </div>
       <span>Development: {locationData.development}</span>
+      <span>Population: {locationData.population}</span>
       <span>{owned ? "Owned" : "Not Owned"}</span>
 
       {locationData.constructibleLocationCoordinate && (

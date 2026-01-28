@@ -197,7 +197,6 @@ export function WorldMapComponent() {
     }
 
     // effect variables: these will only be used inside this effect until destruction
-    let currentZoom = 1;
     let startX = 0;
     let startY = 0;
     let scrollLeft = 0;
@@ -214,8 +213,8 @@ export function WorldMapComponent() {
       const relX = event.clientX - rect.left;
       const relY = event.clientY - rect.top;
 
-      const imageX = relX / currentZoom;
-      const imageY = relY / currentZoom;
+      const imageX = relX / zoomControllerRef.current.getSnapshot().zoomLevel;
+      const imageY = relY / zoomControllerRef.current.getSnapshot().zoomLevel;
 
       const imageData = colorCanvas
         .getContext("2d", { willReadFrequently: true })
@@ -251,8 +250,10 @@ export function WorldMapComponent() {
       const targetX = 7934;
       const targetY = 1991;
 
-      const newLeft = centerX - targetX * currentZoom;
-      const newTop = centerY - targetY * currentZoom;
+      const newLeft =
+        centerX - targetX * zoomControllerRef.current.getSnapshot().zoomLevel;
+      const newTop =
+        centerY - targetY * zoomControllerRef.current.getSnapshot().zoomLevel;
 
       layers.forEach((layer) => {
         const canvas = layer.ref.current;
@@ -443,7 +444,6 @@ export function WorldMapComponent() {
     };
 
     zoomControllerRef.current.subscribe(({ zoomLevel, oldZoomLevel }) => {
-      currentZoom = zoomLevel;
       applyZoomLevel(zoomLevel, oldZoomLevel);
 
       if (zoomLevel < 1 && oldZoomLevel >= 1) {
@@ -519,14 +519,12 @@ export function WorldMapComponent() {
   };
 
   const handleZoomOut = (event: React.MouseEvent<HTMLButtonElement>) => {
-    console.log("zoom out", event);
     event.preventDefault();
     setSelectedLocation(null);
     zoomControllerRef.current.zoomOut();
   };
 
   const handleZoomIn = (event: React.MouseEvent<HTMLButtonElement>) => {
-    console.log("zoom in", event);
     event.preventDefault();
     setSelectedLocation(null);
     zoomControllerRef.current.zoomIn();

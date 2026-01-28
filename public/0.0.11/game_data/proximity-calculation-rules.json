@@ -1,5 +1,5 @@
 {
-  "baseCost": "40",
+  "baseCost": 40,
   "riverCostReduction": 30,
   "proximityCostIncreasePercentage": {
     "topography": {

@@ -41,7 +41,7 @@ export function WorldMapComponent() {
     adjacencyGraph,
   } = context;
 
-  console.log("render worldmap component");
+  /* console.log("render worldmap component"); */
 
   const gameState = useSyncExternalStore(
     gameStateController.subscribe.bind(gameStateController),
@@ -49,7 +49,7 @@ export function WorldMapComponent() {
     () => gameStateController.getSnapshot(), // getServerSnapshot for SSR
   );
   const hasOwnedLocations = gameState?.ownedLocations
-    ? Object.keys(gameState?.ownedLocations)
+    ? !!Object.keys(gameState?.ownedLocations)?.length
     : false;
 
   const isDraggingRef = useRef(false);

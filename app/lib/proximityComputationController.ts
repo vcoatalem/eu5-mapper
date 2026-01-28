@@ -153,11 +153,14 @@ export class ProximityComputationController extends Observable<IProximityComputa
     locationData: ILocationGameData,
     locationConstructibleData: IConstructibleLocation,
   ): number => {
-    const naturalHarborSuitability = locationData.naturalHarborSuitability;
+    const naturalHarborSuitability = locationData.naturalHarborSuitability ?? 0;
 
     const buildings = locationConstructibleData.buildings ?? [];
     const totalBuildingsHarborCapacity = buildings
-      .map((b) => b.template.harborCapacity[b.level - 1])
+      .map((b) => {
+        const capacity = b.template.harborCapacity[b.level - 1];
+        return capacity || 0;
+      })
       .reduce((a, b) => a + b, 0);
 
     return naturalHarborSuitability + totalBuildingsHarborCapacity;
@@ -185,11 +188,21 @@ export class ProximityComputationController extends Observable<IProximityComputa
         gameState,
       }); */
 
-      if (!Object.keys(gameState.ownedLocations).includes(from) && !isSea) {
-        // this is not entirely exact, in some situations you can pass over foreign territory but this is close enough for now
+      const toLocationData = this.gameData!.locationDataMap[to];
+      const isToSeaZone = toLocationData.isSea;
+      const isToLakeZone = toLocationData.isLake;
+
+      // Only allow routing through unowned sea and lake zones
+      // Block all other unowned locations (land, ports, etc.)
+      if (
+        !Object.keys(gameState.ownedLocations).includes(to) &&
+        !isToSeaZone &&
+        !isToLakeZone
+      ) {
         return 100;
       }
-      if (isLake) {
+
+      if (isToLakeZone) {
         return 5; //TODO: make this proper
       }
 
@@ -197,22 +210,28 @@ export class ProximityComputationController extends Observable<IProximityComputa
         ? rule.baseCost - rule.riverCostReduction
         : rule.baseCost;
 
-      const localProximityCostReductionPercentage =
-        this.getLocationProximityLocalCostReductionPercentage(
-          this.gameData!.locationDataMap[from],
-          gameState.ownedLocations[from],
-        );
+      // Only calculate proximity cost reduction for owned locations
+      const localProximityCostReductionPercentage = gameState.ownedLocations[
+        from
+      ]
+        ? this.getLocationProximityLocalCostReductionPercentage(
+            this.gameData!.locationDataMap[from],
+            gameState.ownedLocations[from],
+          )
+        : 0;
       let modifiedCost =
         baseCost * (1 - localProximityCostReductionPercentage / 100);
 
-      if (isPort) {
+      if (isPort && gameState.ownedLocations[from]) {
         const harborCapacity = this.getLocationHarborCapacity(
           this.gameData!.locationDataMap[from],
           gameState.ownedLocations[from],
         );
-        modifiedCost =
-          modifiedCost *
-          (1 - (rule.harborCapacityImpact * harborCapacity) / 100);
+
+        const harborImpact = rule.harborCapacityImpact;
+        const multiplier = 1 - (harborImpact * harborCapacity) / 100;
+
+        modifiedCost = modifiedCost * multiplier;
       }
 
       if (isSea) {

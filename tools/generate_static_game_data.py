@@ -380,7 +380,7 @@ def generate_game_data_json(version: str = "0.0.11", output_dir: str = None):
             "topography": data.topography,
             "vegetation": data.vegetation,
             "climate": data.climate,
-            "natural_harbor_suitability": data.natural_harbor_suitability,
+            "naturalHarborSuitability": data.natural_harbor_suitability,
             "name": location_name,
             "hexColor": hex_color,
             "isLake": is_lake,

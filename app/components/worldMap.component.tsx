@@ -31,6 +31,12 @@ const mapInfos = {
   riverMapFileName: "test/river_layer.png",
 };
 
+// TODO:
+// 1. add building construction
+// 2. add "local proximity" sources in pathfinding logic
+
+// check new static data file. see if dev numbers make sense (new river calculation)
+
 export function WorldMapComponent() {
   const context = useContext(AppContext);
   const {
@@ -450,22 +456,6 @@ export function WorldMapComponent() {
               canvasHeight: colorCanvas.height,
               colorHex: hexColor,
               locationName: clickedOnLocationRef.current,
-            },
-            callbacks: {
-              onSuccess: (result: unknown) => {
-                const data = result as {
-                  coordinates: Array<{ x: number; y: number }>;
-                  locationName: string;
-                };
-                drawingLogicRef.current?.addCoordinate(
-                  data.locationName,
-                  data.coordinates,
-                );
-                console.log("[COLOR SEARCH COMPLETE]", data);
-              },
-              onError: (error) => {
-                console.error("[COLOR SEARCH ERROR]", error);
-              },
             },
           });
         }

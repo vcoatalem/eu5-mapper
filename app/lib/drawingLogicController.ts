@@ -230,7 +230,7 @@ export class DrawingLogicController {
         } else if (level === "town") {
           this.drawSquare(canvasX, canvasY, 4, color);
         } else if (level === "city") {
-          this.drawPentagon(canvasX, canvasY, 6, color);
+          this.drawPentagon(canvasX, canvasY, 8, color);
         }
       }
     }

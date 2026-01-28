@@ -53,6 +53,9 @@ export class ProximityComputationController extends Observable<IProximityComputa
       );
 
       this.subject.proximityCostsForCapital = reachable;
+      console.log("[ProximityComputationController] computed proximity costs", {
+        reachable,
+      });
       this.notifyListeners();
     });
   }
@@ -130,9 +133,10 @@ export class ProximityComputationController extends Observable<IProximityComputa
     }
     const buildings = locationConstructibleData.buildings ?? [];
     const totalBuildingsCostReduction = buildings
-      .map((b) => b.template.proximityCostReductionPercentage[b.level - 1])
+      .map(
+        (b) => b.template.proximityCostReductionPercentage?.[b.level - 1] ?? 0,
+      )
       .reduce((a, b) => a + b, 0);
-
     const environmentalProximityCostIncreasePercentage =
       this.getEnvironmentalProximityCostIncreasePercentage(location);
 
@@ -153,12 +157,17 @@ export class ProximityComputationController extends Observable<IProximityComputa
     locationData: ILocationGameData,
     locationConstructibleData: IConstructibleLocation,
   ): number => {
+    console.log("get location harbor capacity called with ", {
+      locationData,
+      locationConstructibleData,
+    });
+
     const naturalHarborSuitability = locationData.naturalHarborSuitability ?? 0;
 
     const buildings = locationConstructibleData.buildings ?? [];
     const totalBuildingsHarborCapacity = buildings
       .map((b) => {
-        const capacity = b.template.harborCapacity[b.level - 1];
+        const capacity = b.template.harborCapacity?.[b.level - 1];
         return capacity || 0;
       })
       .reduce((a, b) => a + b, 0);
@@ -183,7 +192,10 @@ export class ProximityComputationController extends Observable<IProximityComputa
     ) => {
       const rule = this.gameData!.proximityComputationRule;
 
-      /*      console.log("enter proximity cost function", {
+      /*  console.log("enter proximity cost function", {
+        from,
+        to,
+        through: { isRiver, isLand, isSea, isPort, isLake },
         context: this.gameData,
         gameState,
       }); */
@@ -222,10 +234,19 @@ export class ProximityComputationController extends Observable<IProximityComputa
       let modifiedCost =
         baseCost * (1 - localProximityCostReductionPercentage / 100);
 
-      if (isPort && gameState.ownedLocations[from]) {
+      /*    if (from === "calais" && to === "dunkirk") {
+        console.log("modified cost", modifiedCost);
+      } */
+
+      if (isPort) {
+        // TODO: hypothesis to confirm: harbor capacity is applied, whether going IN or OUT of a port
+        const locationWithHarbor = isToSeaZone ? from : to;
+        if (!gameState.ownedLocations[locationWithHarbor]) {
+          return 0; // we dont use other peoples harbors
+        }
         const harborCapacity = this.getLocationHarborCapacity(
-          this.gameData!.locationDataMap[from],
-          gameState.ownedLocations[from],
+          this.gameData!.locationDataMap[locationWithHarbor],
+          gameState.ownedLocations[locationWithHarbor],
         );
 
         const harborImpact = rule.harborCapacityImpact;

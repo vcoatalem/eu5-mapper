@@ -49,23 +49,66 @@ const buildingList = (
     <div className="flex flex-row space-x-2 ml-2">
       {state.buildings
         .filter((building) => building.canBuild || building.reason === "limit")
-        .map((building) => {
-          return (
-            <span
-              key={building.name}
+        .map((building) => (
+          <div key={building.name} className="inline-block">
+            <button
               className={
-                building.reason === "limit" ? "backdrop-grayscale-50" : ""
+                "relative flex items-center justify-center " +
+                (building.canBuild
+                  ? "hover:bg-yellow-400 "
+                  : "backdrop-grayscale-50 ") +
+                (building.amountBuilt > 0 ? "bg-yellow-300 " : "") +
+                (building.amountBuilt > 0 && !building.canBuild
+                  ? " hover:bg-red-500 "
+                  : "")
               }
+              onClick={() => {
+                if (!building.canBuild) {
+                  gameStateController.removeBuildingFromLocation(
+                    locationName,
+                    building.name,
+                  );
+                } else {
+                  gameStateController.addBuildingToLocation(
+                    locationName,
+                    building.name,
+                  );
+                }
+              }}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                gameStateController.removeBuildingFromLocation(
+                  locationName,
+                  building.name,
+                );
+              }}
+              style={{ width: 32, height: 32, padding: 0 }}
             >
               <img
                 src={getGuiImage(building.name)}
                 alt={building.name}
                 width={24}
                 height={24}
+                style={{ display: "block" }}
               />
-            </span>
-          );
-        })}
+              {building.amountBuilt > 0 && (
+                <span
+                  className="absolute left-0 bottom-0 mb-0.5 ml-0.5 px-1 py-0 text-xs font-bold text-black bg-white/70 backdrop-blur-sm rounded z-10"
+                  style={{
+                    pointerEvents: "none",
+                    fontSize: "0.75rem",
+                    minWidth: 16,
+                    minHeight: 16,
+                    lineHeight: "16px",
+                    textAlign: "center",
+                  }}
+                >
+                  {building.amountBuilt}
+                </span>
+              )}
+            </button>
+          </div>
+        ))}
     </div>
   );
 };
@@ -123,12 +166,12 @@ export function ConstructibleMenusComponent() {
         ([locationName, constructibleData]) => (
           <div
             key={locationName}
-            className="py-1 h-8 flex flex-row items-center whitespace-nowrap"
+            className="py-1 h-10 flex flex-row items-center whitespace-nowrap"
             onMouseEnter={() => setHoveredLocation(locationName)}
             onMouseLeave={() => setHoveredLocation(null)}
           >
             <div className="font-bold w-32 truncate ... flex-none">
-              <span className="text-md ">{locationName}</span>
+              <span className="text-lg ">{locationName}</span>
             </div>
             {capitalPicker(
               locationName,

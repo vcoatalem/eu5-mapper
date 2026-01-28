@@ -1,5 +1,6 @@
 "use client";
 
+import { ConstructibleHelper } from "./constructible.helper";
 import { Observable } from "./observable";
 import { IConstructibleLocation, IGameData, IGameState } from "./types/general";
 
@@ -83,7 +84,105 @@ class GameStateController extends Observable<IGameState> {
       );
     }
     location.level = newRank;
+
+    let buildingToKeep: string[] = [];
+    for (const building of location.buildings) {
+      const { reason } = ConstructibleHelper.getBuildability(
+        building.template,
+        locationName,
+        this.gameData!,
+        this.subject.ownedLocations,
+      );
+      if (reason !== "restriction") {
+        buildingToKeep.push(building.template.name);
+      }
+    }
+    this.subject.ownedLocations[locationName].buildings =
+      location.buildings.filter((b) =>
+        buildingToKeep.includes(b.template.name),
+      );
     this.notifyListeners();
+  }
+
+  public addBuildingToLocation(
+    locationName: string,
+    buildingName: string,
+  ): void {
+    {
+      const location = this.subject.ownedLocations[locationName];
+      if (!location) {
+        throw new Error(
+          `Cannot add building to unowned location: ${locationName}`,
+        );
+      }
+      const buildingTemplate =
+        this.gameData?.buildingsTemplateMap[buildingName];
+      if (!buildingTemplate) {
+        throw new Error(`Unknown building template: ${buildingName}`);
+      }
+
+      const { canBuild, reason } = ConstructibleHelper.getBuildability(
+        buildingTemplate,
+        locationName,
+        this.gameData!,
+        this.subject.ownedLocations,
+      );
+
+      if (!canBuild) {
+        throw new Error(
+          `Cannot build ${buildingName} at location: ${locationName} (${reason})`,
+        );
+      }
+
+      const buildingToUpgrade = location.buildings.filter(
+        (b) => b.template.name === buildingName,
+      );
+      const buildingToUpgradeIdx = location.buildings.indexOf(
+        buildingToUpgrade[0],
+      );
+      if (buildingToUpgradeIdx !== -1) {
+        this.subject.ownedLocations[locationName].buildings[
+          buildingToUpgradeIdx
+        ].level += 1;
+      } else {
+        const buildingToCreate = {
+          template: buildingTemplate,
+          level: 1,
+          createdByUser: true,
+        };
+        this.subject.ownedLocations[locationName].buildings.push(
+          buildingToCreate,
+        );
+      }
+      this.notifyListeners();
+    }
+  }
+
+  public removeBuildingFromLocation(
+    locationName: string,
+    buildingName: string,
+  ): void {
+    const location = this.subject.ownedLocations[locationName];
+    const building = location.buildings.find(
+      (b) => b.template.name === buildingName,
+    );
+    if (!building) {
+      throw new Error(
+        `Cannot remove non-existing building ${buildingName} at location: ${locationName}`,
+      );
+    }
+    const buildingIdx = location.buildings.indexOf(building);
+    if (building.level > 1) {
+      this.subject.ownedLocations[locationName].buildings[buildingIdx].level -=
+        1;
+      this.notifyListeners();
+    } else {
+      this.subject.ownedLocations[locationName].buildings.splice(
+        buildingIdx,
+        1,
+      );
+      this.notifyListeners();
+    }
   }
 }
 export const gameStateController = new GameStateController();

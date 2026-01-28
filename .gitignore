@@ -45,3 +45,7 @@ tools/tmp/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# python
+
+*.cpython-314.pyc

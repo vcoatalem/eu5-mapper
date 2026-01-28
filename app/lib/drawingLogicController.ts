@@ -7,6 +7,7 @@ import {
   ILocationIdentifier,
 } from "./types/general";
 
+//TODO drawingLogicService more like ? need a wording to differentiate observables & non observables
 export class DrawingLogicController {
   private areaDrawingCanvas: HTMLCanvasElement;
   private areaDrawingContext: CanvasRenderingContext2D;

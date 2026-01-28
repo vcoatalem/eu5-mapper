@@ -95,3 +95,39 @@ def parse_default_map(default_map_file):
             lakes.update(words)
     
     return sea_zones, lakes
+
+
+def parse_location_templates(location_templates_file):
+    """Parse location_templates.txt to extract location properties including topography."""
+    location_data = {}
+    
+    with open(location_templates_file, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            
+            # Format: location_name = { topography = type ... }
+            if '=' in line and '{' in line:
+                parts = line.split('=', 1)
+                if len(parts) == 2:
+                    name = parts[0].strip()
+                    properties_str = parts[1].strip()
+                    
+                    # Extract topography value
+                    topography = None
+                    if 'topography' in properties_str:
+                        # Find "topography = value" pattern
+                        topo_start = properties_str.index('topography')
+                        topo_section = properties_str[topo_start:]
+                        # Get the value after "topography = "
+                        if '=' in topo_section:
+                            topo_value_section = topo_section.split('=', 1)[1].strip()
+                            # Extract the first word (before space or other property)
+                            topography = topo_value_section.split()[0].strip()
+                    
+                    location_data[name] = {
+                        'topography': topography
+                    }
+    
+    return location_data

@@ -27,7 +27,6 @@ class GameDataFiles:
     provinces_data: str
     locations_color_mapping: str
     locations_city_coordinates: str
-    buildings_data: str
     pops_file: str
     roads_file: str
     development_file: str
@@ -53,7 +52,6 @@ class GameDataLoader:
         'provinces_data': 'provinces_data',
         'locations_color_mapping': 'locations_color_mapping',
         'locations_city_coordinates': 'locations_city_coordinates',
-        'buildings_data': 'buildings_data',
         'pops_file': 'game_setup',
         'roads_file': 'game_setup',
         'development_file': 'game_setup',
@@ -71,7 +69,6 @@ class GameDataLoader:
         'provinces_data': 'definitions.txt',
         'locations_color_mapping': '00_default.txt',
         'locations_city_coordinates': 'generated_map_object_locators_city.txt',
-        'buildings_data': 'buildings.json',
         'pops_file': '06_pops.txt',
         'roads_file': '09_roads.txt',
         'development_file': '14_development.txt',

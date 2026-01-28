@@ -245,10 +245,6 @@ def generate_game_data_json(version: str = "0.0.11", output_dir: str = None):
     
     city_coordinates = parse_city_coordinates(files.locations_city_coordinates)
     
-    # Load buildings data (already JSON)
-    with open(files.buildings_data, 'r', encoding='utf-8') as f:
-        buildings_data = json.load(f)
-    
     # Load new game_setup files
     print("Parsing game setup files...")
     populations = parse_pops_file(files.pops_file)
@@ -400,12 +396,7 @@ def generate_game_data_json(version: str = "0.0.11", output_dir: str = None):
             "population": population,
             "development": development
         }
-    
-    # Build buildingsTemplateMap
-    buildings_template_map = {
-        building["name"]: building
-        for building in buildings_data
-    }
+
     
     # Write development breakdown CSV for debugging
     print("Writing development breakdown CSV...")
@@ -432,7 +423,6 @@ def generate_game_data_json(version: str = "0.0.11", output_dir: str = None):
     output_files = {
         "location-data-map.json": location_data_map,
         "color-to-name-map.json": color_to_name,
-        "buildings-template-map.json": buildings_template_map,
     }
     
     total_size = 0

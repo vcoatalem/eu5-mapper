@@ -18,6 +18,20 @@ export class ZoomController extends Observable<{
   constructor() {
     super();
     this.currentZoomIndex = zoomSteps.indexOf(1);
+    this.subject = {
+      oldZoomLevel: zoomSteps[this.currentZoomIndex],
+      zoomLevel: zoomSteps[this.currentZoomIndex],
+      zoomIndex: this.currentZoomIndex,
+    };
+  }
+
+  private updateZoomState(oldZoomLevel: number): void {
+    this.subject = {
+      zoomIndex: this.currentZoomIndex,
+      oldZoomLevel: oldZoomLevel,
+      zoomLevel: zoomSteps[this.currentZoomIndex],
+    };
+    this.notifyListeners();
   }
 
   public zoomIn(): void {
@@ -26,11 +40,7 @@ export class ZoomController extends Observable<{
       this.currentZoomIndex++;
     }
 
-    this.notifyListeners({
-      zoomIndex: this.currentZoomIndex,
-      oldZoomLevel: currentZoomLevel,
-      zoomLevel: zoomSteps[this.currentZoomIndex],
-    });
+    this.updateZoomState(currentZoomLevel);
   }
 
   public zoomOut(): void {
@@ -39,10 +49,6 @@ export class ZoomController extends Observable<{
       this.currentZoomIndex--;
     }
 
-    this.notifyListeners({
-      zoomIndex: this.currentZoomIndex,
-      zoomLevel: zoomSteps[this.currentZoomIndex],
-      oldZoomLevel: currentZoomLevel,
-    });
+    this.updateZoomState(currentZoomLevel);
   }
 }

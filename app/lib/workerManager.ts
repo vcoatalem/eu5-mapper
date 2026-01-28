@@ -6,23 +6,26 @@ export interface WorkerManagerStatus {
   queuedTasks: number;
 }
 
-export class WorkerManager extends Observable<WorkerManagerStatus> {
+class WorkerManager extends Observable<WorkerManagerStatus> {
   private workers: Worker[] = [];
   private taskQueue: WorkerTask[] = [];
   private activeTasks: Map<string, WorkerTask> = new Map();
   private workerAssignments: Map<Worker, string | null> = new Map();
   private processedTaskIds: Set<string> = new Set();
-  private workerPoolSize: number;
-  private workerScriptPath: string;
+  private workerPoolSize: number = 0;
+  private workerScriptPath: string = "";
 
-  constructor(workerScriptPath: string, poolSize: number = 4) {
+  constructor() {
     super();
-    this.workerScriptPath = workerScriptPath;
-    this.workerPoolSize = Math.max(1, poolSize);
-    this.initializeWorkers();
+    this.subject = {
+      activeTasks: 0,
+      queuedTasks: 0,
+    };
   }
 
-  private initializeWorkers(): void {
+  public init(workerScriptPath: string, poolSize: number): void {
+    this.workerScriptPath = workerScriptPath;
+    this.workerPoolSize = Math.max(1, poolSize);
     for (let i = 0; i < this.workerPoolSize; i++) {
       const worker = new Worker(this.workerScriptPath);
       worker.addEventListener("message", (event) =>
@@ -35,6 +38,23 @@ export class WorkerManager extends Observable<WorkerManagerStatus> {
       this.workerAssignments.set(worker, null); // Mark as available
     }
     console.log(`[WorkerManager] Initialized ${this.workerPoolSize} workers`);
+  }
+
+  private updateStatus(): void {
+    const newActiveTasks = this.activeTasks.size;
+    const newQueuedTasks = this.taskQueue.length;
+    
+    // Only update and notify if values have changed
+    if (
+      this.subject.activeTasks !== newActiveTasks ||
+      this.subject.queuedTasks !== newQueuedTasks
+    ) {
+      this.subject = {
+        activeTasks: newActiveTasks,
+        queuedTasks: newQueuedTasks,
+      };
+      this.notifyListeners();
+    }
   }
 
   public queueTask(task: WorkerTask): void {
@@ -50,10 +70,7 @@ export class WorkerManager extends Observable<WorkerManagerStatus> {
     console.log(
       `[WorkerManager] Task queued. Queue size: ${this.taskQueue.length}`,
     );
-    this.notifyListeners({
-      activeTasks: this.activeTasks.size,
-      queuedTasks: this.taskQueue.length,
-    });
+    this.updateStatus();
     this.processQueue();
   }
 
@@ -121,10 +138,7 @@ export class WorkerManager extends Observable<WorkerManagerStatus> {
       availableWorker.postMessage(messagePayload);
     }
 
-    this.notifyListeners({
-      activeTasks: this.activeTasks.size,
-      queuedTasks: this.taskQueue.length,
-    });
+    this.updateStatus();
     // Continue processing if there are more tasks
     this.processQueue();
   }
@@ -173,10 +187,7 @@ export class WorkerManager extends Observable<WorkerManagerStatus> {
         this.processedTaskIds.add(taskId);
         this.workerAssignments.set(worker, null); // Free up worker
         console.log(`[WorkerManager] Task completed: ${taskId}`);
-        this.notifyListeners({
-          activeTasks: this.activeTasks.size,
-          queuedTasks: this.taskQueue.length,
-        });
+        this.updateStatus();
         this.processQueue(); // Process next task in queue
         break;
 
@@ -186,10 +197,7 @@ export class WorkerManager extends Observable<WorkerManagerStatus> {
         this.processedTaskIds.add(taskId);
         this.workerAssignments.set(worker, null); // Free up worker
         console.error(`[WorkerManager] Task failed: ${taskId}`);
-        this.notifyListeners({
-          activeTasks: this.activeTasks.size,
-          queuedTasks: this.taskQueue.length,
-        });
+        this.updateStatus();
         this.processQueue(); // Process next task in queue
         break;
     }
@@ -213,6 +221,9 @@ export class WorkerManager extends Observable<WorkerManagerStatus> {
   }
 
   public terminate(): void {
+    if (this.workers.length === 0) {
+      return;
+    }
     this.workers.forEach((worker) => worker.terminate());
     this.workers = [];
     this.taskQueue = [];
@@ -227,3 +238,5 @@ export class WorkerManager extends Observable<WorkerManagerStatus> {
     console.log("[WorkerManager] Cleared processed task history");
   }
 }
+
+export const workerManager = new WorkerManager();

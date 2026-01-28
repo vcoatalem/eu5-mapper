@@ -1,13 +1,15 @@
-import { JSX, useContext } from "react";
+import { JSX, useContext, useSyncExternalStore } from "react";
 import { AppContext } from "../appContextProvider";
-import { ILocationGameData } from "../lib/types/general";
+import { IGameState, ILocationGameData } from "../lib/types/general";
 import styles from "../styles/Gui.module.css";
 import { CompactGraph } from "../lib/graph";
 import { NeighborInfo } from "../lib/types/pathfinding";
+import { gameStateController } from "@/app/lib/gameStateController";
 
 const buildLocationDisplay = (
   locationData: ILocationGameData,
   adjacencyGraph: CompactGraph,
+  gameState: IGameState,
 ): JSX.Element => {
   const neighborLocationsNames = adjacencyGraph.getNeighborNodesNames(
     locationData.name,
@@ -21,6 +23,8 @@ const buildLocationDisplay = (
     if (neighbor.isLake) return "lake";
     return "unknown";
   };
+
+  const owned = gameState.ownedLocations[locationData.name];
 
   if (!locationData) {
     return <span>No data available</span>;
@@ -37,6 +41,8 @@ const buildLocationDisplay = (
           <span>Vegetation: {locationData.vegetation}</span>
         )}
       </div>
+
+      <span>{owned ? "Owned" : "Not Owned"}</span>
 
       {locationData.constructibleLocationCoordinate && (
         <span>
@@ -74,6 +80,10 @@ const buildLocationDisplay = (
 
 export function InfoBoxComponent() {
   const context = useContext(AppContext);
+  const gameLogic = useSyncExternalStore(
+    gameStateController.subscribe.bind(gameStateController),
+    () => gameStateController.getSnapshot(),
+  );
   if (!context) {
     throw new Error("InfoBoxComponent must be used within AppContextProvider");
   }
@@ -91,6 +101,7 @@ export function InfoBoxComponent() {
     buildLocationDisplay(
       context.gameData.locationDataMap[locationName],
       context.adjacencyGraph,
+      gameLogic,
     )
   ) : (
     <span></span>

@@ -1,23 +1,30 @@
+"use client";
+
 import { Observable } from "./observable";
 import {
   ILocationIdentifier,
-  IConstructibleLocation,
   IGameData,
   ILocationGameData,
+  IGameState,
 } from "./types/general";
 import { CostFunction } from "./types/pathfinding";
 
-export class GameLogicController extends Observable<
-  Record<ILocationIdentifier, IConstructibleLocation>
-> {
-  private ownedLocations: Record<ILocationIdentifier, IConstructibleLocation> =
-    {};
-
+class GameStateController extends Observable<IGameState> {
   private gameData: IGameData | null = null;
 
-  constructor(gameData: IGameData) {
+  constructor() {
     super();
+    this.subject = {} as IGameState;
+  }
+
+  public init(gameData: IGameData): void {
     this.gameData = gameData;
+    this.subject = {
+      country: "",
+      roads: {},
+      ownedLocations: {},
+    };
+    this.notifyListeners();
   }
 
   public findLocationName(hexColor: string): string {
@@ -29,25 +36,24 @@ export class GameLogicController extends Observable<
     return name ?? "??";
   }
 
+  private updateGameState(): void {
+    this.notifyListeners();
+  }
+
   public selectLocation(locationName: string): boolean {
-    const storedLocation = this.ownedLocations[locationName];
+    if (!this.subject) return false;
+
+    const storedLocation = this.subject.ownedLocations[locationName];
     if (!storedLocation) {
-      this.ownedLocations[locationName] = {
+      this.subject.ownedLocations[locationName] = {
         level: "rural",
         buildings: [],
       };
     } else {
-      delete this.ownedLocations[locationName];
+      delete this.subject.ownedLocations[locationName];
     }
-    this.notifyListeners(this.ownedLocations);
+    this.updateGameState();
     return !storedLocation;
-  }
-
-  public getAllSelectedLocations(): Record<
-    ILocationIdentifier,
-    IConstructibleLocation
-  > {
-    return this.ownedLocations;
   }
 
   // this might be calculated only once and stored in location data
@@ -103,7 +109,7 @@ export class GameLogicController extends Observable<
     location: ILocationIdentifier,
   ): number => {
     // [] is temporary fix to avoid error
-    const buildings = this.ownedLocations[location]?.buildings ?? [];
+    const buildings = this.subject?.ownedLocations[location]?.buildings ?? [];
     const totalBuildingsCostReduction = buildings
       .map((b) => b.template.proximityCostReductionPercentage[b.level - 1])
       .reduce((a, b) => a + b, 0);
@@ -131,7 +137,7 @@ export class GameLogicController extends Observable<
   ): number => {
     const naturalHarborSuitability = 25; // todo: store this info in data
 
-    const buildings = this.ownedLocations[location]?.buildings ?? [];
+    const buildings = this.subject?.ownedLocations[location]?.buildings ?? [];
     const totalBuildingsHarborCapacity = buildings
       .map((b) => b.template.harborCapacity[b.level - 1])
       .reduce((a, b) => a + b, 0);
@@ -176,4 +182,10 @@ export class GameLogicController extends Observable<
 
     return modifiedCost;
   };
+
+  // note : all proximity calculations should be made into a separate class, that subscribes to changes owned location (game state)
+
+  // we could rename game logic controller -> game state controller to reinforce this idea
 }
+
+export const gameStateController = new GameStateController();

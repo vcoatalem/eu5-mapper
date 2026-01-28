@@ -1,5 +1,11 @@
-import { GameLogicController } from "./gameLogicController";
-import { ICoordinate, IGameData, ILocationIdentifier } from "./types/general";
+import { gameStateController } from "@/app/lib/gameStateController";
+import {
+  IConstructibleLocation,
+  ICoordinate,
+  IGameData,
+  IGameState,
+  ILocationIdentifier,
+} from "./types/general";
 
 export class DrawingLogicController {
   private areaDrawingCanvas: HTMLCanvasElement;
@@ -8,8 +14,8 @@ export class DrawingLogicController {
   private constructibleDrawingContext: CanvasRenderingContext2D;
   private mapInfos: { width: number; height: number };
   private coordinateMap: Record<ILocationIdentifier, Array<ICoordinate>> = {};
-  private gameLogicController: GameLogicController | null = null;
   private gameData: IGameData | null = null;
+  private lastKnownGameState: IGameState | null = null;
 
   private drawCircle(x: number, y: number, radius: number): void {
     this.constructibleDrawingContext.beginPath();
@@ -75,13 +81,11 @@ export class DrawingLogicController {
     areaDrawingCanvas: HTMLCanvasElement,
     constructibleDrawingCanvas: HTMLCanvasElement,
     mapInfos: { width: number; height: number },
-    gameLogicController: GameLogicController,
     gameData: IGameData,
   ) {
     this.areaDrawingCanvas = areaDrawingCanvas;
     this.constructibleDrawingCanvas = constructibleDrawingCanvas;
     this.mapInfos = mapInfos;
-    this.gameLogicController = gameLogicController;
     this.gameData = gameData;
     const areaDrawingContext = this.areaDrawingCanvas.getContext("2d", {});
     if (!areaDrawingContext) {
@@ -98,22 +102,20 @@ export class DrawingLogicController {
     }
     this.constructibleDrawingContext = drawingContext;
 
-    this.gameLogicController.subscribe(() => {
+    gameStateController.subscribe((gameState) => {
       // TODO: separate subscription for drawing areas and drawing constructibles
+      this.lastKnownGameState = gameState;
       this.drawAreas();
       this.drawConstructible();
     });
   }
 
   private drawAreas(): void {
-    if (!this.gameLogicController) {
-      throw new Error(
-        "no game logic controller set in drawing logic controller",
-      );
+    if (!this.lastKnownGameState) {
+      throw new Error("no game state available for drawing areas");
     }
-
     const coordinates: Array<ICoordinate> = Object.entries(
-      this.gameLogicController.getAllSelectedLocations(),
+      this.lastKnownGameState.ownedLocations,
     )
       .flatMap(
         ([locationName, _locationData]) =>
@@ -143,9 +145,9 @@ export class DrawingLogicController {
   }
 
   private drawConstructible(): void {
-    if (!this.gameLogicController) {
+    if (!this.lastKnownGameState) {
       throw new Error(
-        "no game logic controller set in drawing logic controller",
+        "no game state controller set in drawing logic controller",
       );
     }
 
@@ -157,17 +159,22 @@ export class DrawingLogicController {
       this.mapInfos.height,
     );
 
-    // read game logic controller for currently owned constructibles
-    const allOwnedLocations =
-      this.gameLogicController.getAllSelectedLocations();
+    // read game state controller for currently owned constructibles
+    const allOwnedLocations = this.lastKnownGameState.ownedLocations;
 
     // Draw all constructibles in one batch
     for (const [locationIdentifier, constructible] of Object.entries(
       allOwnedLocations,
     )) {
-      const locationCoordinates =
-        this.gameData?.locationDataMap[locationIdentifier]
-          .constructibleLocationCoordinate;
+      const locationData = this.gameData?.locationDataMap[locationIdentifier];
+      if (!locationData) {
+        console.warn(
+          `Location ${locationIdentifier} not found in locationDataMap`,
+        );
+        continue;
+      }
+
+      const locationCoordinates = locationData.constructibleLocationCoordinate;
 
       if (locationCoordinates) {
         // Convert game world coordinates to canvas coordinates

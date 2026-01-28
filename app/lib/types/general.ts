@@ -13,7 +13,6 @@ export interface ILocationGameData {
     | "wetlands"
     | "mountains"
     | "flatlands"
-    | "farmland"
     | "lakes"
     | "plateau"
     | "ocean"
@@ -22,7 +21,14 @@ export interface ILocationGameData {
     | "inland_sea"
     | "ocean_wasteland"
     | "mountain_wasteland";
-  vegetation: null | "forest" | "woods" | "sparse" | "jungle" | "desert";
+  vegetation:
+    | null
+    | "forest"
+    | "woods"
+    | "grassland"
+    | "sparse"
+    | "jungle"
+    | "desert";
   isSea?: boolean;
   isLake?: boolean;
   ownable?: boolean;
@@ -72,12 +78,10 @@ type RoadRecord = Record<
   { type: RoadType; createdByUser: boolean }
 >;
 
-interface GameSetup {
+interface GameState {
   country: string;
-  roads: RoadRecord; // all roads in the game, not only in our country ? see how many that represents & assess
-  constructibleLocations: Record<ILocationIdentifier, IConstructibleLocation>; // all constructible in the game, not just ours ? Probably too ambitious. Lets just keep our own in there. Altough when acquiring a location, we should initialize at the proper level / buildings.
-
-  ownedLocations: Array<ILocationIdentifier>;
+  roads: RoadRecord;
+  ownedLocations: Record<ILocationIdentifier, IConstructibleLocation>;
 }
 
 export type ILocationDataMap<LocationName extends string = string> = Record<

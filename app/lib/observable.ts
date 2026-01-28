@@ -1,8 +1,10 @@
 export abstract class Observable<T> {
+  protected subject: T = null as T; // initialized by subclass constructor
   private listeners: Array<(data: T) => void> = [];
 
-  public subscribe(listener: (data: T) => void): void {
+  public subscribe(listener: (data: T) => void): () => void {
     this.listeners.push(listener);
+    return () => this.unsubscribe(listener);
   }
 
   public unsubscribe(listener: (data: T) => void): void {
@@ -12,9 +14,13 @@ export abstract class Observable<T> {
     }
   }
 
-  protected notifyListeners(data: T): void {
+  protected notifyListeners(): void {
     for (const listener of this.listeners) {
-      listener(data);
+      listener(this.subject);
     }
+  }
+
+  public getSnapshot(): T {
+    return this.subject; //todo: deep copy
   }
 }

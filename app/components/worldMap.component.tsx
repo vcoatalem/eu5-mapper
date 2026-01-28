@@ -9,12 +9,13 @@ import {
 import styles from "../styles/Gui.module.css";
 import { InfoBoxComponent } from "./infoBox.component";
 import { AppContext } from "../appContextProvider";
-import { GameLogicController } from "../lib/gameLogicController";
+import { gameStateController } from "@/app/lib/gameStateController";
 import { ILocationIdentifier } from "../lib/types/general";
-import { DrawingLogicController } from "../lib/drawingLogicController";
-import { WorkerManager } from "../lib/workerManager";
+import { DrawingLogicController } from "@/app/lib/drawingLogicController";
+import { workerManager } from "@/app/lib/workerManager";
 import { LoadingScreenComponent } from "./loadingScreen.component";
-import { ZoomController } from "../lib/zoomController";
+import { ZoomController } from "@/app/lib/zoomController";
+import { WorkerStatusComponent } from "./workerStatus.component";
 
 const mapInfos = {
   width: 16384,
@@ -46,15 +47,9 @@ export function WorldMapComponent() {
   const topLayerRef = useRef<HTMLCanvasElement>(null);
   const constructibleCanvasRef = useRef<HTMLCanvasElement>(null); //TODO: hide this canvas when zoom level is low
   const containerRef = useRef<HTMLDivElement>(null);
-  const workerManagerRef = useRef<WorkerManager>(null);
-  const gameLogicRef = useRef<GameLogicController>(null);
   const drawingLogicRef = useRef<DrawingLogicController>(null);
   const zoomControllerRef = useRef<ZoomController>(new ZoomController());
   const [, forceUpdate] = useState({});
-  const [workerStatus, setWorkerStatus] = useState({
-    activeTasks: 0,
-    queuedTasks: 0,
-  });
   const [isLoading, setIsLoading] = useState(true);
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const layersRenderedRef = useRef(0);
@@ -62,20 +57,11 @@ export function WorldMapComponent() {
 
   const workerPoolSize = 4;
   const initializeWorkerAndCanvas = (): void => {
-    if (workerManagerRef.current) {
-      workerManagerRef.current.terminate();
-    }
-
-    const workerManager = new WorkerManager(
+    workerManager.terminate();
+    workerManager.init(
       new URL("canvas-worker.js", import.meta.url).href,
       workerPoolSize,
     );
-
-    workerManager.subscribe((status) => {
-      setWorkerStatus(status);
-    });
-
-    workerManagerRef.current = workerManager;
   };
 
   const waitForInitialization = async (): Promise<void> => {
@@ -251,8 +237,7 @@ export function WorldMapComponent() {
         b.toString(16).padStart(2, "0"),
       ].join("");
 
-      const locationName =
-        gameLogicRef.current?.findLocationName(hexStr) ?? null;
+      const locationName = gameStateController.findLocationName(hexStr) ?? null;
       return locationName;
     };
 
@@ -298,7 +283,7 @@ export function WorldMapComponent() {
           console.log(
             `[WorldMapInit] initialized layer ${layer.name}. Total progress: ${layersRenderedRef.current}/${totalLayersRef.current}`,
           );
-          if (layer.initializeWorkerCanvas && workerManagerRef.current) {
+          if (layer.initializeWorkerCanvas) {
             const imageData = ctx.getImageData(
               0,
               0,
@@ -309,7 +294,7 @@ export function WorldMapComponent() {
             for (let i = 0; i < workerPoolSize; i++) {
               const taskId = `initWithImage-${i}`;
               const pixelDataCopy = new Uint8ClampedArray(imageData.data);
-              workerManagerRef.current?.queueTask({
+              workerManager.queueTask({
                 id: taskId,
                 type: "initWithImage",
                 payload: {
@@ -342,13 +327,12 @@ export function WorldMapComponent() {
       throw new Error("could not set top layer ref");
     }
 
-    gameLogicRef.current = new GameLogicController(gameData);
+    gameStateController.init(gameData);
 
     drawingLogicRef.current = new DrawingLogicController(
       areaDrawingCanvasRef.current!,
       constructibleCanvasRef.current!,
       { width: mapInfos.width, height: mapInfos.height },
-      gameLogicRef.current,
       gameData,
     );
 
@@ -389,8 +373,6 @@ export function WorldMapComponent() {
     };
 
     const handleMouseUp = () => {
-      if (!gameLogicRef.current) return;
-      console.log("handleMouseUp");
       if (dragDistance < MIN_DRAG_DISTANCE && clickedOnLocationRef.current) {
         console.log({
           clickedLocation:
@@ -400,46 +382,44 @@ export function WorldMapComponent() {
         const reachable = adjacencyGraph?.reachableWithinCost(
           clickedOnLocationRef.current,
           100,
-          gameLogicRef.current.proximityCostFunction,
+          gameStateController.proximityCostFunction,
         );
 
         console.log({ reachable });
 
         if (gameData.locationDataMap[clickedOnLocationRef.current].ownable) {
           setSelectedLocation(clickedOnLocationRef.current);
-          gameLogicRef.current.selectLocation(clickedOnLocationRef.current);
-          if (workerManagerRef.current) {
-            const hexColor =
-              gameData.locationDataMap[clickedOnLocationRef.current].hexColor;
-            const taskId = `colorSearch-${clickedOnLocationRef.current}`;
-            workerManagerRef.current.queueTask({
-              id: taskId,
+          gameStateController.selectLocation(clickedOnLocationRef.current);
+          const hexColor =
+            gameData.locationDataMap[clickedOnLocationRef.current].hexColor;
+          const taskId = `colorSearch-${clickedOnLocationRef.current}`;
+          workerManager.queueTask({
+            id: taskId,
+            type: "colorSearch",
+            payload: {
               type: "colorSearch",
-              payload: {
-                type: "colorSearch",
-                canvasWidth: colorCanvas.width,
-                canvasHeight: colorCanvas.height,
-                colorHex: hexColor,
-                locationName: clickedOnLocationRef.current,
+              canvasWidth: colorCanvas.width,
+              canvasHeight: colorCanvas.height,
+              colorHex: hexColor,
+              locationName: clickedOnLocationRef.current,
+            },
+            callbacks: {
+              onSuccess: (result: unknown) => {
+                const data = result as {
+                  coordinates: Array<{ x: number; y: number }>;
+                  locationName: string;
+                };
+                drawingLogicRef.current?.addCoordinate(
+                  data.locationName,
+                  data.coordinates,
+                );
+                console.log("[COLOR SEARCH COMPLETE]", data);
               },
-              callbacks: {
-                onSuccess: (result: unknown) => {
-                  const data = result as {
-                    coordinates: Array<{ x: number; y: number }>;
-                    locationName: string;
-                  };
-                  drawingLogicRef.current?.addCoordinate(
-                    data.locationName,
-                    data.coordinates,
-                  );
-                  console.log("[COLOR SEARCH COMPLETE]", data);
-                },
-                onError: (error) => {
-                  console.error("[COLOR SEARCH ERROR]", error);
-                },
+              onError: (error) => {
+                console.error("[COLOR SEARCH ERROR]", error);
               },
-            });
-          }
+            },
+          });
         }
       }
       isDraggingRef.current = false;
@@ -463,7 +443,6 @@ export function WorldMapComponent() {
     };
 
     zoomControllerRef.current.subscribe(({ zoomLevel, oldZoomLevel }) => {
-      /* console.log("zoom level changed", { zoomLevel, oldZoomLevel }); */
       currentZoom = zoomLevel;
       applyZoomLevel(zoomLevel, oldZoomLevel);
 
@@ -499,7 +478,7 @@ export function WorldMapComponent() {
         topLayerRef.current.removeEventListener("mouseleave", handleMouseLeave);
         topLayerRef.current.removeEventListener("wheel", handleWheel);
       }
-      workerManagerRef.current?.terminate();
+      workerManager.terminate();
       initializedRef.current = false;
     };
   }, [gameData]);
@@ -590,10 +569,7 @@ export function WorldMapComponent() {
           <div
             className={`${styles.guiElement} fixed border-white gap-2 flex flex-col right-5 bottom-5 text-white`}
           >
-            <div className="text-sm bg-black px-2 py-1 border border-white border-radius-md">
-              <div>Tasks: {workerStatus.activeTasks} active</div>
-              <div>Queue: {workerStatus.queuedTasks}</div>
-            </div>
+            <WorkerStatusComponent />
             <div className="flex flex-row gap-2">
               <button
                 onClick={handleZoomOut}

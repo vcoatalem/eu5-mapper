@@ -5,8 +5,9 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
-import styles from "../styles/Gui.module.css";
+
 import { InfoBoxComponent } from "./infoBox.component";
 import { AppContext } from "../appContextProvider";
 import { gameStateController } from "@/app/lib/gameStateController";
@@ -19,6 +20,7 @@ import { WorkerStatusComponent } from "./workerStatus.component";
 import { proximityComputationController } from "@/app/lib/proximityComputationController";
 import { ConstructibleMenusComponent } from "./constructibleMenus.component";
 import { GuiElement } from "./guiElement";
+import { NeighborsPanelComponent } from "./neighborsPanel.component";
 
 const mapInfos = {
   width: 16384,
@@ -30,16 +32,25 @@ const mapInfos = {
 };
 
 export function WorldMapComponent() {
+  const context = useContext(AppContext);
   const {
     setSelectedLocation,
     setHoveredLocation,
     gameData,
-    isLoading: gameDataLoading,
     error: gameDataLoadingError,
     adjacencyGraph,
-  } = useContext(AppContext);
+  } = context;
 
   console.log("render worldmap component");
+
+  const gameState = useSyncExternalStore(
+    gameStateController.subscribe.bind(gameStateController),
+    () => gameStateController.getSnapshot(),
+    () => gameStateController.getSnapshot(), // getServerSnapshot for SSR
+  );
+  const hasOwnedLocations = gameState?.ownedLocations
+    ? Object.keys(gameState?.ownedLocations)
+    : false;
 
   const isDraggingRef = useRef(false);
   const initializedRef = useRef(false);
@@ -57,6 +68,8 @@ export function WorldMapComponent() {
   const [, forceUpdate] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [showNeighborsPanel, setShowNeighborsPanel] = useState(false);
+  const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
   const layersRenderedRef = useRef(0);
   const totalLayersRef = useRef(0);
 
@@ -171,6 +184,34 @@ export function WorldMapComponent() {
   const triggerRender = useCallback(() => {
     forceUpdate({});
   }, []);
+
+  // Watch for hoveredLocation changes and manage neighbors panel timer
+  useEffect(() => {
+    const hoveredLocation = context.hoveredLocation;
+
+    // Clear existing timer
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+
+    // Reset neighbors panel if no location
+    if (!hoveredLocation) {
+      setShowNeighborsPanel(false);
+    } else {
+      // Start new timer for this location
+      hoverTimerRef.current = setTimeout(() => {
+        setShowNeighborsPanel(true);
+      }, 5000);
+    }
+
+    return () => {
+      if (hoverTimerRef.current) {
+        clearTimeout(hoverTimerRef.current);
+        hoverTimerRef.current = null;
+      }
+    };
+  }, [context.hoveredLocation]);
 
   useEffect(() => {
     console.log("enter useEffect for setup worldmap component");
@@ -569,10 +610,12 @@ export function WorldMapComponent() {
         />
       ) : (
         <div>
-          <GuiElement className="fixed left-5 top-5">
-            <ConstructibleMenusComponent></ConstructibleMenusComponent>
-          </GuiElement>
-          <GuiElement className="fixed left-5 bottom-5">
+          {hasOwnedLocations && (
+            <GuiElement className={"fixed left-5 top-5"}>
+              <ConstructibleMenusComponent></ConstructibleMenusComponent>
+            </GuiElement>
+          )}
+          <GuiElement className="fixed left-0 right-0 bottom-0">
             <InfoBoxComponent />
           </GuiElement>
           <GuiElement className="fixed right-5 bottom-5">

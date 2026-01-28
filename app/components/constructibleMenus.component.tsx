@@ -74,7 +74,6 @@ const locationRankPicker = (
   locationName: ILocationIdentifier,
   constructible: IConstructibleLocation,
 ) => {
-  console.log({ constructible });
   return (
     <div className="ml-2 flex flex-row space-x-1">
       {(["rural", "town", "city"] as IConstructibleLocation["level"][]).map(
@@ -110,7 +109,7 @@ export function ConstructibleMenusComponent() {
     gameStateController.subscribe.bind(gameStateController),
     () => gameStateController.getSnapshot(),
   );
-  const { gameData } = useContext(AppContext);
+  const { gameData, setHoveredLocation } = useContext(AppContext);
   if (!gameData) {
     throw new Error(
       "[ConstructibleMenusComponent]: need gameData in context to render",
@@ -125,6 +124,8 @@ export function ConstructibleMenusComponent() {
           <div
             key={locationName}
             className="py-1 h-8 flex flex-row items-center whitespace-nowrap"
+            onMouseEnter={() => setHoveredLocation(locationName)}
+            onMouseLeave={() => setHoveredLocation(null)}
           >
             <div className="font-bold w-32 truncate ... flex-none">
               <span className="text-md ">{locationName}</span>

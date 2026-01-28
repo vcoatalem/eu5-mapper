@@ -10,19 +10,6 @@ const buildLocationDisplay = (
   adjacencyGraph: CompactGraph,
   gameState: IGameState,
 ): JSX.Element => {
-  const neighborLocationsNames = adjacencyGraph.getNeighborNodesNames(
-    locationData.name,
-  );
-
-  const getConnectionType = (neighbor: NeighborInfo): string => {
-    if (!neighbor) return "unknown";
-    if (neighbor.isPort) return "port";
-    if (neighbor.isLand) return "land";
-    if (neighbor.isSea) return "sea";
-    if (neighbor.isRiver) return "river";
-    if (neighbor.isLake) return "lake";
-    return "unknown";
-  };
 
   const owned = gameState.ownedLocations[locationData.name];
 
@@ -31,50 +18,32 @@ const buildLocationDisplay = (
   }
   return (
     <>
-      <div className="flex flex-col h-full">
-        <span className="font-bold text-lg">{locationData.name}</span>
-        <span className="text-stone-600">
-          {!locationData.ownable && <span>Not Ownable</span>}
-        </span>
-        <span>Topography: {locationData.topography}</span>
-        {locationData.vegetation && (
-          <span>Vegetation: {locationData.vegetation}</span>
+      <div className="flex flex-row items-center gap-6 px-4">
+        <div className="flex items-center gap-2">
+          <span className="font-bold text-base">{locationData.name}</span>
+          {!locationData.ownable && (
+            <span className="text-xs text-stone-400">(Not Ownable)</span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-4 text-sm">
+          <span>🏔️ {locationData.topography}</span>
+          {locationData.vegetation && (
+            <span>🌿 {locationData.vegetation}</span>
+          )}
+          <span>📈 Dev: {locationData.development}</span>
+          <span>👥 Pop: {locationData.population}</span>
+          <span>{owned ? "✓ Owned" : "○ Not Owned"}</span>
+        </div>
+
+        {locationData.hierarchy && (
+          <div className="flex items-center gap-2 text-xs text-stone-300 ml-auto">
+            <span>{locationData.hierarchy.province}</span>
+            <span className="text-stone-500">•</span>
+            <span>{locationData.hierarchy.subcontinent}</span>
+          </div>
         )}
       </div>
-      <span>Development: {locationData.development}</span>
-      <span>Population: {locationData.population}</span>
-      <span>{owned ? "Owned" : "Not Owned"}</span>
-
-      {locationData.constructibleLocationCoordinate && (
-        <span>
-          {locationData.constructibleLocationCoordinate.x},
-          {locationData.constructibleLocationCoordinate.y}
-        </span>
-      )}
-
-      {neighborLocationsNames.length > 0 && (
-        <div className="flex flex-col">
-          <span className="font-semibold mt-2">Neighbors:</span>
-          <ul className="list-disc list-inside">
-            {neighborLocationsNames.map((neighbor) => (
-              <li key={neighbor.name}>
-                {neighbor.name} (through: {getConnectionType(neighbor)} )
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <hr className="border border-stone-600 my-2 mt-auto"></hr>
-
-      {locationData.hierarchy && (
-        <div className="flex flex-col">
-          <span className="text-wrap">
-            Part of {locationData.hierarchy.province}
-          </span>
-          <span>({locationData.hierarchy.subcontinent})</span>
-        </div>
-      )}
     </>
   );
 };
@@ -105,11 +74,13 @@ export function InfoBoxComponent() {
       gameLogic,
     )
   ) : (
-    <span></span>
+    <span className="text-sm text-stone-400 px-4">
+      Hover or select a location to view details
+    </span>
   );
 
   return (
-    <div className={`min-w-64 min-h-96 max-h-128 flex flex-col`}>
+    <div className={`w-full h-10 flex items-center bg-black/80 backdrop-blur-sm border-t border-stone-700`}>
       {locationDisplay}
     </div>
   );

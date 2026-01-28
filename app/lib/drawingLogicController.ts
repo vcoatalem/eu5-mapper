@@ -4,7 +4,6 @@ import {
   proximityComputationController,
 } from "@/app/lib/proximityComputationController";
 import {
-  IConstructibleLocation,
   ICoordinate,
   IGameData,
   IGameState,

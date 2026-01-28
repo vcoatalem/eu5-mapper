@@ -49,6 +49,7 @@ class GameStateController extends Observable<IGameState> {
     if (!this.subject.capitalLocation) {
       this.subject.capitalLocation = locationName;
     }
+    console.log("game state controller will notify listeners...");
     this.notifyListeners();
   }
 

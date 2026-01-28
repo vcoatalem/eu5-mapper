@@ -10,11 +10,11 @@ import { gameStateController } from "@/app/lib/gameStateController";
 import { CostFunction } from "./types/pathfinding";
 import { CompactGraph } from "./graph";
 
-interface ProximityComputationResults {
+export interface IProximityComputationResults {
   proximityCostsForCapital: Map<ILocationIdentifier, number>; //TODO : not a fan of map, lets change graph to use Record
 }
 
-export class ProximityComputationController extends Observable<ProximityComputationResults> {
+export class ProximityComputationController extends Observable<IProximityComputationResults> {
   private gameData: IGameData | null = null;
   private adjacencyGraph: CompactGraph | null = null;
 
@@ -35,7 +35,6 @@ export class ProximityComputationController extends Observable<ProximityComputat
       proximityCostsForCapital: new Map(),
     };
     gameStateController.subscribe((gameState) => {
-      console.log({ gameState });
       if (!this.adjacencyGraph) {
         throw new Error(
           "[ProximityComputationController] no adjacency graph set",
@@ -181,10 +180,10 @@ export class ProximityComputationController extends Observable<ProximityComputat
     ) => {
       const rule = this.gameData!.proximityComputationRule;
 
-      console.log("enter proximity cost function", {
+      /*      console.log("enter proximity cost function", {
         context: this.gameData,
         gameState,
-      });
+      }); */
 
       if (!Object.keys(gameState.ownedLocations).includes(from) && !isSea) {
         // this is not entirely exact, in some situations you can pass over foreign territory but this is close enough for now

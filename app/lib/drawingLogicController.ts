@@ -1,5 +1,8 @@
 import { gameStateController } from "@/app/lib/gameStateController";
-import { proximityComputationController } from "@/app/lib/proximityComputationController";
+import {
+  IProximityComputationResults,
+  proximityComputationController,
+} from "@/app/lib/proximityComputationController";
 import {
   IConstructibleLocation,
   ICoordinate,
@@ -7,6 +10,7 @@ import {
   IGameState,
   ILocationIdentifier,
 } from "./types/general";
+import { greenToRedGradient } from "./drawing/greenToRedGradient";
 
 export class DrawingLogicController {
   private areaDrawingCanvas: HTMLCanvasElement;
@@ -17,19 +21,26 @@ export class DrawingLogicController {
   private coordinateMap: Record<ILocationIdentifier, Array<ICoordinate>> = {};
   private gameData: IGameData | null = null;
   private lastKnownGameState: IGameState | null = null;
+  private lastKnownProximityComputationResults: IProximityComputationResults | null =
+    null;
 
-  private drawCircle(x: number, y: number, radius: number): void {
+  private drawCircle(
+    x: number,
+    y: number,
+    radius: number,
+    color: string,
+  ): void {
     this.constructibleDrawingContext.beginPath();
     this.constructibleDrawingContext.arc(x, y, radius, 0, 2 * Math.PI);
-    this.constructibleDrawingContext.fillStyle = "rgb(208, 208, 208)";
+    this.constructibleDrawingContext.fillStyle = color;
     this.constructibleDrawingContext.fill();
     this.constructibleDrawingContext.strokeStyle = "black";
     this.constructibleDrawingContext.lineWidth = 1;
     this.constructibleDrawingContext.stroke();
   }
 
-  private drawSquare(x: number, y: number, size: number): void {
-    this.constructibleDrawingContext.fillStyle = "rgb(208, 208, 208)";
+  private drawSquare(x: number, y: number, size: number, color: string): void {
+    this.constructibleDrawingContext.fillStyle = color;
     this.constructibleDrawingContext.fillRect(
       x - size / 2,
       y - size / 2,
@@ -46,7 +57,12 @@ export class DrawingLogicController {
     );
   }
 
-  private drawPentagon(x: number, y: number, size: number): void {
+  private drawPentagon(
+    x: number,
+    y: number,
+    size: number,
+    color: string,
+  ): void {
     const radius = size / 2;
     this.constructibleDrawingContext.beginPath();
     for (let i = 0; i < 5; i++) {
@@ -60,7 +76,7 @@ export class DrawingLogicController {
       }
     }
     this.constructibleDrawingContext.closePath();
-    this.constructibleDrawingContext.fillStyle = "rgb(208, 208, 208)";
+    this.constructibleDrawingContext.fillStyle = color;
     this.constructibleDrawingContext.fill();
     this.constructibleDrawingContext.strokeStyle = "black";
     this.constructibleDrawingContext.lineWidth = 1;
@@ -75,6 +91,7 @@ export class DrawingLogicController {
       this.coordinateMap[name] = coordinates;
     }
 
+    // this is less than ideal. Need to find a better solution so that we don't have to keep 'lastKnown...' attributes in this class.
     this.drawAreas();
   }
 
@@ -104,6 +121,7 @@ export class DrawingLogicController {
     this.constructibleDrawingContext = drawingContext;
 
     gameStateController.subscribe((gameState) => {
+      console.log("gameStateController subscribe");
       // TODO: separate subscription for drawing areas and drawing constructibles
       this.lastKnownGameState = gameState;
       this.drawAreas();
@@ -111,23 +129,25 @@ export class DrawingLogicController {
     });
 
     proximityComputationController.subscribe((reachable) => {
-      console.log("reachable areas: ", reachable);
-      //this.drawAreas();
+      console.log("proximityComputationController subscribe");
+      console.log("reachable areas: ", {
+        reachable,
+        context: {
+          gameState: this.lastKnownGameState,
+          proximity: this.lastKnownProximityComputationResults,
+        },
+      });
+      this.lastKnownProximityComputationResults = reachable;
+
+      this.drawAreas();
+      //this.drawPathFindingHeatMap(reachable);
     });
   }
 
   private drawAreas(): void {
     if (!this.lastKnownGameState) {
-      throw new Error("no game state available for drawing areas");
+      return;
     }
-    const coordinates: Array<ICoordinate> = Object.entries(
-      this.lastKnownGameState.ownedLocations,
-    )
-      .flatMap(
-        ([locationName, _locationData]) =>
-          this.coordinateMap[locationName] || null,
-      )
-      .filter((coord) => !!coord);
 
     const imageData = this.areaDrawingContext.createImageData(
       this.mapInfos.width,
@@ -135,15 +155,35 @@ export class DrawingLogicController {
     );
 
     const data = imageData.data;
-    // Plot all pixels at once
-    coordinates.forEach(({ x, y }) => {
-      const index = (y * this.mapInfos.width + x) * 4;
 
-      data[index] = 208; // R
-      data[index + 1] = 208; // G
-      data[index + 2] = 208; // B
-      data[index + 3] = 255; // A
-    });
+    for (const location of Object.keys(
+      this.lastKnownGameState.ownedLocations,
+    )) {
+      const coordinates = this.coordinateMap[location];
+      if (!coordinates) {
+        continue;
+      }
+      const proximityEvaluation =
+        this.lastKnownProximityComputationResults?.proximityCostsForCapital?.get(
+          location ?? "",
+        );
+      console.log("proximity evaluation for location", {
+        location,
+        proximityEvaluation,
+      });
+      const [r, g, b] =
+        proximityEvaluation !== undefined
+          ? greenToRedGradient[Math.round(proximityEvaluation)]
+          : [208, 208, 208];
+
+      for (const { x, y } of coordinates) {
+        const index = (y * this.mapInfos.width + x) * 4;
+        data[index] = r; // R
+        data[index + 1] = g; // G
+        data[index + 2] = b; // B
+        data[index + 3] = 255; // A
+      }
+    }
 
     // Draw once
     this.areaDrawingContext.putImageData(imageData, 0, 0);
@@ -180,13 +220,18 @@ export class DrawingLogicController {
         const canvasX = locationCoordinates.x;
         const canvasY = this.mapInfos.height - locationCoordinates.y;
 
+        const color =
+          this.lastKnownGameState.capitalLocation === locationIdentifier
+            ? "rgb(250, 219, 17)"
+            : "rgb(208, 208, 208)";
+
         const level = constructible.level;
         if (level === "rural") {
-          this.drawCircle(canvasX, canvasY, 3.5);
+          this.drawCircle(canvasX, canvasY, 2, color);
         } else if (level === "town") {
-          this.drawSquare(canvasX, canvasY, 8);
+          this.drawSquare(canvasX, canvasY, 4, color);
         } else if (level === "city") {
-          this.drawPentagon(canvasX, canvasY, 10);
+          this.drawPentagon(canvasX, canvasY, 6, color);
         }
       }
     }

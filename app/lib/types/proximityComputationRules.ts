@@ -3,7 +3,7 @@ interface IProximityComputationRule {
   riverCostReduction: number;
   proximityCostIncreasePercentage: {
     topography: {
-      flatlands: number;
+      flatland: number;
       hills: number;
       wetlands: number;
       mountains: number;

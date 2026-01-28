@@ -21,8 +21,6 @@ export class DrawingLogicController {
   private mapInfos: { width: number; height: number };
   private coordinateMap: Record<ILocationIdentifier, Array<ICoordinate>> = {};
   private gameData: IGameData | null = null;
-  private lastKnownProximityComputationResults: IProximityComputationResults | null =
-    null;
 
   private drawCircle(
     x: number,
@@ -117,26 +115,44 @@ export class DrawingLogicController {
     }
     this.constructibleDrawingContext = drawingContext;
 
-    new ObservableCombiner([
-      workerManager,
+    const observeGameStateAndComputation = new ObservableCombiner([
       gameStateController,
       proximityComputationController,
-    ]).subscribe(([{ lastCompletedTask }, gameState, proximityEvaluation]) => {
-      if (lastCompletedTask && lastCompletedTask.type === "colorSearch") {
-        const data = lastCompletedTask.data as {
-          locationName: ILocationIdentifier;
-          coordinates: ICoordinate[];
-        };
-        this.addCoordinate(
-          data.locationName,
-          data.coordinates as ICoordinate[],
-        );
-        console.log("[DrawingLogicController] got color task result", data);
-      }
-
-      this.drawAreas(gameState, proximityEvaluation);
-      this.drawConstructible(gameState);
-    });
+    ]).debounce(10);
+    new ObservableCombiner([workerManager, observeGameStateAndComputation])
+      .debounce(10)
+      .subscribe(
+        ({
+          values: [
+            { lastCompletedTask },
+            {
+              values: [gameState, proximityEvaluation],
+            },
+          ],
+          changedIndex,
+        }) => {
+          if (changedIndex === 0) {
+            if (lastCompletedTask && lastCompletedTask.type === "colorSearch") {
+              const data = lastCompletedTask.data as {
+                locationName: ILocationIdentifier;
+                coordinates: ICoordinate[];
+              };
+              this.addCoordinate(
+                data.locationName,
+                data.coordinates as ICoordinate[],
+              );
+              console.log(
+                "[DrawingLogicController] got color task result",
+                data,
+              );
+            } else {
+              return;
+            }
+          }
+          this.drawAreas(gameState, proximityEvaluation);
+          this.drawConstructible(gameState);
+        },
+      );
   }
 
   private drawAreas(
@@ -178,10 +194,6 @@ export class DrawingLogicController {
   }
 
   private drawConstructible(gameState: IGameState): void {
-    /*     if (!this.lastKnownGameState) {
-      throw new Error("no game state found");
-    }
- */
     // Clear the canvas first TODO: see if this is needed
     this.constructibleDrawingContext.clearRect(
       0,

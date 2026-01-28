@@ -28,4 +28,24 @@ export abstract class Observable<T> {
     }
     return this.cachedSnapshot;
   }
+
+  /**
+   * Returns a new Observable that emits values only after a specified delay without new emissions.
+   */
+  public debounce(ms: number): Observable<T> {
+    const source = this;
+    return new (class extends Observable<T> {
+      private timeout: any = null;
+      constructor() {
+        super();
+        source.subscribe((value) => {
+          if (this.timeout) clearTimeout(this.timeout);
+          this.timeout = setTimeout(() => {
+            this.subject = value;
+            this.notifyListeners();
+          }, ms);
+        });
+      }
+    })();
+  }
 }

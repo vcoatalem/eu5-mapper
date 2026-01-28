@@ -40,15 +40,24 @@ export interface ILocationGameData {
     province: string;
   };
   naturalHarborSuitability: number;
+  isCoastal: boolean; // computed from adjacency graph
+  isOnRiver: boolean; // computed from adjacency graph
+  isOnLake: boolean; // computed from adjacency graph
+  // TODO: hasRoad: boolean;
   development: number; // can me modified , in other interface (ILocationTemporaryData ?)
   population: number; // can me modified , in other interface (ILocationTemporaryData ?)
 }
 
-type PlacementRestrictions =
+export type PlacementRestrictions =
   | "is_coastal"
-  | "has_river"
-  | "is_adjacent_to_lake"
+  | "is_on_river"
+  | "is_on_lake"
   | "has_road";
+
+interface IPlacementRestrictionConfig {
+  mode: "all" | "any"; // 'all' = every condition must be met, 'any' = at least one condition must be met
+  conditions: PlacementRestrictions[];
+}
 
 type BuildingType = "rural" | "urban" | "city" | "common";
 
@@ -59,7 +68,7 @@ export interface IBuildingTemplate {
   harborCapacity: number[]; // harbor capacity increment per level
   proximityCostReductionPercentage: number[]; // percentage reduction per level
   localProximitySource?: number[]; // proximity cost reduction source per level
-  placementRestriction?: [PlacementRestrictions];
+  placementRestriction?: IPlacementRestrictionConfig;
   locationRestriction?: Array<ILocationIdentifier>;
   countryRestriction?: Array<string>;
 }

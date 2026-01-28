@@ -1,19 +1,158 @@
-import { IBuildingTemplate, IConstructibleLocation, ILocationIdentifier } from "./types/general";
-
+import build from "next/dist/build";
+import {
+  IBuildingTemplate,
+  IConstructibleLocation,
+  IGameData,
+  IGameState,
+  ILocationGameData,
+  ILocationIdentifier,
+  PlacementRestrictions,
+} from "./types/general";
 
 type ConstructibleState = {
   buildings: Array<{
-    key: number;
-    name: IBuildingTemplate["name"]
-    built: boolean
+    name: IBuildingTemplate["name"];
+    amountBuilt: number;
     canBuild: boolean;
-  }>
-}
+    reason: string | null;
+  }>;
+};
 
 export class ConstructibleHelper {
-
-
-  public getConstructibleState(location: ILocationIdentifier, constructible: IConstructibleLocation): ConstructibleState {
-    
+  private static evaluatePlacementCondition(
+    condition: PlacementRestrictions,
+    location: ILocationGameData,
+  ): boolean {
+    switch (condition) {
+      case "is_coastal":
+        return location.isCoastal;
+      case "is_on_river":
+        return location.isOnRiver;
+      case "is_on_lake":
+        return location.isOnLake;
+      case "has_road":
+        return false; // TODO: implement road check
+    }
   }
-}
+
+  private static locationDataSupportsBuildingRestrictions(
+    building: IBuildingTemplate,
+    location: ILocationGameData,
+  ): boolean {
+    if (!building.placementRestriction) return true;
+
+    const restrictions = building.placementRestriction;
+
+    let res: boolean = false;
+    if (restrictions.mode === "all") {
+      res = restrictions.conditions.every((condition) =>
+        this.evaluatePlacementCondition(condition, location),
+      );
+    } else if (restrictions.mode === "any") {
+      res = restrictions.conditions.some((condition) =>
+        this.evaluatePlacementCondition(condition, location),
+      );
+    }
+
+    return res;
+  }
+
+  private static locationLevelSupportsBuilding(
+    building: IBuildingTemplate,
+    constructible: IConstructibleLocation,
+  ) {
+    switch (building.type) {
+      case "common":
+        return true;
+      case "city":
+        return constructible.level === "city";
+      case "urban":
+        return constructible.level === "city" || constructible.level === "town";
+      case "rural":
+        return constructible.level === "rural";
+      default:
+        return false;
+    }
+  }
+
+  private static locationAlreadyAtMaxCapacityForBuilding(
+    building: IBuildingTemplate,
+    constructible: IConstructibleLocation,
+  ): boolean {
+    const alreadyBuilt = constructible.buildings.find(
+      (b) => b.template.name === building.name,
+    );
+    if (!alreadyBuilt) return false;
+
+    return alreadyBuilt && alreadyBuilt.level >= building.levels;
+  }
+
+  public static getBuildability(
+    building: IBuildingTemplate,
+    location: ILocationIdentifier,
+    gameData: IGameData,
+    ownedLocations: IGameState["ownedLocations"],
+  ): { canBuild: boolean; reason: null | "limit" | "restriction" } {
+    const locationSupportsBuilding =
+      this.locationDataSupportsBuildingRestrictions(
+        building,
+        gameData.locationDataMap[location],
+      );
+
+    if (!locationSupportsBuilding) {
+      return { canBuild: false, reason: "restriction" };
+    }
+
+    if (
+      !this.locationLevelSupportsBuilding(building, ownedLocations[location])
+    ) {
+      return { canBuild: false, reason: "restriction" };
+    }
+
+    if (
+      this.locationAlreadyAtMaxCapacityForBuilding(
+        building,
+        ownedLocations[location],
+      )
+    ) {
+      return { canBuild: false, reason: "limit" };
+    }
+
+    // todo : country restrictions, location restrictions
+
+    return { canBuild: true, reason: null };
+  }
+
+  public static getConstructibleState(
+    location: ILocationIdentifier,
+    constructible: IConstructibleLocation,
+    gameData: IGameData,
+    ownedLocations: IGameState["ownedLocations"],
+  ): ConstructibleState {
+    let constructibleState: ConstructibleState = { buildings: [] };
+
+    const templates = Object.values(gameData.buildingsTemplateMap).sort(
+      (a, b) => a.name.localeCompare(b.name),
+    );
+
+    for (const buildingTemplate of templates) {
+      const buildability = this.getBuildability(
+        buildingTemplate,
+        location,
+        gameData,
+        ownedLocations,
+      );
+
+      constructibleState.buildings.push({
+        name: buildingTemplate.name,
+        amountBuilt:
+          constructible.buildings.find(
+            (b) => b.template.name === buildingTemplate.name,
+          )?.level || 0,
+        canBuild: buildability.canBuild,
+        reason: buildability.reason,
+      });
+    }
+    return constructibleState;
+  }
+} //TODO : check if location is rural or urban

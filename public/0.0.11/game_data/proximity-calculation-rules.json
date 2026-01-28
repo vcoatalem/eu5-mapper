@@ -1,0 +1,25 @@
+{
+  "baseCost": "40",
+  "riverCostReduction": 30,
+  "proximityCostIncreasePercentage": {
+    "topography": {
+      "flatlands": 0,
+      "hills": 25,
+      "wetlands": 25,
+      "mountains": 50,
+      "plateau": 12.5
+    },
+    "vegetation": {
+      "forest": 25,
+      "woods": 12.5,
+      "jungle": 50,
+      "desert": 5,
+      "farmland": 5,
+      "sparse": 5,
+      "grasslands": 0
+    }
+  },
+  "developmentImpact": 0.2,
+  "harborCapacityImpact": 0.75,
+  "maritimePresenceImpact": 1
+}

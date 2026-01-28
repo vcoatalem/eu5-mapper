@@ -1,4 +1,5 @@
 import { gameStateController } from "@/app/lib/gameStateController";
+import { proximityComputationController } from "@/app/lib/proximityComputationController";
 import {
   IConstructibleLocation,
   ICoordinate,
@@ -107,6 +108,11 @@ export class DrawingLogicController {
       this.lastKnownGameState = gameState;
       this.drawAreas();
       this.drawConstructible();
+    });
+
+    proximityComputationController.subscribe((reachable) => {
+      console.log("reachable areas: ", reachable);
+      //this.drawAreas();
     });
   }
 

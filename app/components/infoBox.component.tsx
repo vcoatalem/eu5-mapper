@@ -16,6 +16,7 @@ const buildLocationDisplay = (
   );
 
   const getConnectionType = (neighbor: NeighborInfo): string => {
+    if (!neighbor) return "unknown";
     if (neighbor.isPort) return "port";
     if (neighbor.isLand) return "land";
     if (neighbor.isSea) return "sea";

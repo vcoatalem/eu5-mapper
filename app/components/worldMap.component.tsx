@@ -16,6 +16,7 @@ import { workerManager } from "@/app/lib/workerManager";
 import { LoadingScreenComponent } from "./loadingScreen.component";
 import { ZoomController } from "@/app/lib/zoomController";
 import { WorkerStatusComponent } from "./workerStatus.component";
+import { proximityComputationController } from "@/app/lib/proximityComputationController";
 
 const mapInfos = {
   width: 16384,
@@ -170,7 +171,7 @@ export function WorldMapComponent() {
   useEffect(() => {
     console.log("enter useEffect for setup worldmap component");
 
-    if (!gameData) {
+    if (!gameData || !adjacencyGraph) {
       return;
     }
 
@@ -329,6 +330,7 @@ export function WorldMapComponent() {
     }
 
     gameStateController.init(gameData);
+    proximityComputationController.init(gameData, adjacencyGraph);
 
     drawingLogicRef.current = new DrawingLogicController(
       areaDrawingCanvasRef.current!,
@@ -380,13 +382,13 @@ export function WorldMapComponent() {
             gameData.locationDataMap[clickedOnLocationRef.current],
         });
 
-        const reachable = adjacencyGraph?.reachableWithinCost(
+        /*  const reachable = adjacencyGraph?.reachableWithinCost(
           clickedOnLocationRef.current,
           100,
           gameStateController.proximityCostFunction,
-        );
+        ); */
 
-        console.log({ reachable });
+        /*       console.log({ reachable }); */
 
         if (gameData.locationDataMap[clickedOnLocationRef.current].ownable) {
           setSelectedLocation(clickedOnLocationRef.current);

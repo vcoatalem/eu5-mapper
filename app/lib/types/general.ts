@@ -22,9 +22,10 @@ export interface ILocationGameData {
     | "mountain_wasteland";
   vegetation:
     | null
+    | "farmland"
     | "forest"
     | "woods"
-    | "grassland"
+    | "grasslands"
     | "sparse"
     | "jungle"
     | "desert";
@@ -38,6 +39,7 @@ export interface ILocationGameData {
     area: string;
     province: string;
   };
+  naturalHarborSuitability: number;
   development: number; // can me modified , in other interface (ILocationTemporaryData ?)
   population: number; // can me modified , in other interface (ILocationTemporaryData ?)
 }
@@ -56,6 +58,7 @@ export interface IBuildingTemplate {
   type: BuildingType;
   harborCapacity: number[]; // harbor capacity increment per level
   proximityCostReductionPercentage: number[]; // percentage reduction per level
+  localProximitySource?: number[]; // proximity cost reduction source per level
   placementRestriction?: [PlacementRestrictions];
   locationRestriction?: Array<ILocationIdentifier>;
   countryRestriction?: Array<string>;
@@ -83,6 +86,7 @@ export interface IGameState {
   country: string;
   roads: RoadRecord;
   ownedLocations: Record<ILocationIdentifier, IConstructibleLocation>;
+  capitalLocation?: ILocationIdentifier;
 }
 
 export type ILocationDataMap<LocationName extends string = string> = Record<
@@ -104,4 +108,5 @@ export interface IGameData {
   locationDataMap: ILocationDataMap;
   colorToNameMap: ILocationIdentifierMap;
   buildingsTemplateMap: Record<string, IBuildingTemplate>;
+  proximityComputationRule: IProximityComputationRule;
 }

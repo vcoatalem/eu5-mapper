@@ -58,19 +58,26 @@ export const AppContextProvider = ({
         const basePath = `/${version}/game_data`;
 
         // Fetch all JSON files and CSV in parallel
-        const [locationDataRes, colorToNameRes, buildingsRes, adjacencyRes] =
-          await Promise.all([
-            fetch(`${basePath}/location-data-map.json`),
-            fetch(`${basePath}/color-to-name-map.json`),
-            fetch(`${basePath}/buildings-template-map.json`),
-            fetch(`${basePath}/adjacency-data.csv`),
-          ]);
+        const [
+          locationDataRes,
+          colorToNameRes,
+          buildingsRes,
+          adjacencyRes,
+          proximityComputationRuleRes,
+        ] = await Promise.all([
+          fetch(`${basePath}/location-data-map.json`),
+          fetch(`${basePath}/color-to-name-map.json`),
+          fetch(`${basePath}/buildings-template-map.json`),
+          fetch(`${basePath}/adjacency-data.csv`),
+          fetch(`${basePath}/proximity-calculation-rules.json`),
+        ]);
 
         if (
           !locationDataRes.ok ||
           !colorToNameRes.ok ||
           !buildingsRes.ok ||
-          !adjacencyRes.ok
+          !adjacencyRes.ok ||
+          !proximityComputationRuleRes.ok
         ) {
           throw new Error(
             `Failed to load game data files for version ${version}`,
@@ -82,17 +89,20 @@ export const AppContextProvider = ({
           colorToNameMap,
           buildingsTemplateMap,
           adjacencyCsv,
+          proximityComputationRule,
         ] = await Promise.all([
           locationDataRes.json(),
           colorToNameRes.json(),
           buildingsRes.json(),
           adjacencyRes.text(),
+          proximityComputationRuleRes.json(),
         ]);
 
         setGameData({
           locationDataMap,
           colorToNameMap,
           buildingsTemplateMap,
+          proximityComputationRule,
         });
 
         console.log(

@@ -3,7 +3,6 @@
 export type ILocationIdentifier = string; // location name
 
 export interface ILocationGameData {
-  // todo: fill
   name: string;
   hexColor: string;
   constructibleLocationCoordinate?: ICoordinate;
@@ -39,6 +38,8 @@ export interface ILocationGameData {
     area: string;
     province: string;
   };
+  development: number; // can me modified , in other interface (ILocationTemporaryData ?)
+  population: number; // can me modified , in other interface (ILocationTemporaryData ?)
 }
 
 type PlacementRestrictions =
@@ -78,7 +79,7 @@ type RoadRecord = Record<
   { type: RoadType; createdByUser: boolean }
 >;
 
-interface GameState {
+export interface IGameState {
   country: string;
   roads: RoadRecord;
   ownedLocations: Record<ILocationIdentifier, IConstructibleLocation>;

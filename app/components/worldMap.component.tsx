@@ -45,7 +45,7 @@ export function WorldMapComponent() {
   const borderCanvasRef = useRef<HTMLCanvasElement>(null);
   const areaDrawingCanvasRef = useRef<HTMLCanvasElement>(null);
   const topLayerRef = useRef<HTMLCanvasElement>(null);
-  const constructibleCanvasRef = useRef<HTMLCanvasElement>(null);
+  const constructibleCanvasRef = useRef<HTMLCanvasElement>(null); //TODO: hide this canvas when zoom level is low
   const containerRef = useRef<HTMLDivElement>(null);
   const drawingLogicRef = useRef<DrawingLogicController>(null);
   const zoomControllerRef = useRef<ZoomController>(new ZoomController());

@@ -35,6 +35,10 @@ yarn-error.log*
 
 env/
 
+# tools output
+tools/output/*
+tools/tmp/
+
 # vercel
 .vercel
 

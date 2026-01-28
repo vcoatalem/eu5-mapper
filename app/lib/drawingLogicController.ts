@@ -7,7 +7,6 @@ import {
   ILocationIdentifier,
 } from "./types/general";
 
-//TODO drawingLogicService more like ? need a wording to differentiate observables & non observables
 export class DrawingLogicController {
   private areaDrawingCanvas: HTMLCanvasElement;
   private areaDrawingContext: CanvasRenderingContext2D;
@@ -147,9 +146,7 @@ export class DrawingLogicController {
 
   private drawConstructible(): void {
     if (!this.lastKnownGameState) {
-      throw new Error(
-        "no game state controller set in drawing logic controller",
-      );
+      throw new Error("no game state found");
     }
 
     // Clear the canvas first TODO: see if this is needed
@@ -160,22 +157,16 @@ export class DrawingLogicController {
       this.mapInfos.height,
     );
 
-    // read game state controller for currently owned constructibles
+    // read game logic controller for currently owned constructibles
     const allOwnedLocations = this.lastKnownGameState.ownedLocations;
 
     // Draw all constructibles in one batch
     for (const [locationIdentifier, constructible] of Object.entries(
       allOwnedLocations,
     )) {
-      const locationData = this.gameData?.locationDataMap[locationIdentifier];
-      if (!locationData) {
-        console.warn(
-          `Location ${locationIdentifier} not found in locationDataMap`,
-        );
-        continue;
-      }
-
-      const locationCoordinates = locationData.constructibleLocationCoordinate;
+      const locationCoordinates =
+        this.gameData?.locationDataMap[locationIdentifier]
+          .constructibleLocationCoordinate;
 
       if (locationCoordinates) {
         // Convert game world coordinates to canvas coordinates

@@ -41,20 +41,11 @@ class WorkerManager extends Observable<WorkerManagerStatus> {
   }
 
   private updateStatus(): void {
-    const newActiveTasks = this.activeTasks.size;
-    const newQueuedTasks = this.taskQueue.length;
-    
-    // Only update and notify if values have changed
-    if (
-      this.subject.activeTasks !== newActiveTasks ||
-      this.subject.queuedTasks !== newQueuedTasks
-    ) {
-      this.subject = {
-        activeTasks: newActiveTasks,
-        queuedTasks: newQueuedTasks,
-      };
-      this.notifyListeners();
-    }
+    this.subject = {
+      activeTasks: this.activeTasks.size,
+      queuedTasks: this.taskQueue.length,
+    };
+    this.notifyListeners();
   }
 
   public queueTask(task: WorkerTask): void {

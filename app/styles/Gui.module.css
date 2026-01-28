@@ -1,3 +1,7 @@
-.guiElement {
-  z-index: 50;
+@reference "tailwindcss";
+
+@layer components {
+  .guiElement {
+    @apply z-50 rounded-sm bg-black border border-white text-white px-2 py-1;
+  }
 }

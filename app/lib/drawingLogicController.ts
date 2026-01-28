@@ -10,7 +10,7 @@ import {
   IGameState,
   ILocationIdentifier,
 } from "./types/general";
-import { greenToRedGradient } from "./drawing/greenToRedGradient";
+import { greenToRedGradient } from "./drawing/greenToRedGradient.const";
 
 export class DrawingLogicController {
   private areaDrawingCanvas: HTMLCanvasElement;

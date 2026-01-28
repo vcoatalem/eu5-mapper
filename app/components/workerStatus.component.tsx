@@ -1,5 +1,4 @@
 import { memo, useSyncExternalStore } from "react";
-import styles from "../styles/Gui.module.css";
 import { workerManager } from "@/app/lib/workerManager";
 
 export const WorkerStatusComponent = memo(function WorkerStatusComponent() {
@@ -8,9 +7,7 @@ export const WorkerStatusComponent = memo(function WorkerStatusComponent() {
     () => workerManager.getSnapshot(),
   );
   return (
-    <div
-      className={`${styles.guiElement} text-sm bg-black px-2 py-1 border border-white border-radius-md`}
-    >
+    <div className={`text-sm`}>
       <div>Tasks: {workerStatus.activeTasks} active</div>
       <div>Queue: {workerStatus.queuedTasks}</div>
     </div>

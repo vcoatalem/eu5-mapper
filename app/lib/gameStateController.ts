@@ -61,5 +61,15 @@ class GameStateController extends Observable<IGameState> {
     }
     this.notifyListeners();
   }
+
+  public changeCapital(locationName: string): void {
+    if (!this.subject.ownedLocations[locationName]) {
+      throw new Error(
+        `Cannot set capital to unowned location: ${locationName}`,
+      );
+    }
+    this.subject.capitalLocation = locationName;
+    this.notifyListeners();
+  }
 }
 export const gameStateController = new GameStateController();

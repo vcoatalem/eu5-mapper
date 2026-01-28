@@ -1,7 +1,6 @@
 import { JSX, useContext, useSyncExternalStore } from "react";
 import { AppContext } from "../appContextProvider";
 import { IGameState, ILocationGameData } from "../lib/types/general";
-import styles from "../styles/Gui.module.css";
 import { CompactGraph } from "../lib/graph";
 import { NeighborInfo } from "../lib/types/pathfinding";
 import { gameStateController } from "@/app/lib/gameStateController";
@@ -110,9 +109,7 @@ export function InfoBoxComponent() {
   );
 
   return (
-    <div
-      className={`${styles.guiElement} fixed bottom-5 left-5 rounded-sm min-w-64 min-h-96 flex flex-col bg-black border border-white text-md text-white p-2`}
-    >
+    <div className={`min-w-64 min-h-96 max-h-128 flex flex-col`}>
       {locationDisplay}
     </div>
   );

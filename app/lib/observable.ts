@@ -1,6 +1,7 @@
 export abstract class Observable<T> {
   protected subject: T = null as T; // initialized by subclass constructor
   private listeners: Array<(data: T) => void> = [];
+  private cachedSnapshot: T | null = null;
 
   public subscribe(listener: (data: T) => void): () => void {
     this.listeners.push(listener);
@@ -15,12 +16,16 @@ export abstract class Observable<T> {
   }
 
   protected notifyListeners(): void {
+    this.cachedSnapshot = { ...this.subject } as T; // Create new snapshot when data changes
     for (const listener of this.listeners) {
       listener(this.subject);
     }
   }
 
   public getSnapshot(): T {
-    return this.subject; //todo: deep copy
+    if (this.cachedSnapshot === null) {
+      this.cachedSnapshot = { ...this.subject } as T;
+    }
+    return this.cachedSnapshot;
   }
 }

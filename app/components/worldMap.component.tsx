@@ -17,6 +17,8 @@ import { LoadingScreenComponent } from "./loadingScreen.component";
 import { ZoomController } from "@/app/lib/zoomController";
 import { WorkerStatusComponent } from "./workerStatus.component";
 import { proximityComputationController } from "@/app/lib/proximityComputationController";
+import { ConstructibleMenusComponent } from "./constructibleMenus.component";
+import { GuiElement } from "./guiElement";
 
 const mapInfos = {
   width: 16384,
@@ -36,6 +38,8 @@ export function WorldMapComponent() {
     error: gameDataLoadingError,
     adjacencyGraph,
   } = useContext(AppContext);
+
+  console.log("render worldmap component");
 
   const isDraggingRef = useRef(false);
   const initializedRef = useRef(false);
@@ -565,26 +569,31 @@ export function WorldMapComponent() {
         />
       ) : (
         <div>
-          <InfoBoxComponent />
-          <div
-            className={`${styles.guiElement} fixed border-white gap-2 flex flex-col right-5 bottom-5 text-white`}
-          >
-            <WorkerStatusComponent />
-            <div className="flex flex-row gap-2">
-              <button
-                onClick={handleZoomOut}
-                className="w-8 border-white border-2 border-radius-md bg-black px-2"
-              >
-                -
-              </button>
-              <button
-                onClick={handleZoomIn}
-                className="w-8 border-white border-2 border-radius-md bg-black px-2"
-              >
-                +
-              </button>
+          <GuiElement className="fixed left-5 top-5">
+            <ConstructibleMenusComponent></ConstructibleMenusComponent>
+          </GuiElement>
+          <GuiElement className="fixed left-5 bottom-5">
+            <InfoBoxComponent />
+          </GuiElement>
+          <GuiElement className="fixed right-5 bottom-5">
+            <div className="gap-2 flex flex-col">
+              <WorkerStatusComponent />
+              <div className="flex flex-row gap-2 ">
+                <button
+                  onClick={handleZoomOut}
+                  className={`w-8 border border-white rounded-md px-2 py-1`}
+                >
+                  -
+                </button>
+                <button
+                  onClick={handleZoomIn}
+                  className={`w-8 border border-white rounded-md px-2 py-1`}
+                >
+                  +
+                </button>
+              </div>
             </div>
-          </div>
+          </GuiElement>
         </div>
       )}
     </div>

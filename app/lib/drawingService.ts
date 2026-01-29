@@ -10,7 +10,7 @@ import {
   ILocationIdentifier,
 } from "./types/general";
 import { greenToRedGradient } from "./drawing/greenToRedGradient.const";
-import { workerManager } from "./workerManager";
+import { workerManager } from "../workers/workerManager";
 import { ObservableCombiner } from "./observableCombiner";
 import { DrawingHelper } from "./drawing/drawing.helper";
 
@@ -86,11 +86,6 @@ export class DrawingService {
     name: ILocationIdentifier,
     coordinates: ICoordinate[],
   ): void {
-    console.log(
-      "[DrawingLogicController] adding coordinate",
-      name,
-      coordinates,
-    );
     if (!this.coordinateMap[name]) {
       this.coordinateMap[name] = coordinates;
     }

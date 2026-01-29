@@ -1,95 +1,114 @@
-const scanlineFill = (data32, width, startX, startY) => {
+import type { ICoordinate } from "../lib/types/general";
+import {
+  IWorkerTask,
+  IWorkerTaskColorSearchPayload,
+  IWorkerTaskInitWithImagePayload,
+} from "./types/workerTypes";
+
+//type Coordinate = { x: number; y: number };
+/**
+ * Flood fill algorithm to find all contiguous pixels of the same color.
+ * @param data32 - Uint32Array of pixel data
+ * @param width - width of the image
+ * @param startX - starting x coordinate
+ * @param startY - starting y coordinate
+ * @returns Array of coordinates belonging to the filled region
+ */
+const scanlineFill = (
+  data32: Uint32Array,
+  width: number,
+  startX: number,
+  startY: number,
+): ICoordinate[] => {
   const height = data32.length / width;
   const visited = new Uint8Array(data32.length);
-  
+
   // Normalize and validate starting coordinates
   const x = Math.floor(startX);
   const y = Math.floor(startY);
-  
+
   if (x < 0 || x >= width || y < 0 || y >= height) {
     return [];
   }
-  
+
   // Get target color (mask alpha channel like getAllCoordinatesOfColor)
   const startIdx = y * width + x;
   const targetColor32 = data32[startIdx] & 0x00ffffff;
-  const coords = [];
-  const stack = [[x, y]];
+  const coords: ICoordinate[] = [];
+  const stack: [number, number][] = [[x, y]];
   const maxIterations = width * height;
   let iterations = 0;
-  
+
   // Neighbor offsets: [dx, dy]
-  const neighbors = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-  
+  const neighbors: [number, number][] = [
+    [-1, 0],
+    [1, 0],
+    [0, -1],
+    [0, 1],
+  ];
+
   while (stack.length > 0 && iterations < maxIterations) {
     iterations++;
-    const [cx, cy] = stack.pop();
+    const popped = stack.pop();
+    if (!popped) continue;
+    const [cx, cy] = popped;
     const idx = cy * width + cx;
-    
+
     // Skip if already visited or wrong color
     if (visited[idx]) continue;
-    
+
     const currentColor = data32[idx] & 0x00ffffff;
     if (currentColor !== targetColor32) continue;
-    
+
     // Mark as visited and add to results
     visited[idx] = 1;
     coords.push({ x: cx, y: cy });
-    
+
     // Check and add valid neighbors
     for (const [dx, dy] of neighbors) {
       const nx = cx + dx;
       const ny = cy + dy;
-      
+
       // Bounds check
       if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
-      
+
       const neighborIdx = ny * width + nx;
-      if (!visited[neighborIdx] && (data32[neighborIdx] & 0x00ffffff) === targetColor32) {
+      if (
+        !visited[neighborIdx] &&
+        (data32[neighborIdx] & 0x00ffffff) === targetColor32
+      ) {
         stack.push([nx, ny]);
       }
     }
   }
-  
+
   if (iterations >= maxIterations) {
     self.postMessage({
       type: "log",
       message: `scanlineFill hit max iterations: ${maxIterations}, stack: ${stack.length}, coords: ${coords.length}`,
     });
   }
-  
+
   return coords;
-}
+};
 
+let pixelData32: Uint32Array; // Uint32Array for fast pixel access
+let canvasWidth: number;
+let canvasHeight: number;
 
-let pixelData32; // Uint32Array for fast pixel access
-let canvasWidth;
-let canvasHeight;
-
-self.onmessage = function (e) {
-  const taskId = e.data.taskId;
-
-  /*
-  const logData = { taskId: e.data.taskId, type: e.data.type };
-  if (e.data.canvasWidth) logData.canvasWidth = e.data.canvasWidth;
-  if (e.data.canvasHeight) logData.canvasHeight = e.data.canvasHeight;
-  if (e.data.colorHex) logData.colorHex = e.data.colorHex;
-  if (e.data.locationName) logData.locationName = e.data.locationName;
- 
-  self.postMessage({
-    type: "log",
-    message: `worker got event: ${JSON.stringify(logData)}`,
-    taskId: taskId,
-  }); */
+self.onmessage = function (e: MessageEvent<IWorkerTask>) {
+  const taskId = e.data.id;
 
   switch (e.data.type) {
     case "initWithImage":
       try {
-        canvasWidth = e.data.canvasWidth;
-        canvasHeight = e.data.canvasHeight;
+        const payload = e.data.payload as IWorkerTaskInitWithImagePayload;
+
+        canvasWidth = payload.canvasWidth;
+        canvasHeight = payload.canvasHeight;
 
         // Receive ArrayBuffer and wrap in Uint8ClampedArray
-        const pixelDataBuffer = e.data.pixelDataBuffer;
+        const pixelDataBuffer = payload.pixelDataBuffer;
         const pixelData8 = new Uint8ClampedArray(pixelDataBuffer);
 
         // Create Uint32Array view for fast pixel comparison
@@ -107,7 +126,7 @@ self.onmessage = function (e) {
         self.postMessage({
           type: "error",
           taskId: taskId,
-          message: `something went wrong during worker init: ${err.message}`,
+          message: `something went wrong during worker init: ${(err as any).message}`,
         });
       }
       break;
@@ -120,78 +139,40 @@ self.onmessage = function (e) {
           );
         }
 
+        const payload = e.data.payload as IWorkerTaskColorSearchPayload;
 
-        self.postMessage({
-          type: "log",
-          message: `colorSearch payload: ${JSON.stringify(e.data)}`,
-          taskId: taskId,
-        })
-
-        if (e.data.colorHex) {
-          try {
-            // Convert hex to 32-bit color (ABGR format for little-endian)
-          const r = parseInt(e.data.colorHex.slice(0, 2), 16);
-          const g = parseInt(e.data.colorHex.slice(2, 4), 16);
-          const b = parseInt(e.data.colorHex.slice(4, 6), 16);
-          const targetColor32 = (b << 16) | (g << 8) | r;
-
-          const coordinates = getAllCoordinatesOfColor(
-            pixelData32,
-            canvasWidth,
-            targetColor32,
-          );
-
-          self.postMessage({
-            type: "result",
-            taskId: taskId,
-            data: {
-              coordinates: coordinates,
-              locationName: e.data.locationName,
-            },
-          });
-          }
-          catch (err) {
-            self.postMessage({
-              type: "error",
-              taskId: taskId,
-              message: `Color search failed: ${err.message}`,
-            });
-          }
-        }
-        else if (e.data.startCoordinates?.x && e.data.startCoordinates?.y) {
+        if (payload.startCoordinates?.x && payload.startCoordinates?.y) {
           try {
             const coordinates = scanlineFill(
               pixelData32,
               canvasWidth,
-              e.data.startCoordinates.x,
-              e.data.startCoordinates.y,
+              payload.startCoordinates.x,
+              payload.startCoordinates.y,
             );
-  
+
             self.postMessage({
               type: "result",
               taskId: taskId,
               data: {
                 coordinates: coordinates,
-                locationName: e.data.locationName,
+                locationName: payload.locationName,
               },
             });
           } catch (err) {
             self.postMessage({
               type: "error",
               taskId: taskId,
-              message: `Scanline fill failed: ${err.message}`,
+              message: `Scanline fill failed: ${(err as any).message}`,
             });
           }
-          
-        }
-        else {
+        } else {
           throw new Error("Invalid color search payload");
         }
       } catch (err) {
         self.postMessage({
           type: "error",
           taskId: taskId,
-          message: `Color search failed: ${err.message}`,
+          message: `Color search failed: ${err}`,
         });
       }
       break;

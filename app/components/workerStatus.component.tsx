@@ -1,5 +1,5 @@
 import { memo, useSyncExternalStore } from "react";
-import { workerManager } from "@/app/lib/workerManager";
+import { workerManager } from "@/app/workers/workerManager";
 
 export const WorkerStatusComponent = memo(function WorkerStatusComponent() {
   const workerStatus = useSyncExternalStore(

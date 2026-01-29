@@ -13,14 +13,13 @@ import { AppContext } from "../appContextProvider";
 import { gameStateController } from "@/app/lib/gameStateController";
 import { ILocationIdentifier } from "../lib/types/general";
 import { DrawingService } from "@/app/lib/drawingService";
-import { workerManager } from "@/app/lib/workerManager";
+import { workerManager } from "@/app/workers/workerManager";
 import { LoadingScreenComponent } from "./loadingScreen.component";
 import { ZoomController } from "@/app/lib/zoomController";
 import { WorkerStatusComponent } from "./workerStatus.component";
 import { proximityComputationController } from "@/app/lib/proximityComputationController";
 import { ConstructibleMenusComponent } from "./constructibleMenus.component";
 import { GuiElement } from "./guiElement";
-import { NeighborsPanelComponent } from "./neighborsPanel.component";
 
 const mapInfos = {
   width: 16384,
@@ -80,12 +79,11 @@ export function WorldMapComponent() {
   const totalLayersRef = useRef(0);
 
   const workerPoolSize = 2;
+  const workerScriptName = "canvas-worker.js";
+
   const initializeWorkerAndCanvas = (): void => {
     workerManager.terminate();
-    workerManager.init(
-      new URL("canvas-worker.js", import.meta.url).href,
-      workerPoolSize,
-    );
+    workerManager.init(workerScriptName, workerPoolSize);
   };
 
   const waitForInitialization = async (): Promise<void> => {

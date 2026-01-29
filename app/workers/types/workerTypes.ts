@@ -1,3 +1,11 @@
+export type WorkerManagerConfig = {
+  workers: Array<{
+    workerFileName: string;
+    poolSize: number;
+  }>;
+  taskWorkerMapping: Record<TaskType, string>; // task type to worker file name
+};
+
 export type TaskType = "colorSearch" | "initWithImage";
 
 export interface IWorkerManagerStatus {
@@ -22,7 +30,20 @@ export interface IWorkerTaskResult {
 
 export interface IWorkerMessage {
   type: "log" | "result" | "error";
-  taskId?: string;
+  taskId: string;
   data?: unknown;
   message?: string;
+}
+
+export interface IWorkerTaskInitWithImagePayload {
+  canvasWidth: number;
+  canvasHeight: number;
+  pixelDataBuffer: ArrayBuffer;
+}
+
+export interface IWorkerTaskColorSearchPayload {
+  canvasWidth: number;
+  canvasHeight: number;
+  locationName: string;
+  startCoordinates?: { x: number; y: number };
 }

@@ -2,8 +2,8 @@ import {
   IWorkerTask,
   IWorkerMessage,
   IWorkerManagerStatus,
-} from "./workerTypes";
-import { Observable } from "./observable";
+} from "./types/workerTypes";
+import { Observable } from "../lib/observable";
 
 class WorkerManager extends Observable<IWorkerManagerStatus> {
   private workers: Worker[] = [];
@@ -12,7 +12,7 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
   private workerAssignments: Map<Worker, string | null> = new Map();
   private processedTaskIds: Set<string> = new Set();
   private workerPoolSize: number = 0;
-  private workerScriptPath: string = "";
+  private workerScriptName: string = "";
 
   constructor() {
     super();
@@ -23,11 +23,18 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
     };
   }
 
-  public init(workerScriptPath: string, poolSize: number): void {
-    this.workerScriptPath = workerScriptPath;
+  /**
+   * Initialize the worker pool with a given worker script name (without path) and pool size.
+   * The worker script is resolved internally from the dist directory.
+   * @param workerScriptName e.g. "canvas-worker.js"
+   * @param poolSize number of workers
+   */
+  public init(workerScriptName: string, poolSize: number): void {
+    this.workerScriptName = workerScriptName;
     this.workerPoolSize = Math.max(1, poolSize);
+    const workerScriptUrl = this.resolveWorkerScriptUrl(workerScriptName);
     for (let i = 0; i < this.workerPoolSize; i++) {
-      const worker = new Worker(this.workerScriptPath);
+      const worker = new Worker(workerScriptUrl);
       worker.addEventListener("message", (event) =>
         this.handleWorkerMessage(event.data, worker),
       );
@@ -37,7 +44,20 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
       this.workers.push(worker);
       this.workerAssignments.set(worker, null); // Mark as available
     }
-    console.log(`[WorkerManager] Initialized ${this.workerPoolSize} workers`);
+    console.log(
+      `[WorkerManager] Initialized ${this.workerPoolSize} workers for script: ${workerScriptUrl}`,
+    );
+  }
+
+  /**
+   * Resolves the worker script URL relative to the current module, assuming dist/ subfolder.
+   * @param workerScriptName e.g. "canvas-worker.js"
+   */
+  private resolveWorkerScriptUrl(workerScriptName: string): string {
+    // This assumes the dist/ folder is a sibling to this file (workerManager.js)
+    // and that the consumer uses import.meta.url context
+    // e.g. new URL("./dist/canvas-worker.js", import.meta.url)
+    return new URL(`./dist/${workerScriptName}`, import.meta.url).href;
   }
 
   private updateStatus(
@@ -90,19 +110,10 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
     this.workerAssignments.set(availableWorker, task.id); // Assign worker to task
     console.log(`[WorkerManager] Processing task: ${task.id}`);
 
-    // Send task to worker with task ID for tracking
-    const messagePayload: Record<string, unknown> = {
-      taskId: task.id,
-    };
-
-    // Collect transferable objects
+    // Collect transferable objects from payload
     const transferables: Transferable[] = [];
-
-    // Merge payload properties and extract transferables
     if (typeof task.payload === "object" && task.payload !== null) {
-      Object.entries(task.payload).forEach(([key, value]) => {
-        messagePayload[key] = value;
-        // Check if value is a transferable (OffscreenCanvas, ArrayBuffer, etc.)
+      Object.values(task.payload).forEach((value) => {
         if (
           value instanceof OffscreenCanvas ||
           value instanceof ArrayBuffer ||
@@ -113,10 +124,10 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
       });
     }
 
-    // Use transferables if present, otherwise just send message
+    // Send the full IWorkerTask object to the worker
     if (transferables.length > 0) {
       try {
-        availableWorker.postMessage(messagePayload, transferables);
+        availableWorker.postMessage(task, transferables);
       } catch (error) {
         console.error(
           `[WorkerManager] Error posting message with transferables:`,
@@ -129,7 +140,7 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
         throw error;
       }
     } else {
-      availableWorker.postMessage(messagePayload);
+      availableWorker.postMessage(task);
     }
 
     this.updateStatus();
@@ -204,18 +215,6 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
     console.error("[WorkerManager] Worker error:", event);
     // In production, would need more sophisticated error recovery
   }
-
-  /*   public getStatus(): {
-    activeTasks: number;
-    queuedTasks: number;
-    poolSize: number;
-  } {
-    return {
-      activeTasks: this.activeTasks.size,
-      queuedTasks: this.taskQueue.length,
-      poolSize: this.workerPoolSize,
-    };
-  } */
 
   public terminate(): void {
     if (this.workers.length === 0) {

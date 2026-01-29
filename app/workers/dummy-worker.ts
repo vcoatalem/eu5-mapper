@@ -1,9 +1,11 @@
-self.onmessage = function (e) {
-  const taskId = e.data.taskId;
+import { sendMessage } from "./utils";
+import { IWorkerTask } from "./types/workerTypes";
 
-  self.postMessage({
-    type: "log",
+self.onmessage = function (e: MessageEvent<IWorkerTask>) {
+  sendMessage(self, {
+    data: null,
     message: `[Dummy Worker] Received task: ${JSON.stringify(e.data)} - this is a dummy worker for example sake`,
-    taskId: taskId,
+    level: "log",
+    task: e.data,
   });
 };

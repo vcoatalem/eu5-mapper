@@ -1,6 +1,21 @@
 "use strict";
 (() => {
-  const scanlineFill = (data32, width, startX, startY) => {
+  // app/workers/utils.ts
+  var sendMessage = (self2, payload) => {
+    const workerMessage = {
+      type: payload.level,
+      taskType: payload.task.type,
+      taskId: payload.task.id,
+      message: payload.message ?? ""
+    };
+    if (payload.data !== void 0) {
+      workerMessage.data = payload.data;
+    }
+    self2.postMessage(workerMessage);
+  };
+
+  // app/workers/canvas-worker.ts
+  var scanlineFill = (data32, width, startX, startY, task) => {
     const height = data32.length / width;
     const visited = new Uint8Array(data32.length);
     const x = Math.floor(startX);
@@ -46,18 +61,20 @@
       }
     }
     if (iterations >= maxIterations) {
-      self.postMessage({
-        type: "log",
-        message: `scanlineFill hit max iterations: ${maxIterations}, stack: ${stack.length}, coords: ${coords.length}`
+      sendMessage(self, {
+        level: "log",
+        message: `scanlineFill hit max iterations: ${maxIterations}, stack: ${stack.length}, coords: ${coords.length}`,
+        task,
+        data: null
       });
+      self.postMessage({});
     }
     return coords;
   };
-  let pixelData32;
-  let canvasWidth;
-  let canvasHeight;
+  var pixelData32;
+  var canvasWidth;
+  var canvasHeight;
   self.onmessage = function(e) {
-    const taskId = e.data.id;
     switch (e.data.type) {
       case "initWithImage":
         try {
@@ -67,19 +84,21 @@
           const pixelDataBuffer = payload.pixelDataBuffer;
           const pixelData8 = new Uint8ClampedArray(pixelDataBuffer);
           pixelData32 = new Uint32Array(pixelData8.buffer);
-          self.postMessage({
-            type: "result",
-            taskId,
+          sendMessage(self, {
             data: {
               success: true,
               message: "Worker initialized with pixel data"
-            }
+            },
+            message: "Worker initialized with pixel data",
+            level: "result",
+            task: e.data
           });
         } catch (err) {
-          self.postMessage({
-            type: "error",
-            taskId,
-            message: `something went wrong during worker init: ${err.message}`
+          sendMessage(self, {
+            data: null,
+            message: `something went wrong during worker init: ${err.message}`,
+            level: "error",
+            task: e.data
           });
         }
         break;
@@ -97,39 +116,41 @@
                 pixelData32,
                 canvasWidth,
                 payload.startCoordinates.x,
-                payload.startCoordinates.y
+                payload.startCoordinates.y,
+                e.data
               );
-              self.postMessage({
-                type: "result",
-                taskId,
+              sendMessage(self, {
                 data: {
                   coordinates,
                   locationName: payload.locationName
-                }
+                },
+                message: "Color search completed",
+                level: "result",
+                task: e.data
               });
             } catch (err) {
-              self.postMessage({
-                type: "error",
-                taskId,
-                message: `Scanline fill failed: ${err.message}`
+              sendMessage(self, {
+                message: `Scanline fill failed: ${err.message}`,
+                level: "error",
+                task: e.data
               });
             }
           } else {
             throw new Error("Invalid color search payload");
           }
         } catch (err) {
-          self.postMessage({
-            type: "error",
-            taskId,
-            message: `Color search failed: ${err}`
+          sendMessage(self, {
+            message: `Color search failed: ${err}`,
+            level: "error",
+            task: e.data
           });
         }
         break;
       default:
-        self.postMessage({
-          type: "error",
-          taskId,
-          message: `Unknown task type: ${e.data.type}`
+        sendMessage(self, {
+          message: `Unknown task type: ${e.data.type}`,
+          level: "error",
+          task: e.data
         });
     }
   };

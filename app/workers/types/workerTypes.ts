@@ -6,7 +6,7 @@ export type WorkerManagerConfig = {
   taskWorkerMapping: Record<TaskType, string>; // task type to worker file name
 };
 
-export type TaskType = "colorSearch" | "initWithImage";
+export type TaskType = "dummy" | "colorSearch" | "initWithImage";
 
 export interface IWorkerManagerStatus {
   activeTasks: number;
@@ -29,6 +29,7 @@ export interface IWorkerTaskResult {
 }
 
 export interface IWorkerMessage {
+  taskType: TaskType;
   type: "log" | "result" | "error";
   taskId: string;
   data?: unknown;

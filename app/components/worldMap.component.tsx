@@ -20,15 +20,8 @@ import { WorkerStatusComponent } from "./workerStatus.component";
 import { proximityComputationController } from "@/app/lib/proximityComputationController";
 import { ConstructibleMenusComponent } from "./constructibleMenus.component";
 import { GuiElement } from "./guiElement";
-
-const mapInfos = {
-  width: 16384,
-  height: 8192,
-  colorMapFileName: "test/locations.png",
-  borderMapFileName: "test/border_layer.png",
-  terrainLayerFileName: "test/terrain_layer.png",
-  riverMapFileName: "test/river_layer.png",
-};
+import { workerManagerConfig } from "../workers/workerManager.config";
+import { worldMapConfig } from "./worldMap.config";
 
 // TODO:
 // 1. add building construction
@@ -78,14 +71,6 @@ export function WorldMapComponent() {
   const layersRenderedRef = useRef(0);
   const totalLayersRef = useRef(0);
 
-  const workerPoolSize = 2;
-  const workerScriptName = "canvas-worker.js";
-
-  const initializeWorkerAndCanvas = (): void => {
-    workerManager.terminate();
-    workerManager.init(workerScriptName, workerPoolSize);
-  };
-
   const waitForInitialization = async (): Promise<void> => {
     try {
       // Wait for all layers to be rendered
@@ -130,7 +115,7 @@ export function WorldMapComponent() {
 
   const createBlackCanvas = (ctx: CanvasRenderingContext2D) => {
     ctx.fillStyle = "#4a4a4a";
-    ctx.fillRect(0, 0, mapInfos.width, mapInfos.height);
+    ctx.fillRect(0, 0, worldMapConfig.width, worldMapConfig.height);
   };
 
   const createTransparentCanvas = (ctx: CanvasRenderingContext2D) => {
@@ -150,7 +135,7 @@ export function WorldMapComponent() {
       name: "colorLayer",
       ref: colorCanvasRef,
       zIndex: 0,
-      path: mapInfos.colorMapFileName,
+      path: worldMapConfig.colorMapFileName,
       initializeWorkerCanvas: true,
     },
     {
@@ -163,7 +148,7 @@ export function WorldMapComponent() {
       name: "borderLayer",
       ref: borderCanvasRef,
       zIndex: 6,
-      path: mapInfos.borderMapFileName,
+      path: worldMapConfig.borderMapFileName,
     },
     {
       name: "areaDrawingLayer",
@@ -175,7 +160,7 @@ export function WorldMapComponent() {
       name: "terrainLayer",
       ref: terrainCanvasRef,
       zIndex: 5,
-      path: mapInfos.terrainLayerFileName,
+      path: worldMapConfig.terrainLayerFileName,
     },
     {
       name: "constructibleLayer",
@@ -228,8 +213,8 @@ export function WorldMapComponent() {
       console.log("worldmap component already initialized, skipping");
       return;
     }
-
-    initializeWorkerAndCanvas();
+    /* 
+    initializeWorkerAndCanvas(); */
     waitForInitialization();
 
     const colorCanvas = colorCanvasRef.current;
@@ -334,15 +319,21 @@ export function WorldMapComponent() {
           console.log(
             `[WorldMapInit] initialized layer ${layer.name}. Total progress: ${layersRenderedRef.current}/${totalLayersRef.current}`,
           );
-          if (layer.initializeWorkerCanvas) {
+          if (layer.initializeWorkerCanvas && workerManager.isAvailable()) {
+            const config = workerManagerConfig.workers.find((w) =>
+              w.workerFileName.includes("canvas"),
+            );
+            if (!config) {
+              throw new Error("could not find canvas worker config");
+            }
+
             const imageData = ctx.getImageData(
               0,
               0,
-              mapInfos.width,
-              mapInfos.height,
+              worldMapConfig.width,
+              worldMapConfig.height,
             );
-
-            for (let i = 0; i < workerPoolSize; i++) {
+            for (let i = 0; i < config.poolSize; i++) {
               const taskId = `initWithImage-${i}`;
               const pixelDataCopy = new Uint8ClampedArray(imageData.data);
               workerManager.queueTask({
@@ -351,8 +342,8 @@ export function WorldMapComponent() {
                 payload: {
                   type: "initWithImage",
                   pixelDataBuffer: pixelDataCopy.buffer,
-                  canvasWidth: mapInfos.width,
-                  canvasHeight: mapInfos.height,
+                  canvasWidth: worldMapConfig.width,
+                  canvasHeight: worldMapConfig.height,
                 },
               });
             }
@@ -384,7 +375,7 @@ export function WorldMapComponent() {
     drawingServiceRef.current = new DrawingService(
       areaDrawingCanvasRef.current!,
       constructibleCanvasRef.current!,
-      { width: mapInfos.width, height: mapInfos.height },
+      { width: worldMapConfig.width, height: worldMapConfig.height },
       gameData,
     );
 
@@ -561,8 +552,8 @@ export function WorldMapComponent() {
         layers.map((layer) => (
           <canvas
             ref={layer.ref}
-            height={mapInfos.height}
-            width={mapInfos.width}
+            height={worldMapConfig.height}
+            width={worldMapConfig.width}
             key={layer.zIndex}
             className={"absolute"}
             style={{

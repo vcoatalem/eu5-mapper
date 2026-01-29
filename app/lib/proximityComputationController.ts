@@ -157,11 +157,6 @@ export class ProximityComputationController extends Observable<IProximityComputa
     locationData: ILocationGameData,
     locationConstructibleData: IConstructibleLocation,
   ): number => {
-    console.log("get location harbor capacity called with ", {
-      locationData,
-      locationConstructibleData,
-    });
-
     const naturalHarborSuitability = locationData.naturalHarborSuitability ?? 0;
 
     const buildings = locationConstructibleData.buildings ?? [];

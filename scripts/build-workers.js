@@ -14,7 +14,7 @@ fs.readdirSync(workersDir).forEach((file) => {
     esbuild.buildSync({
       entryPoints: [inputPath],
       outfile: outPath,
-      bundle: false,
+      bundle: true, // Bundle all dependencies into one file
       format: "iife",
       platform: "browser",
       target: ["es2020"],

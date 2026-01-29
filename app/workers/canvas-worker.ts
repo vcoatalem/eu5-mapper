@@ -4,6 +4,7 @@ import {
   IWorkerTaskColorSearchPayload,
   IWorkerTaskInitWithImagePayload,
 } from "./types/workerTypes";
+import { sendMessage } from "./utils";
 
 //type Coordinate = { x: number; y: number };
 /**
@@ -19,6 +20,7 @@ const scanlineFill = (
   width: number,
   startX: number,
   startY: number,
+  task: IWorkerTask,
 ): ICoordinate[] => {
   const height = data32.length / width;
   const visited = new Uint8Array(data32.length);
@@ -83,10 +85,15 @@ const scanlineFill = (
   }
 
   if (iterations >= maxIterations) {
-    self.postMessage({
-      type: "log",
+    sendMessage(self, {
+      level: "log",
       message: `scanlineFill hit max iterations: ${maxIterations}, stack: ${stack.length}, coords: ${coords.length}`,
+      task,
+      data: null,
     });
+    // No task context here, so can't use sendMessage for this log
+    // (would need to pass task info if needed)
+    self.postMessage({});
   }
 
   return coords;
@@ -97,8 +104,6 @@ let canvasWidth: number;
 let canvasHeight: number;
 
 self.onmessage = function (e: MessageEvent<IWorkerTask>) {
-  const taskId = e.data.id;
-
   switch (e.data.type) {
     case "initWithImage":
       try {
@@ -114,19 +119,21 @@ self.onmessage = function (e: MessageEvent<IWorkerTask>) {
         // Create Uint32Array view for fast pixel comparison
         pixelData32 = new Uint32Array(pixelData8.buffer);
 
-        self.postMessage({
-          type: "result",
-          taskId: taskId,
+        sendMessage(self, {
           data: {
             success: true,
             message: "Worker initialized with pixel data",
           },
+          message: "Worker initialized with pixel data",
+          level: "result",
+          task: e.data,
         });
       } catch (err) {
-        self.postMessage({
-          type: "error",
-          taskId: taskId,
+        sendMessage(self, {
+          data: null,
           message: `something went wrong during worker init: ${(err as any).message}`,
+          level: "error",
+          task: e.data,
         });
       }
       break;
@@ -148,40 +155,42 @@ self.onmessage = function (e: MessageEvent<IWorkerTask>) {
               canvasWidth,
               payload.startCoordinates.x,
               payload.startCoordinates.y,
+              e.data,
             );
 
-            self.postMessage({
-              type: "result",
-              taskId: taskId,
+            sendMessage(self, {
               data: {
                 coordinates: coordinates,
                 locationName: payload.locationName,
               },
+              message: "Color search completed",
+              level: "result",
+              task: e.data,
             });
           } catch (err) {
-            self.postMessage({
-              type: "error",
-              taskId: taskId,
+            sendMessage(self, {
               message: `Scanline fill failed: ${(err as any).message}`,
+              level: "error",
+              task: e.data,
             });
           }
         } else {
           throw new Error("Invalid color search payload");
         }
       } catch (err) {
-        self.postMessage({
-          type: "error",
-          taskId: taskId,
+        sendMessage(self, {
           message: `Color search failed: ${err}`,
+          level: "error",
+          task: e.data,
         });
       }
       break;
 
     default:
-      self.postMessage({
-        type: "error",
-        taskId: taskId,
+      sendMessage(self, {
         message: `Unknown task type: ${e.data.type}`,
+        level: "error",
+        task: e.data,
       });
   }
 };

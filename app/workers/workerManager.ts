@@ -1,18 +1,29 @@
+"use client";
+
 import {
   IWorkerTask,
   IWorkerMessage,
   IWorkerManagerStatus,
+  TaskType,
 } from "./types/workerTypes";
+import { workerManagerConfig } from "./workerManager.config";
 import { Observable } from "../lib/observable";
 
+type WorkerPool = {
+  workerFileName: string;
+  workers: Worker[];
+  assignments: Map<Worker, string | null>; // taskId or null
+};
+
 class WorkerManager extends Observable<IWorkerManagerStatus> {
-  private workers: Worker[] = [];
+  private workerPools: Map<string, WorkerPool> = new Map(); // workerFileName -> pool
   private taskQueue: IWorkerTask[] = [];
   private activeTasks: Map<string, IWorkerTask> = new Map();
-  private workerAssignments: Map<Worker, string | null> = new Map();
   private processedTaskIds: Set<string> = new Set();
-  private workerPoolSize: number = 0;
-  private workerScriptName: string = "";
+
+  public isAvailable(): boolean {
+    return this.workerPools.size > 0;
+  }
 
   constructor() {
     super();
@@ -21,32 +32,37 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
       queuedTasks: 0,
       lastCompletedTask: null,
     };
-  }
 
-  /**
-   * Initialize the worker pool with a given worker script name (without path) and pool size.
-   * The worker script is resolved internally from the dist directory.
-   * @param workerScriptName e.g. "canvas-worker.js"
-   * @param poolSize number of workers
-   */
-  public init(workerScriptName: string, poolSize: number): void {
-    this.workerScriptName = workerScriptName;
-    this.workerPoolSize = Math.max(1, poolSize);
-    const workerScriptUrl = this.resolveWorkerScriptUrl(workerScriptName);
-    for (let i = 0; i < this.workerPoolSize; i++) {
-      const worker = new Worker(workerScriptUrl);
-      worker.addEventListener("message", (event) =>
-        this.handleWorkerMessage(event.data, worker),
-      );
-      worker.addEventListener("error", (event) =>
-        this.handleWorkerError(event, worker),
-      );
-      this.workers.push(worker);
-      this.workerAssignments.set(worker, null); // Mark as available
+    if (typeof Worker === "undefined") {
+      console.info("not initializing WorkerManager server-side");
+      return;
     }
-    console.log(
-      `[WorkerManager] Initialized ${this.workerPoolSize} workers for script: ${workerScriptUrl}`,
-    );
+
+    // Initialize worker pools from config
+    for (const { workerFileName, poolSize } of workerManagerConfig.workers) {
+      const workers: Worker[] = [];
+      const assignments: Map<Worker, string | null> = new Map();
+      const workerScriptUrl = this.resolveWorkerScriptUrl(workerFileName);
+      for (let i = 0; i < poolSize; i++) {
+        const worker = new Worker(workerScriptUrl);
+        worker.addEventListener("message", (event) =>
+          this.handleWorkerMessage(event.data, worker),
+        );
+        worker.addEventListener("error", (event) =>
+          this.handleWorkerError(event, worker),
+        );
+        workers.push(worker);
+        assignments.set(worker, null);
+      }
+      this.workerPools.set(workerFileName, {
+        workerFileName,
+        workers,
+        assignments,
+      });
+      console.log(
+        `[WorkerManager] Initialized pool: ${workerFileName} (${poolSize} workers)`,
+      );
+    }
   }
 
   /**
@@ -56,8 +72,7 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
   private resolveWorkerScriptUrl(workerScriptName: string): string {
     // This assumes the dist/ folder is a sibling to this file (workerManager.js)
     // and that the consumer uses import.meta.url context
-    // e.g. new URL("./dist/canvas-worker.js", import.meta.url)
-    return new URL(`./dist/${workerScriptName}`, import.meta.url).href;
+    return new URL(`./dist/${workerScriptName}.js`, import.meta.url).href;
   }
 
   private updateStatus(
@@ -80,6 +95,15 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
       return;
     }
 
+    // Find which worker pool should handle this task
+    const workerFileName = workerManagerConfig.taskWorkerMapping[task.type];
+    if (!workerFileName) {
+      console.error(
+        `[WorkerManager] No worker registered for task type: ${task.type}`,
+      );
+      return;
+    }
+
     this.taskQueue.push(task);
     console.log(
       `[WorkerManager] Task queued. Queue size: ${this.taskQueue.length}`,
@@ -93,67 +117,79 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
       return;
     }
 
-    // Find available worker
-    const availableWorker = this.workers.find((w) => !this.isWorkerBusy(w));
-
-    if (!availableWorker) {
-      console.log(
-        `[WorkerManager] No available workers. Queue size: ${this.taskQueue.length}`,
-      );
-      return;
-    }
-
-    const task = this.taskQueue.shift();
-    if (!task) return;
-
-    this.activeTasks.set(task.id, task);
-    this.workerAssignments.set(availableWorker, task.id); // Assign worker to task
-    console.log(`[WorkerManager] Processing task: ${task.id}`);
-
-    // Collect transferable objects from payload
-    const transferables: Transferable[] = [];
-    if (typeof task.payload === "object" && task.payload !== null) {
-      Object.values(task.payload).forEach((value) => {
-        if (
-          value instanceof OffscreenCanvas ||
-          value instanceof ArrayBuffer ||
-          value instanceof MessagePort
-        ) {
-          transferables.push(value);
-        }
-      });
-    }
-
-    // Send the full IWorkerTask object to the worker
-    if (transferables.length > 0) {
-      try {
-        availableWorker.postMessage(task, transferables);
-      } catch (error) {
+    // Find the first task that can be assigned to an available worker
+    for (let i = 0; i < this.taskQueue.length; i++) {
+      const task = this.taskQueue[i];
+      const workerFileName = workerManagerConfig.taskWorkerMapping[task.type];
+      if (!workerFileName) {
         console.error(
-          `[WorkerManager] Error posting message with transferables:`,
-          error,
-          "Task ID:",
-          task.id,
-          "Transferables count:",
-          transferables.length,
+          `[WorkerManager] No worker registered for task type: ${task.type}`,
         );
-        throw error;
+        continue;
       }
-    } else {
-      availableWorker.postMessage(task);
+      const pool = this.workerPools.get(workerFileName);
+      if (!pool) {
+        console.error(`[WorkerManager] No pool for worker: ${workerFileName}`);
+        continue;
+      }
+      const availableWorker = pool.workers.find(
+        (w) => pool.assignments.get(w) === null,
+      );
+      if (availableWorker) {
+        this.taskQueue.splice(i, 1);
+        this.activeTasks.set(task.id, task);
+        pool.assignments.set(availableWorker, task.id);
+        console.log(
+          `[WorkerManager] Processing task: ${task.id} with worker: ${workerFileName}`,
+        );
+
+        // Collect transferable objects from payload
+        const transferables: Transferable[] = [];
+        if (typeof task.payload === "object" && task.payload !== null) {
+          Object.values(task.payload).forEach((value) => {
+            if (
+              value instanceof OffscreenCanvas ||
+              value instanceof ArrayBuffer ||
+              value instanceof MessagePort
+            ) {
+              transferables.push(value);
+            }
+          });
+        }
+
+        // Send the full IWorkerTask object to the worker
+        if (transferables.length > 0) {
+          try {
+            availableWorker.postMessage(task, transferables);
+          } catch (error) {
+            console.error(
+              `[WorkerManager] Error posting message with transferables:`,
+              error,
+              "Task ID:",
+              task.id,
+              "Transferables count:",
+              transferables.length,
+            );
+            throw error;
+          }
+        } else {
+          availableWorker.postMessage(task);
+        }
+
+        this.updateStatus();
+        // Continue processing if there are more tasks
+        this.processQueue();
+        return;
+      }
     }
-
-    this.updateStatus();
-    // Continue processing if there are more tasks
-    this.processQueue();
-  }
-
-  private isWorkerBusy(worker: Worker): boolean {
-    return this.workerAssignments.get(worker) !== null;
+    // If no available worker for any task, just return
+    // (will be retried when a worker becomes available)
   }
 
   private handleWorkerMessage(message: IWorkerMessage, worker: Worker): void {
     const taskId = message.taskId;
+
+    console.log("got worker message", message);
 
     if (!taskId) {
       // Log messages without task ID
@@ -171,16 +207,31 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
       return;
     }
 
+    if (!message.taskType) {
+      console.error("[WorkerManager] Received message without taskType");
+      return;
+    }
+    const pool = this.workerPools.get(
+      workerManagerConfig.taskWorkerMapping[message.taskType],
+    );
+    if (!pool) {
+      console.error(
+        "[WorkerManager] Could not find pool for worker (taskType: " +
+          message.taskType +
+          ")",
+      );
+      return;
+    }
+
     switch (message.type) {
       case "log":
         console.log(`[WORKER ${taskId}]`, message.message);
         break;
 
       case "result":
-        //task.callbacks?.onSuccess(message.data);
         this.activeTasks.delete(taskId);
         this.processedTaskIds.add(taskId);
-        this.workerAssignments.set(worker, null); // Free up worker
+        pool.assignments.set(worker, null); // Free up worker
         console.log(`[WorkerManager] Task completed: ${taskId}`);
         this.updateStatus({
           taskId,
@@ -193,10 +244,9 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
         break;
 
       case "error":
-        //task.callbacks?.onError(new Error(message.message || "Unknown error"));
         this.activeTasks.delete(taskId);
         this.processedTaskIds.add(taskId);
-        this.workerAssignments.set(worker, null); // Free up worker
+        pool.assignments.set(worker, null); // Free up worker
         console.error(`[WorkerManager] Task failed: ${taskId}`);
         console.error(`[WorkerManager] worker error: ${message.message}`);
         this.updateStatus({
@@ -217,14 +267,13 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
   }
 
   public terminate(): void {
-    if (this.workers.length === 0) {
-      return;
+    for (const pool of this.workerPools.values()) {
+      pool.workers.forEach((worker) => worker.terminate());
+      pool.workers.length = 0;
+      pool.assignments.clear();
     }
-    this.workers.forEach((worker) => worker.terminate());
-    this.workers = [];
     this.taskQueue = [];
     this.activeTasks.clear();
-    this.workerAssignments.clear();
     this.processedTaskIds.clear();
     console.log("[WorkerManager] Terminated all workers");
   }

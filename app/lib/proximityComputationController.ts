@@ -9,6 +9,7 @@ import {
 import { gameStateController } from "@/app/lib/gameStateController";
 import { CostFunction } from "./types/pathfinding";
 import { CompactGraph } from "./graph";
+import { ConstructibleHelper } from "./constructibleHelper";
 
 export interface IProximityComputationResults {
   proximityCostsForCapital: Map<ILocationIdentifier, number>; //TODO : not a fan of map, lets change graph to use Record
@@ -40,22 +41,46 @@ export class ProximityComputationController extends Observable<IProximityComputa
           "[ProximityComputationController] no adjacency graph set",
         );
       }
-      const capitalLocation = gameState.capitalLocation;
-      if (!capitalLocation) {
-        console.warn("can not compute proximity costs: no capital set");
+      const proximitySourceLocations =
+        ConstructibleHelper.getLocalProximitySourceLocations(gameState);
+
+      if (Object.keys(proximitySourceLocations).length === 0) {
+        console.warn(
+          "can not compute proximity costs: no proximity source locations",
+        );
         return;
       }
 
-      const reachable = this.adjacencyGraph.reachableWithinCost(
-        capitalLocation,
-        100,
-        this.getProximityCostFunction(gameState),
-      );
+      const locationsResults: Record<
+        ILocationIdentifier,
+        Map<string, number>
+      > = {};
 
-      this.subject.proximityCostsForCapital = reachable;
-      console.log("[ProximityComputationController] computed proximity costs", {
-        reachable,
-      });
+      for (const [locationName, proximitySource] of Object.entries(
+        proximitySourceLocations,
+      )) {
+        locationsResults[locationName] =
+          this.adjacencyGraph.reachableWithinCost(
+            locationName,
+            proximitySource,
+            this.getProximityCostFunction(gameState),
+          );
+      }
+
+      const mergedResults: Map<string, number> = new Map();
+      for (const [location, resultMap] of Object.entries(locationsResults)) {
+        for (const [target, cost] of resultMap.entries()) {
+          const deducedCost = 100 - proximitySourceLocations[location] + cost;
+          if (
+            !mergedResults.has(target) ||
+            deducedCost < mergedResults.get(target)!
+          ) {
+            mergedResults.set(target, deducedCost);
+          }
+        }
+      }
+
+      this.subject.proximityCostsForCapital = mergedResults;
       this.notifyListeners();
     });
   }

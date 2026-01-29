@@ -157,7 +157,6 @@ export class DrawingService {
               data.locationName,
               data.coordinates as ICoordinate[],
             );
-            console.log("[DrawingLogicController] got color task result", data);
           }
           this.drawAreas(gameState, proximityEvaluation);
           this.drawConstructible(gameState);
@@ -183,9 +182,15 @@ export class DrawingService {
         missingCoordinates.push(location);
         continue;
       }
-      const evaluation =
+      let evaluation =
         proximityEvaluation.proximityCostsForCapital?.get(location) ??
         undefined;
+      if (
+        evaluation &&
+        (evaluation < 0 || evaluation > 100 || isNaN(evaluation))
+      ) {
+        evaluation = undefined;
+      }
       const [r, g, b] =
         evaluation !== undefined
           ? greenToRedGradient[Math.round(evaluation)]
@@ -230,7 +235,6 @@ export class DrawingService {
   }
 
   private drawConstructible(gameState: IGameState): void {
-    // Clear the canvas first TODO: see if this is needed
     this.constructibleDrawingContext.clearRect(
       0,
       0,

@@ -155,4 +155,27 @@ export class ConstructibleHelper {
     }
     return constructibleState;
   }
-} //TODO : check if location is rural or urban
+
+  public static getLocalProximitySourceLocations(
+    gameState: IGameState,
+  ): Record<ILocationIdentifier, number> {
+    const proximitySourceLocations: Record<ILocationIdentifier, number> = {};
+    for (const locationName of Object.keys(gameState.ownedLocations)) {
+      if (gameState.capitalLocation === locationName) {
+        proximitySourceLocations[locationName] = 100;
+      } else {
+        const locationBuildings =
+          gameState.ownedLocations[locationName].buildings;
+        const highestProximitySource = Math.max(
+          ...locationBuildings.map(
+            (b) => b.template.localProximitySource?.[b.level - 1] || 0,
+          ),
+        );
+        if (highestProximitySource > 0) {
+          proximitySourceLocations[locationName] = highestProximitySource;
+        }
+      }
+    }
+    return proximitySourceLocations;
+  }
+}

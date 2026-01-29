@@ -6,7 +6,7 @@ import {
   IGameState,
   ILocationIdentifier,
 } from "../lib/types/general";
-import { ConstructibleHelper } from "../lib/constructible.helper";
+import { ConstructibleHelper } from "../lib/constructibleHelper";
 import { AppContext } from "../appContextProvider";
 import { getGuiImage } from "../lib/drawing/namedGuiImagesMap.const";
 

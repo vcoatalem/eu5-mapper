@@ -79,7 +79,7 @@ export function WorldMapComponent() {
   const layersRenderedRef = useRef(0);
   const totalLayersRef = useRef(0);
 
-  const workerPoolSize = 4;
+  const workerPoolSize = 2;
   const initializeWorkerAndCanvas = (): void => {
     workerManager.terminate();
     workerManager.init(
@@ -433,31 +433,11 @@ export function WorldMapComponent() {
             gameData.locationDataMap[clickedOnLocationRef.current],
         });
 
-        /*  const reachable = adjacencyGraph?.reachableWithinCost(
-          clickedOnLocationRef.current,
-          100,
-          gameStateController.proximityCostFunction,
-        ); */
+        const location = gameData.locationDataMap[clickedOnLocationRef.current];
 
-        /*       console.log({ reachable }); */
-
-        if (gameData.locationDataMap[clickedOnLocationRef.current].ownable) {
+        if (location && location.ownable) {
           setSelectedLocation(clickedOnLocationRef.current);
           gameStateController.selectLocation(clickedOnLocationRef.current);
-          const hexColor =
-            gameData.locationDataMap[clickedOnLocationRef.current].hexColor;
-          const taskId = `colorSearch-${clickedOnLocationRef.current}`;
-          workerManager.queueTask({
-            id: taskId,
-            type: "colorSearch",
-            payload: {
-              type: "colorSearch",
-              canvasWidth: colorCanvas.width,
-              canvasHeight: colorCanvas.height,
-              colorHex: hexColor,
-              locationName: clickedOnLocationRef.current,
-            },
-          });
         }
       }
       isDraggingRef.current = false;
@@ -605,10 +585,10 @@ export function WorldMapComponent() {
               <ConstructibleMenusComponent></ConstructibleMenusComponent>
             </GuiElement>
           )}
-          <GuiElement className="fixed left-0 right-0 bottom-0">
+          <GuiElement className="fixed left-5 right-5 bottom-1">
             <InfoBoxComponent />
           </GuiElement>
-          <GuiElement className="fixed right-5 bottom-5">
+          <GuiElement className="fixed right-5 bottom-15">
             <div className="gap-2 flex flex-col">
               <WorkerStatusComponent />
               <div className="flex flex-row gap-2 ">

@@ -187,6 +187,7 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
         this.processedTaskIds.add(taskId);
         this.workerAssignments.set(worker, null); // Free up worker
         console.error(`[WorkerManager] Task failed: ${taskId}`);
+        console.error(`[WorkerManager] worker error: ${message.message}`);
         this.updateStatus({
           taskId,
           type: task.type,

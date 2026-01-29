@@ -85,6 +85,7 @@ export class DrawingLogicController {
     name: ILocationIdentifier,
     coordinates: ICoordinate[],
   ): void {
+    console.log("[DrawingLogicController] adding coordinate", name, coordinates);
     if (!this.coordinateMap[name]) {
       this.coordinateMap[name] = coordinates;
     }
@@ -118,7 +119,7 @@ export class DrawingLogicController {
     const observeGameStateAndComputation = new ObservableCombiner([
       gameStateController,
       proximityComputationController,
-    ]).debounce(10);
+    ]);
     new ObservableCombiner([workerManager, observeGameStateAndComputation])
       .debounce(10)
       .subscribe(
@@ -131,24 +132,28 @@ export class DrawingLogicController {
           ],
           changedIndex,
         }) => {
+          console.log("[DrawingLogicController] subscribtion triggered", { lastCompletedTask, gameState, proximityEvaluation, changedIndex });
+          
           if (changedIndex === 0) {
-            if (lastCompletedTask && lastCompletedTask.type === "colorSearch") {
-              const data = lastCompletedTask.data as {
-                locationName: ILocationIdentifier;
-                coordinates: ICoordinate[];
-              };
-              this.addCoordinate(
-                data.locationName,
-                data.coordinates as ICoordinate[],
-              );
-              console.log(
-                "[DrawingLogicController] got color task result",
-                data,
-              );
-            } else {
-              return;
+          if (!lastCompletedTask || lastCompletedTask.type !== "colorSearch") {
+              return; // Don't redraw if subscription was triggered by a task that is not non-colorSearch tasks
             }
           }
+
+          if (lastCompletedTask && lastCompletedTask.type === "colorSearch") {
+            const data = lastCompletedTask.data as {
+              locationName: ILocationIdentifier;
+              coordinates: ICoordinate[];
+            };
+            this.addCoordinate(
+              data.locationName,
+              data.coordinates as ICoordinate[],
+            );
+            console.log(
+              "[DrawingLogicController] got color task result",
+              data,
+            );
+          }          
           this.drawAreas(gameState, proximityEvaluation);
           this.drawConstructible(gameState);
         },
@@ -166,9 +171,12 @@ export class DrawingLogicController {
 
     const data = imageData.data;
 
+
+    let missingCoordinates: ILocationIdentifier[] = [];
     for (const location of Object.keys(gameState.ownedLocations)) {
       const coordinates = this.coordinateMap[location];
       if (!coordinates) {
+        missingCoordinates.push(location);
         continue;
       }
       const evaluation =
@@ -185,6 +193,28 @@ export class DrawingLogicController {
         data[index + 1] = g; // G
         data[index + 2] = b; // B
         data[index + 3] = 255; // A
+      }
+    }
+
+    if (missingCoordinates.length > 0) {
+      for (const location of missingCoordinates) {
+        const locationData = this.gameData?.locationDataMap[location];
+        if (!locationData) {
+          continue;
+        }
+        const taskId = `colorSearch-${location}`;
+          workerManager.queueTask({
+            id: taskId,
+            type: "colorSearch",
+            payload: {
+              type: "colorSearch",
+              canvasWidth: this.areaDrawingCanvas.width,
+              canvasHeight: this.areaDrawingCanvas.height,
+              startCoordinates: {x: locationData.constructibleLocationCoordinate?.x,
+                 y: this.areaDrawingCanvas.height - (locationData.constructibleLocationCoordinate?.y ?? 0)},
+              locationName: location,
+            },
+          });
       }
     }
 

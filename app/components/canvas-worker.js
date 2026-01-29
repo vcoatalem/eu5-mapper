@@ -1,26 +1,66 @@
-const getAllCoordinatesOfColor = (data32, width, targetColor32) => {
-  try {
-    const len = data32.length;
-    const coordinates = [];
-
-    // Use bitwise operations for faster comparison
-    for (let i = 0; i < len; i++) {
-      if ((data32[i] & 0x00ffffff) === targetColor32) {
-        const x = i % width;
-        const y = (i / width) | 0; // Bitwise OR for faster floor
-        coordinates.push({ x, y });
-      }
-    }
-
-    return coordinates;
-  } catch (e) {
-    self.postMessage({
-      type: "log",
-      message: `something went wrong while executing getAllCoordinatesOfColor - ${e}`,
-    });
+const scanlineFill = (data32, width, startX, startY) => {
+  const height = data32.length / width;
+  const visited = new Uint8Array(data32.length);
+  
+  // Normalize and validate starting coordinates
+  const x = Math.floor(startX);
+  const y = Math.floor(startY);
+  
+  if (x < 0 || x >= width || y < 0 || y >= height) {
     return [];
   }
-};
+  
+  // Get target color (mask alpha channel like getAllCoordinatesOfColor)
+  const startIdx = y * width + x;
+  const targetColor32 = data32[startIdx] & 0x00ffffff;
+  const coords = [];
+  const stack = [[x, y]];
+  const maxIterations = width * height;
+  let iterations = 0;
+  
+  // Neighbor offsets: [dx, dy]
+  const neighbors = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+  
+  while (stack.length > 0 && iterations < maxIterations) {
+    iterations++;
+    const [cx, cy] = stack.pop();
+    const idx = cy * width + cx;
+    
+    // Skip if already visited or wrong color
+    if (visited[idx]) continue;
+    
+    const currentColor = data32[idx] & 0x00ffffff;
+    if (currentColor !== targetColor32) continue;
+    
+    // Mark as visited and add to results
+    visited[idx] = 1;
+    coords.push({ x: cx, y: cy });
+    
+    // Check and add valid neighbors
+    for (const [dx, dy] of neighbors) {
+      const nx = cx + dx;
+      const ny = cy + dy;
+      
+      // Bounds check
+      if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
+      
+      const neighborIdx = ny * width + nx;
+      if (!visited[neighborIdx] && (data32[neighborIdx] & 0x00ffffff) === targetColor32) {
+        stack.push([nx, ny]);
+      }
+    }
+  }
+  
+  if (iterations >= maxIterations) {
+    self.postMessage({
+      type: "log",
+      message: `scanlineFill hit max iterations: ${maxIterations}, stack: ${stack.length}, coords: ${coords.length}`,
+    });
+  }
+  
+  return coords;
+}
+
 
 let pixelData32; // Uint32Array for fast pixel access
 let canvasWidth;
@@ -80,26 +120,73 @@ self.onmessage = function (e) {
           );
         }
 
-        // Convert hex to 32-bit color (ABGR format for little-endian)
-        const r = parseInt(e.data.colorHex.slice(0, 2), 16);
-        const g = parseInt(e.data.colorHex.slice(2, 4), 16);
-        const b = parseInt(e.data.colorHex.slice(4, 6), 16);
-        const targetColor32 = (b << 16) | (g << 8) | r;
-
-        const coordinates = getAllCoordinatesOfColor(
-          pixelData32,
-          canvasWidth,
-          targetColor32,
-        );
 
         self.postMessage({
-          type: "result",
+          type: "log",
+          message: `colorSearch payload: ${JSON.stringify(e.data)}`,
           taskId: taskId,
-          data: {
-            coordinates: coordinates,
-            locationName: e.data.locationName,
-          },
-        });
+        })
+
+        if (e.data.colorHex) {
+          try {
+            // Convert hex to 32-bit color (ABGR format for little-endian)
+          const r = parseInt(e.data.colorHex.slice(0, 2), 16);
+          const g = parseInt(e.data.colorHex.slice(2, 4), 16);
+          const b = parseInt(e.data.colorHex.slice(4, 6), 16);
+          const targetColor32 = (b << 16) | (g << 8) | r;
+
+          const coordinates = getAllCoordinatesOfColor(
+            pixelData32,
+            canvasWidth,
+            targetColor32,
+          );
+
+          self.postMessage({
+            type: "result",
+            taskId: taskId,
+            data: {
+              coordinates: coordinates,
+              locationName: e.data.locationName,
+            },
+          });
+          }
+          catch (err) {
+            self.postMessage({
+              type: "error",
+              taskId: taskId,
+              message: `Color search failed: ${err.message}`,
+            });
+          }
+        }
+        else if (e.data.startCoordinates?.x && e.data.startCoordinates?.y) {
+          try {
+            const coordinates = scanlineFill(
+              pixelData32,
+              canvasWidth,
+              e.data.startCoordinates.x,
+              e.data.startCoordinates.y,
+            );
+  
+            self.postMessage({
+              type: "result",
+              taskId: taskId,
+              data: {
+                coordinates: coordinates,
+                locationName: e.data.locationName,
+              },
+            });
+          } catch (err) {
+            self.postMessage({
+              type: "error",
+              taskId: taskId,
+              message: `Scanline fill failed: ${err.message}`,
+            });
+          }
+          
+        }
+        else {
+          throw new Error("Invalid color search payload");
+        }
       } catch (err) {
         self.postMessage({
           type: "error",

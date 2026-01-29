@@ -12,6 +12,7 @@ import {
 import { greenToRedGradient } from "./drawing/greenToRedGradient.const";
 import { workerManager } from "./workerManager";
 import { ObservableCombiner } from "./observableCombiner";
+import { DrawingHelper } from "./drawing/drawing.helper";
 
 export class DrawingService {
   private areaDrawingCanvas: HTMLCanvasElement;
@@ -85,7 +86,11 @@ export class DrawingService {
     name: ILocationIdentifier,
     coordinates: ICoordinate[],
   ): void {
-    console.log("[DrawingLogicController] adding coordinate", name, coordinates);
+    console.log(
+      "[DrawingLogicController] adding coordinate",
+      name,
+      coordinates,
+    );
     if (!this.coordinateMap[name]) {
       this.coordinateMap[name] = coordinates;
     }
@@ -132,10 +137,18 @@ export class DrawingService {
           ],
           changedIndex,
         }) => {
-          console.log("[DrawingLogicController] subscribtion triggered", { lastCompletedTask, gameState, proximityEvaluation, changedIndex });
-          
+          console.log("[DrawingLogicController] subscribtion triggered", {
+            lastCompletedTask,
+            gameState,
+            proximityEvaluation,
+            changedIndex,
+          });
+
           if (changedIndex === 0) {
-          if (!lastCompletedTask || lastCompletedTask.type !== "colorSearch") {
+            if (
+              !lastCompletedTask ||
+              lastCompletedTask.type !== "colorSearch"
+            ) {
               return; // Don't redraw if subscription was triggered by a task that is not non-colorSearch tasks
             }
           }
@@ -149,11 +162,8 @@ export class DrawingService {
               data.locationName,
               data.coordinates as ICoordinate[],
             );
-            console.log(
-              "[DrawingLogicController] got color task result",
-              data,
-            );
-          }          
+            console.log("[DrawingLogicController] got color task result", data);
+          }
           this.drawAreas(gameState, proximityEvaluation);
           this.drawConstructible(gameState);
         },
@@ -170,7 +180,6 @@ export class DrawingService {
     );
 
     const data = imageData.data;
-
 
     let missingCoordinates: ILocationIdentifier[] = [];
     for (const location of Object.keys(gameState.ownedLocations)) {
@@ -203,18 +212,20 @@ export class DrawingService {
           continue;
         }
         const taskId = `colorSearch-${location}`;
-          workerManager.queueTask({
-            id: taskId,
+        workerManager.queueTask({
+          id: taskId,
+          type: "colorSearch",
+          payload: {
             type: "colorSearch",
-            payload: {
-              type: "colorSearch",
-              canvasWidth: this.areaDrawingCanvas.width,
-              canvasHeight: this.areaDrawingCanvas.height,
-              startCoordinates: {x: locationData.constructibleLocationCoordinate?.x,
-                 y: this.areaDrawingCanvas.height - (locationData.constructibleLocationCoordinate?.y ?? 0)},
-              locationName: location,
-            },
-          });
+            canvasWidth: this.areaDrawingCanvas.width,
+            canvasHeight: this.areaDrawingCanvas.height,
+            startCoordinates: DrawingHelper.gameCoordinatesToCanvasCoordinates(
+              locationData.constructibleLocationCoordinate ?? { x: 0, y: 0 },
+              this.areaDrawingCanvas.height,
+            ),
+            locationName: location,
+          },
+        });
       }
     }
 
@@ -244,10 +255,10 @@ export class DrawingService {
           .constructibleLocationCoordinate;
 
       if (locationCoordinates) {
-        // Convert game world coordinates to canvas coordinates
-        // Game world Y goes up (north), canvas Y goes down (south)
-        const canvasX = locationCoordinates.x;
-        const canvasY = this.mapInfos.height - locationCoordinates.y;
+        const { x, y } = DrawingHelper.gameCoordinatesToCanvasCoordinates(
+          { x: locationCoordinates.x, y: locationCoordinates.y },
+          this.mapInfos.height,
+        );
 
         const color =
           gameState.capitalLocation === locationIdentifier
@@ -256,11 +267,11 @@ export class DrawingService {
 
         const level = constructible.level;
         if (level === "rural") {
-          this.drawCircle(canvasX, canvasY, 2, color);
+          this.drawCircle(x, y, 2, color);
         } else if (level === "town") {
-          this.drawSquare(canvasX, canvasY, 4, color);
+          this.drawSquare(x, y, 4, color);
         } else if (level === "city") {
-          this.drawPentagon(canvasX, canvasY, 8, color);
+          this.drawPentagon(x, y, 8, color);
         }
       }
     }

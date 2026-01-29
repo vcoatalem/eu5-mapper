@@ -12,7 +12,7 @@ import { InfoBoxComponent } from "./infoBox.component";
 import { AppContext } from "../appContextProvider";
 import { gameStateController } from "@/app/lib/gameStateController";
 import { ILocationIdentifier } from "../lib/types/general";
-import { DrawingLogicController } from "@/app/lib/drawingLogicController";
+import { DrawingService } from "@/app/lib/drawingService";
 import { workerManager } from "@/app/lib/workerManager";
 import { LoadingScreenComponent } from "./loadingScreen.component";
 import { ZoomController } from "@/app/lib/zoomController";
@@ -69,7 +69,7 @@ export function WorldMapComponent() {
   const topLayerRef = useRef<HTMLCanvasElement>(null);
   const constructibleCanvasRef = useRef<HTMLCanvasElement>(null); //TODO: hide this canvas when zoom level is low
   const containerRef = useRef<HTMLDivElement>(null);
-  const drawingLogicRef = useRef<DrawingLogicController>(null);
+  const drawingServiceRef = useRef<DrawingService>(null);
   const zoomControllerRef = useRef<ZoomController>(new ZoomController());
   const [, forceUpdate] = useState({});
   const [isLoading, setIsLoading] = useState(true);
@@ -383,7 +383,7 @@ export function WorldMapComponent() {
     gameStateController.init(gameData);
     proximityComputationController.init(gameData, adjacencyGraph);
 
-    drawingLogicRef.current = new DrawingLogicController(
+    drawingServiceRef.current = new DrawingService(
       areaDrawingCanvasRef.current!,
       constructibleCanvasRef.current!,
       { width: mapInfos.width, height: mapInfos.height },

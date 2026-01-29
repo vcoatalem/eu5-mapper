@@ -13,7 +13,7 @@ import { greenToRedGradient } from "./drawing/greenToRedGradient.const";
 import { workerManager } from "./workerManager";
 import { ObservableCombiner } from "./observableCombiner";
 
-export class DrawingLogicController {
+export class DrawingService {
   private areaDrawingCanvas: HTMLCanvasElement;
   private areaDrawingContext: CanvasRenderingContext2D;
   private constructibleDrawingCanvas: HTMLCanvasElement;

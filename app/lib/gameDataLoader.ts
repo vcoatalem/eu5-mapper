@@ -11,6 +11,7 @@ type GameDataFiles = {
   locationsColorMappingFilePath: string;
   locationsCityCoordinatesMapFilePath: string;
   buildingsDataFilePath: string;
+  countriesDataFilePath: string;
 };
 
 const baseFolderNames: GameDataFiles = {
@@ -20,6 +21,7 @@ const baseFolderNames: GameDataFiles = {
   locationsColorMappingFilePath: "locations_color_mapping",
   locationsCityCoordinatesMapFilePath: "locations_city_coordinates",
   buildingsDataFilePath: "buildings_data",
+  countriesDataFilePath: "countries_data",
 };
 
 export class GameDataLoader {

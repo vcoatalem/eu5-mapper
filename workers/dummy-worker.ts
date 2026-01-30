@@ -1,13 +1,13 @@
-import { sendMessage } from "../utils";
-import { IWorkerTask } from "../types/workerTypes";
-import { IndexedDBReader } from "../../app/lib/indexeddb/indexeddb-reader";
+import { sendMessage } from "./utils";
+import { IWorkerTask } from "./types/workerTypes";
+import { IndexedDBReader } from "../app/lib/indexeddb/indexeddb-reader";
 import {
   dbDataKey,
   dbGameDataStoreName,
   dbName,
   dbStoreNames,
   dbVersion,
-} from "../../app/lib/indexeddb/indexeddb.const";
+} from "../app/lib/indexeddb/indexeddb.const";
 
 const connection = new IndexedDBReader(dbName, dbVersion, dbStoreNames);
 

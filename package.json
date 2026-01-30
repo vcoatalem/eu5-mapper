@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build:workers": "node scripts/build-workers.js",
-    "dev": "next dev --webpack",
-    "build": "next build --webpack",
+    "build:workers": "node scripts/build-and-publish-workers.js",
+    "build:workers:watch": "nodemon --watch workers --ext ts --exec 'node scripts/build-and-publish-workers.js'",
+    "dev": "next dev",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
@@ -23,6 +24,7 @@
     "eslint-config-next": "16.1.4",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "esbuild": "^0.19.2"
+    "esbuild": "^0.19.2",
+    "nodemon": "3.1.11"
   }
 }

@@ -1,10 +1,10 @@
-import type { ICoordinate } from "../../app/lib/types/general";
+import type { ICoordinate } from "../app/lib/types/general";
 import {
   IWorkerTask,
   IWorkerTaskColorSearchPayload,
   IWorkerTaskInitWithImagePayload,
-} from "../types/workerTypes";
-import { sendMessage } from "../utils";
+} from "./types/workerTypes";
+import { sendMessage } from "./utils";
 
 //type Coordinate = { x: number; y: number };
 /**

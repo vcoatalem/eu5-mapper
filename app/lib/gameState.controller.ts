@@ -1,6 +1,6 @@
 "use client";
 
-import { ConstructibleHelper } from "./constructibleHelper";
+import { ConstructibleHelper } from "./constructible.helper";
 import { Observable } from "./observable";
 import { IConstructibleLocation, IGameData, IGameState } from "./types/general";
 

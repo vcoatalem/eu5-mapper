@@ -10,14 +10,14 @@ import {
 
 import { InfoBoxComponent } from "./infoBox.component";
 import { AppContext } from "../appContextProvider";
-import { gameStateController } from "@/app/lib/gameStateController";
+import { gameStateController } from "@/app/lib/gameState.controller";
 import { ILocationIdentifier } from "../lib/types/general";
-import { DrawingService } from "@/app/lib/drawingService";
+import { DrawingService } from "@/app/lib/drawing.service";
 import { workerManager } from "@/app/lib/workerManager";
 import { LoadingScreenComponent } from "./loadingScreen.component";
 import { ZoomController } from "@/app/lib/zoomController";
 import { WorkerStatusComponent } from "./workerStatus.component";
-import { proximityComputationController } from "@/app/lib/proximityComputationController";
+import { proximityComputationController } from "@/app/lib/proximityComputation.controller";
 import { ConstructibleMenusComponent } from "./constructibleMenus.component";
 import { GuiElement } from "./guiElement";
 import { workerManagerConfig } from "../lib/workerManager.config";

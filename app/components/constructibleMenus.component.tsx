@@ -1,12 +1,12 @@
 import { useContext, useSyncExternalStore } from "react";
-import { gameStateController } from "@/app/lib/gameStateController";
+import { gameStateController } from "@/app/lib/gameState.controller";
 import {
   IConstructibleLocation,
   IGameData,
   IGameState,
   ILocationIdentifier,
 } from "../lib/types/general";
-import { ConstructibleHelper } from "../lib/constructibleHelper";
+import { ConstructibleHelper } from "../lib/constructible.helper";
 import { AppContext } from "../appContextProvider";
 import { getGuiImage } from "../lib/drawing/namedGuiImagesMap.const";
 

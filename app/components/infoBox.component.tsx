@@ -3,7 +3,7 @@ import { AppContext } from "../appContextProvider";
 import { IGameState, ILocationGameData } from "../lib/types/general";
 import { CompactGraph } from "../lib/graph";
 import { NeighborInfo } from "../lib/types/pathfinding";
-import { gameStateController } from "@/app/lib/gameStateController";
+import { gameStateController } from "@/app/lib/gameState.controller";
 
 const buildLocationDisplay = (
   locationData: ILocationGameData,

@@ -10,7 +10,7 @@ import {
 import { useParams } from "next/navigation";
 import { ILocationIdentifier, IGameData } from "./lib/types/general";
 import { CompactGraph } from "./lib/graph";
-import { ParserHelper } from "./lib/parserHelper";
+import { ParserHelper } from "./lib/parser.helper";
 import { IndexedDBWriter } from "./lib/indexeddb/indexeddb-writer";
 import {
   dbAdjacencyDataStoreName,

@@ -1,8 +1,8 @@
-import { gameStateController } from "@/app/lib/gameStateController";
+import { gameStateController } from "@/app/lib/gameState.controller";
 import {
   IProximityComputationResults,
   proximityComputationController,
-} from "@/app/lib/proximityComputationController";
+} from "@/app/lib/proximityComputation.controller";
 import {
   ICoordinate,
   IGameData,

@@ -6,10 +6,11 @@ import {
   ILocationGameData,
   ILocationIdentifier,
 } from "./types/general";
-import { gameStateController } from "@/app/lib/gameStateController";
+import { gameStateController } from "@/app/lib/gameState.controller";
 import { CostFunction } from "./types/pathfinding";
 import { CompactGraph } from "./graph";
-import { ConstructibleHelper } from "./constructibleHelper";
+import { ConstructibleHelper } from "./constructible.helper";
+import { ProximityComputationHelper } from "./proximityComputation.helper";
 
 export interface IProximityComputationResults {
   proximityCostsForCapital: Map<ILocationIdentifier, number>; //TODO : not a fan of map, lets change graph to use Record
@@ -18,11 +19,6 @@ export interface IProximityComputationResults {
 export class ProximityComputationController extends Observable<IProximityComputationResults> {
   private gameData: IGameData | null = null;
   private adjacencyGraph: CompactGraph | null = null;
-
-  private locationNaturalLocalProximityCostReductionMap: Record<
-    ILocationIdentifier,
-    number
-  > = {};
 
   constructor() {
     super();
@@ -85,116 +81,6 @@ export class ProximityComputationController extends Observable<IProximityComputa
     });
   }
 
-  private getEnvironmentalProximityCostIncreasePercentage = (
-    location: ILocationGameData,
-  ): number => {
-    if (!this.gameData) {
-      throw new Error(
-        "[ProximityComputationController] gameData not initialized",
-      );
-    }
-
-    if (
-      this.locationNaturalLocalProximityCostReductionMap[location.name] !==
-      undefined
-    ) {
-      return this.locationNaturalLocalProximityCostReductionMap[location.name];
-    }
-
-    const rule = this.gameData.proximityComputationRule;
-
-    if (
-      !Object.keys(rule.proximityCostIncreasePercentage.topography).includes(
-        location.topography,
-      )
-    ) {
-      console.warn(
-        "[ProximityComputationController] Missing topography proximity cost increase percentage for ",
-        location.topography,
-      );
-    }
-    const topographyCostIncreasePercentage =
-      rule.proximityCostIncreasePercentage.topography?.[
-        location.topography as keyof IProximityComputationRule["proximityCostIncreasePercentage"]["topography"]
-      ] ?? 0;
-
-    if (
-      location.vegetation &&
-      !Object.keys(rule.proximityCostIncreasePercentage.vegetation).includes(
-        location?.vegetation,
-      )
-    ) {
-      console.warn(
-        "[ProximityComputationController] Missing vegetation proximity cost increase percentage for ",
-        location.vegetation,
-      );
-    }
-
-    const vegetationCostIncreasePercentage = location.vegetation
-      ? (rule.proximityCostIncreasePercentage.vegetation?.[
-          location.vegetation as keyof IProximityComputationRule["proximityCostIncreasePercentage"]["vegetation"]
-        ] ?? 0)
-      : 0;
-
-    const totalEnvironmentalCostIncrease =
-      topographyCostIncreasePercentage + vegetationCostIncreasePercentage;
-
-    this.locationNaturalLocalProximityCostReductionMap[location.name] =
-      totalEnvironmentalCostIncrease;
-    return totalEnvironmentalCostIncrease;
-  };
-
-  private getLocationProximityLocalCostReductionPercentage = (
-    location: ILocationGameData,
-    locationConstructibleData: IConstructibleLocation,
-  ): number => {
-    if (!this.gameData) {
-      throw new Error(
-        "[ProximityComputationController] gameData not initialized",
-      );
-    }
-    if (location.isSea || location.isLake) {
-      return 0;
-    }
-    const buildings = locationConstructibleData.buildings ?? [];
-    const totalBuildingsCostReduction = buildings
-      .map(
-        (b) => b.template.proximityCostReductionPercentage?.[b.level - 1] ?? 0,
-      )
-      .reduce((a, b) => a + b, 0);
-    const environmentalProximityCostIncreasePercentage =
-      this.getEnvironmentalProximityCostIncreasePercentage(location);
-
-    const development = location.development; // todo: use temporary value instead, to allow user modifying dev values
-    const developmentCostReduction =
-      development * this.gameData.proximityComputationRule.developmentImpact;
-
-    const total =
-      // positive proximity (cost reduction)
-      totalBuildingsCostReduction +
-      developmentCostReduction -
-      // negative proximity (cost increase)
-      environmentalProximityCostIncreasePercentage;
-    return total;
-  };
-
-  private getLocationHarborCapacity = (
-    locationData: ILocationGameData,
-    locationConstructibleData: IConstructibleLocation,
-  ): number => {
-    const naturalHarborSuitability = locationData.naturalHarborSuitability ?? 0;
-
-    const buildings = locationConstructibleData.buildings ?? [];
-    const totalBuildingsHarborCapacity = buildings
-      .map((b) => {
-        const capacity = b.template.harborCapacity?.[b.level - 1];
-        return capacity || 0;
-      })
-      .reduce((a, b) => a + b, 0);
-
-    return naturalHarborSuitability + totalBuildingsHarborCapacity;
-  };
-
   public getProximityCostFunction(gameState: IGameState): CostFunction {
     if (!this.gameData) {
       throw new Error(
@@ -210,6 +96,12 @@ export class ProximityComputationController extends Observable<IProximityComputa
       isPort: boolean,
       isLake: boolean,
     ) => {
+      if (!this.gameData) {
+        throw new Error(
+          "[ProximityComputationController] gameData not initialized",
+        );
+      }
+
       const rule = this.gameData!.proximityComputationRule;
 
       /*  console.log("enter proximity cost function", {
@@ -246,9 +138,10 @@ export class ProximityComputationController extends Observable<IProximityComputa
       const localProximityCostReductionPercentage = gameState.ownedLocations[
         from
       ]
-        ? this.getLocationProximityLocalCostReductionPercentage(
+        ? ProximityComputationHelper.getLocationProximityLocalCostReductionPercentage(
             this.gameData!.locationDataMap[from],
             gameState.ownedLocations[from],
+            this.gameData,
           )
         : 0;
       let modifiedCost =
@@ -264,10 +157,11 @@ export class ProximityComputationController extends Observable<IProximityComputa
         if (!gameState.ownedLocations[locationWithHarbor]) {
           return 0; // we dont use other peoples harbors
         }
-        const harborCapacity = this.getLocationHarborCapacity(
-          this.gameData!.locationDataMap[locationWithHarbor],
-          gameState.ownedLocations[locationWithHarbor],
-        );
+        const harborCapacity =
+          ProximityComputationHelper.getLocationHarborCapacity(
+            this.gameData!.locationDataMap[locationWithHarbor],
+            gameState.ownedLocations[locationWithHarbor],
+          );
 
         const harborImpact = rule.harborCapacityImpact;
         const multiplier = 1 - (harborImpact * harborCapacity) / 100;

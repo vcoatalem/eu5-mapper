@@ -122,6 +122,7 @@ def compute_location_development(
         'road': 0,
         'coastal': 0,
         'river': 0,
+        'river_coef': 0,  # New field for river coefficient
         'region': 0,
         'area': 0,
         'province': 0,
@@ -178,6 +179,7 @@ def compute_location_development(
         value = development_rules.river * river_size_coef
         development += value
         breakdown['river'] = value
+        breakdown['river_coef'] = river_size_coef
     
     # Add region modifier
     if hierarchy.region and hierarchy.region in development_rules.regions:
@@ -365,6 +367,7 @@ def generate_game_data_json(version: str = "0.0.11", output_dir: str = None):
             'has_road': location_name in roads_set,
             'is_coastal': is_coastal,
             'has_river': len(river_colors_list) > 0,
+            'river_coef': breakdown.get('river_coef', 0),
             **breakdown
         })
         
@@ -404,7 +407,7 @@ def generate_game_data_json(version: str = "0.0.11", output_dir: str = None):
     
     with open(csv_path, 'w', newline='', encoding='utf-8') as csvfile:
         fieldnames = ['location', 'ownable', 'topography_type', 'vegetation_type', 'rank', 
-                     'region', 'area', 'province', 'has_road', 'is_coastal', 'has_river',
+                     'region', 'area', 'province', 'has_road', 'is_coastal', 'has_river', 'river_coef',
                      'base', 'topography', 'vegetation', 'climate', 'rank', 'road', 'coastal', 'river',
                      'region', 'area', 'province', 'unique', 'total']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)

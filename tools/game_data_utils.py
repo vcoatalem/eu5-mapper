@@ -1,6 +1,7 @@
 """
 Utility functions for loading and parsing game data files.
 """
+import io
 import re
 from typing import Dict, Set, List, Tuple, Optional
 from dataclasses import dataclass
@@ -47,6 +48,127 @@ class DevelopmentRules:
     areas: Dict[str, int]  # e.g., {'svealand_area': 4}
     provinces: Dict[str, int]  # e.g., {'dublin_province': 3}
     uniqueLocations: Dict[str, int]  # e.g., {'venice': 7}
+
+
+def parse_game_data_file(filepath: str) -> dict:
+    """
+    Parse a custom game data file into a nested dict/list structure.
+    Handles nested objects and lists spanning multiple lines.
+    """
+    with open(filepath, 'r', encoding='utf-8-sig') as f:
+        content = f.read()
+    return _parse_game_data(io.StringIO(content))
+
+def _parse_game_data(f) -> dict:
+    def parse_value(token_iter):
+        for token in token_iter:
+            if token == '{':
+                # Could be a list or an object
+                # Peek ahead to see if it's a list (no = inside)
+                items = []
+                obj = {}
+                is_object = False
+                sub_tokens = []
+                depth = 1
+                for t in token_iter:
+                    if t == '{':
+                        depth += 1
+                    elif t == '}':
+                        depth -= 1
+                        if depth == 0:
+                            break
+                    sub_tokens.append(t)
+                # If any '=' in sub_tokens, treat as object
+                if '=' in sub_tokens:
+                    # Recurse as object
+                    return _parse_game_data(io.StringIO(' '.join(sub_tokens)))
+                else:
+                    # List
+                    return [x for x in sub_tokens if x not in ['{', '}']]
+            elif token == '}':
+                return None
+            elif token == '=':
+                continue
+            else:
+                # Try to parse as number
+                try:
+                    if '.' in token:
+                        return float(token)
+                    else:
+                        return int(token)
+                except ValueError:
+                    return token
+
+    def tokenize_lines(f):
+        for line in f:
+            # Remove comments
+            line = line.split('#', 1)[0].strip()
+            if not line:
+                continue
+            # Tokenize: split on whitespace, keep braces and = as separate tokens
+            tokens = []
+            buf = ''
+            for c in line:
+                if c in '{}=':
+                    if buf:
+                        tokens.append(buf)
+                        buf = ''
+                    tokens.append(c)
+                elif c.isspace():
+                    if buf:
+                        tokens.append(buf)
+                        buf = ''
+                else:
+                    buf += c
+            if buf:
+                tokens.append(buf)
+            for t in tokens:
+                yield t
+
+    tokens = list(tokenize_lines(f))
+    i = 0
+    result = {}
+    while i < len(tokens):
+        if tokens[i] == '}':
+            break
+        if i+2 < len(tokens) and tokens[i+1] == '=':
+            key = tokens[i]
+            if tokens[i+2] == '{':
+                # Find matching closing brace
+                depth = 1
+                j = i+3
+                while j < len(tokens):
+                    if tokens[j] == '{':
+                        depth += 1
+                    elif tokens[j] == '}':
+                        depth -= 1
+                        if depth == 0:
+                            break
+                    j += 1
+                value_tokens = tokens[i+2:j+1]
+                value = parse_value(iter(value_tokens))
+                # Store repeated keys as lists
+                if key in result:
+                    if isinstance(result[key], list):
+                        result[key].append(value)
+                    else:
+                        result[key] = [result[key], value]
+                else:
+                    result[key] = value
+                i = j+1
+            else:
+                value = parse_value(iter([tokens[i+2]]))
+                if key in result:
+                    if isinstance(result[key], list):
+                        result[key].append(value)
+                    else:
+                        result[key] = [result[key], value]
+                else:
+                    result[key] = value
+                i += 3
+        else:
+            i += 1
+    return result
 
 
 def hex_to_rgb(hex_str: str) -> Tuple[int, int, int]:
@@ -221,48 +343,25 @@ def parse_pops_file(pops_file: str) -> Dict[str, int]:
         dict: Mapping of location_name -> total_population (in actual numbers, converted from 1e3 format)
     """
     location_populations = {}
-    current_location = None
-    
-    with open(pops_file, 'r', encoding='utf-8') as f:
-        for line in f:
-            line = line.strip()
-            
-            # Skip empty lines and comments
-            if not line or line.startswith('#'):
-                continue
-            
-            # Check for location definition: "location_name = {"
-            if '=' in line and '{' in line and 'define_pop' not in line:
-                parts = line.split('=', 1)
-                if len(parts) == 2:
-                    location_name = parts[0].strip()
-                    # Start tracking this location
-                    current_location = location_name
-                    location_populations[current_location] = 0
-            
-            # Check for closing brace (end of location)
-            elif line == '}' and current_location:
-                current_location = None
-            
-            # Check for pop definition with size
-            elif current_location and 'size' in line:
-                # Extract size value: "size = 10.474"
-                if 'size' in line and '=' in line:
-                    parts = line.split('size')
-                    if len(parts) > 1:
-                        size_part = parts[1].strip()
-                        if '=' in size_part:
-                            size_str = size_part.split('=')[1].strip()
-                            # Extract just the number (before any spaces or other tokens)
-                            size_str = size_str.split()[0].strip()
-                            try:
-                                # Convert from 1e3 format: 10.474 -> 10474
-                                size_float = float(size_str)
-                                size_actual = int(size_float * 1000)
-                                location_populations[current_location] += size_actual
-                            except ValueError:
-                                pass  # Skip invalid numbers
-    
+    parsed = parse_game_data_file(pops_file)
+    locations = parsed.get('locations', {})
+    for location, data in locations.items():
+        total = 0
+        # data may be a dict with multiple define_pop entries (as lists or dicts)
+        if isinstance(data, dict):
+            # If 'define_pop' is a list, sum all sizes
+            pops = data.get('define_pop', [])
+            if isinstance(pops, dict):
+                pops = [pops]
+            for pop in pops:
+                if isinstance(pop, dict) and 'size' in pop:
+                    try:
+                        size_float = float(pop['size'])
+                        size_actual = int(size_float * 1000)
+                        total += size_actual
+                    except Exception:
+                        pass
+        location_populations[location] = total
     return location_populations
 
 
@@ -403,69 +502,27 @@ def parse_cities_and_buildings_file(cities_buildings_file: str, whitelisted_buil
     """
     if whitelisted_buildings is None:
         whitelisted_buildings = {'wharf', 'fishing_village', 'dock', 'bridge_infrastructure'}
-    
+
     location_ranks = {}
     location_buildings = {}
-    
-    with open(cities_buildings_file, 'r', encoding='utf-8') as f:
-        content = f.read()
-    
+    parsed = parse_game_data_file(cities_buildings_file)
+
     # Parse location ranks
-    in_locations_section = False
-    for line in content.split('\n'):
-        line = line.strip()
-        
-        # Skip empty lines and comments
-        if not line or line.startswith('#'):
-            continue
-        
-        # Check if we're in the locations section
-        if line == 'locations={':
-            in_locations_section = True
-            continue
-        elif in_locations_section and line == '}':
-            break
-        
-        # Parse location entries with rank
-        if in_locations_section and 'rank' in line and '=' in line:
-            # Format: "location_name = { rank = city/town ... }"
-            parts = line.split('=', 1)
-            if len(parts) == 2:
-                location_name = parts[0].strip()
-                properties = parts[1].strip()
-                
-                # Extract rank
-                if 'rank' in properties:
-                    rank_match = properties.split('rank')[1].strip()
-                    if '=' in rank_match:
-                        rank_value = rank_match.split('=')[1].strip().split()[0]
-                        location_ranks[location_name] = rank_value
-    
+    locations = parsed.get('locations', {})
+    if isinstance(locations, dict):
+        for location_name, props in locations.items():
+            if isinstance(props, dict) and 'rank' in props:
+                location_ranks[location_name] = props['rank']
+
     # Parse buildings
-    in_buildings_section = False
-    for line in content.split('\n'):
-        line = line.strip()
-        
-        # Skip empty lines and comments
-        if not line or line.startswith('#'):
-            continue
-        
-        # Check for building definitions (outside locations section)
-        # Format: "building_name = { tag = XXX level = N location = location_name }"
-        for building_name in whitelisted_buildings:
-            if line.startswith(building_name + ' =') or line.startswith(building_name + '\t='):
-                # Extract location
-                if 'location' in line:
-                    location_part = line.split('location')[1].strip()
-                    if '=' in location_part:
-                        location_name = location_part.split('=')[1].strip().split()[0]
-                        
-                        # Add building to location
-                        if location_name not in location_buildings:
-                            location_buildings[location_name] = []
-                        location_buildings[location_name].append(building_name)
-                break
-    
+    for building_name in whitelisted_buildings:
+        building_data = parsed.get(building_name)
+        if isinstance(building_data, dict) and 'location' in building_data:
+            location_name = building_data['location']
+            if location_name not in location_buildings:
+                location_buildings[location_name] = []
+            location_buildings[location_name].append(building_name)
+
     return location_ranks, location_buildings
 
 
@@ -523,111 +580,34 @@ def parse_location_hierarchy(hierarchy_file: str) -> Dict[str, LocationHierarchy
     Returns:
         Dict mapping location name to LocationHierarchy
     """
+    # Use the robust parser to get a nested dict
+    parsed = parse_game_data_file(hierarchy_file)
     location_hierarchy = {}
-    
-    with open(hierarchy_file, 'r', encoding='utf-8') as f:
-        content = f.read()
-    
-    lines = content.split("\n")
-    hierarchy_stack = []
-    inside_province = False
-    current_province_locations = []
-    
-    for line in lines:
-        # Skip comments and empty lines
-        if line.strip().startswith("#") or not line.strip():
-            continue
-        
-        # Count leading tabs
-        leading_tabs = len(line) - len(line.lstrip('\t'))
-        
-        # Handle closing braces
-        if line.strip() == "}":
-            if inside_province and current_province_locations:
-                hierarchy_value = LocationHierarchy(
-                    continent=hierarchy_stack[0] if len(hierarchy_stack) > 0 else "",
-                    subcontinent=hierarchy_stack[1] if len(hierarchy_stack) > 1 else "",
-                    region=hierarchy_stack[2] if len(hierarchy_stack) > 2 else "",
-                    area=hierarchy_stack[3] if len(hierarchy_stack) > 3 else "",
-                    province=hierarchy_stack[4] if len(hierarchy_stack) > 4 else "",
-                )
-                
-                for location_name in current_province_locations:
-                    location_hierarchy[location_name] = hierarchy_value
-                
-                current_province_locations = []
-                inside_province = False
-            
-            if hierarchy_stack:
-                hierarchy_stack.pop()
-            continue
-        
-        # Single-line province: province = { loc1 loc2 ... }
-        single_line_match = re.match(r'^\t*(\w+_province)\s*=\s*\{\s*(.+?)\s*\}', line)
-        if single_line_match:
-            province_name = single_line_match.group(1)
-            locations_line = single_line_match.group(2)
-            
-            # Update hierarchy stack
-            if leading_tabs < len(hierarchy_stack):
-                hierarchy_stack = hierarchy_stack[:leading_tabs]
-            if leading_tabs >= len(hierarchy_stack):
-                hierarchy_stack.append(province_name)
-            else:
-                hierarchy_stack[leading_tabs] = province_name
-            
-            # Extract location names
-            location_names = [
-                name for name in locations_line.split()
-                if name and not name.startswith("#") and name not in ["{", "}"]
-            ]
-            
-            hierarchy_value = LocationHierarchy(
-                continent=hierarchy_stack[0] if len(hierarchy_stack) > 0 else "",
-                subcontinent=hierarchy_stack[1] if len(hierarchy_stack) > 1 else "",
-                region=hierarchy_stack[2] if len(hierarchy_stack) > 2 else "",
-                area=hierarchy_stack[3] if len(hierarchy_stack) > 3 else "",
-                province=hierarchy_stack[4] if len(hierarchy_stack) > 4 else "",
-            )
-            
-            for location_name in location_names:
-                location_hierarchy[location_name] = hierarchy_value
-            continue
-        
-        # Multi-line province start: province = {
-        multi_line_match = re.match(r'^\t*(\w+_province)\s*=\s*\{$', line)
-        if multi_line_match:
-            province_name = multi_line_match.group(1)
-            if leading_tabs < len(hierarchy_stack):
-                hierarchy_stack = hierarchy_stack[:leading_tabs]
-            if leading_tabs >= len(hierarchy_stack):
-                hierarchy_stack.append(province_name)
-            else:
-                hierarchy_stack[leading_tabs] = province_name
-            inside_province = True
-            current_province_locations = []
-            continue
-        
-        # Opening brace (non-province)
-        open_brace_match = re.match(r'^\t*(\w+)\s*=\s*\{', line)
-        if open_brace_match and not open_brace_match.group(1).endswith("_province"):
-            name = open_brace_match.group(1)
-            if leading_tabs < len(hierarchy_stack):
-                hierarchy_stack = hierarchy_stack[:leading_tabs]
-            if leading_tabs >= len(hierarchy_stack):
-                hierarchy_stack.append(name)
-            else:
-                hierarchy_stack[leading_tabs] = name
-            continue
-        
-        # Collect location names inside province
-        if inside_province:
-            location_names = [
-                name for name in line.strip().split()
-                if name and not name.startswith("#") and name not in ["{", "}"]
-            ]
-            current_province_locations.extend(location_names)
-    
+
+    def traverse(obj, stack):
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                if k.endswith('_province') and isinstance(v, list):
+                    # Province: v is a list of locations
+                    full_stack = stack + [k]
+                    # Pad or trim to 5 levels
+                    padded = (full_stack + [''] * 5)[:5]
+                    for loc in v:
+                        location_hierarchy[loc] = LocationHierarchy(
+                            continent=padded[0],
+                            subcontinent=padded[1],
+                            region=padded[2],
+                            area=padded[3],
+                            province=padded[4],
+                        )
+                elif k.endswith('_province') and isinstance(v, dict):
+                    # Province with nested structure (rare)
+                    traverse(v, stack + [k])
+                elif isinstance(v, dict):
+                    traverse(v, stack + [k])
+        # lists are not expected at non-leaf nodes
+
+    traverse(parsed, [])
     return location_hierarchy
 
 

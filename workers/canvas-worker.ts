@@ -158,36 +158,35 @@ self.onmessage = function (e: MessageEvent<IWorkerTask>) {
 
         const payload = e.data.payload as IWorkerTaskColorSearchPayload;
 
-        if (payload.startCoordinates?.x && payload.startCoordinates?.y) {
-          try {
-            const coordinates = scanlineFill(
+        const result: IWorkerTaskColorSearchResult = { result: {} };
+
+        try {
+          for (const [locationName, coordinates] of Object.entries(
+            payload.startCoordinates,
+          )) {
+            const foundCoordinates = scanlineFill(
               pixelData32,
               canvasWidth,
-              payload.startCoordinates.x,
-              payload.startCoordinates.y,
+              coordinates.x,
+              coordinates.y,
               e.data,
             );
-
-            const result: IWorkerTaskColorSearchResult = {
-              coordinates: coordinates,
-              locationName: payload.locationName,
-            };
-            sendMessage(self, {
-              data: result,
-              message: "Color search completed",
-              level: "result",
-              task: e.data,
-            });
-          } catch (err) {
-            sendMessage(self, {
-              message: `Scanline fill failed: ${(err as any).message}`,
-              level: "error",
-              task: e.data,
-            });
+            result.result[locationName] = foundCoordinates;
           }
-        } else {
-          throw new Error("Invalid color search payload");
+        } catch (err) {
+          sendMessage(self, {
+            message: `Scanline fill failed: ${(err as any).message}`,
+            level: "error",
+            task: e.data,
+          });
         }
+
+        sendMessage(self, {
+          data: result,
+          message: "Color search completed",
+          level: "result",
+          task: e.data,
+        });
       } catch (err) {
         sendMessage(self, {
           message: `Color search failed: ${err}`,

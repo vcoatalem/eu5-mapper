@@ -255,11 +255,13 @@ def generate_game_data_json(version: str = "0.0.11", output_dir: str = None):
     whitelisted_countries = ["SWE", "ENG", "FRA"]
     countries_data_map = parse_countries_files(files.countries_file, whitelisted_countries)
 
+    print("Parsed countries:", countries_data_map)
+
     for country in whitelisted_countries:
         print(
             f"""
 country of {country}:
-    - found {len(countries_data_map.get(country).locationList) if countries_data_map.get(country) else 0} locations
+    - found {len(countries_data_map.get(country).locations) if countries_data_map.get(country) else 0} locations
     - capital: {countries_data_map.get(country).capital if countries_data_map.get(country) else 'N/A'}
     - land VS naval: {countries_data_map.get(country).landVsNaval if countries_data_map.get(country) else 'N/A'}
     - centralization VS decentralization: {countries_data_map.get(country).centralizationVsDecentralization if countries_data_map.get(country) else 'N/A'}

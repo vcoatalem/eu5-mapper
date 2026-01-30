@@ -2,7 +2,7 @@ import {
   ICoordinate,
   IGameState,
   ILocationIdentifier,
-} from "@/app/lib/types/general";
+} from "@/app/lib/types/general"; // TODO: try to remove this import of domain logic into worker types
 import { PathfindingResult } from "@/app/lib/types/pathfinding";
 
 export type WorkerManagerConfig = {
@@ -58,13 +58,11 @@ export interface IWorkerTaskInitWithImagePayload {
 export interface IWorkerTaskColorSearchPayload {
   canvasWidth: number;
   canvasHeight: number;
-  locationName: string;
-  startCoordinates?: { x: number; y: number };
+  startCoordinates: Record<ILocationIdentifier, { x: number; y: number }>;
 }
 
 export interface IWorkerTaskColorSearchResult {
-  locationName: ILocationIdentifier;
-  coordinates: ICoordinate[];
+  result: Record<ILocationIdentifier, ICoordinate[]>;
 }
 
 export interface IWorkerTaskInitGraphWorkerPayload {

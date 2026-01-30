@@ -52,7 +52,7 @@ class DevelopmentRules:
 
 @dataclass
 class CountryData:
-    locationList: list[str]
+    locations: list[str]
     centralizationVsDecentralization: float # -100 to 100, -100 is full land, 100 is full naval
     landVsNaval: float # -100 to 100. -100 is full land, 100 is full naval
     capital: str
@@ -681,7 +681,7 @@ def parse_countries_files(country_file: str, whitelisted_countries: list) -> Dic
             land_naval = 0.0
         capital = country.get("capital", "")
         countriesDict[code] = CountryData(
-            locationList=locations,
+            locations=locations,
             centralizationVsDecentralization=centralization,
             landVsNaval=land_naval,
             capital=capital

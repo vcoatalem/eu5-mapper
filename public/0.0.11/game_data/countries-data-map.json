@@ -1,6 +1,6 @@
 {
   "SWE": {
-    "locationList": [
+    "locations": [
       "abo",
       "albo",
       "alfta",
@@ -137,7 +137,7 @@
     "capital": "stockholm"
   },
   "ENG": {
-    "locationList": [
+    "locations": [
       "abbeville",
       "abingdon",
       "alnwick",
@@ -282,7 +282,7 @@
     "capital": "london"
   },
   "FRA": {
-    "locationList": [
+    "locations": [
       "agde",
       "agen",
       "aixe",

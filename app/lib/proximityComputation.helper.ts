@@ -278,6 +278,7 @@ export class ProximityComputationHelper {
     gameData: IGameData,
     adjacencyGraph: CompactGraph,
   ): PathfindingResult => {
+    // todo: adapt proximity cost to allow checking unowned in that case specifically
     const neighbors = adjacencyGraph.reachableWithinEdges(
       location,
       1,

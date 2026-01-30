@@ -7,7 +7,7 @@ const buildLocationDisplay = (
   locationData: ILocationGameData,
   gameState: IGameState,
 ): JSX.Element => {
-  const owned = gameState.ownedLocations[locationData.name];
+  const owned = gameState.ownedLocations[locationData?.name];
 
   if (!locationData) {
     return <span>No data available</span>;
@@ -58,16 +58,21 @@ export function InfoBoxComponent() {
   const locationName =
     context?.hoveredLocation ?? context?.selectedLocation ?? null;
 
-  const locationDisplay = locationName ? (
-    buildLocationDisplay(
-      context.gameData.locationDataMap[locationName],
-      gameLogic,
-    )
-  ) : (
-    <span className="text-sm text-stone-400 px-4">
-      Hover or select a location to view details
-    </span>
-  );
+  if (!locationName) {
+    return (
+      <span className="text-sm text-stone-400 px-4">
+        Hover or select a location to view details
+      </span>
+    );
+  }
+
+  const locationData = context.gameData.locationDataMap[locationName];
+  if (!locationData) {
+    console.warn(
+      `[InfoBoxComponent] No location data found for location: ${locationName}`,
+    );
+  }
+  const locationDisplay = buildLocationDisplay(locationData, gameLogic);
 
   return (
     <div

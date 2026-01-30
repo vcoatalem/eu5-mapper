@@ -12,7 +12,10 @@ import {
 import { workerManager } from "./workerManager";
 import { ObservableCombiner } from "./observableCombiner";
 import { DrawingHelper } from "./drawing/drawing.helper";
-import { IWorkerTaskColorSearchResult } from "@/workers/types/workerTypes";
+import {
+  IWorkerTaskColorSearchPayload,
+  IWorkerTaskColorSearchResult,
+} from "@/workers/types/workerTypes";
 
 export class DrawingService {
   private areaDrawingCanvas: HTMLCanvasElement;
@@ -133,10 +136,10 @@ export class DrawingService {
 
       if (lastCompletedTask.type === "colorSearch") {
         const data = lastCompletedTask.data as IWorkerTaskColorSearchResult;
-        this.addCoordinate(
-          data.locationName,
-          data.coordinates as ICoordinate[],
-        );
+        const coordinates = data.result;
+        for (const [locationName, coords] of Object.entries(coordinates)) {
+          this.addCoordinate(locationName, coords);
+        }
         if (this.gameStateSnapshot) {
           if (this.proximityComputationSnapshot) {
             this.drawAreas(
@@ -167,17 +170,6 @@ export class DrawingService {
 
           this.gameStateSnapshot = gameState;
           this.proximityComputationSnapshot = proximityEvaluation;
-
-          /* if (changedIndex === 0) {
-            if (
-              !lastCompletedTask ||
-              (lastCompletedTask.type !== "colorSearch" &&
-                lastCompletedTask.type !== "computeProximity")
-            ) {
-              return; // Don't redraw if subscription was triggered by a task that is not non-colorSearch tasks
-            }
-          } */
-
           this.drawAreas(gameState, proximityEvaluation);
           this.drawConstructible(gameState);
         },
@@ -193,27 +185,17 @@ export class DrawingService {
       this.mapInfos.height,
     );
 
-    console.log("drawAreas called", { gameState, proximityEvaluation });
-
     const data = imageData.data;
 
     let missingCoordinates: ILocationIdentifier[] = [];
     for (const location of Object.keys(gameState.ownedLocations)) {
-      /*       console.log(
-        "will draw location:",
-        location,
-        proximityEvaluation.result,
-        greenToRedGradient.length,
-      ); */
       const coordinates = this.coordinateMap[location];
       if (!coordinates) {
         missingCoordinates.push(location);
         continue;
       }
       let evaluation: number | undefined =
-        proximityEvaluation.result?.[location].cost ?? -1;
-
-      /* console.log("location evaluation:", location, evaluation); */
+        proximityEvaluation.result?.[location]?.cost ?? -1;
 
       const color = DrawingHelper.getEvaluationColor(evaluation);
 
@@ -228,28 +210,37 @@ export class DrawingService {
       }
     }
 
+    /*     console.log(
+      "[DrawingService] missing coordinates for locations:",
+      missingCoordinates,
+    ); */
     if (missingCoordinates.length > 0) {
-      for (const location of missingCoordinates) {
-        const locationData = this.gameData?.locationDataMap[location];
-        if (!locationData) {
-          continue;
-        }
-        const taskId = `colorSearch-${location}`;
-        workerManager.queueTask({
-          id: taskId,
-          type: "colorSearch",
-          payload: {
-            type: "colorSearch",
-            canvasWidth: this.areaDrawingCanvas.width,
-            canvasHeight: this.areaDrawingCanvas.height,
-            startCoordinates: DrawingHelper.gameCoordinatesToCanvasCoordinates(
-              locationData.constructibleLocationCoordinate ?? { x: 0, y: 0 },
-              this.areaDrawingCanvas.height,
-            ),
-            locationName: location,
+      const taskId = `colorSearch-${Date.now()}`;
+      const taskPayload: IWorkerTaskColorSearchPayload & {
+        type: "colorSearch";
+      } = {
+        type: "colorSearch", // todo: see if this is really needed
+        canvasWidth: this.areaDrawingCanvas.width,
+        canvasHeight: this.areaDrawingCanvas.height,
+        startCoordinates: missingCoordinates.reduce(
+          (acc, loc) => {
+            const locData = this.gameData?.locationDataMap[loc];
+            if (locData?.constructibleLocationCoordinate) {
+              acc[loc] = DrawingHelper.gameCoordinatesToCanvasCoordinates(
+                locData.constructibleLocationCoordinate,
+                this.areaDrawingCanvas.height,
+              );
+            }
+            return acc;
           },
-        });
-      }
+          {} as Record<ILocationIdentifier, { x: number; y: number }>,
+        ),
+      };
+      workerManager.queueTask({
+        id: taskId,
+        type: "colorSearch",
+        payload: taskPayload,
+      });
     }
 
     // Draw once

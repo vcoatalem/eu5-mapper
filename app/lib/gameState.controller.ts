@@ -1,8 +1,20 @@
 "use client";
 
+import { Icon } from "next/dist/lib/metadata/types/metadata-types";
 import { ConstructibleHelper } from "./constructible.helper";
 import { Observable } from "./observable";
-import { IConstructibleLocation, IGameData, IGameState } from "./types/general";
+import {
+  IConstructibleLocation,
+  IGameData,
+  IGameState,
+  ILocationIdentifier,
+} from "./types/general";
+
+const baseCountryValues: IGameState["country"] = {
+  centralizationVsDecentralization: 0,
+  landVsNaval: 0,
+  rulerAdministrativeAbility: 50,
+};
 
 class GameStateController extends Observable<IGameState> {
   private gameData: IGameData | null = null;
@@ -15,7 +27,8 @@ class GameStateController extends Observable<IGameState> {
   public init(gameData: IGameData): void {
     this.gameData = gameData;
     this.subject = {
-      country: null,
+      countryCode: null,
+      country: baseCountryValues,
       roads: {},
       ownedLocations: {},
     };
@@ -35,24 +48,37 @@ class GameStateController extends Observable<IGameState> {
     if (!this.subject) return false;
     const storedLocation = this.subject.ownedLocations[locationName];
     if (!storedLocation) {
-      this.acquireLocation(locationName);
+      this.acquireLocations([locationName]);
     } else {
       this.abandonLocation(locationName);
     }
     return !storedLocation;
   }
 
-  public acquireLocation(locationName: string): void {
-    const baseLocationRank = this.gameData?.locationDataMap[locationName].rank;
-    this.subject.ownedLocations[locationName] = {
-      rank: baseLocationRank ?? "rural",
-      buildings: [], // TODO: get location base buildings
-    };
-    if (!this.subject.capitalLocation) {
-      this.subject.capitalLocation = locationName;
+  public acquireLocations(
+    locationNames: ILocationIdentifier[],
+    notify: boolean = true,
+  ): void {
+    const toAdd: Record<ILocationIdentifier, IConstructibleLocation> = {};
+    for (const location of locationNames) {
+      const baseLocationRank = this.gameData?.locationDataMap[location].rank;
+      const newLocation: IConstructibleLocation = {
+        rank: baseLocationRank ?? "rural",
+        buildings: [], // TODO: get location base buildings
+      };
+      toAdd[location] = newLocation;
     }
-    console.log("game state controller will notify listeners...");
-    this.notifyListeners();
+
+    for (const [location, constructible] of Object.entries(toAdd)) {
+      this.subject.ownedLocations[location] = constructible;
+    }
+    if (!this.subject.capitalLocation) {
+      this.subject.capitalLocation = locationNames[0];
+    }
+    if (notify) {
+      console.log("[GameStateController] will notify listeners...");
+      this.notifyListeners();
+    }
   }
 
   public abandonLocation(locationName: string): void {
@@ -184,6 +210,38 @@ class GameStateController extends Observable<IGameState> {
       );
       this.notifyListeners();
     }
+  }
+
+  public reset(countryCode?: string): void {
+    this.subject = {
+      countryCode: null,
+      country: baseCountryValues,
+      roads: {},
+      ownedLocations: {},
+    };
+    if (countryCode) {
+      console.log("country code:", countryCode);
+      console.log("country data for code:", this.gameData?.countriesDataMap);
+      const country = this.gameData?.countriesDataMap[countryCode];
+      if (!country) {
+        throw new Error(`Unknown country code: ${countryCode}`);
+      }
+      const locationsToAcquire = country.locations;
+      if (locationsToAcquire) {
+        this.acquireLocations(locationsToAcquire, false);
+        this.subject.countryCode = countryCode;
+        this.subject.capitalLocation = country.capital;
+        this.subject.country = {
+          centralizationVsDecentralization:
+            country.centralizationVsDecentralization,
+          landVsNaval: country.landVsNaval,
+          rulerAdministrativeAbility: 50,
+        };
+      }
+    }
+
+    console.log("[GameStateController] Reseted game state to:", this.subject);
+    this.notifyListeners();
   }
 }
 export const gameStateController = new GameStateController();

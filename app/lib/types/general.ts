@@ -96,7 +96,8 @@ type RoadRecord = Record<
 >;
 
 export interface IGameState {
-  country: string | null;
+  countryCode: string | null;
+  country: ICountryValues;
   roads: RoadRecord;
   ownedLocations: Record<ILocationIdentifier, IConstructibleLocation>;
   capitalLocation?: ILocationIdentifier;
@@ -122,6 +123,12 @@ export interface ICountryData {
   locations: ILocationIdentifier[];
   centralizationVsDecentralization: number; // from -100 (fully centralized) to 100 (fully decentralized)
   landVsNaval: number; // from -100 (fully land) to 100 (fully naval)
+}
+
+export interface ICountryValues {
+  centralizationVsDecentralization: ICountryData["centralizationVsDecentralization"];
+  landVsNaval: ICountryData["landVsNaval"];
+  rulerAdministrativeAbility: number; // from 0 to 100
 }
 
 export interface IGameData {

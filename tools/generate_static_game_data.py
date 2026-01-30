@@ -14,6 +14,7 @@ import json
 import os
 import csv
 from typing import Dict, List, Set, Optional
+from dataclasses import asdict
 from game_data_loader import GameDataLoader
 from game_data_utils import (
     parse_pops_file,
@@ -23,6 +24,7 @@ from game_data_utils import (
     parse_location_templates,
     parse_location_classification,
     parse_location_hierarchy,
+    parse_countries_files,
     parse_city_coordinates,
     load_color_to_name_mapping,
     hex_to_rgb,
@@ -249,6 +251,21 @@ def generate_game_data_json(version: str = "0.0.11", output_dir: str = None):
     
     hierarchy = parse_location_hierarchy(files.provinces_data)
 
+    # Parse countries file and extract whitelisted countries' locations
+    whitelisted_countries = ["SWE", "ENG", "FRA"]
+    countries_data_map = parse_countries_files(files.countries_file, whitelisted_countries)
+
+    for country in whitelisted_countries:
+        print(
+            f"""
+country of {country}:
+    - found {len(countries_data_map.get(country).locationList) if countries_data_map.get(country) else 0} locations
+    - capital: {countries_data_map.get(country).capital if countries_data_map.get(country) else 'N/A'}
+    - land VS naval: {countries_data_map.get(country).landVsNaval if countries_data_map.get(country) else 'N/A'}
+    - centralization VS decentralization: {countries_data_map.get(country).centralizationVsDecentralization if countries_data_map.get(country) else 'N/A'}
+"""
+        )
+
     for loc in locations_to_print:
         print(f"hierarchy of {loc}:", hierarchy.get(loc, []))
     
@@ -412,7 +429,8 @@ def generate_game_data_json(version: str = "0.0.11", output_dir: str = None):
             },
             "constructibleLocationCoordinate": coords_dict,
             "population": population,
-            "development": development
+            "development": development,
+            "rank": rank
         }
 
     
@@ -438,9 +456,12 @@ def generate_game_data_json(version: str = "0.0.11", output_dir: str = None):
     print("Writing JSON files...")
     
     # Write output files
+    # Convert CountryData objects to dicts for JSON serialization
+    countries_data_map_serializable = {k: asdict(v) for k, v in countries_data_map.items()}
     output_files = {
         "location-data-map.json": location_data_map,
         "color-to-name-map.json": color_to_name,
+        "countries-data-map.json": countries_data_map_serializable
     }
     
     total_size = 0

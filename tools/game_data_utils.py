@@ -50,6 +50,13 @@ class DevelopmentRules:
     uniqueLocations: Dict[str, int]  # e.g., {'venice': 7}
 
 
+@dataclass
+class CountryData:
+    locationList: list[str]
+    centralizationVsDecentralization: float # -100 to 100, -100 is full land, 100 is full naval
+    landVsNaval: float # -100 to 100. -100 is full land, 100 is full naval
+    capital: str
+
 def parse_game_data_file(filepath: str) -> dict:
     """
     Parse a custom game data file into a nested dict/list structure.
@@ -644,3 +651,39 @@ def parse_city_coordinates(coordinates_file: str) -> Dict[str, LocationCoordinat
                 current_location_id = None
     
     return location_coordinates
+
+
+def parse_countries_files(country_file: str, whitelisted_countries: list) -> Dict[str, CountryData]:
+    parsed = parse_game_data_file(country_file)
+    countriesDict = {}
+
+    # Drill down to countries['countries']
+    countries_data = parsed.get("countries", {}).get("countries", {})
+
+    for code in whitelisted_countries:
+        print("will try to get country:", code)
+        country = countries_data.get(code)
+        print("got country:", country)
+        if not country or not isinstance(country, dict):
+            continue
+        locations = list(sorted(set([
+            loc
+            for key in ["own_control_core", "own_control_integrated", "own_control_conquered"]
+            for loc in country.get(key, [])
+        ])))
+        # Extract from government block
+        government = country.get("government", {})
+        if isinstance(government, dict):
+            centralization = government.get("centralization_vs_decentralization", 0.0)
+            land_naval = government.get("land_vs_naval", 0.0)
+        else:
+            centralization = 0.0
+            land_naval = 0.0
+        capital = country.get("capital", "")
+        countriesDict[code] = CountryData(
+            locationList=locations,
+            centralizationVsDecentralization=centralization,
+            landVsNaval=land_naval,
+            capital=capital
+        )
+    return countriesDict

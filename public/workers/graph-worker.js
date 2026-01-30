@@ -492,8 +492,11 @@
     for (const [location, resultMap] of Object.entries(proximityResults)) {
       for (const [target, result] of Object.entries(resultMap)) {
         const deducedCost = 100 - proximitySourceLocations[location] + result.cost;
-        if (!(target in mergedResults) || deducedCost < mergedResults[target]) {
-          mergedResults[target] = deducedCost;
+        if (!(target in mergedResults) || deducedCost < mergedResults[target].cost) {
+          mergedResults[target] = {
+            cost: deducedCost,
+            through: result.through
+          };
         }
       }
     }
@@ -565,13 +568,15 @@
           }
           const taskPayload = e.data.payload;
           const { gameState } = taskPayload;
-          const results = ProximityComputationHelper.getGameStateProximityComputation(
-            gameState,
-            gameData,
-            graph
-          );
+          const resultPayload = {
+            result: ProximityComputationHelper.getGameStateProximityComputation(
+              gameState,
+              gameData,
+              graph
+            )
+          };
           sendMessage(self, {
-            data: results,
+            data: resultPayload,
             message: "Proximity computation completed",
             level: "result",
             task: e.data

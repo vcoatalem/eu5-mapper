@@ -126,11 +126,12 @@
                 payload.startCoordinates.y,
                 e.data
               );
+              const result = {
+                coordinates,
+                locationName: payload.locationName
+              };
               sendMessage(self, {
-                data: {
-                  coordinates,
-                  locationName: payload.locationName
-                },
+                data: result,
                 message: "Color search completed",
                 level: "result",
                 task: e.data

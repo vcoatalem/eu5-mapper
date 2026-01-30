@@ -1,23 +1,37 @@
-import { useContext } from "react";
-import { AppContext } from "../appContextProvider";
+import { useEffect, useSyncExternalStore } from "react";
 import { ILocationIdentifier } from "../lib/types/general";
-import { NeighborInfo } from "../lib/types/pathfinding";
+import { neighborsProximityComputationController } from "../lib/neighborsProximityComputation.controller";
+import { DrawingHelper } from "../lib/drawing/drawing.helper";
 
 interface NeighborsPanelProps {
   locationName: ILocationIdentifier;
 }
 
 export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
-  const { adjacencyGraph } = useContext(AppContext);
+  console.log("Rendering NeighborsPanelComponent for", { locationName });
+  const { computationResults } = useSyncExternalStore(
+    neighborsProximityComputationController.subscribe.bind(
+      neighborsProximityComputationController,
+    ),
+    () => {
+      return neighborsProximityComputationController.getSnapshot();
+    },
+  );
 
-  if (!adjacencyGraph) {
-    return null;
+  useEffect(() => {
+    neighborsProximityComputationController.launchGetNeighborProximityTask(
+      locationName,
+    );
+  }, [locationName]);
+
+  const neighborLocationResult = computationResults?.[locationName];
+  if (!neighborLocationResult) {
+    return <></>;
   }
 
-  const neighborLocationsNames =
-    adjacencyGraph.getNeighborNodesNames(locationName);
+  //adjacencyGraph.getNeighborNodesNames(locationName);
 
-  const getConnectionType = (neighbor: NeighborInfo): string => {
+  /*   const getConnectionType = (neighbor: NeighborInfo): string => {
     if (!neighbor) return "?";
     if (neighbor.isPort) return "(Port)";
     if (neighbor.isLand) return "(Land)";
@@ -25,26 +39,41 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
     if (neighbor.isRiver) return "(River)";
     if (neighbor.isLake) return "(Lake)";
     return "? Unknown";
-  };
+  }; */
 
   return (
     <div className="w-64 max-h-96 overflow-y-auto bg-black/90 backdrop-blur-sm border border-stone-700 rounded p-3">
+      <span>{neighborLocationResult?.status}</span>
       <div className="font-semibold text-sm mb-2 text-stone-300">
-        Neighbors of {locationName}
+        Proximity costs for {locationName}
       </div>
-      <div className="flex flex-col gap-1 text-xs">
-        {neighborLocationsNames.map((neighbor) => (
-          <div
-            key={neighbor.name}
-            className="flex items-center justify-between py-1 px-2 hover:bg-stone-800/50 rounded"
-          >
-            <span className="truncate flex-1">{neighbor.name}</span>
-            <span className="text-stone-400 ml-2 flex-shrink-0">
-              {getConnectionType(neighbor)}
-            </span>
-          </div>
-        ))}
-      </div>
+      {
+        <div className="flex flex-col gap-1 text-xs">
+          {Object.entries(neighborLocationResult.neighbors)
+            .filter(([neighborName]) => neighborName !== locationName)
+            .map(([neighborName, distance]) => (
+              <div
+                key={neighborName}
+                className="flex items-center justify-between py-1 px-2 hover:bg-stone-800/50 rounded"
+              >
+                <span className="truncate flex-1">
+                  {" "}
+                  {locationName + "<->" + neighborName}
+                </span>
+                <span
+                  className="ml-2"
+                  style={{
+                    color: DrawingHelper.rgbToHex(
+                      ...DrawingHelper.getEvaluationColor(distance),
+                    ),
+                  }}
+                >
+                  {distance}
+                </span>
+              </div>
+            ))}
+        </div>
+      }
     </div>
   );
 }

@@ -9,10 +9,10 @@ import {
   IGameState,
   ILocationIdentifier,
 } from "./types/general";
-import { greenToRedGradient } from "./drawing/greenToRedGradient.const";
 import { workerManager } from "./workerManager";
 import { ObservableCombiner } from "./observableCombiner";
 import { DrawingHelper } from "./drawing/drawing.helper";
+import { IWorkerTaskColorSearchResult } from "@/workers/types/workerTypes";
 
 export class DrawingService {
   private areaDrawingCanvas: HTMLCanvasElement;
@@ -22,6 +22,10 @@ export class DrawingService {
   private mapInfos: { width: number; height: number };
   private coordinateMap: Record<ILocationIdentifier, Array<ICoordinate>> = {};
   private gameData: IGameData | null = null;
+
+  private gameStateSnapshot: IGameState | null = null;
+  private proximityComputationSnapshot: IProximityComputationResults | null =
+    null;
 
   private drawCircle(
     x: number,
@@ -116,48 +120,64 @@ export class DrawingService {
     }
     this.constructibleDrawingContext = drawingContext;
 
-    const observeGameStateAndComputation = new ObservableCombiner([
+    workerManager.subscribe(({ lastCompletedTask }) => {
+      console.log(
+        "[DrawingLogicController] WorkerManager status update on lastCompletedTask",
+        {
+          lastCompletedTask,
+        },
+      );
+      if (!lastCompletedTask) {
+        return;
+      }
+
+      if (lastCompletedTask.type === "colorSearch") {
+        const data = lastCompletedTask.data as IWorkerTaskColorSearchResult;
+        this.addCoordinate(
+          data.locationName,
+          data.coordinates as ICoordinate[],
+        );
+        if (this.gameStateSnapshot) {
+          if (this.proximityComputationSnapshot) {
+            this.drawAreas(
+              this.gameStateSnapshot,
+              this.proximityComputationSnapshot,
+            );
+          }
+          this.drawConstructible(this.gameStateSnapshot!);
+        }
+      }
+    });
+
+    new ObservableCombiner([
       gameStateController,
       proximityComputationController,
-    ]);
-    new ObservableCombiner([workerManager, observeGameStateAndComputation])
+    ])
       .debounce(10)
       .subscribe(
-        ({
-          values: [
-            { lastCompletedTask },
+        ({ values: [gameState, proximityEvaluation], changedIndex }) => {
+          console.log(
+            "[DrawingLogicController] game state and proximity subscription triggered",
             {
-              values: [gameState, proximityEvaluation],
+              gameState,
+              proximityEvaluation,
+              changedIndex,
             },
-          ],
-          changedIndex,
-        }) => {
-          console.log("[DrawingLogicController] subscribtion triggered", {
-            lastCompletedTask,
-            gameState,
-            proximityEvaluation,
-            changedIndex,
-          });
+          );
 
-          if (changedIndex === 0) {
+          this.gameStateSnapshot = gameState;
+          this.proximityComputationSnapshot = proximityEvaluation;
+
+          /* if (changedIndex === 0) {
             if (
               !lastCompletedTask ||
-              lastCompletedTask.type !== "colorSearch"
+              (lastCompletedTask.type !== "colorSearch" &&
+                lastCompletedTask.type !== "computeProximity")
             ) {
               return; // Don't redraw if subscription was triggered by a task that is not non-colorSearch tasks
             }
-          }
+          } */
 
-          if (lastCompletedTask && lastCompletedTask.type === "colorSearch") {
-            const data = lastCompletedTask.data as {
-              locationName: ILocationIdentifier;
-              coordinates: ICoordinate[];
-            };
-            this.addCoordinate(
-              data.locationName,
-              data.coordinates as ICoordinate[],
-            );
-          }
           this.drawAreas(gameState, proximityEvaluation);
           this.drawConstructible(gameState);
         },
@@ -173,28 +193,31 @@ export class DrawingService {
       this.mapInfos.height,
     );
 
+    console.log("drawAreas called", { gameState, proximityEvaluation });
+
     const data = imageData.data;
 
     let missingCoordinates: ILocationIdentifier[] = [];
     for (const location of Object.keys(gameState.ownedLocations)) {
+      /*       console.log(
+        "will draw location:",
+        location,
+        proximityEvaluation.result,
+        greenToRedGradient.length,
+      ); */
       const coordinates = this.coordinateMap[location];
       if (!coordinates) {
         missingCoordinates.push(location);
         continue;
       }
-      let evaluation =
-        proximityEvaluation.proximityCostsForCapital?.get(location) ??
-        undefined;
-      if (
-        evaluation &&
-        (evaluation < 0 || evaluation > 100 || isNaN(evaluation))
-      ) {
-        evaluation = undefined;
-      }
-      const [r, g, b] =
-        evaluation !== undefined
-          ? greenToRedGradient[Math.round(evaluation)]
-          : [208, 208, 208];
+      let evaluation: number | undefined =
+        proximityEvaluation.result?.[location] ?? -1;
+
+      /* console.log("location evaluation:", location, evaluation); */
+
+      const color = DrawingHelper.getEvaluationColor(evaluation);
+
+      const [r, g, b] = color;
 
       for (const { x, y } of coordinates) {
         const index = (y * this.mapInfos.width + x) * 4;

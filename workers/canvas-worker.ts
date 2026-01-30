@@ -2,6 +2,7 @@ import type { ICoordinate } from "../app/lib/types/general";
 import {
   IWorkerTask,
   IWorkerTaskColorSearchPayload,
+  IWorkerTaskColorSearchResult,
   IWorkerTaskInitWithImagePayload,
 } from "./types/workerTypes";
 import { sendMessage } from "./utils";
@@ -167,11 +168,12 @@ self.onmessage = function (e: MessageEvent<IWorkerTask>) {
               e.data,
             );
 
+            const result: IWorkerTaskColorSearchResult = {
+              coordinates: coordinates,
+              locationName: payload.locationName,
+            };
             sendMessage(self, {
-              data: {
-                coordinates: coordinates,
-                locationName: payload.locationName,
-              },
+              data: result,
               message: "Color search completed",
               level: "result",
               task: e.data,

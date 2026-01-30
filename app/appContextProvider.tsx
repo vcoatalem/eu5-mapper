@@ -9,8 +9,6 @@ import {
 } from "react";
 import { useParams } from "next/navigation";
 import { ILocationIdentifier, IGameData } from "./lib/types/general";
-import { CompactGraph } from "./lib/graph";
-import { ParserHelper } from "./lib/parser.helper";
 import { IndexedDBWriter } from "./lib/indexeddb/indexeddb-writer";
 import {
   dbAdjacencyDataStoreName,
@@ -27,7 +25,6 @@ interface IAppContext {
   hoveredLocation: ILocationIdentifier | null;
   setHoveredLocation: Dispatch<SetStateAction<ILocationIdentifier | null>>;
   gameData: IGameData | null;
-  adjacencyGraph: CompactGraph | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -50,9 +47,6 @@ export const AppContextProvider = ({
 
   // Game data state
   const [gameData, setGameData] = useState<IGameData | null>(null);
-  const [adjacencyGraph, setAdjacencyGraph] = useState<CompactGraph | null>(
-    null,
-  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -107,33 +101,6 @@ export const AppContextProvider = ({
           proximityComputationRuleRes.json(),
         ]);
 
-        setGameData({
-          locationDataMap,
-          colorToNameMap,
-          buildingsTemplateMap,
-          proximityComputationRule,
-        });
-
-        console.log(
-          `[AppContext] Game data loaded: ${Object.keys(locationDataMap).length} locations`,
-        );
-
-        // Parse adjacency CSV and build graph
-        console.log(`[AppContext] Building adjacency graph...`);
-        const graph = ParserHelper.parseAdjacencyCSV(adjacencyCsv);
-
-        setAdjacencyGraph(graph);
-        const stats = graph.getStats();
-        console.log(`[AppContext] Adjacency graph built:`, stats);
-        console.log(`  - Nodes: ${stats.nodes}`);
-        console.log(`  - Total edges: ${stats.edges}`);
-        console.log(`  - River edges: ${stats.riverEdges}`);
-        console.log(`  - Land edges: ${stats.landEdges}`);
-        console.log(`  - Sea edges: ${stats.seaEdges}`);
-        console.log(`  - Port edges: ${stats.portEdges}`);
-        console.log(`  - Lake edges: ${stats.lakeEdges}`);
-
-        console.log({ locationDataMap, proximityComputationRule });
         const toBePersistedGameData: IGameData = {
           locationDataMap,
           colorToNameMap: {},
@@ -146,6 +113,13 @@ export const AppContextProvider = ({
           dbStoreNames,
         );
 
+        console.log("clear previous indexeddb data");
+        await Promise.all([
+          indexedDBWriter.clearStore(dbGameDataStoreName),
+          indexedDBWriter.clearStore(dbAdjacencyDataStoreName),
+        ]);
+
+        console.log("fill indexeddb");
         await indexedDBWriter
           .put(dbGameDataStoreName, dbDataKey, toBePersistedGameData)
           .then(
@@ -165,10 +139,18 @@ export const AppContextProvider = ({
               ),
           );
 
-        //await indexedDBWriter
-        //  .put(dbAdjacencyDataKey, , adjacencyCsv)
-        /*  const connexion = await indexedDBWriter.open();
-        connexion.put(dbGameDataKey, ) */
+        // indexedDB operations have to be done before setGameData to ensure this happens before worldmap component initializes
+
+        setGameData({
+          locationDataMap,
+          colorToNameMap,
+          buildingsTemplateMap,
+          proximityComputationRule,
+        });
+
+        console.log(
+          `[AppContext] Game data loaded: ${Object.keys(locationDataMap).length} locations`,
+        );
       } catch (err) {
         const errorMsg =
           err instanceof Error ? err.message : "Failed to load game data";
@@ -190,7 +172,6 @@ export const AppContextProvider = ({
         hoveredLocation,
         setHoveredLocation,
         gameData,
-        adjacencyGraph,
         isLoading,
         error,
       }}

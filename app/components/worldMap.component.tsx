@@ -22,6 +22,8 @@ import { ConstructibleMenusComponent } from "./constructibleMenus.component";
 import { GuiElement } from "./guiElement";
 import { workerManagerConfig } from "../lib/workerManager.config";
 import { worldMapConfig } from "./worldMap.config";
+import { neighborsProximityComputationController } from "../lib/neighborsProximityComputation.controller";
+import { NeighborsPanelComponent } from "./neighborsPanel.component";
 
 // TODO:
 // 1. add building construction
@@ -32,11 +34,11 @@ import { worldMapConfig } from "./worldMap.config";
 export function WorldMapComponent() {
   const context = useContext(AppContext);
   const {
+    hoveredLocation,
     setSelectedLocation,
     setHoveredLocation,
     gameData,
     error: gameDataLoadingError,
-    adjacencyGraph,
   } = context;
 
   /* console.log("render worldmap component"); */
@@ -191,7 +193,7 @@ export function WorldMapComponent() {
       // Start new timer for this location
       hoverTimerRef.current = setTimeout(() => {
         setShowNeighborsPanel(true);
-      }, 5000);
+      }, 1500);
     }
 
     return () => {
@@ -205,7 +207,8 @@ export function WorldMapComponent() {
   useEffect(() => {
     console.log("enter useEffect for setup worldmap component");
 
-    if (!gameData || !adjacencyGraph) {
+    if (!gameData) {
+      console.log("game data not yet loaded");
       return;
     }
 
@@ -379,7 +382,8 @@ export function WorldMapComponent() {
     }
 
     gameStateController.init(gameData);
-    proximityComputationController.init(gameData, adjacencyGraph);
+    proximityComputationController.init();
+    neighborsProximityComputationController.init();
 
     drawingServiceRef.current = new DrawingService(
       areaDrawingCanvasRef.current!,
@@ -594,6 +598,12 @@ export function WorldMapComponent() {
           <GuiElement className="fixed left-5 right-5 bottom-1">
             <InfoBoxComponent />
           </GuiElement>
+          {showNeighborsPanel && hoveredLocation && (
+            <GuiElement className="fixed left-5 bottom-20">
+              <NeighborsPanelComponent locationName={hoveredLocation} />
+            </GuiElement>
+          )}
+
           <GuiElement className="fixed right-5 bottom-15">
             <div className="gap-2 flex flex-col">
               <WorkerStatusComponent />

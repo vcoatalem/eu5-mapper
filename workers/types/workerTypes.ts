@@ -1,3 +1,9 @@
+import {
+  ICoordinate,
+  IGameState,
+  ILocationIdentifier,
+} from "@/app/lib/types/general";
+
 export type WorkerManagerConfig = {
   workers: Array<{
     workerFileName: string;
@@ -6,7 +12,13 @@ export type WorkerManagerConfig = {
   taskWorkerMapping: Record<TaskType, string>; // task type to worker file name
 };
 
-export type TaskType = "dummy" | "colorSearch" | "initWithImage";
+export type TaskType =
+  | "dummy"
+  | "colorSearch"
+  | "initWithImage"
+  | "initGraphWorker"
+  | "computeProximity"
+  | "computeNeighbors";
 
 export interface IWorkerManagerStatus {
   activeTasks: number;
@@ -47,4 +59,27 @@ export interface IWorkerTaskColorSearchPayload {
   canvasHeight: number;
   locationName: string;
   startCoordinates?: { x: number; y: number };
+}
+
+export interface IWorkerTaskColorSearchResult {
+  locationName: ILocationIdentifier;
+  coordinates: ICoordinate[];
+}
+
+export interface IWorkerTaskInitGraphWorkerPayload {
+  // Potentially add parameters for graph initialization here
+}
+
+export interface IWorkerTaskComputeProximityPayload {
+  gameState: IGameState;
+}
+
+export interface IWorkerTaskComputeNeighborsPayload {
+  gameState: IGameState;
+  locationName: ILocationIdentifier;
+}
+
+export interface IWorkerTaskComputeNeighborsResult {
+  locationName: ILocationIdentifier;
+  neighbors: Record<ILocationIdentifier, number>;
 }

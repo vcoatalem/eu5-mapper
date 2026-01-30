@@ -1,8 +1,13 @@
+import { CompactGraph } from "./graph";
+import { IProximityComputationResults } from "./proximityComputation.controller";
 import {
   IConstructibleLocation,
   IGameData,
+  IGameState,
   ILocationGameData,
+  ILocationIdentifier,
 } from "./types/general";
+import { CostFunction } from "./types/pathfinding";
 
 export class ProximityComputationHelper {
   public static getEnvironmentalProximityCostIncreasePercentage = (
@@ -98,5 +103,171 @@ export class ProximityComputationHelper {
       .reduce((a, b) => a + b, 0);
 
     return naturalHarborSuitability + totalBuildingsHarborCapacity;
+  };
+
+  public static getLocalProximitySourceLocations(
+    gameState: IGameState,
+  ): Record<ILocationIdentifier, number> {
+    const proximitySourceLocations: Record<ILocationIdentifier, number> = {};
+    for (const locationName of Object.keys(gameState.ownedLocations)) {
+      if (gameState.capitalLocation === locationName) {
+        proximitySourceLocations[locationName] = 100;
+      } else {
+        const locationBuildings =
+          gameState.ownedLocations[locationName].buildings;
+        const highestProximitySource = Math.max(
+          ...locationBuildings.map(
+            (b) => b.template.localProximitySource?.[b.level - 1] || 0,
+          ),
+        );
+        if (highestProximitySource > 0) {
+          proximitySourceLocations[locationName] = highestProximitySource;
+        }
+      }
+    }
+    return proximitySourceLocations;
+  }
+
+  private static getProximityCostFunction(
+    gameState: IGameState,
+    gameData: IGameData,
+  ): CostFunction {
+    return (
+      from: ILocationIdentifier,
+      to: ILocationIdentifier,
+      isRiver: boolean,
+      isLand: boolean,
+      isSea: boolean,
+      isPort: boolean,
+      isLake: boolean,
+    ) => {
+      const rule = gameData.proximityComputationRule;
+
+      /*  console.log("enter proximity cost function", {
+        from,
+        to,
+        through: { isRiver, isLand, isSea, isPort, isLake },
+        context: this.gameData,
+        gameState,
+      }); */
+
+      const toLocationData = gameData.locationDataMap[to];
+      const isToSeaZone = toLocationData.isSea;
+      const isToLakeZone = toLocationData.isLake;
+
+      // Only allow routing through unowned sea and lake zones
+      // Block all other unowned locations (land, ports, etc.)
+      if (
+        !Object.keys(gameState.ownedLocations).includes(to) &&
+        !isToSeaZone &&
+        !isToLakeZone
+      ) {
+        return 100;
+      }
+
+      if (isToLakeZone) {
+        return 5; //TODO: make this proper
+      }
+
+      const baseCost = isRiver
+        ? rule.baseCost - rule.riverCostReduction
+        : rule.baseCost;
+
+      // Only calculate proximity cost reduction for owned locations
+      const localProximityCostReductionPercentage = gameState.ownedLocations[
+        from
+      ]
+        ? ProximityComputationHelper.getLocationProximityLocalCostReductionPercentage(
+            gameData.locationDataMap[from],
+            gameState.ownedLocations[from],
+            gameData,
+          )
+        : 0;
+      let modifiedCost =
+        baseCost * (1 - localProximityCostReductionPercentage / 100);
+
+      if (isPort) {
+        // TODO: hypothesis to confirm: harbor capacity is applied, whether going IN or OUT of a port
+        const locationWithHarbor = isToSeaZone ? from : to;
+        if (!gameState.ownedLocations[locationWithHarbor]) {
+          return 0; // we dont use other peoples harbors
+        }
+        const harborCapacity =
+          ProximityComputationHelper.getLocationHarborCapacity(
+            gameData.locationDataMap[locationWithHarbor],
+            gameState.ownedLocations[locationWithHarbor],
+          );
+
+        const harborImpact = rule.harborCapacityImpact;
+        const multiplier = 1 - (harborImpact * harborCapacity) / 100;
+
+        modifiedCost = modifiedCost * multiplier;
+      }
+
+      if (isSea) {
+        // maritime presence calculation
+        // for now, we will assume maritime presence 50% everywhere
+        const maritimePresence = 0.5;
+        modifiedCost =
+          modifiedCost * (1 - maritimePresence * rule.maritimePresenceImpact);
+      }
+
+      //TODO: factor in roads for land / river
+
+      return modifiedCost;
+    };
+  }
+
+  public static getGameStateProximityComputation = (
+    gameState: IGameState,
+    gameData: IGameData,
+    adjacencyGraph: CompactGraph,
+  ): Record<string, number> => {
+    const proximityResults: Record<
+      string,
+      Record<ILocationIdentifier, number>
+    > = {};
+
+    const proximitySourceLocations =
+      ProximityComputationHelper.getLocalProximitySourceLocations(gameState);
+
+    for (const [locationName, proximitySource] of Object.entries(
+      proximitySourceLocations,
+    )) {
+      proximityResults[locationName] = adjacencyGraph.reachableWithinCost(
+        locationName,
+        proximitySource,
+        ProximityComputationHelper.getProximityCostFunction(
+          gameState,
+          gameData,
+        ),
+      );
+    }
+
+    const mergedResults: Record<string, number> = {};
+    for (const [location, resultMap] of Object.entries(proximityResults)) {
+      for (const [target, cost] of Object.entries(resultMap)) {
+        const deducedCost = 100 - proximitySourceLocations[location] + cost;
+        if (!(target in mergedResults) || deducedCost < mergedResults[target]) {
+          mergedResults[target] = deducedCost;
+        }
+      }
+    }
+    return mergedResults;
+  };
+
+  public static getGameStateLocationNeighborsProximity = (
+    location: ILocationIdentifier,
+    gameState: IGameState,
+    gameData: IGameData,
+    adjacencyGraph: CompactGraph,
+  ): Record<string, number> => {
+    const neighbors = adjacencyGraph.reachableWithinEdges(
+      location,
+      1,
+      ProximityComputationHelper.getProximityCostFunction(gameState, gameData),
+    );
+
+    return neighbors;
   };
 }

@@ -3,6 +3,7 @@ export const greenToRedGradient = [
     //first (capital) is light blue
     72, 209, 204,
   ],
+  [0, 255, 0],
   [5, 255, 0],
   [10, 255, 0],
   [15, 255, 0],

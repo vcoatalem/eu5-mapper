@@ -62,21 +62,21 @@
   // app/lib/graph.ts
   var CompactGraph = class {
     constructor() {
-      this.adjacency = /* @__PURE__ */ new Map();
-      this.nodeToId = /* @__PURE__ */ new Map();
-      this.idToNode = /* @__PURE__ */ new Map();
+      this.adjacency = {};
+      this.nodeToId = {};
+      this.idToNode = {};
       this.nextId = 0;
     }
     _getNodeId(node) {
-      if (!this.nodeToId.has(node)) {
-        this.nodeToId.set(node, this.nextId);
-        this.idToNode.set(this.nextId, node);
+      if (!(node in this.nodeToId)) {
+        this.nodeToId[node] = this.nextId;
+        this.idToNode[this.nextId] = node;
         this.nextId++;
       }
-      return this.nodeToId.get(node);
+      return this.nodeToId[node];
     }
     _getNodeString(id) {
-      return this.idToNode.get(id);
+      return this.idToNode[id];
     }
     _getCanonical(a, b) {
       return a < b ? [a, b] : [b, a];
@@ -85,10 +85,10 @@
       const aId = this._getNodeId(a);
       const bId = this._getNodeId(b);
       const [from, to] = this._getCanonical(aId, bId);
-      if (!this.adjacency.has(from)) {
-        this.adjacency.set(from, []);
+      if (!(from in this.adjacency)) {
+        this.adjacency[from] = [];
       }
-      this.adjacency.get(from).push({
+      this.adjacency[from].push({
         neighbor: to,
         isRiver,
         isLand,
@@ -98,8 +98,8 @@
       });
     }
     getEdge(a, b) {
-      const aId = this.nodeToId.get(a);
-      const bId = this.nodeToId.get(b);
+      const aId = this.nodeToId[a];
+      const bId = this.nodeToId[b];
       if (aId === void 0 || bId === void 0) {
         return {
           exists: false,
@@ -111,7 +111,7 @@
         };
       }
       const [from, to] = this._getCanonical(aId, bId);
-      const neighbors = this.adjacency.get(from);
+      const neighbors = this.adjacency[from];
       if (!neighbors) {
         return {
           exists: false,
@@ -139,64 +139,33 @@
         isLake: false
       };
     }
-    getNeighborNodesNames(node) {
-      const nodeId = this.nodeToId.get(node);
-      if (nodeId === void 0)
-        return [];
-      const neighbors = [];
-      if (this.adjacency.has(nodeId)) {
-        neighbors.push(...this.adjacency.get(nodeId));
-      }
-      for (const [from, edges] of this.adjacency.entries()) {
-        if (from === nodeId)
-          continue;
-        for (const edge of edges) {
-          if (edge.neighbor === nodeId) {
-            neighbors.push({
-              neighbor: from,
-              isRiver: edge.isRiver,
-              isLand: edge.isLand,
-              isSea: edge.isSea,
-              isPort: edge.isPort,
-              isLake: edge.isLake
-            });
-          }
-        }
-      }
-      return neighbors.map((n) => ({
-        name: this._getNodeString(n.neighbor),
-        isRiver: n.isRiver,
-        isLand: n.isLand,
-        isSea: n.isSea,
-        isPort: n.isPort,
-        isLake: n.isLake
-      }));
-    }
     reachableWithinCost(startNode, costLimit, getCost) {
-      const startId = this.nodeToId.get(startNode);
+      const startId = this.nodeToId[startNode];
       if (startId === void 0)
-        return /* @__PURE__ */ new Map();
-      const distances = /* @__PURE__ */ new Map();
+        return {};
+      const distances = {};
       const pq = [
         { node: startId, cost: 0 }
       ];
-      distances.set(startId, 0);
+      distances[startId] = 0;
       while (pq.length > 0) {
         pq.sort((a, b) => a.cost - b.cost);
         const current = pq.shift();
         const { node, cost } = current;
         if (cost > costLimit)
           continue;
-        if (cost > distances.get(node))
+        if (cost > distances[node])
           continue;
         const nodeStr = this._getNodeString(node);
         const neighbors = [];
-        if (this.adjacency.has(node)) {
-          neighbors.push(...this.adjacency.get(node));
+        if (node in this.adjacency) {
+          neighbors.push(...this.adjacency[node]);
         }
-        for (const [from, edges] of this.adjacency.entries()) {
+        for (const fromStr in this.adjacency) {
+          const from = Number(fromStr);
           if (from === node)
             continue;
+          const edges = this.adjacency[from];
           for (const edge of edges) {
             if (edge.neighbor === node) {
               neighbors.push({
@@ -229,15 +198,96 @@
             isLake
           );
           const newCost = cost + edgeCost;
-          if (newCost <= costLimit && (!distances.has(neighbor) || newCost < distances.get(neighbor))) {
-            distances.set(neighbor, newCost);
+          if (newCost <= costLimit && (!(neighbor in distances) || newCost < distances[neighbor])) {
+            distances[neighbor] = newCost;
             pq.push({ node: neighbor, cost: newCost });
           }
         }
       }
-      const result = /* @__PURE__ */ new Map();
-      for (const [id, dist] of distances.entries()) {
-        result.set(this._getNodeString(id), dist);
+      const result = {};
+      for (const idStr in distances) {
+        const id = Number(idStr);
+        result[this._getNodeString(id)] = distances[id];
+      }
+      return result;
+    }
+    /**
+     * Returns a map of all nodes reachable from startNode within a given number of edges (no cycles),
+     * with the minimum cost to each node. Similar to reachableWithinCost, but uses edge count as the limit.
+     */
+    reachableWithinEdges(startNode, edgeLimit, getCost) {
+      const startId = this.nodeToId[startNode];
+      if (startId === void 0)
+        return {};
+      const minCost = {};
+      const queue = [
+        { node: startId, cost: 0, edgesUsed: 0, visited: /* @__PURE__ */ new Set([startId]) }
+      ];
+      minCost[startId] = 0;
+      while (queue.length > 0) {
+        const current = queue.shift();
+        const { node, cost, edgesUsed, visited } = current;
+        if (edgesUsed >= edgeLimit)
+          continue;
+        const neighbors = [];
+        if (node in this.adjacency) {
+          neighbors.push(...this.adjacency[node]);
+        }
+        for (const [from, edges] of Object.entries(this.adjacency)) {
+          const fromNum = Number(from);
+          if (fromNum === node)
+            continue;
+          for (const edge of edges) {
+            if (edge.neighbor === node) {
+              neighbors.push({
+                neighbor: fromNum,
+                isRiver: edge.isRiver,
+                isLand: edge.isLand,
+                isSea: edge.isSea,
+                isPort: edge.isPort,
+                isLake: edge.isLake
+              });
+            }
+          }
+        }
+        for (const {
+          neighbor,
+          isRiver,
+          isLand,
+          isSea,
+          isPort,
+          isLake
+        } of neighbors) {
+          if (visited.has(neighbor))
+            continue;
+          const neighborStr = this._getNodeString(neighbor);
+          const edgeCost = getCost(
+            this._getNodeString(node),
+            neighborStr,
+            isRiver,
+            isLand,
+            isSea,
+            isPort,
+            isLake
+          );
+          const newCost = cost + edgeCost;
+          if (!(neighbor in minCost) || newCost < minCost[neighbor]) {
+            minCost[neighbor] = newCost;
+            const newVisited = new Set(visited);
+            newVisited.add(neighbor);
+            queue.push({
+              node: neighbor,
+              cost: newCost,
+              edgesUsed: edgesUsed + 1,
+              visited: newVisited
+            });
+          }
+        }
+      }
+      const result = {};
+      for (const idStr in minCost) {
+        const id = Number(idStr);
+        result[this._getNodeString(id)] = minCost[id];
       }
       return result;
     }
@@ -248,7 +298,8 @@
       let seaEdges = 0;
       let portEdges = 0;
       let lakeEdges = 0;
-      for (const neighbors of this.adjacency.values()) {
+      for (const key in this.adjacency) {
+        const neighbors = this.adjacency[key];
         totalEdges += neighbors.length;
         riverEdges += neighbors.filter((n) => n.isRiver).length;
         landEdges += neighbors.filter((n) => n.isLand).length;
@@ -257,7 +308,7 @@
         lakeEdges += neighbors.filter((n) => n.isLake).length;
       }
       return {
-        nodes: this.adjacency.size,
+        nodes: Object.keys(this.adjacency).length,
         edges: totalEdges,
         riverEdges,
         landEdges,
@@ -302,6 +353,156 @@
     }
   };
 
+  // app/lib/proximityComputation.helper.ts
+  var _ProximityComputationHelper = class _ProximityComputationHelper {
+    static getLocalProximitySourceLocations(gameState) {
+      const proximitySourceLocations = {};
+      for (const locationName of Object.keys(gameState.ownedLocations)) {
+        if (gameState.capitalLocation === locationName) {
+          proximitySourceLocations[locationName] = 100;
+        } else {
+          const locationBuildings = gameState.ownedLocations[locationName].buildings;
+          const highestProximitySource = Math.max(
+            ...locationBuildings.map(
+              (b) => b.template.localProximitySource?.[b.level - 1] || 0
+            )
+          );
+          if (highestProximitySource > 0) {
+            proximitySourceLocations[locationName] = highestProximitySource;
+          }
+        }
+      }
+      return proximitySourceLocations;
+    }
+    static getProximityCostFunction(gameState, gameData2) {
+      return (from, to, isRiver, isLand, isSea, isPort, isLake) => {
+        const rule = gameData2.proximityComputationRule;
+        const toLocationData = gameData2.locationDataMap[to];
+        const isToSeaZone = toLocationData.isSea;
+        const isToLakeZone = toLocationData.isLake;
+        if (!Object.keys(gameState.ownedLocations).includes(to) && !isToSeaZone && !isToLakeZone) {
+          return 100;
+        }
+        if (isToLakeZone) {
+          return 5;
+        }
+        const baseCost = isRiver ? rule.baseCost - rule.riverCostReduction : rule.baseCost;
+        const localProximityCostReductionPercentage = gameState.ownedLocations[from] ? _ProximityComputationHelper.getLocationProximityLocalCostReductionPercentage(
+          gameData2.locationDataMap[from],
+          gameState.ownedLocations[from],
+          gameData2
+        ) : 0;
+        let modifiedCost = baseCost * (1 - localProximityCostReductionPercentage / 100);
+        if (isPort) {
+          const locationWithHarbor = isToSeaZone ? from : to;
+          if (!gameState.ownedLocations[locationWithHarbor]) {
+            return 0;
+          }
+          const harborCapacity = _ProximityComputationHelper.getLocationHarborCapacity(
+            gameData2.locationDataMap[locationWithHarbor],
+            gameState.ownedLocations[locationWithHarbor]
+          );
+          const harborImpact = rule.harborCapacityImpact;
+          const multiplier = 1 - harborImpact * harborCapacity / 100;
+          modifiedCost = modifiedCost * multiplier;
+        }
+        if (isSea) {
+          const maritimePresence = 0.5;
+          modifiedCost = modifiedCost * (1 - maritimePresence * rule.maritimePresenceImpact);
+        }
+        return modifiedCost;
+      };
+    }
+  };
+  _ProximityComputationHelper.getEnvironmentalProximityCostIncreasePercentage = (location, gameData2) => {
+    const rule = gameData2.proximityComputationRule;
+    if (!Object.keys(rule.proximityCostIncreasePercentage.topography).includes(
+      location.topography
+    )) {
+      console.warn(
+        "[ProximityComputationController] Missing topography proximity cost increase percentage for ",
+        location.topography
+      );
+    }
+    const topographyCostIncreasePercentage = rule.proximityCostIncreasePercentage.topography?.[location.topography] ?? 0;
+    if (location.vegetation && !Object.keys(rule.proximityCostIncreasePercentage.vegetation).includes(
+      location?.vegetation
+    )) {
+      console.warn(
+        "[ProximityComputationController] Missing vegetation proximity cost increase percentage for ",
+        location.vegetation
+      );
+    }
+    const vegetationCostIncreasePercentage = location.vegetation ? rule.proximityCostIncreasePercentage.vegetation?.[location.vegetation] ?? 0 : 0;
+    const totalEnvironmentalCostIncrease = topographyCostIncreasePercentage + vegetationCostIncreasePercentage;
+    return totalEnvironmentalCostIncrease;
+  };
+  _ProximityComputationHelper.getLocationProximityLocalCostReductionPercentage = (location, locationConstructibleData, gameData2) => {
+    if (location.isSea || location.isLake) {
+      return 0;
+    }
+    const buildings = locationConstructibleData.buildings ?? [];
+    const totalBuildingsCostReduction = buildings.map(
+      (b) => b.template.proximityCostReductionPercentage?.[b.level - 1] ?? 0
+    ).reduce((a, b) => a + b, 0);
+    const environmentalProximityCostIncreasePercentage = _ProximityComputationHelper.getEnvironmentalProximityCostIncreasePercentage(
+      location,
+      gameData2
+    );
+    const development = location.development;
+    const developmentCostReduction = development * gameData2.proximityComputationRule.developmentImpact;
+    const total = (
+      // positive proximity (cost reduction)
+      totalBuildingsCostReduction + developmentCostReduction - // negative proximity (cost increase)
+      environmentalProximityCostIncreasePercentage
+    );
+    return total;
+  };
+  _ProximityComputationHelper.getLocationHarborCapacity = (locationData, locationConstructibleData) => {
+    const naturalHarborSuitability = locationData.naturalHarborSuitability ?? 0;
+    const buildings = locationConstructibleData.buildings ?? [];
+    const totalBuildingsHarborCapacity = buildings.map((b) => {
+      const capacity = b.template.harborCapacity?.[b.level - 1];
+      return capacity || 0;
+    }).reduce((a, b) => a + b, 0);
+    return naturalHarborSuitability + totalBuildingsHarborCapacity;
+  };
+  _ProximityComputationHelper.getGameStateProximityComputation = (gameState, gameData2, adjacencyGraph) => {
+    const proximityResults = {};
+    const proximitySourceLocations = _ProximityComputationHelper.getLocalProximitySourceLocations(gameState);
+    for (const [locationName, proximitySource] of Object.entries(
+      proximitySourceLocations
+    )) {
+      proximityResults[locationName] = adjacencyGraph.reachableWithinCost(
+        locationName,
+        proximitySource,
+        _ProximityComputationHelper.getProximityCostFunction(
+          gameState,
+          gameData2
+        )
+      );
+    }
+    const mergedResults = {};
+    for (const [location, resultMap] of Object.entries(proximityResults)) {
+      for (const [target, cost] of Object.entries(resultMap)) {
+        const deducedCost = 100 - proximitySourceLocations[location] + cost;
+        if (!(target in mergedResults) || deducedCost < mergedResults[target]) {
+          mergedResults[target] = deducedCost;
+        }
+      }
+    }
+    return mergedResults;
+  };
+  _ProximityComputationHelper.getGameStateLocationNeighborsProximity = (location, gameState, gameData2, adjacencyGraph) => {
+    const neighbors = adjacencyGraph.reachableWithinEdges(
+      location,
+      1,
+      _ProximityComputationHelper.getProximityCostFunction(gameState, gameData2)
+    );
+    return neighbors;
+  };
+  var ProximityComputationHelper = _ProximityComputationHelper;
+
   // workers/graph-worker.ts
   var connection = new IndexedDBReader(dbName, dbVersion, dbStoreNames);
   globalThis.__workerName = "Graph Worker";
@@ -319,10 +520,7 @@
           });
           gameData = await connection.get(dbGameDataStoreName, dbDataKey).then(
             (data) => {
-              return (
-                /* return JSON.parse( */
-                data
-              );
+              return data;
             },
             (error) => {
               throw new Error(`Failed to fetch data from IndexedDB: ${error}`);
@@ -353,12 +551,63 @@
             task: e.data
           });
         }
+        break;
+      case "computeProximity":
+        try {
+          if (!gameData || !graph) {
+            throw new Error("Graph Worker not initialized.");
+          }
+          const taskPayload = e.data.payload;
+          const { gameState } = taskPayload;
+          const results = ProximityComputationHelper.getGameStateProximityComputation(
+            gameState,
+            gameData,
+            graph
+          );
+          sendMessage(self, {
+            data: results,
+            message: "Proximity computation completed",
+            level: "result",
+            task: e.data
+          });
+        } catch (err) {
+          sendMessage(self, {
+            message: `Error during proximity computation: ${err.message}`,
+            level: "error",
+            task: e.data
+          });
+        }
+        break;
+      case "computeNeighbors":
+        try {
+          if (!gameData || !graph) {
+            throw new Error("Graph Worker not initialized.");
+          }
+          const taskPayload = e.data.payload;
+          const { gameState, locationName } = taskPayload;
+          const neighborEval = {
+            locationName,
+            neighbors: ProximityComputationHelper.getGameStateLocationNeighborsProximity(
+              locationName,
+              gameState,
+              gameData,
+              graph
+            )
+          };
+          sendMessage(self, {
+            data: neighborEval,
+            message: "Neighbors computation completed",
+            level: "result",
+            task: e.data
+          });
+        } catch (err) {
+          sendMessage(self, {
+            message: `Error during neighbors computation: ${err.message}`,
+            level: "error",
+            task: e.data
+          });
+        }
+        break;
     }
-    sendMessage(self, {
-      data: null,
-      message: `Received task: ${JSON.stringify(e.data)} - this is a dummy worker for example sake`,
-      level: "log",
-      task: e.data
-    });
   };
 })();

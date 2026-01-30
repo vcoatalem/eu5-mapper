@@ -73,9 +73,6 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
   private resolveWorkerScriptUrl(workerScriptName: string): string {
     console.log("enter resolveWorkerScriptUrl", { workerScriptName });
     const url = "/workers/" + workerScriptName + ".js";
-    console.log(
-      `[WorkerManager] Resolving worker script URL for: ${workerScriptName} -> ${url}`,
-    );
     // This assumes the dist/ folder is a sibling to this file (workerManager.js)
     // and that the consumer uses import.meta.url context
     return url;

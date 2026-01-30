@@ -18,7 +18,7 @@
   self.onmessage = function(e) {
     sendMessage(self, {
       data: null,
-      message: `[Dummy Worker] got message: ${JSON.stringify(e.data)}`,
+      message: `got message: ${JSON.stringify(e.data)}`,
       level: "log",
       task: e.data
     });

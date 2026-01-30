@@ -1,13 +1,10 @@
 import { JSX, useContext, useSyncExternalStore } from "react";
 import { AppContext } from "../appContextProvider";
 import { IGameState, ILocationGameData } from "../lib/types/general";
-import { CompactGraph } from "../lib/graph";
-import { NeighborInfo } from "../lib/types/pathfinding";
 import { gameStateController } from "@/app/lib/gameState.controller";
 
 const buildLocationDisplay = (
   locationData: ILocationGameData,
-  adjacencyGraph: CompactGraph,
   gameState: IGameState,
 ): JSX.Element => {
   const owned = gameState.ownedLocations[locationData.name];
@@ -57,9 +54,6 @@ export function InfoBoxComponent() {
   if (!context.gameData) {
     throw new Error("Game data is not available in InfoBoxComponent");
   }
-  if (!context.adjacencyGraph) {
-    throw new Error("Adjacency graph is not available in InfoBoxComponent");
-  }
 
   const locationName =
     context?.hoveredLocation ?? context?.selectedLocation ?? null;
@@ -67,7 +61,6 @@ export function InfoBoxComponent() {
   const locationDisplay = locationName ? (
     buildLocationDisplay(
       context.gameData.locationDataMap[locationName],
-      context.adjacencyGraph,
       gameLogic,
     )
   ) : (

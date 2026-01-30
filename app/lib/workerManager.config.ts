@@ -11,5 +11,7 @@ export const workerManagerConfig: WorkerManagerConfig = {
     colorSearch: "canvas-worker",
     initWithImage: "canvas-worker",
     initGraphWorker: "graph-worker",
+    computeProximity: "graph-worker",
+    computeNeighbors: "graph-worker",
   },
 };

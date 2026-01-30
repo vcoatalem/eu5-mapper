@@ -3,12 +3,13 @@ import { Observable } from "./observable";
 import { ILocationIdentifier } from "./types/general";
 import { workerManager } from "@/app/lib/workerManager";
 import { gameStateController } from "@/app/lib/gameState.controller";
+import { PathfindingResult } from "./types/pathfinding";
 
 type NeighborsProximityComputationResults = {
   computationResults: Record<
     ILocationIdentifier,
     {
-      neighbors: Record<ILocationIdentifier, number>;
+      neighbors: PathfindingResult;
       status: "pending" | "completed" | "error" | "needs_update"; // TODO : detect when result expire and need to be recomputed
     }
   >;

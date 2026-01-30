@@ -3,7 +3,7 @@ import {
   EdgeInfo,
   GraphStats,
   Neighbor,
-  NeighborInfo,
+  PathfindingResult,
 } from "./types/pathfinding";
 
 export class CompactGraph {
@@ -116,23 +116,22 @@ export class CompactGraph {
     startNode: string,
     costLimit: number,
     getCost: CostFunction,
-  ): Record<string, number> {
+  ): PathfindingResult {
     const startId = this.nodeToId[startNode];
     if (startId === undefined) return {};
 
-    const distances: Record<number, number> = {};
+    const distances: PathfindingResult = {};
     const pq: Array<{ node: number; cost: number }> = [
       { node: startId, cost: 0 },
     ];
-    distances[startId] = 0;
-
+    distances[startId] = { cost: 0, through: "unknown" };
     while (pq.length > 0) {
       pq.sort((a, b) => a.cost - b.cost);
       const current = pq.shift()!;
       const { node, cost } = current;
 
       if (cost > costLimit) continue;
-      if (cost > distances[node]!) continue;
+      if (cost > distances[node].cost) continue;
 
       const nodeStr = this._getNodeString(node);
 
@@ -177,20 +176,20 @@ export class CompactGraph {
           isPort,
           isLake,
         );
-        const newCost = cost + edgeCost;
+        const newCost = cost + edgeCost.cost;
 
         if (
           newCost <= costLimit &&
-          (!(neighbor in distances) || newCost < distances[neighbor]!)
+          (!(neighbor in distances) || newCost < distances[neighbor].cost)
         ) {
-          distances[neighbor] = newCost;
+          distances[neighbor] = { cost: newCost, through: edgeCost.through };
           pq.push({ node: neighbor, cost: newCost });
         }
       }
     }
 
     // Convert back to string keys
-    const result: Record<string, number> = {};
+    const result: PathfindingResult = {};
     for (const idStr in distances) {
       const id = Number(idStr);
       result[this._getNodeString(id)] = distances[id];
@@ -206,12 +205,12 @@ export class CompactGraph {
     startNode: string,
     edgeLimit: number,
     getCost: CostFunction,
-  ): Record<string, number> {
+  ): PathfindingResult {
     const startId = this.nodeToId[startNode];
     if (startId === undefined) return {};
 
     // Record of nodeId to minimum cost found so far
-    const minCost: Record<number, number> = {};
+    const minCost: PathfindingResult = {};
     // Each entry: { node, cost, edgesUsed, visitedSet }
     const queue: Array<{
       node: number;
@@ -221,7 +220,7 @@ export class CompactGraph {
     }> = [
       { node: startId, cost: 0, edgesUsed: 0, visited: new Set([startId]) },
     ];
-    minCost[startId] = 0;
+    minCost[startId] = { cost: 0, through: "unknown" };
 
     while (queue.length > 0) {
       const current = queue.shift()!;
@@ -269,10 +268,10 @@ export class CompactGraph {
           isPort,
           isLake,
         );
-        const newCost = cost + edgeCost;
+        const newCost = cost + edgeCost.cost;
         // Only add if this is the first time or a cheaper path
-        if (!(neighbor in minCost) || newCost < minCost[neighbor]!) {
-          minCost[neighbor] = newCost;
+        if (!(neighbor in minCost) || newCost < minCost[neighbor]!.cost) {
+          minCost[neighbor] = { cost: newCost, through: edgeCost.through };
           const newVisited = new Set(visited);
           newVisited.add(neighbor);
           queue.push({
@@ -286,10 +285,13 @@ export class CompactGraph {
     }
 
     // Convert back to string keys
-    const result: Record<string, number> = {};
+    const result: PathfindingResult = {};
     for (const idStr in minCost) {
       const id = Number(idStr);
-      result[this._getNodeString(id)] = minCost[id];
+      result[this._getNodeString(id)] = {
+        cost: minCost[id].cost,
+        through: minCost[id].through,
+      };
     }
     return result;
   }

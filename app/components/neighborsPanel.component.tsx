@@ -29,18 +29,6 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
     return <></>;
   }
 
-  //adjacencyGraph.getNeighborNodesNames(locationName);
-
-  /*   const getConnectionType = (neighbor: NeighborInfo): string => {
-    if (!neighbor) return "?";
-    if (neighbor.isPort) return "(Port)";
-    if (neighbor.isLand) return "(Land)";
-    if (neighbor.isSea) return "(Sea)";
-    if (neighbor.isRiver) return "(River)";
-    if (neighbor.isLake) return "(Lake)";
-    return "? Unknown";
-  }; */
-
   return (
     <div className="w-64 max-h-96 overflow-y-auto bg-black/90 backdrop-blur-sm border border-stone-700 rounded p-3">
       <span>{neighborLocationResult?.status}</span>
@@ -51,25 +39,24 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
         <div className="flex flex-col gap-1 text-xs">
           {Object.entries(neighborLocationResult.neighbors)
             .filter(([neighborName]) => neighborName !== locationName)
-            .map(([neighborName, distance]) => (
+            .filter(([, { through }]) => through !== "unowned_location")
+            .map(([neighborName, { cost, through }]) => (
               <div
                 key={neighborName}
                 className="flex items-center justify-between py-1 px-2 hover:bg-stone-800/50 rounded"
               >
-                <span className="truncate flex-1">
-                  {" "}
-                  {locationName + "<->" + neighborName}
-                </span>
+                <span className="truncate flex-1"> {neighborName}</span>
                 <span
                   className="ml-2"
                   style={{
                     color: DrawingHelper.rgbToHex(
-                      ...DrawingHelper.getEvaluationColor(distance),
+                      ...DrawingHelper.getEvaluationColor(cost),
                     ),
                   }}
                 >
-                  {distance}
+                  {cost.toFixed(2)}
                 </span>
+                <span> ({through})</span>
               </div>
             ))}
         </div>

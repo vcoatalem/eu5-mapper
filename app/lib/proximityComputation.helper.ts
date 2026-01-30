@@ -1,5 +1,4 @@
 import { CompactGraph } from "./graph";
-import { IProximityComputationResults } from "./proximityComputation.controller";
 import {
   IConstructibleLocation,
   IGameData,
@@ -7,7 +6,7 @@ import {
   ILocationGameData,
   ILocationIdentifier,
 } from "./types/general";
-import { CostFunction } from "./types/pathfinding";
+import { CostFunction, PathfindingResult } from "./types/pathfinding";
 
 export class ProximityComputationHelper {
   public static getEnvironmentalProximityCostIncreasePercentage = (
@@ -162,11 +161,11 @@ export class ProximityComputationHelper {
         !isToSeaZone &&
         !isToLakeZone
       ) {
-        return 100;
+        return { cost: 100, through: "unowned_location" };
       }
 
       if (isToLakeZone) {
-        return 5; //TODO: make this proper
+        return { cost: 5, through: "lake" }; //TODO: make this proper
       }
 
       const baseCost = isRiver
@@ -190,7 +189,7 @@ export class ProximityComputationHelper {
         // TODO: hypothesis to confirm: harbor capacity is applied, whether going IN or OUT of a port
         const locationWithHarbor = isToSeaZone ? from : to;
         if (!gameState.ownedLocations[locationWithHarbor]) {
-          return 0; // we dont use other peoples harbors
+          return { cost: 0, through: "unowned_location" }; // we dont use other peoples harbors
         }
         const harborCapacity =
           ProximityComputationHelper.getLocationHarborCapacity(
@@ -214,7 +213,20 @@ export class ProximityComputationHelper {
 
       //TODO: factor in roads for land / river
 
-      return modifiedCost;
+      return {
+        cost: modifiedCost,
+        through: isRiver
+          ? "river"
+          : isLand
+            ? "land"
+            : isSea
+              ? "sea"
+              : isPort
+                ? "port"
+                : isLake
+                  ? "lake"
+                  : "unknown",
+      };
     };
   }
 
@@ -222,11 +234,8 @@ export class ProximityComputationHelper {
     gameState: IGameState,
     gameData: IGameData,
     adjacencyGraph: CompactGraph,
-  ): Record<string, number> => {
-    const proximityResults: Record<
-      string,
-      Record<ILocationIdentifier, number>
-    > = {};
+  ): PathfindingResult => {
+    const proximityResults: Record<string, PathfindingResult> = {};
 
     const proximitySourceLocations =
       ProximityComputationHelper.getLocalProximitySourceLocations(gameState);
@@ -244,12 +253,19 @@ export class ProximityComputationHelper {
       );
     }
 
-    const mergedResults: Record<string, number> = {};
+    const mergedResults: PathfindingResult = {};
     for (const [location, resultMap] of Object.entries(proximityResults)) {
-      for (const [target, cost] of Object.entries(resultMap)) {
-        const deducedCost = 100 - proximitySourceLocations[location] + cost;
-        if (!(target in mergedResults) || deducedCost < mergedResults[target]) {
-          mergedResults[target] = deducedCost;
+      for (const [target, result] of Object.entries(resultMap)) {
+        const deducedCost =
+          100 - proximitySourceLocations[location] + result.cost;
+        if (
+          !(target in mergedResults) ||
+          deducedCost < mergedResults[target].cost
+        ) {
+          mergedResults[target] = {
+            cost: deducedCost,
+            through: result.through,
+          };
         }
       }
     }
@@ -261,7 +277,7 @@ export class ProximityComputationHelper {
     gameState: IGameState,
     gameData: IGameData,
     adjacencyGraph: CompactGraph,
-  ): Record<string, number> => {
+  ): PathfindingResult => {
     const neighbors = adjacencyGraph.reachableWithinEdges(
       location,
       1,

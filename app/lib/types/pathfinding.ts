@@ -1,3 +1,5 @@
+import { ILocationIdentifier } from "./general";
+
 export interface EdgeInfo {
   exists: boolean;
   isRiver: boolean;
@@ -35,6 +37,23 @@ export interface GraphStats {
   lakeEdges: number;
 }
 
+type EdgeType =
+  | "river"
+  | "land"
+  | "sea"
+  | "port"
+  | "lake"
+  | "unowned_location"
+  | "unknown";
+
+export type PathfindingResult = Record<
+  ILocationIdentifier,
+  {
+    cost: number;
+    through: EdgeType;
+  }
+>;
+
 export type CostFunction = (
   from: string,
   to: string,
@@ -43,4 +62,7 @@ export type CostFunction = (
   isSea: boolean,
   isPort: boolean,
   isLake: boolean,
-) => number;
+) => {
+  cost: number;
+  through: EdgeType;
+};

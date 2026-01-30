@@ -147,14 +147,14 @@
       const pq = [
         { node: startId, cost: 0 }
       ];
-      distances[startId] = 0;
+      distances[startId] = { cost: 0, through: "unknown" };
       while (pq.length > 0) {
         pq.sort((a, b) => a.cost - b.cost);
         const current = pq.shift();
         const { node, cost } = current;
         if (cost > costLimit)
           continue;
-        if (cost > distances[node])
+        if (cost > distances[node].cost)
           continue;
         const nodeStr = this._getNodeString(node);
         const neighbors = [];
@@ -197,9 +197,9 @@
             isPort,
             isLake
           );
-          const newCost = cost + edgeCost;
-          if (newCost <= costLimit && (!(neighbor in distances) || newCost < distances[neighbor])) {
-            distances[neighbor] = newCost;
+          const newCost = cost + edgeCost.cost;
+          if (newCost <= costLimit && (!(neighbor in distances) || newCost < distances[neighbor].cost)) {
+            distances[neighbor] = { cost: newCost, through: edgeCost.through };
             pq.push({ node: neighbor, cost: newCost });
           }
         }
@@ -223,7 +223,7 @@
       const queue = [
         { node: startId, cost: 0, edgesUsed: 0, visited: /* @__PURE__ */ new Set([startId]) }
       ];
-      minCost[startId] = 0;
+      minCost[startId] = { cost: 0, through: "unknown" };
       while (queue.length > 0) {
         const current = queue.shift();
         const { node, cost, edgesUsed, visited } = current;
@@ -270,9 +270,9 @@
             isPort,
             isLake
           );
-          const newCost = cost + edgeCost;
-          if (!(neighbor in minCost) || newCost < minCost[neighbor]) {
-            minCost[neighbor] = newCost;
+          const newCost = cost + edgeCost.cost;
+          if (!(neighbor in minCost) || newCost < minCost[neighbor].cost) {
+            minCost[neighbor] = { cost: newCost, through: edgeCost.through };
             const newVisited = new Set(visited);
             newVisited.add(neighbor);
             queue.push({
@@ -287,7 +287,10 @@
       const result = {};
       for (const idStr in minCost) {
         const id = Number(idStr);
-        result[this._getNodeString(id)] = minCost[id];
+        result[this._getNodeString(id)] = {
+          cost: minCost[id].cost,
+          through: minCost[id].through
+        };
       }
       return result;
     }
@@ -381,10 +384,10 @@
         const isToSeaZone = toLocationData.isSea;
         const isToLakeZone = toLocationData.isLake;
         if (!Object.keys(gameState.ownedLocations).includes(to) && !isToSeaZone && !isToLakeZone) {
-          return 100;
+          return { cost: 100, through: "unowned_location" };
         }
         if (isToLakeZone) {
-          return 5;
+          return { cost: 5, through: "lake" };
         }
         const baseCost = isRiver ? rule.baseCost - rule.riverCostReduction : rule.baseCost;
         const localProximityCostReductionPercentage = gameState.ownedLocations[from] ? _ProximityComputationHelper.getLocationProximityLocalCostReductionPercentage(
@@ -396,7 +399,7 @@
         if (isPort) {
           const locationWithHarbor = isToSeaZone ? from : to;
           if (!gameState.ownedLocations[locationWithHarbor]) {
-            return 0;
+            return { cost: 0, through: "unowned_location" };
           }
           const harborCapacity = _ProximityComputationHelper.getLocationHarborCapacity(
             gameData2.locationDataMap[locationWithHarbor],
@@ -410,7 +413,10 @@
           const maritimePresence = 0.5;
           modifiedCost = modifiedCost * (1 - maritimePresence * rule.maritimePresenceImpact);
         }
-        return modifiedCost;
+        return {
+          cost: modifiedCost,
+          through: isRiver ? "river" : isLand ? "land" : isSea ? "sea" : isPort ? "port" : isLake ? "lake" : "unknown"
+        };
       };
     }
   };
@@ -484,8 +490,8 @@
     }
     const mergedResults = {};
     for (const [location, resultMap] of Object.entries(proximityResults)) {
-      for (const [target, cost] of Object.entries(resultMap)) {
-        const deducedCost = 100 - proximitySourceLocations[location] + cost;
+      for (const [target, result] of Object.entries(resultMap)) {
+        const deducedCost = 100 - proximitySourceLocations[location] + result.cost;
         if (!(target in mergedResults) || deducedCost < mergedResults[target]) {
           mergedResults[target] = deducedCost;
         }

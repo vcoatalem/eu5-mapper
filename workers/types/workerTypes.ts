@@ -3,6 +3,7 @@ import {
   IGameState,
   ILocationIdentifier,
 } from "@/app/lib/types/general";
+import { PathfindingResult } from "@/app/lib/types/pathfinding";
 
 export type WorkerManagerConfig = {
   workers: Array<{
@@ -74,6 +75,10 @@ export interface IWorkerTaskComputeProximityPayload {
   gameState: IGameState;
 }
 
+export interface IWorkerTaskComputeProximityResult {
+  result: PathfindingResult;
+}
+
 export interface IWorkerTaskComputeNeighborsPayload {
   gameState: IGameState;
   locationName: ILocationIdentifier;
@@ -81,5 +86,5 @@ export interface IWorkerTaskComputeNeighborsPayload {
 
 export interface IWorkerTaskComputeNeighborsResult {
   locationName: ILocationIdentifier;
-  neighbors: Record<ILocationIdentifier, number>;
+  neighbors: PathfindingResult;
 }

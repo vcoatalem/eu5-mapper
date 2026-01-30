@@ -6,7 +6,7 @@
       type: payload.level,
       taskType: payload.task.type,
       taskId: payload.task.id,
-      message: payload.message ?? ""
+      message: payload.message ? `[${globalThis.__workerName}] ${payload.message}` : ""
     };
     if (payload.data !== void 0) {
       workerMessage.data = payload.data;
@@ -15,6 +15,7 @@
   };
 
   // workers/canvas-worker.ts
+  globalThis.__workerName = "Canvas Worker";
   var scanlineFill = (data32, width, startX, startY, task) => {
     const height = data32.length / width;
     const visited = new Uint8Array(data32.length);
@@ -77,7 +78,7 @@
   self.onmessage = function(e) {
     sendMessage(self, {
       data: null,
-      message: `CANVAS WORKER Received task: ${JSON.stringify(e.data).substring(0, 100)}...`,
+      message: `Received task: ${JSON.stringify(e.data).substring(0, 100)}...`,
       level: "log",
       task: e.data
     });

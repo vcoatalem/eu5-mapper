@@ -213,9 +213,8 @@ export function WorldMapComponent() {
       console.log("worldmap component already initialized, skipping");
       return;
     }
-    /* 
-    initializeWorkerAndCanvas(); */
-    waitForInitialization();
+
+    waitForInitialization(); // TODO: what does this do again ?
 
     const colorCanvas = colorCanvasRef.current;
     const container = containerRef.current;
@@ -229,6 +228,16 @@ export function WorldMapComponent() {
     if (!colorContext) {
       console.log("canvas context is nullish");
       return;
+    }
+
+    if (workerManager.isAvailable()) {
+      workerManager.queueTask({
+        id: "initGraphWorkerTask",
+        type: "initGraphWorker",
+        payload: {
+          type: "initGraphWorker",
+        },
+      });
     }
 
     // effect variables: these will only be used inside this effect until destruction

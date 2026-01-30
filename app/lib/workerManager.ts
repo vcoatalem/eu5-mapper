@@ -90,6 +90,12 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
       lastCompletedTask: completedTask ?? this.subject.lastCompletedTask,
     };
     this.notifyListeners();
+    // dont emit the same task completion twice
+    this.subject = {
+      activeTasks: this.activeTasks.size,
+      queuedTasks: this.taskQueue.length,
+      lastCompletedTask: null,
+    };
   }
 
   public queueTask(task: IWorkerTask): void {
@@ -195,12 +201,10 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
   private handleWorkerMessage(message: IWorkerMessage, worker: Worker): void {
     const taskId = message.taskId;
 
-    console.log("got worker message", { message, fromWorker: worker });
-
     if (!taskId) {
       // Log messages without task ID
       if (message.type === "log") {
-        console.log("[WORKER]", message.message);
+        console.log(message.message);
       }
       return;
     }
@@ -231,7 +235,7 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
 
     switch (message.type) {
       case "log":
-        console.log(`[WORKER ${taskId}]`, message.message);
+        console.log(message.message);
         break;
 
       case "result":

@@ -6,6 +6,8 @@ import {
 } from "./types/workerTypes";
 import { sendMessage } from "./utils";
 
+(globalThis as any).__workerName = "Canvas Worker";
+
 //type Coordinate = { x: number; y: number };
 /**
  * Flood fill algorithm to find all contiguous pixels of the same color.
@@ -106,7 +108,7 @@ let canvasHeight: number;
 self.onmessage = function (e: MessageEvent<IWorkerTask>) {
   sendMessage(self, {
     data: null,
-    message: `CANVAS WORKER Received task: ${JSON.stringify(e.data).substring(0, 100)}...`,
+    message: `Received task: ${JSON.stringify(e.data).substring(0, 100)}...`,
     level: "log",
     task: e.data,
   });

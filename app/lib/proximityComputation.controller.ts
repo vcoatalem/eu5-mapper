@@ -7,10 +7,11 @@ import {
   ILocationIdentifier,
 } from "./types/general";
 import { gameStateController } from "@/app/lib/gameState.controller";
-import { CostFunction } from "./types/pathfinding";
+import { CostFunction, GraphStats } from "./types/pathfinding";
 import { CompactGraph } from "./graph";
 import { ConstructibleHelper } from "./constructible.helper";
 import { ProximityComputationHelper } from "./proximityComputation.helper";
+import { workerManager } from "./workerManager";
 
 export interface IProximityComputationResults {
   proximityCostsForCapital: Map<ILocationIdentifier, number>; //TODO : not a fan of map, lets change graph to use Record
@@ -31,6 +32,26 @@ export class ProximityComputationController extends Observable<IProximityComputa
     this.subject = {
       proximityCostsForCapital: new Map(),
     };
+    workerManager.subscribe((workerManagerStatus) => {
+      const stats = (
+        workerManagerStatus.lastCompletedTask?.data as {
+          graphStats: GraphStats;
+        }
+      )?.graphStats;
+      if (workerManagerStatus.lastCompletedTask?.type === "initGraphWorker") {
+        console.log(
+          `[ProximityComputationController] Adjacency graph built:`,
+          stats,
+        );
+        console.log(`  - Nodes: ${stats.nodes}`);
+        console.log(`  - Total edges: ${stats.edges}`);
+        console.log(`  - River edges: ${stats.riverEdges}`);
+        console.log(`  - Land edges: ${stats.landEdges}`);
+        console.log(`  - Sea edges: ${stats.seaEdges}`);
+        console.log(`  - Port edges: ${stats.portEdges}`);
+        console.log(`  - Lake edges: ${stats.lakeEdges}`);
+      }
+    });
     gameStateController.subscribe((gameState) => {
       if (!this.adjacencyGraph) {
         throw new Error(

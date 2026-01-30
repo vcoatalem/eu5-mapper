@@ -13,7 +13,9 @@ export const sendMessage = (
     type: payload.level,
     taskType: payload.task.type,
     taskId: payload.task.id,
-    message: payload.message ?? "",
+    message: payload.message
+      ? `[${(globalThis as any).__workerName}] ${payload.message}`
+      : "",
   };
   if (payload.data !== undefined) {
     workerMessage.data = payload.data;

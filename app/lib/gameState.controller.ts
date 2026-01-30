@@ -15,7 +15,7 @@ class GameStateController extends Observable<IGameState> {
   public init(gameData: IGameData): void {
     this.gameData = gameData;
     this.subject = {
-      country: "",
+      country: null,
       roads: {},
       ownedLocations: {},
     };
@@ -43,8 +43,9 @@ class GameStateController extends Observable<IGameState> {
   }
 
   public acquireLocation(locationName: string): void {
+    const baseLocationRank = this.gameData?.locationDataMap[locationName].rank;
     this.subject.ownedLocations[locationName] = {
-      level: "rural", // TODO: get location base level
+      rank: baseLocationRank ?? "rural",
       buildings: [], // TODO: get location base buildings
     };
     if (!this.subject.capitalLocation) {
@@ -75,7 +76,7 @@ class GameStateController extends Observable<IGameState> {
 
   public changeLocationRank(
     locationName: string,
-    newRank: IConstructibleLocation["level"],
+    newRank: IConstructibleLocation["rank"],
   ): void {
     const location = this.subject.ownedLocations[locationName];
     if (!location) {
@@ -83,7 +84,7 @@ class GameStateController extends Observable<IGameState> {
         `Cannot change rank of unowned location: ${locationName}`,
       );
     }
-    location.level = newRank;
+    location.rank = newRank;
 
     let buildingToKeep: string[] = [];
     for (const building of location.buildings) {

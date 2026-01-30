@@ -64,11 +64,11 @@ export class ConstructibleHelper {
       case "common":
         return true;
       case "city":
-        return constructible.level === "city";
+        return constructible.rank === "city";
       case "urban":
-        return constructible.level === "city" || constructible.level === "town";
+        return constructible.rank === "city" || constructible.rank === "town";
       case "rural":
-        return constructible.level === "rural";
+        return constructible.rank === "rural";
       default:
         return false;
     }

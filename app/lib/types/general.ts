@@ -2,6 +2,12 @@
 
 export type ILocationIdentifier = string; // location name
 
+type LocationRank = "rural" | "town" | "city";
+type RoadType = "gravel" | "paved" | "modern" | "rail";
+type BuildingType = "rural" | "urban" | "city" | "common";
+
+// all data in this instances of this interface should be read-only after init.
+// they represent the static game data that is loaded into the game at the start of a new game
 export interface ILocationGameData {
   name: string;
   hexColor: string;
@@ -40,10 +46,11 @@ export interface ILocationGameData {
     province: string;
   };
   naturalHarborSuitability: number;
-  isCoastal: boolean; // computed from adjacency graph
-  isOnRiver: boolean; // computed from adjacency graph
-  isOnLake: boolean; // computed from adjacency graph
+  isCoastal: boolean;
+  isOnRiver: boolean;
+  isOnLake: boolean;
   // TODO: hasRoad: boolean;
+  rank: LocationRank;
   development: number; // can me modified , in other interface (ILocationTemporaryData ?)
   population: number; // can me modified , in other interface (ILocationTemporaryData ?)
 }
@@ -58,8 +65,6 @@ interface IPlacementRestrictionConfig {
   mode: "all" | "any"; // 'all' = every condition must be met, 'any' = at least one condition must be met
   conditions: PlacementRestrictions[];
 }
-
-type BuildingType = "rural" | "urban" | "city" | "common";
 
 export interface IBuildingTemplate {
   name: string;
@@ -80,11 +85,10 @@ interface IBuildingInstance {
 }
 
 export interface IConstructibleLocation {
-  level: "rural" | "town" | "city";
+  rank: LocationRank;
   buildings: IBuildingInstance[];
 }
 
-type RoadType = "gravel" | "paved" | "modern" | "rail";
 type RoadRecordKey = `${string}<->${string}`; // location A <-> location B (location A < location B)
 type RoadRecord = Record<
   RoadRecordKey,
@@ -92,7 +96,7 @@ type RoadRecord = Record<
 >;
 
 export interface IGameState {
-  country: string;
+  country: string | null;
   roads: RoadRecord;
   ownedLocations: Record<ILocationIdentifier, IConstructibleLocation>;
   capitalLocation?: ILocationIdentifier;
@@ -113,9 +117,17 @@ export interface ICoordinate {
   y: number;
 }
 
+export interface ICountryData {
+  capital: ILocationIdentifier;
+  locations: ILocationIdentifier[];
+  centralizationVsDecentralization: number; // from -100 (fully centralized) to 100 (fully decentralized)
+  landVsNaval: number; // from -100 (fully land) to 100 (fully naval)
+}
+
 export interface IGameData {
   locationDataMap: ILocationDataMap;
   colorToNameMap: ILocationIdentifierMap;
   buildingsTemplateMap: Record<string, IBuildingTemplate>;
   proximityComputationRule: IProximityComputationRule;
+  countriesDataMap: Record<string, ICountryData>;
 }

@@ -4,6 +4,7 @@ import {
   IWorkerTaskComputeNeighborsPayload,
   IWorkerTaskComputeNeighborsResult,
   IWorkerTaskComputeProximityPayload,
+  IWorkerTaskComputeProximityResult,
 } from "./types/workerTypes";
 import { IndexedDBReader } from "../app/lib/indexeddb/indexeddb-reader";
 import {
@@ -79,14 +80,16 @@ self.onmessage = async function (e: MessageEvent<IWorkerTask>) {
         const taskPayload = e.data
           .payload as IWorkerTaskComputeProximityPayload;
         const { gameState } = taskPayload;
-        const results =
-          ProximityComputationHelper.getGameStateProximityComputation(
+        const resultPayload: IWorkerTaskComputeProximityResult = {
+          result: ProximityComputationHelper.getGameStateProximityComputation(
             gameState,
             gameData,
             graph,
-          );
+          ),
+        };
+
         sendMessage(self, {
-          data: results,
+          data: resultPayload,
           message: "Proximity computation completed",
           level: "result",
           task: e.data,

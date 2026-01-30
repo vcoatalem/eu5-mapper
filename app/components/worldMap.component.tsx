@@ -24,12 +24,7 @@ import { workerManagerConfig } from "../lib/workerManager.config";
 import { worldMapConfig } from "./worldMap.config";
 import { neighborsProximityComputationController } from "../lib/neighborsProximityComputation.controller";
 import { NeighborsPanelComponent } from "./neighborsPanel.component";
-
-// TODO:
-// 1. add building construction
-// 2. add "local proximity" sources in pathfinding logic
-
-// check new static data file. see if dev numbers make sense (new river calculation)
+import { HeaderComponent } from "./header.component";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
@@ -590,8 +585,11 @@ export function WorldMapComponent() {
         />
       ) : (
         <div>
+          <GuiElement className="fixed top-2 left-5 right-5">
+            <HeaderComponent />
+          </GuiElement>
           {hasOwnedLocations && (
-            <GuiElement className={"fixed left-5 top-5"}>
+            <GuiElement className={"fixed left-5 top-18"}>
               <ConstructibleMenusComponent></ConstructibleMenusComponent>
             </GuiElement>
           )}

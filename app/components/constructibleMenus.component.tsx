@@ -119,13 +119,13 @@ const locationRankPicker = (
 ) => {
   return (
     <div className="ml-2 flex flex-row space-x-1">
-      {(["rural", "town", "city"] as IConstructibleLocation["level"][]).map(
+      {(["rural", "town", "city"] as IConstructibleLocation["rank"][]).map(
         (rank) => (
           <button
             key={rank}
-            disabled={constructible.level === rank}
+            disabled={constructible.rank === rank}
             className={
-              constructible.level === rank
+              constructible.rank === rank
                 ? `disabled:backdrop-grayscale-75 bg-yellow-300`
                 : `bg-black hover:bg-yellow-400`
             }

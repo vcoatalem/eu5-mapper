@@ -67,12 +67,14 @@ export const AppContextProvider = ({
           buildingsRes,
           adjacencyRes,
           proximityComputationRuleRes,
+          countriesDataRes,
         ] = await Promise.all([
           fetch(`${basePath}/location-data-map.json`),
           fetch(`${basePath}/color-to-name-map.json`),
           fetch(`${basePath}/buildings-template-map.json`),
           fetch(`${basePath}/adjacency-data.csv`),
           fetch(`${basePath}/proximity-calculation-rules.json`),
+          fetch(`${basePath}/countries-data-map.json`),
         ]);
 
         if (
@@ -80,7 +82,8 @@ export const AppContextProvider = ({
           !colorToNameRes.ok ||
           !buildingsRes.ok ||
           !adjacencyRes.ok ||
-          !proximityComputationRuleRes.ok
+          !proximityComputationRuleRes.ok ||
+          !countriesDataRes.ok
         ) {
           throw new Error(
             `Failed to load game data files for version ${version}`,
@@ -93,12 +96,14 @@ export const AppContextProvider = ({
           buildingsTemplateMap,
           adjacencyCsv,
           proximityComputationRule,
+          countriesDataMap,
         ] = await Promise.all([
           locationDataRes.json(),
           colorToNameRes.json(),
           buildingsRes.json(),
           adjacencyRes.text(),
           proximityComputationRuleRes.json(),
+          countriesDataRes.json(),
         ]);
 
         const toBePersistedGameData: IGameData = {
@@ -106,6 +111,7 @@ export const AppContextProvider = ({
           colorToNameMap: {},
           buildingsTemplateMap: {},
           proximityComputationRule,
+          countriesDataMap: {},
         };
         const indexedDBWriter = new IndexedDBWriter(
           dbName,
@@ -146,6 +152,7 @@ export const AppContextProvider = ({
           colorToNameMap,
           buildingsTemplateMap,
           proximityComputationRule,
+          countriesDataMap,
         });
 
         console.log(

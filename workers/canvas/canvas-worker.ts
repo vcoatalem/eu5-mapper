@@ -1,10 +1,10 @@
-import type { ICoordinate } from "../lib/types/general";
+import type { ICoordinate } from "../../app/lib/types/general";
 import {
   IWorkerTask,
   IWorkerTaskColorSearchPayload,
   IWorkerTaskInitWithImagePayload,
-} from "./types/workerTypes";
-import { sendMessage } from "./utils";
+} from "../types/workerTypes";
+import { sendMessage } from "../utils";
 
 //type Coordinate = { x: number; y: number };
 /**
@@ -104,6 +104,13 @@ let canvasWidth: number;
 let canvasHeight: number;
 
 self.onmessage = function (e: MessageEvent<IWorkerTask>) {
+  sendMessage(self, {
+    data: null,
+    message: `CANVAS WORKER Received task: ${JSON.stringify(e.data).substring(0, 100)}...`,
+    level: "log",
+    task: e.data,
+  });
+
   switch (e.data.type) {
     case "initWithImage":
       try {

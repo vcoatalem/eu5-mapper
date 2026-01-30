@@ -10,7 +10,7 @@ import {
   ILocationIdentifier,
 } from "./types/general";
 import { greenToRedGradient } from "./drawing/greenToRedGradient.const";
-import { workerManager } from "../workers/workerManager";
+import { workerManager } from "./workerManager";
 import { ObservableCombiner } from "./observableCombiner";
 import { DrawingHelper } from "./drawing/drawing.helper";
 

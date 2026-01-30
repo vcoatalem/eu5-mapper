@@ -11,6 +11,15 @@ import { useParams } from "next/navigation";
 import { ILocationIdentifier, IGameData } from "./lib/types/general";
 import { CompactGraph } from "./lib/graph";
 import { ParserHelper } from "./lib/parserHelper";
+import { IndexedDBWriter } from "./lib/indexeddb/indexeddb-writer";
+import {
+  dbAdjacencyDataStoreName,
+  dbDataKey,
+  dbGameDataStoreName,
+  dbName,
+  dbStoreNames,
+  dbVersion,
+} from "./lib/indexeddb/indexeddb.const";
 
 interface IAppContext {
   selectedLocation: ILocationIdentifier | null;
@@ -123,6 +132,43 @@ export const AppContextProvider = ({
         console.log(`  - Sea edges: ${stats.seaEdges}`);
         console.log(`  - Port edges: ${stats.portEdges}`);
         console.log(`  - Lake edges: ${stats.lakeEdges}`);
+
+        console.log({ locationDataMap, proximityComputationRule });
+        const toBePersistedGameData: IGameData = {
+          locationDataMap,
+          colorToNameMap: {},
+          buildingsTemplateMap: {},
+          proximityComputationRule,
+        };
+        const indexedDBWriter = new IndexedDBWriter(
+          dbName,
+          dbVersion,
+          dbStoreNames,
+        );
+
+        await indexedDBWriter
+          .put(dbGameDataStoreName, dbDataKey, toBePersistedGameData)
+          .then(
+            () => console.log("persisted game data to indexedDB"),
+            (err) =>
+              console.error("could not persist game data to indexedDB", err),
+          );
+
+        await indexedDBWriter
+          .put(dbAdjacencyDataStoreName, dbDataKey, adjacencyCsv)
+          .then(
+            () => console.log("persisted adjacency data to indexedDB"),
+            (err) =>
+              console.error(
+                "could not persist adjacency data to indexedDB",
+                err,
+              ),
+          );
+
+        //await indexedDBWriter
+        //  .put(dbAdjacencyDataKey, , adjacencyCsv)
+        /*  const connexion = await indexedDBWriter.open();
+        connexion.put(dbGameDataKey, ) */
       } catch (err) {
         const errorMsg =
           err instanceof Error ? err.message : "Failed to load game data";

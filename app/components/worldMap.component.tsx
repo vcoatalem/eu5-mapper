@@ -13,14 +13,14 @@ import { AppContext } from "../appContextProvider";
 import { gameStateController } from "@/app/lib/gameStateController";
 import { ILocationIdentifier } from "../lib/types/general";
 import { DrawingService } from "@/app/lib/drawingService";
-import { workerManager } from "@/app/workers/workerManager";
+import { workerManager } from "@/app/lib/workerManager";
 import { LoadingScreenComponent } from "./loadingScreen.component";
 import { ZoomController } from "@/app/lib/zoomController";
 import { WorkerStatusComponent } from "./workerStatus.component";
 import { proximityComputationController } from "@/app/lib/proximityComputationController";
 import { ConstructibleMenusComponent } from "./constructibleMenus.component";
 import { GuiElement } from "./guiElement";
-import { workerManagerConfig } from "../workers/workerManager.config";
+import { workerManagerConfig } from "../lib/workerManager.config";
 import { worldMapConfig } from "./worldMap.config";
 
 // TODO:
@@ -473,6 +473,14 @@ export function WorldMapComponent() {
 
     setInitialPosition();
     initializedRef.current = true;
+
+    console.log({ workerManagerConfig });
+
+    workerManager.queueTask({
+      id: "testDummyTask",
+      type: "dummy",
+      payload: { type: "dummy" },
+    });
 
     return () => {
       console.log({ topLayerRefForDestroy: topLayerRef });

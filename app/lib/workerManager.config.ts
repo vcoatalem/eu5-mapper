@@ -1,4 +1,4 @@
-import { WorkerManagerConfig } from "./types/workerTypes";
+import { WorkerManagerConfig } from "../../workers/types/workerTypes";
 
 export const workerManagerConfig: WorkerManagerConfig = {
   workers: [

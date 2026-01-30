@@ -5,9 +5,9 @@ import {
   IWorkerMessage,
   IWorkerManagerStatus,
   TaskType,
-} from "./types/workerTypes";
+} from "../../workers/types/workerTypes";
 import { workerManagerConfig } from "./workerManager.config";
-import { Observable } from "../lib/observable";
+import { Observable } from "./observable";
 
 type WorkerPool = {
   workerFileName: string;
@@ -42,6 +42,7 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
     for (const { workerFileName, poolSize } of workerManagerConfig.workers) {
       const workers: Worker[] = [];
       const assignments: Map<Worker, string | null> = new Map();
+      console.log({ workerFileName, poolSize });
       const workerScriptUrl = this.resolveWorkerScriptUrl(workerFileName);
       for (let i = 0; i < poolSize; i++) {
         const worker = new Worker(workerScriptUrl);
@@ -70,9 +71,14 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
    * @param workerScriptName e.g. "canvas-worker.js"
    */
   private resolveWorkerScriptUrl(workerScriptName: string): string {
+    console.log("enter resolveWorkerScriptUrl", { workerScriptName });
+    const url = "/workers/" + workerScriptName + ".js";
+    console.log(
+      `[WorkerManager] Resolving worker script URL for: ${workerScriptName} -> ${url}`,
+    );
     // This assumes the dist/ folder is a sibling to this file (workerManager.js)
     // and that the consumer uses import.meta.url context
-    return new URL(`./dist/${workerScriptName}.js`, import.meta.url).href;
+    return url;
   }
 
   private updateStatus(
@@ -189,7 +195,7 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
   private handleWorkerMessage(message: IWorkerMessage, worker: Worker): void {
     const taskId = message.taskId;
 
-    console.log("got worker message", message);
+    console.log("got worker message", { message, fromWorker: worker });
 
     if (!taskId) {
       // Log messages without task ID

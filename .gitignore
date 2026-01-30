@@ -49,3 +49,7 @@ next-env.d.ts
 # python
 
 *.cpython-314.pyc
+
+
+public/workers/*
+workers/dist/*

@@ -211,7 +211,7 @@ export class DrawingService {
         continue;
       }
       let evaluation: number | undefined =
-        proximityEvaluation.result?.[location] ?? -1;
+        proximityEvaluation.result?.[location].cost ?? -1;
 
       /* console.log("location evaluation:", location, evaluation); */
 
@@ -287,7 +287,7 @@ export class DrawingService {
             ? "rgb(250, 219, 17)"
             : "rgb(208, 208, 208)";
 
-        const level = constructible.level;
+        const level = constructible.rank;
         if (level === "rural") {
           this.drawCircle(x, y, 2, color);
         } else if (level === "town") {

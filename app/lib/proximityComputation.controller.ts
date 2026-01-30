@@ -1,12 +1,13 @@
 import { Observable } from "./observable";
 import { IGameData, ILocationIdentifier } from "./types/general";
 import { gameStateController } from "@/app/lib/gameState.controller";
-import { GraphStats } from "./types/pathfinding";
+import { GraphStats, PathfindingResult } from "./types/pathfinding";
 import { CompactGraph } from "./graph";
 import { workerManager } from "./workerManager";
+import { IWorkerTaskComputeProximityResult } from "@/workers/types/workerTypes";
 
 export interface IProximityComputationResults {
-  result: Record<ILocationIdentifier, number>;
+  result: PathfindingResult;
 }
 
 export class ProximityComputationController extends Observable<IProximityComputationResults> {
@@ -40,6 +41,8 @@ export class ProximityComputationController extends Observable<IProximityComputa
       } else if (
         workerManagerStatus.lastCompletedTask?.type === "computeProximity"
       ) {
+        const data = workerManagerStatus.lastCompletedTask
+          .data as IWorkerTaskComputeProximityResult;
         console.log("got task results", {
           results: workerManagerStatus?.lastCompletedTask,
         });
@@ -47,7 +50,7 @@ export class ProximityComputationController extends Observable<IProximityComputa
           ILocationIdentifier,
           number
         >;
-        this.subject.result = results;
+        this.subject.result = data.result;
         console.log(
           "[ProximityComputationController] Proximity computation completed",
           { newState: this.subject },

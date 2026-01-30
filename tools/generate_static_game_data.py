@@ -206,7 +206,7 @@ def compute_location_development(
         breakdown['unique'] = value
     
     breakdown['total'] = development
-    return development, breakdown
+    return float("{:.2f}".format(development)), breakdown
 
 
 def generate_game_data_json(version: str = "0.0.11", output_dir: str = None):
@@ -365,6 +365,9 @@ def generate_game_data_json(version: str = "0.0.11", output_dir: str = None):
             rank,
             is_ownable
         )
+
+        if location_name in locations_to_print:
+            print(f"Development for {location_name}: {development}")
         
         # Store breakdown for CSV output
         development_breakdowns.append({

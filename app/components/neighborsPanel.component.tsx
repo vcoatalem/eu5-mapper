@@ -2,19 +2,27 @@ import { useEffect, useSyncExternalStore } from "react";
 import { ILocationIdentifier } from "../lib/types/general";
 import { neighborsProximityComputationController } from "../lib/neighborsProximityComputation.controller";
 import { DrawingHelper } from "../lib/drawing/drawing.helper";
+import { gameStateController } from "../lib/gameState.controller";
 
 interface NeighborsPanelProps {
   locationName: ILocationIdentifier;
 }
 
 export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
-  console.log("Rendering NeighborsPanelComponent for", { locationName });
+  /* console.log("Rendering NeighborsPanelComponent for", { locationName }); */
   const { computationResults } = useSyncExternalStore(
     neighborsProximityComputationController.subscribe.bind(
       neighborsProximityComputationController,
     ),
     () => {
       return neighborsProximityComputationController.getSnapshot();
+    },
+  );
+
+  const gameState = useSyncExternalStore(
+    gameStateController.subscribe.bind(gameStateController),
+    () => {
+      return gameStateController.getSnapshot();
     },
   );
 
@@ -30,7 +38,7 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
   }
 
   return (
-    <div className="w-64 max-h-96 overflow-y-auto bg-black/90 backdrop-blur-sm border border-stone-700 rounded p-3">
+    <div className="max-h-96 overflow-y-auto bg-black/90 backdrop-blur-sm border border-stone-700 rounded p-3">
       <span>{neighborLocationResult?.status}</span>
       <div className="font-semibold text-sm mb-2 text-stone-300">
         Proximity costs for {locationName}
@@ -39,13 +47,25 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
         <div className="flex flex-col gap-1 text-xs">
           {Object.entries(neighborLocationResult.neighbors)
             .filter(([neighborName]) => neighborName !== locationName)
-            .filter(([, { through }]) => through !== "unowned_location")
             .map(([neighborName, { cost, through }]) => (
               <div
                 key={neighborName}
-                className="flex items-center justify-between py-1 px-2 hover:bg-stone-800/50 rounded"
+                className="grid grid-cols-5 items-center justify-between py-1 px-2 hover:bg-stone-800/50 rounded w-[300px]"
               >
-                <span className="truncate flex-1"> {neighborName}</span>
+                <span
+                  className={
+                    " truncate col-span-2 " +
+                    (neighborName in gameState.ownedLocations
+                      ? "text-stone-500 italic"
+                      : "")
+                  }
+                >
+                  {neighborName}
+                  {neighborName in gameState.ownedLocations && (
+                    <span> (unowned)</span>
+                  )}
+                </span>
+
                 <span
                   className="ml-2"
                   style={{

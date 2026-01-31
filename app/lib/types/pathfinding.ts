@@ -66,3 +66,9 @@ export type CostFunction = (
   cost: number;
   through: EdgeType;
 };
+
+export type PathFindingOptions = {
+  allowUnownedLocations?: boolean;
+  logForLocations?: ILocationIdentifier[];
+  logMethod?: (...args: any[]) => void;
+};

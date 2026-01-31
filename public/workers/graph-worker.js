@@ -377,45 +377,130 @@
       }
       return proximitySourceLocations;
     }
-    static getProximityCostFunction(gameState, gameData2) {
-      return (from, to, isRiver, isLand, isSea, isPort, isLake) => {
-        const rule = gameData2.proximityComputationRule;
-        const toLocationData = gameData2.locationDataMap[to];
-        const isToSeaZone = toLocationData.isSea;
-        const isToLakeZone = toLocationData.isLake;
-        if (!Object.keys(gameState.ownedLocations).includes(to) && !isToSeaZone && !isToLakeZone) {
-          return { cost: 100, through: "unowned_location" };
-        }
-        if (isToLakeZone) {
-          return { cost: 5, through: "lake" };
-        }
-        const baseCost = isRiver ? rule.baseCost - rule.riverCostReduction : rule.baseCost;
-        const localProximityCostReductionPercentage = gameState.ownedLocations[from] ? _ProximityComputationHelper.getLocationProximityLocalCostReductionPercentage(
-          gameData2.locationDataMap[from],
-          gameState.ownedLocations[from],
-          gameData2
-        ) : 0;
-        let modifiedCost = baseCost * (1 - localProximityCostReductionPercentage / 100);
-        if (isPort) {
-          const locationWithHarbor = isToSeaZone ? from : to;
-          if (!gameState.ownedLocations[locationWithHarbor]) {
-            return { cost: 0, through: "unowned_location" };
+    static getFlatProximityCost(through, gameState, rule, maritimePresence, options) {
+      let baseCost = rule.baseCost;
+      const isNaval = through.isSea || through.isLake;
+      const flatProximityCostReduction = [
+        through.isRiver ? rule.riverCostReduction : 0,
+        isNaval && gameState.country.landVsNaval > 0 ? rule.valuesImpact.landVsNaval[1].flatModifier * gameState.country.landVsNaval : 0
+        // TODO: advances ?
+      ].reduce((a, b) => a + b, 0);
+      if (!isNaval) {
+        return baseCost - flatProximityCostReduction;
+      } else {
+        let normalizedMaritimePresence = through.isLake ? 1 : maritimePresence / 100;
+        normalizedMaritimePresence = Math.max(
+          0,
+          Math.min(1, normalizedMaritimePresence)
+        );
+        const flatProximityCostWithoutMaritimePresence = [
+          // ... advances
+        ].reduce((a, b) => a + b, 0);
+        const flatProximityCostWithMaritimePresence = [
+          // ... advances
+        ].reduce((a, b) => a + b, 0);
+        const costWithoutMaritimePresence = rule.baseCostWithoutMaritimePresence - flatProximityCostWithoutMaritimePresence;
+        const costWithMaritimePresence = rule.baseCostWithMaritimePresence - flatProximityCostWithMaritimePresence;
+        return costWithoutMaritimePresence * (1 - normalizedMaritimePresence) + costWithMaritimePresence * normalizedMaritimePresence;
+      }
+    }
+    static getTransportationModeProximityCostModifiers(from, to, transportationMode, gameData2, gameState) {
+      switch (transportationMode) {
+        case "land":
+          if (from in gameState.ownedLocations) {
+            return _ProximityComputationHelper.getLandLocationProximityModifiers(
+              gameData2.locationDataMap[from],
+              gameState.ownedLocations[from],
+              gameData2
+            );
+          } else {
+            return 0;
           }
+        case "harbor":
+          const locationWithHarbor = gameData2.locationDataMap[to].isSea ? from : to;
           const harborCapacity = _ProximityComputationHelper.getLocationHarborCapacity(
             gameData2.locationDataMap[locationWithHarbor],
             gameState.ownedLocations[locationWithHarbor]
           );
-          const harborImpact = rule.harborCapacityImpact;
-          const multiplier = 1 - harborImpact * harborCapacity / 100;
-          modifiedCost = modifiedCost * multiplier;
+          const harborImpact = gameData2.proximityComputationRule.harborCapacityImpact;
+          const proximityModifier = 1 - harborImpact * harborCapacity / 100;
+          return proximityModifier;
+        case "naval":
+        default:
+          return 0;
+      }
+    }
+    static getPercentageProximityCostModifiers(from, to, through, gameData2, gameState, options) {
+      const modifiers = [];
+      const toLocationData = gameData2.locationDataMap[to];
+      const isNaval = toLocationData.isSea || toLocationData.isLake;
+      modifiers.push(
+        this.getTransportationModeProximityCostModifiers(
+          from,
+          to,
+          isNaval ? "naval" : through.isPort ? "harbor" : "land",
+          gameData2,
+          gameState
+        )
+      );
+      if (options?.logForLocations?.includes(from) || options?.logForLocations?.includes(to)) {
+        options.logMethod?.(
+          "[ProximityComputationHelper] Proximity cost modifiers for",
+          { from, to, isNaval, modifiers }
+        );
+      }
+      return modifiers.reduce((a, b) => a + b, 0);
+    }
+    static getProximityCostFunction(gameState, gameData2, options) {
+      return (from, to, isRiver, isLand, isSea, isPort, isLake) => {
+        const rule = gameData2.proximityComputationRule;
+        const maritimePresence = 30;
+        const baseCost = this.getFlatProximityCost(
+          { isRiver, isLand, isSea, isPort, isLake },
+          gameState,
+          rule,
+          maritimePresence
+        );
+        if (options?.logForLocations?.includes(from) || options?.logForLocations?.includes(to)) {
+          options.logMethod?.(
+            "[ProximityComputationHelper] base proximity cost for",
+            {
+              from,
+              to,
+              through: { isRiver, isLand, isSea, isPort, isLake },
+              baseCost
+            }
+          );
         }
-        if (isSea) {
-          const maritimePresence = 0.5;
-          modifiedCost = modifiedCost * (1 - maritimePresence * rule.maritimePresenceImpact);
+        const toLocationData = gameData2.locationDataMap[to];
+        const isToSeaZone = toLocationData.isSea;
+        const isToLakeZone = toLocationData.isLake;
+        const edgeType = isRiver ? "river" : isLand ? "land" : isSea ? "sea" : isPort ? "port" : isLake ? "lake" : "unknown";
+        if (!options?.allowUnownedLocations && !Object.keys(gameState.ownedLocations).includes(to) && !isToSeaZone && !isToLakeZone) {
+          return { cost: 100, through: edgeType };
+        }
+        const proximityModifiersSummed = this.getPercentageProximityCostModifiers(
+          from,
+          to,
+          { isRiver, isLand, isPort },
+          gameData2,
+          gameState
+        );
+        const modifiedCost = baseCost * (1 - proximityModifiersSummed / 100);
+        if (options?.logForLocations?.includes(from) || options?.logForLocations?.includes(to)) {
+          options?.logMethod?.(
+            "[ProximityComputationHelper] Final proximity cost for",
+            {
+              from,
+              to,
+              through: { isRiver, isLand, isSea, isPort, isLake },
+              modifiedCost
+            }
+          );
         }
         return {
           cost: modifiedCost,
-          through: isRiver ? "river" : isLand ? "land" : isSea ? "sea" : isPort ? "port" : isLake ? "lake" : "unknown"
+          through: edgeType
         };
       };
     }
@@ -443,11 +528,11 @@
     const totalEnvironmentalCostIncrease = topographyCostIncreasePercentage + vegetationCostIncreasePercentage;
     return totalEnvironmentalCostIncrease;
   };
-  _ProximityComputationHelper.getLocationProximityLocalCostReductionPercentage = (location, locationConstructibleData, gameData2) => {
-    if (location.isSea || location.isLake) {
+  _ProximityComputationHelper.getLandLocationProximityModifiers = (location, locationConstructibleData, gameData2) => {
+    if (location.isSea || location.isLake || !location.ownable) {
       return 0;
     }
-    const buildings = locationConstructibleData.buildings ?? [];
+    const buildings = locationConstructibleData?.buildings ?? [];
     const totalBuildingsCostReduction = buildings.map(
       (b) => b.template.proximityCostReductionPercentage?.[b.level - 1] ?? 0
     ).reduce((a, b) => a + b, 0);
@@ -466,6 +551,9 @@
   };
   _ProximityComputationHelper.getLocationHarborCapacity = (locationData, locationConstructibleData) => {
     const naturalHarborSuitability = locationData.naturalHarborSuitability ?? 0;
+    if (!locationConstructibleData) {
+      return naturalHarborSuitability;
+    }
     const buildings = locationConstructibleData.buildings ?? [];
     const totalBuildingsHarborCapacity = buildings.map((b) => {
       const capacity = b.template.harborCapacity?.[b.level - 1];
@@ -473,7 +561,7 @@
     }).reduce((a, b) => a + b, 0);
     return naturalHarborSuitability + totalBuildingsHarborCapacity;
   };
-  _ProximityComputationHelper.getGameStateProximityComputation = (gameState, gameData2, adjacencyGraph) => {
+  _ProximityComputationHelper.getGameStateProximityComputation = (gameState, gameData2, adjacencyGraph, options) => {
     const proximityResults = {};
     const proximitySourceLocations = _ProximityComputationHelper.getLocalProximitySourceLocations(gameState);
     for (const [locationName, proximitySource] of Object.entries(
@@ -484,7 +572,8 @@
         proximitySource,
         _ProximityComputationHelper.getProximityCostFunction(
           gameState,
-          gameData2
+          gameData2,
+          options
         )
       );
     }
@@ -502,11 +591,15 @@
     }
     return mergedResults;
   };
-  _ProximityComputationHelper.getGameStateLocationNeighborsProximity = (location, gameState, gameData2, adjacencyGraph) => {
+  _ProximityComputationHelper.getGameStateLocationNeighborsProximity = (location, gameState, gameData2, adjacencyGraph, options) => {
     const neighbors = adjacencyGraph.reachableWithinEdges(
       location,
       1,
-      _ProximityComputationHelper.getProximityCostFunction(gameState, gameData2)
+      _ProximityComputationHelper.getProximityCostFunction(
+        gameState,
+        gameData2,
+        options
+      )
     );
     return neighbors;
   };
@@ -572,7 +665,20 @@
             result: ProximityComputationHelper.getGameStateProximityComputation(
               gameState,
               gameData,
-              graph
+              graph,
+              {
+                allowUnownedLocations: true,
+                // allow passing over unowned
+                logForLocations: ["calais", "paris", "chartres"],
+                logMethod: (...args) => {
+                  sendMessage(self, {
+                    data: args.filter((a) => a instanceof Object),
+                    message: args.join(" "),
+                    level: "log",
+                    task: e.data
+                  });
+                }
+              }
             )
           };
           sendMessage(self, {
@@ -602,7 +708,20 @@
               locationName,
               gameState,
               gameData,
-              graph
+              graph,
+              {
+                allowUnownedLocations: true,
+                // allow passing over unowned
+                logForLocations: ["calais"],
+                logMethod: (...args) => {
+                  sendMessage(self, {
+                    data: null,
+                    message: args.join(" "),
+                    level: "log",
+                    task: e.data
+                  });
+                }
+              }
             )
           };
           sendMessage(self, {

@@ -1,6 +1,5 @@
 "use client";
 
-import { Icon } from "next/dist/lib/metadata/types/metadata-types";
 import { ConstructibleHelper } from "./constructible.helper";
 import { Observable } from "./observable";
 import {

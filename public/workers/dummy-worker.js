@@ -15,6 +15,7 @@
   };
 
   // workers/dummy-worker.ts
+  globalThis.__workerName = "Dummy Worker";
   self.onmessage = function(e) {
     sendMessage(self, {
       data: null,

@@ -148,9 +148,6 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
         this.taskQueue.splice(i, 1);
         this.activeTasks.set(task.id, task);
         pool.assignments.set(availableWorker, task.id);
-        console.log(
-          `[WorkerManager] Processing task: ${task.id} with worker: ${workerFileName}`,
-        );
 
         // Collect transferable objects from payload
         const transferables: Transferable[] = [];
@@ -198,14 +195,6 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
   private handleWorkerMessage(message: IWorkerMessage, worker: Worker): void {
     const taskId = message.taskId;
 
-    if (!taskId) {
-      // Log messages without task ID
-      if (message.type === "log") {
-        console.log(message.message);
-      }
-      return;
-    }
-
     const task = this.activeTasks.get(taskId);
     if (!task) {
       console.warn(
@@ -232,7 +221,11 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
 
     switch (message.type) {
       case "log":
-        console.log(message.message);
+        console.log({
+          workerMessage: message.message,
+          workerData: message.data,
+        });
+        console.log();
         break;
 
       case "result":

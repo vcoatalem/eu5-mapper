@@ -1,5 +1,7 @@
 import { sendMessage } from "./utils";
 
+(globalThis as any).__workerName = "Dummy Worker";
+
 self.onmessage = function (e: MessageEvent) {
   sendMessage(self, {
     data: null,

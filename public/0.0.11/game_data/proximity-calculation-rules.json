@@ -1,5 +1,7 @@
 {
   "baseCost": 40,
+  "baseCostWithMaritimePresence": 5,
+  "baseCostWithoutMaritimePresence": 30,
   "riverCostReduction": 30,
   "proximityCostIncreasePercentage": {
     "topography": {
@@ -21,7 +23,6 @@
   },
   "developmentImpact": 0.2,
   "harborCapacityImpact": 0.75,
-  "maritimePresenceImpact": 1,
   "valuesImpact": {
     "navalVsLand": [
       {

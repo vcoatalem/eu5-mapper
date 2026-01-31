@@ -1,5 +1,12 @@
+interface IValueImpact {
+  percentageModifier: 10;
+  flatModifier: 0;
+}
+
 interface IProximityComputationRule {
   baseCost: number;
+  baseCostWithMaritimePresence: number;
+  baseCostWithoutMaritimePresence: number;
   riverCostReduction: number;
   proximityCostIncreasePercentage: {
     topography: {
@@ -21,5 +28,9 @@ interface IProximityComputationRule {
   };
   developmentImpact: number;
   harborCapacityImpact: number;
-  maritimePresenceImpact: number;
+  valuesImpact: {
+    landVsNaval: [IValueImpact, IValueImpact];
+    centralizationVsDecentralization: [IValueImpact, IValueImpact];
+  };
+  rulerAdministrativeAbilityImpact: number;
 }

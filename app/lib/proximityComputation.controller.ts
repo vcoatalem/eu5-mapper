@@ -58,7 +58,7 @@ export class ProximityComputationController extends Observable<IProximityComputa
         this.notifyListeners();
       }
     });
-    gameStateController.subscribe((gameState) => {
+    gameStateController.debounce(10).subscribe((gameState) => {
       workerManager.queueTask({
         id: `computeProximity-${Date.now()}`,
         type: "computeProximity",

@@ -16,7 +16,6 @@ import { DrawingService } from "@/app/lib/drawing.service";
 import { workerManager } from "@/app/lib/workerManager";
 import { LoadingScreenComponent } from "./loadingScreen.component";
 import { zoomController, zoomLevels } from "@/app/lib/zoomController";
-import { WorkerStatusComponent } from "./workerStatus.component";
 import { proximityComputationController } from "@/app/lib/proximityComputation.controller";
 import { ConstructibleMenusComponent } from "./constructibleMenus.component";
 import { GuiElement } from "./guiElement";
@@ -25,6 +24,7 @@ import { worldMapConfig } from "./worldMap.config";
 import { neighborsProximityComputationController } from "../lib/neighborsProximityComputation.controller";
 import { NeighborsPanelComponent } from "./neighborsPanel.component";
 import { HeaderComponent } from "./header.component";
+import { CountryOverview } from "./countryOverview.component";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
@@ -612,24 +612,19 @@ export function WorldMapComponent() {
             </GuiElement>
           )}
 
+          <GuiElement className="fixed right-5 top-16">
+            <CountryOverview />
+          </GuiElement>
+
+          <GuiElement className="fixed right-20 bottom-15">
+            <button onClick={handleZoomOut} className={`w-8 px-2 py-1`}>
+              -
+            </button>
+          </GuiElement>
           <GuiElement className="fixed right-5 bottom-15">
-            <div className="gap-2 flex flex-col">
-              <WorkerStatusComponent />
-              <div className="flex flex-row gap-2 ">
-                <button
-                  onClick={handleZoomOut}
-                  className={`w-8 border border-white rounded-md px-2 py-1`}
-                >
-                  -
-                </button>
-                <button
-                  onClick={handleZoomIn}
-                  className={`w-8 border border-white rounded-md px-2 py-1`}
-                >
-                  +
-                </button>
-              </div>
-            </div>
+            <button onClick={handleZoomIn} className={`w-8  px-2 py-1`}>
+              +
+            </button>
           </GuiElement>
         </div>
       )}

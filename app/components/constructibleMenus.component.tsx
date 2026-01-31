@@ -10,8 +10,8 @@ import { ConstructibleHelper } from "../lib/constructible.helper";
 import { AppContext } from "../appContextProvider";
 import { getGuiImage } from "../lib/drawing/namedGuiImagesMap.const";
 import { proximityComputationController } from "../lib/proximityComputation.controller";
-import { DrawingHelper } from "../lib/drawing/drawing.helper";
 import { ColorHelper } from "../lib/drawing/color.helper";
+import { ProximityComputationHelper } from "../lib/proximityComputation.helper";
 
 const capitalPicker = (
   location: ILocationIdentifier,
@@ -192,8 +192,9 @@ export function ConstructibleMenusComponent() {
                 ),
               }}
             >
-              {proximityComputation.result[locationName]?.cost?.toFixed(2) ??
-                "∞"}
+              {ProximityComputationHelper.evaluationToProximity(
+                proximityComputation.result[locationName]?.cost,
+              ) ?? 0}
             </span>
             <div className="col-span-2 flex flex-row items-center space-x-2">
               {capitalPicker(

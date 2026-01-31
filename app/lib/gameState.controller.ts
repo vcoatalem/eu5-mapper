@@ -4,6 +4,7 @@ import { ConstructibleHelper } from "./constructible.helper";
 import { Observable } from "./observable";
 import {
   IConstructibleLocation,
+  ICountryValues,
   IGameData,
   IGameState,
   ILocationIdentifier,
@@ -240,6 +241,35 @@ class GameStateController extends Observable<IGameState> {
     }
 
     console.log("[GameStateController] Reseted game state to:", this.subject);
+    this.notifyListeners();
+  }
+
+  public changeCountryValues(value: Partial<ICountryValues>): void {
+    if (
+      value.centralizationVsDecentralization &&
+      value.centralizationVsDecentralization <= 100 &&
+      value.centralizationVsDecentralization >= -100
+    ) {
+      this.subject.country.centralizationVsDecentralization =
+        value.centralizationVsDecentralization;
+    }
+
+    if (
+      value.landVsNaval &&
+      value.landVsNaval <= 100 &&
+      value.landVsNaval >= -100
+    ) {
+      this.subject.country.landVsNaval = value.landVsNaval;
+    }
+
+    if (
+      value.rulerAdministrativeAbility &&
+      value.rulerAdministrativeAbility <= 100 &&
+      value.rulerAdministrativeAbility >= 0
+    ) {
+      this.subject.country.rulerAdministrativeAbility =
+        value.rulerAdministrativeAbility;
+    }
     this.notifyListeners();
   }
 }

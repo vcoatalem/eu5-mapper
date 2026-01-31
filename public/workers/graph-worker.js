@@ -359,7 +359,7 @@
       const isImpactedByRoad = edgeType === "land";
       const isNaval = edgeType === "sea" || edgeType === "lake";
       const flatProximityCostReduction = [
-        isNaval && gameState.country.landVsNaval > 0 ? rule.valuesImpact.landVsNaval[1].flatModifier * gameState.country.landVsNaval : 0,
+        isNaval && gameState.country.landVsNaval > 0 ? rule.valuesImpact.landVsNaval[1].flatModifier * gameState.country.landVsNaval / 100 : 0,
         isImpactedByRoad && roadToDestination ? rule.roadProximityCostReduction[roadToDestination] : 0
         // TODO: advances ?
       ].reduce((a, b) => a + b, 0);
@@ -389,7 +389,8 @@
             return _ProximityComputationHelper.getLandLocationProximityModifiers(
               gameData2.locationDataMap[from],
               gameState.ownedLocations[from],
-              gameData2
+              gameData2,
+              gameState.country
             );
           } else {
             return 0;
@@ -408,6 +409,12 @@
           return 0;
       }
     }
+    static getGenericCountryProximityCostModifiers(country, rule) {
+      return [
+        country.centralizationVsDecentralization < 0 ? Math.abs(country.centralizationVsDecentralization) * rule.valuesImpact.centralizationVsDecentralization[0].percentageModifier / 100 : 0,
+        country.rulerAdministrativeAbility * rule.rulerAdministrativeAbilityImpact
+      ].reduce((a, b) => a + b, 0);
+    }
     static getPercentageProximityCostModifiers(from, to, edgeType, gameData2, gameState, options) {
       const modifiers = [];
       const toLocationData = gameData2.locationDataMap[to];
@@ -420,6 +427,10 @@
           gameData2,
           gameState,
           options
+        ),
+        this.getGenericCountryProximityCostModifiers(
+          gameState.country,
+          gameData2.proximityComputationRule
         )
       );
       if (options?.logForLocations?.includes(from) || options?.logForLocations?.includes(to)) {
@@ -488,6 +499,15 @@
         };
       };
     }
+    /**
+     * converts pathfinding evaluation to "proximity" value as displayed in-game
+     */
+    static evaluationToProximity(evaluationCost) {
+      if (isNaN(evaluationCost))
+        return 0;
+      const proximity = Math.max(0, 100 - evaluationCost).toFixed(2);
+      return Number(proximity);
+    }
   };
   _ProximityComputationHelper.getEnvironmentalProximityCostIncreasePercentage = (location, gameData2, roadToDestination) => {
     const rule = gameData2.proximityComputationRule;
@@ -512,7 +532,7 @@
     const totalEnvironmentalCostIncrease = topographyCostIncreasePercentage + vegetationCostIncreasePercentage;
     return totalEnvironmentalCostIncrease;
   };
-  _ProximityComputationHelper.getLandLocationProximityModifiers = (location, locationConstructibleData, gameData2) => {
+  _ProximityComputationHelper.getLandLocationProximityModifiers = (location, locationConstructibleData, gameData2, country) => {
     if (location.isSea || location.isLake || !location.ownable) {
       return 0;
     }
@@ -526,9 +546,16 @@
     );
     const development = location.development;
     const developmentCostReduction = development * gameData2.proximityComputationRule.developmentImpact;
+    const countryLandProximityModifiers = [
+      country.landVsNaval < 0 ? Math.abs(country.landVsNaval) * gameData2.proximityComputationRule.valuesImpact.landVsNaval[0].percentageModifier / 100 : 0
+    ];
+    const countryLandProximityReduction = countryLandProximityModifiers.reduce(
+      (a, b) => a + b,
+      0
+    );
     const total = (
       // positive proximity (cost reduction)
-      totalBuildingsCostReduction + developmentCostReduction - // negative proximity (cost increase)
+      totalBuildingsCostReduction + countryLandProximityReduction + developmentCostReduction - // negative proximity (cost increase)
       environmentalProximityCostIncreasePercentage
     );
     return total;
@@ -653,15 +680,15 @@
               {
                 allowUnownedLocations: true,
                 // allow passing over unowned
-                logForLocations: ["calais", "paris", "chartres"],
-                logMethod: (...args) => {
+                logForLocations: ["calais", "paris", "chartres"]
+                /*  logMethod: (...args: any[]) => {
                   sendMessage(self, {
                     data: args.filter((a) => a instanceof Object),
                     message: args.join(" "),
                     level: "log",
-                    task: e.data
+                    task: e.data,
                   });
-                }
+                }, */
               }
             )
           };
@@ -696,15 +723,15 @@
               {
                 allowUnownedLocations: true,
                 // allow passing over unowned
-                logForLocations: ["calais"],
-                logMethod: (...args) => {
+                logForLocations: ["calais"]
+                /* logMethod: (...args: any[]) => {
                   sendMessage(self, {
                     data: null,
                     message: args.join(" "),
                     level: "log",
-                    task: e.data
+                    task: e.data,
                   });
-                }
+                }, */
               }
             )
           };

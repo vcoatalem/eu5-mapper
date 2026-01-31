@@ -1,11 +1,11 @@
 import { CompactGraph } from "./graph";
 import {
   IConstructibleLocation,
+  ICountryValues,
   IGameData,
   IGameState,
   ILocationGameData,
   ILocationIdentifier,
-  RoadRecord,
   RoadType,
 } from "./types/general";
 import {
@@ -69,6 +69,7 @@ export class ProximityComputationHelper {
     location: ILocationGameData,
     locationConstructibleData: IConstructibleLocation,
     gameData: IGameData,
+    country: ICountryValues,
   ): number => {
     if (location.isSea || location.isLake || !location.ownable) {
       return 0;
@@ -90,9 +91,23 @@ export class ProximityComputationHelper {
     const developmentCostReduction =
       development * gameData.proximityComputationRule.developmentImpact;
 
+    const countryLandProximityModifiers = [
+      country.landVsNaval < 0
+        ? (Math.abs(country.landVsNaval) *
+            gameData.proximityComputationRule.valuesImpact.landVsNaval[0]
+              .percentageModifier) /
+          100
+        : 0,
+    ];
+    const countryLandProximityReduction = countryLandProximityModifiers.reduce(
+      (a, b) => a + b,
+      0,
+    );
+
     const total =
       // positive proximity (cost reduction)
       totalBuildingsCostReduction +
+      countryLandProximityReduction +
       developmentCostReduction -
       // negative proximity (cost increase)
       environmentalProximityCostIncreasePercentage;
@@ -164,8 +179,9 @@ export class ProximityComputationHelper {
 
     const flatProximityCostReduction = [
       isNaval && gameState.country.landVsNaval > 0
-        ? rule.valuesImpact.landVsNaval[1].flatModifier *
-          gameState.country.landVsNaval
+        ? (rule.valuesImpact.landVsNaval[1].flatModifier *
+            gameState.country.landVsNaval) /
+          100
         : 0,
       isImpactedByRoad && roadToDestination
         ? rule.roadProximityCostReduction[roadToDestination]
@@ -224,6 +240,7 @@ export class ProximityComputationHelper {
             gameData.locationDataMap[from],
             gameState.ownedLocations[from],
             gameData,
+            gameState.country,
           );
         } else {
           return 0;
@@ -245,6 +262,22 @@ export class ProximityComputationHelper {
       default:
         return 0;
     }
+  }
+
+  private static getGenericCountryProximityCostModifiers(
+    country: ICountryValues,
+    rule: IProximityComputationRule,
+  ): number {
+    return [
+      country.centralizationVsDecentralization < 0
+        ? (Math.abs(country.centralizationVsDecentralization) *
+            rule.valuesImpact.centralizationVsDecentralization[0]
+              .percentageModifier) /
+          100
+        : 0,
+      country.rulerAdministrativeAbility *
+        rule.rulerAdministrativeAbilityImpact,
+    ].reduce((a, b) => a + b, 0);
   }
 
   private static getPercentageProximityCostModifiers(
@@ -269,9 +302,11 @@ export class ProximityComputationHelper {
         gameState,
         options,
       ),
+      this.getGenericCountryProximityCostModifiers(
+        gameState.country,
+        gameData.proximityComputationRule,
+      ),
     );
-
-    // add ruler modifiers
 
     if (
       options?.logForLocations?.includes(from) ||
@@ -448,4 +483,13 @@ export class ProximityComputationHelper {
 
     return neighbors;
   };
+
+  /**
+   * converts pathfinding evaluation to "proximity" value as displayed in-game
+   */
+  public static evaluationToProximity(evaluationCost: number): number {
+    if (isNaN(evaluationCost)) return 0;
+    const proximity = Math.max(0, 100 - evaluationCost).toFixed(2);
+    return Number(proximity);
+  }
 }

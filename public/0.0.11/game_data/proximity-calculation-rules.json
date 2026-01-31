@@ -24,14 +24,14 @@
   "developmentImpact": 0.2,
   "harborCapacityImpact": 0.75,
   "valuesImpact": {
-    "navalVsLand": [
-      {
-        "percentageModifier": 0,
-        "flatModifier": 1
-      },
+    "landVsNaval": [
       {
         "percentageModifier": 10,
         "flatModifier": 0
+      },
+      {
+        "percentageModifier": 0,
+        "flatModifier": 1
       }
     ],
     "centralizationVsDecentralization": [

@@ -88,14 +88,14 @@ self.onmessage = async function (e: MessageEvent<IWorkerTask>) {
             {
               allowUnownedLocations: true, // allow passing over unowned
               logForLocations: ["calais", "paris", "chartres"],
-              logMethod: (...args: any[]) => {
+              /*  logMethod: (...args: any[]) => {
                 sendMessage(self, {
                   data: args.filter((a) => a instanceof Object),
                   message: args.join(" "),
                   level: "log",
                   task: e.data,
                 });
-              },
+              }, */
             },
           ),
         };
@@ -133,14 +133,14 @@ self.onmessage = async function (e: MessageEvent<IWorkerTask>) {
               {
                 allowUnownedLocations: true, // allow passing over unowned
                 logForLocations: ["calais"],
-                logMethod: (...args: any[]) => {
+                /* logMethod: (...args: any[]) => {
                   sendMessage(self, {
                     data: null,
                     message: args.join(" "),
                     level: "log",
                     task: e.data,
                   });
-                },
+                }, */
               },
             ),
         };

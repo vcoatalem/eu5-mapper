@@ -1,6 +1,7 @@
 import { useContext, useMemo, useSyncExternalStore } from "react";
 import { AppContext } from "../appContextProvider";
 import { gameStateController } from "../lib/gameState.controller";
+import { WorkerStatusComponent } from "./workerStatus.component";
 
 export function HeaderComponent() {
   const { gameData } = useContext(AppContext);
@@ -17,6 +18,7 @@ export function HeaderComponent() {
 
   return (
     <div className="w-full h-10 flex">
+      <WorkerStatusComponent />
       <select
         className="ml-auto"
         value={gameState.countryCode || ""}

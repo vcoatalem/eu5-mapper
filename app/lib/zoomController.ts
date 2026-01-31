@@ -1,18 +1,26 @@
 import { Observable } from "./observable";
 
-const zoomSteps = [0.1, 0.3, 0.7, 1, 1.5, 3, 5];
+export const zoomLevels = {
+  maxedOut: 0.1,
+  strongOut: 0.3,
+  lightOut: 0.7,
+  normal: 1,
+  lightIn: 1.5,
+  strongIn: 3,
+  maxedIn: 5,
+};
 
-export type ZoomListener = (zoom: {
+const zoomSteps = Object.values(zoomLevels).sort((a, b) => a - b);
+
+export interface IZoomState {
   oldZoomLevel: number;
   zoomLevel: number;
   zoomIndex: number;
-}) => void;
+}
 
-export class ZoomController extends Observable<{
-  oldZoomLevel: number;
-  zoomLevel: number;
-  zoomIndex: number;
-}> {
+export type ZoomListener = (zoom: IZoomState) => void;
+
+class ZoomController extends Observable<IZoomState> {
   private currentZoomIndex: number;
 
   constructor() {
@@ -52,3 +60,5 @@ export class ZoomController extends Observable<{
     this.updateZoomState(currentZoomLevel);
   }
 }
+
+export const zoomController = new ZoomController();

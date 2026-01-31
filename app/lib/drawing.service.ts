@@ -4,6 +4,7 @@ import {
   proximityComputationController,
 } from "@/app/lib/proximityComputation.controller";
 import {
+  IConstructibleLocation,
   ICoordinate,
   IGameData,
   IGameState,
@@ -16,12 +17,25 @@ import {
   IWorkerTaskColorSearchPayload,
   IWorkerTaskColorSearchResult,
 } from "@/workers/types/workerTypes";
+import {
+  IZoomState,
+  zoomController,
+  zoomLevels,
+  ZoomListener,
+} from "@/app/lib/zoomController";
+import {
+  capitalColor,
+  ColorHelper,
+  defaultAreaColor,
+} from "./drawing/color.helper";
 
 export class DrawingService {
   private areaDrawingCanvas: HTMLCanvasElement;
   private areaDrawingContext: CanvasRenderingContext2D;
   private constructibleDrawingCanvas: HTMLCanvasElement;
   private constructibleDrawingContext: CanvasRenderingContext2D;
+  private roadDrawingCanvas: HTMLCanvasElement;
+  private roadDrawingContext: CanvasRenderingContext2D;
   private mapInfos: { width: number; height: number };
   private coordinateMap: Record<ILocationIdentifier, Array<ICoordinate>> = {};
   private gameData: IGameData | null = null;
@@ -29,65 +43,6 @@ export class DrawingService {
   private gameStateSnapshot: IGameState | null = null;
   private proximityComputationSnapshot: IProximityComputationResults | null =
     null;
-
-  private drawCircle(
-    x: number,
-    y: number,
-    radius: number,
-    color: string,
-  ): void {
-    this.constructibleDrawingContext.beginPath();
-    this.constructibleDrawingContext.arc(x, y, radius, 0, 2 * Math.PI);
-    this.constructibleDrawingContext.fillStyle = color;
-    this.constructibleDrawingContext.fill();
-    this.constructibleDrawingContext.strokeStyle = "black";
-    this.constructibleDrawingContext.lineWidth = 1;
-    this.constructibleDrawingContext.stroke();
-  }
-
-  private drawSquare(x: number, y: number, size: number, color: string): void {
-    this.constructibleDrawingContext.fillStyle = color;
-    this.constructibleDrawingContext.fillRect(
-      x - size / 2,
-      y - size / 2,
-      size,
-      size,
-    );
-    this.constructibleDrawingContext.strokeStyle = "black";
-    this.constructibleDrawingContext.lineWidth = 1;
-    this.constructibleDrawingContext.strokeRect(
-      x - size / 2,
-      y - size / 2,
-      size,
-      size,
-    );
-  }
-
-  private drawPentagon(
-    x: number,
-    y: number,
-    size: number,
-    color: string,
-  ): void {
-    const radius = size / 2;
-    this.constructibleDrawingContext.beginPath();
-    for (let i = 0; i < 5; i++) {
-      const angle = (i * 2 * Math.PI) / 5 - Math.PI / 2; // Start from top
-      const px = x + radius * Math.cos(angle);
-      const py = y + radius * Math.sin(angle);
-      if (i === 0) {
-        this.constructibleDrawingContext.moveTo(px, py);
-      } else {
-        this.constructibleDrawingContext.lineTo(px, py);
-      }
-    }
-    this.constructibleDrawingContext.closePath();
-    this.constructibleDrawingContext.fillStyle = color;
-    this.constructibleDrawingContext.fill();
-    this.constructibleDrawingContext.strokeStyle = "black";
-    this.constructibleDrawingContext.lineWidth = 1;
-    this.constructibleDrawingContext.stroke();
-  }
 
   public addCoordinate(
     name: ILocationIdentifier,
@@ -101,11 +56,13 @@ export class DrawingService {
   constructor(
     areaDrawingCanvas: HTMLCanvasElement,
     constructibleDrawingCanvas: HTMLCanvasElement,
+    roadDrawingCanvas: HTMLCanvasElement,
     mapInfos: { width: number; height: number },
     gameData: IGameData,
   ) {
     this.areaDrawingCanvas = areaDrawingCanvas;
     this.constructibleDrawingCanvas = constructibleDrawingCanvas;
+    this.roadDrawingCanvas = roadDrawingCanvas;
     this.mapInfos = mapInfos;
     this.gameData = gameData;
     const areaDrawingContext = this.areaDrawingCanvas.getContext("2d", {});
@@ -122,10 +79,17 @@ export class DrawingService {
       );
     }
     this.constructibleDrawingContext = drawingContext;
-
+    const roadDrawingContext = this.roadDrawingCanvas.getContext("2d", {});
+    if (!roadDrawingContext) {
+      throw new Error(
+        "DrawingLogicController constructor error: could not get road drawing context",
+      );
+    }
+    this.roadDrawingContext = roadDrawingContext;
+    this.drawRoads(gameStateController.getSnapshot());
     workerManager.subscribe(({ lastCompletedTask }) => {
       console.log(
-        "[DrawingLogicController] WorkerManager status update on lastCompletedTask",
+        "[DrawingLogicService] WorkerManager status update on lastCompletedTask",
         {
           lastCompletedTask,
         },
@@ -147,7 +111,7 @@ export class DrawingService {
               this.proximityComputationSnapshot,
             );
           }
-          this.drawConstructible(this.gameStateSnapshot!);
+          /* this.drawConstructible(this.gameStateSnapshot!); */
         }
       }
     });
@@ -157,23 +121,28 @@ export class DrawingService {
       proximityComputationController,
     ])
       .debounce(10)
-      .subscribe(
-        ({ values: [gameState, proximityEvaluation], changedIndex }) => {
-          console.log(
-            "[DrawingLogicController] game state and proximity subscription triggered",
-            {
-              gameState,
-              proximityEvaluation,
-              changedIndex,
-            },
-          );
+      .subscribe(({ values: [gameState, proximityEvaluation] }) => {
+        console.log(
+          "[DrawingLogicService] game state and proximity subscription triggered",
+          {
+            gameState,
+            proximityEvaluation,
+          },
+        );
 
-          this.gameStateSnapshot = gameState;
-          this.proximityComputationSnapshot = proximityEvaluation;
-          this.drawAreas(gameState, proximityEvaluation);
-          this.drawConstructible(gameState);
-        },
-      );
+        this.gameStateSnapshot = gameState;
+        this.proximityComputationSnapshot = proximityEvaluation;
+        this.drawAreas(gameState, proximityEvaluation);
+        this.drawRoads(gameState);
+      });
+
+    new ObservableCombiner([gameStateController, zoomController])
+      .debounce(10)
+      .subscribe(({ values: [gameState, zoom] }) => {
+        //this.gameStateSnapshot = gameState;
+        console.log({ gameState, zoom });
+        this.drawConstructibles(gameState, zoom);
+      });
   }
 
   private drawAreas(
@@ -197,7 +166,7 @@ export class DrawingService {
       let evaluation: number | undefined =
         proximityEvaluation.result?.[location]?.cost ?? -1;
 
-      const color = DrawingHelper.getEvaluationColor(evaluation);
+      const color = ColorHelper.getEvaluationColor(evaluation);
 
       const [r, g, b] = color;
 
@@ -248,7 +217,37 @@ export class DrawingService {
     console.log("put image data done");
   }
 
-  private drawConstructible(gameState: IGameState): void {
+  private drawLocation(
+    ctx: CanvasRenderingContext2D,
+    level: IConstructibleLocation["rank"],
+    zoom: IZoomState,
+    coordinate: ICoordinate,
+    isCapital: boolean,
+  ): void {
+    const color = isCapital ? capitalColor : defaultAreaColor;
+
+    const skip = () => {
+      return;
+    };
+    switch (level) {
+      case "rural":
+        return zoom.zoomLevel >= zoomLevels.strongIn
+          ? DrawingHelper.drawCircle(ctx, coordinate, 2, color)
+          : skip();
+      case "town":
+        return zoom.zoomLevel >= zoomLevels.lightIn
+          ? DrawingHelper.drawSquare(ctx, coordinate, 4, color)
+          : skip();
+      case "city":
+        return zoom.zoomLevel >= zoomLevels.normal
+          ? DrawingHelper.drawPentagon(ctx, coordinate, 8, color)
+          : skip();
+      default:
+        return;
+    }
+  }
+
+  private drawConstructibles(gameState: IGameState, zoom: IZoomState): void {
     this.constructibleDrawingContext.clearRect(
       0,
       0,
@@ -256,8 +255,8 @@ export class DrawingService {
       this.mapInfos.height,
     );
 
-    // read game logic controller for currently owned constructibles
     const allOwnedLocations = gameState.ownedLocations;
+    const drawCallbacks: Array<() => void> = [];
 
     // Draw all constructibles in one batch
     for (const [locationIdentifier, constructible] of Object.entries(
@@ -273,20 +272,68 @@ export class DrawingService {
           this.mapInfos.height,
         );
 
-        const color =
-          gameState.capitalLocation === locationIdentifier
-            ? "rgb(250, 219, 17)"
-            : "rgb(208, 208, 208)";
-
         const level = constructible.rank;
-        if (level === "rural") {
-          this.drawCircle(x, y, 2, color);
-        } else if (level === "town") {
-          this.drawSquare(x, y, 4, color);
-        } else if (level === "city") {
-          this.drawPentagon(x, y, 8, color);
+
+        drawCallbacks.push(() =>
+          this.drawLocation(
+            this.constructibleDrawingContext,
+            level,
+            zoom,
+            { x, y },
+            gameState.capitalLocation === locationIdentifier,
+          ),
+        );
+      }
+    }
+
+    DrawingHelper.draw([this.constructibleDrawingContext], drawCallbacks);
+  }
+
+  private drawRoads(gameState: IGameState): void {
+    console.log("[DrawingService] drawRoads called");
+    this.roadDrawingContext.clearRect(
+      0,
+      0,
+      this.mapInfos.width,
+      this.mapInfos.height,
+    );
+
+    const allRoads = gameState.roads;
+
+    const drawCallbacks: Array<() => void> = [
+      () => this.roadDrawingContext.beginPath(),
+    ];
+    for (const [from, toLocations] of Object.entries(allRoads)) {
+      for (const { to, type } of toLocations) {
+        const fromCoordinates =
+          this.gameData?.locationDataMap[from].constructibleLocationCoordinate;
+        const toCoordinates =
+          this.gameData?.locationDataMap[to].constructibleLocationCoordinate;
+
+        if (fromCoordinates && toCoordinates) {
+          const fromCanvasCoords =
+            DrawingHelper.gameCoordinatesToCanvasCoordinates(
+              { x: fromCoordinates.x, y: fromCoordinates.y },
+              this.mapInfos.height,
+            );
+          const toCanvasCoords =
+            DrawingHelper.gameCoordinatesToCanvasCoordinates(
+              { x: toCoordinates.x, y: toCoordinates.y },
+              this.mapInfos.height,
+            );
+
+          const roadColor = ColorHelper.getRoadHexColor(type);
+          drawCallbacks.push(() =>
+            DrawingHelper.drawLine(this.roadDrawingContext, {
+              canvasCoordFrom: fromCanvasCoords,
+              canvasCoordTo: toCanvasCoords,
+              lineWidth: 1,
+              color: roadColor,
+            }),
+          );
         }
       }
     }
+    DrawingHelper.draw([this.roadDrawingContext], drawCallbacks);
   }
 }

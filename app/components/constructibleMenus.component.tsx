@@ -11,6 +11,7 @@ import { AppContext } from "../appContextProvider";
 import { getGuiImage } from "../lib/drawing/namedGuiImagesMap.const";
 import { proximityComputationController } from "../lib/proximityComputation.controller";
 import { DrawingHelper } from "../lib/drawing/drawing.helper";
+import { ColorHelper } from "../lib/drawing/color.helper";
 
 const capitalPicker = (
   location: ILocationIdentifier,
@@ -169,7 +170,7 @@ export function ConstructibleMenusComponent() {
 
   /*  console.log("ConstructibleMenusComponent render"); */
   return (
-    <div className="min-h-96 w-45 hover:w-[600px] overflow-y-auto overflow-x-hidden max-h-[50vh] transition-[width] duration-300 ease-in-out">
+    <div className="min-h-96 w-52 hover:w-[600px] overflow-y-auto overflow-x-hidden max-h-[50vh] transition-[width] duration-300 ease-in-out">
       {Object.entries(gameState.ownedLocations).map(
         ([locationName, constructibleData]) => (
           <div
@@ -184,8 +185,8 @@ export function ConstructibleMenusComponent() {
             <span
               className="col-span-1"
               style={{
-                color: DrawingHelper.rgbToHex(
-                  ...DrawingHelper.getEvaluationColor(
+                color: ColorHelper.rgbToHex(
+                  ...ColorHelper.getEvaluationColor(
                     proximityComputation.result[locationName]?.cost ?? 100,
                   ),
                 ),

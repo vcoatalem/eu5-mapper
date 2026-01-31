@@ -463,7 +463,8 @@ country of {country}:
     output_files = {
         "location-data-map.json": location_data_map,
         "color-to-name-map.json": color_to_name,
-        "countries-data-map.json": countries_data_map_serializable
+        "countries-data-map.json": countries_data_map_serializable,
+        "roads.json": roads
     }
     
     total_size = 0

@@ -5,18 +5,23 @@ import {
   IGameState,
   ILocationGameData,
   ILocationIdentifier,
+  RoadRecord,
+  RoadType,
 } from "./types/general";
 import {
   CostFunction,
   EdgeInfo,
+  EdgeType,
   PathFindingOptions,
   PathfindingResult,
 } from "./types/pathfinding";
+import { IProximityComputationRule } from "./types/proximityComputationRules";
 
 export class ProximityComputationHelper {
   public static getEnvironmentalProximityCostIncreasePercentage = (
     location: ILocationGameData,
     gameData: IGameData,
+    roadToDestination?: RoadType,
   ): number => {
     const rule = gameData.proximityComputationRule;
 
@@ -47,11 +52,12 @@ export class ProximityComputationHelper {
       );
     }
 
-    const vegetationCostIncreasePercentage = location.vegetation
-      ? (rule.proximityCostIncreasePercentage.vegetation?.[
-          location.vegetation as keyof IProximityComputationRule["proximityCostIncreasePercentage"]["vegetation"]
-        ] ?? 0)
-      : 0;
+    const vegetationCostIncreasePercentage =
+      location.vegetation && !roadToDestination
+        ? (rule.proximityCostIncreasePercentage.vegetation?.[
+            location.vegetation as keyof IProximityComputationRule["proximityCostIncreasePercentage"]["vegetation"]
+          ] ?? 0)
+        : 0;
 
     const totalEnvironmentalCostIncrease =
       topographyCostIncreasePercentage + vegetationCostIncreasePercentage;
@@ -80,7 +86,7 @@ export class ProximityComputationHelper {
         gameData,
       );
 
-    const development = location.development; // todo: use temporary value instead, to allow user modifying dev values
+    const development = location.development;
     const developmentCostReduction =
       development * gameData.proximityComputationRule.developmentImpact;
 
@@ -139,30 +145,30 @@ export class ProximityComputationHelper {
   }
 
   private static getFlatProximityCost(
-    through: {
-      isRiver?: boolean;
-      isLand?: boolean;
-      isSea?: boolean;
-      isPort?: boolean;
-      isLake?: boolean;
-    },
+    edgeType: EdgeType,
     gameState: IGameState,
     rule: IProximityComputationRule,
     maritimePresence: number,
+    roadToDestination: RoadType | null,
     options?: {
       logResultsForLocations?: ILocationIdentifier[];
       logMethod?: (...args: any[]) => void;
     },
   ): number {
-    let baseCost = rule.baseCost;
+    const baseCost = edgeType.includes("river")
+      ? rule.baseRiverCost
+      : rule.baseCost;
 
-    const isNaval = through.isSea || through.isLake;
+    const isImpactedByRoad = edgeType === "land";
+    const isNaval = edgeType === "sea" || edgeType === "lake";
 
     const flatProximityCostReduction = [
-      through.isRiver ? rule.riverCostReduction : 0,
       isNaval && gameState.country.landVsNaval > 0
         ? rule.valuesImpact.landVsNaval[1].flatModifier *
           gameState.country.landVsNaval
+        : 0,
+      isImpactedByRoad && roadToDestination
+        ? rule.roadProximityCostReduction[roadToDestination]
         : 0,
       // TODO: advances ?
     ].reduce((a, b) => a + b, 0);
@@ -171,9 +177,8 @@ export class ProximityComputationHelper {
       return baseCost - flatProximityCostReduction;
     } else {
       // Normalize maritimePresence to [0,1]
-      let normalizedMaritimePresence = through.isLake
-        ? 1
-        : maritimePresence / 100;
+      let normalizedMaritimePresence =
+        edgeType === "lake" ? 1 : maritimePresence / 100;
       normalizedMaritimePresence = Math.max(
         0,
         Math.min(1, normalizedMaritimePresence),
@@ -245,12 +250,7 @@ export class ProximityComputationHelper {
   private static getPercentageProximityCostModifiers(
     from: ILocationIdentifier,
     to: ILocationIdentifier,
-    through: {
-      isLand?: boolean;
-      isPort?: boolean;
-      isRiver?: boolean;
-      isLake?: boolean;
-    },
+    edgeType: EdgeType,
     gameData: IGameData,
     gameState: IGameState,
     options?: PathFindingOptions,
@@ -264,14 +264,12 @@ export class ProximityComputationHelper {
       this.getTransportationModeProximityCostModifiers(
         from,
         to,
-        isNaval ? "naval" : through.isPort ? "harbor" : "land",
+        isNaval ? "naval" : edgeType === "port" ? "harbor" : "land",
         gameData,
         gameState,
         options,
       ),
     );
-
-    // add roads
 
     // add ruler modifiers
 
@@ -296,21 +294,22 @@ export class ProximityComputationHelper {
     return (
       from: ILocationIdentifier,
       to: ILocationIdentifier,
-      isRiver: boolean,
-      isLand: boolean,
-      isSea: boolean,
-      isPort: boolean,
-      isLake: boolean,
+      edgeType: EdgeType,
     ) => {
       const rule = gameData.proximityComputationRule;
 
+      const [locationA, locationB] = [from, to].sort(); // same sorting as in graph.
+      const road = gameData.roads[locationA]?.find(
+        ({ to }) => to === locationB,
+      );
       // For now, assume maritime presence is 30 everywhere (as percent)
       const maritimePresence = 30; // [0,100]
       const baseCost = this.getFlatProximityCost(
-        { isRiver, isLand, isSea, isPort, isLake },
+        edgeType,
         gameState,
         rule,
         maritimePresence,
+        road?.type ?? null,
       );
 
       if (
@@ -322,7 +321,7 @@ export class ProximityComputationHelper {
           {
             from,
             to,
-            through: { isRiver, isLand, isSea, isPort, isLake },
+            through: { edgeType },
             baseCost,
           },
         );
@@ -339,17 +338,6 @@ export class ProximityComputationHelper {
       const toLocationData = gameData.locationDataMap[to];
       const isToSeaZone = toLocationData.isSea;
       const isToLakeZone = toLocationData.isLake;
-      const edgeType = isRiver
-        ? "river"
-        : isLand
-          ? "land"
-          : isSea
-            ? "sea"
-            : isPort
-              ? "port"
-              : isLake
-                ? "lake"
-                : "unknown";
 
       // Only allow routing through unowned sea and lake zones
       // Block all other unowned locations (land, ports, etc.)
@@ -367,7 +355,7 @@ export class ProximityComputationHelper {
       const proximityModifiersSummed = this.getPercentageProximityCostModifiers(
         from,
         to,
-        { isRiver, isLand, isPort },
+        edgeType,
         gameData,
         gameState,
         options,
@@ -384,7 +372,7 @@ export class ProximityComputationHelper {
           {
             from,
             to,
-            through: { isRiver, isLand, isSea, isPort, isLake },
+            edgeType,
             modifiedCost,
           },
         );

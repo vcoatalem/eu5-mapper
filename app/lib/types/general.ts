@@ -1,10 +1,12 @@
 // do not import other files in this file
 
+import { IProximityComputationRule } from "./proximityComputationRules";
+
 export type ILocationIdentifier = string; // location name
 
-type LocationRank = "rural" | "town" | "city";
-type RoadType = "gravel" | "paved" | "modern" | "rail";
-type BuildingType = "rural" | "urban" | "city" | "common";
+export type LocationRank = "rural" | "town" | "city";
+export type RoadType = "gravel" | "paved" | "modern" | "rail";
+export type BuildingType = "rural" | "urban" | "city" | "common";
 
 // all data in this instances of this interface should be read-only after init.
 // they represent the static game data that is loaded into the game at the start of a new game
@@ -49,7 +51,7 @@ export interface ILocationGameData {
   isCoastal: boolean;
   isOnRiver: boolean;
   isOnLake: boolean;
-  // TODO: hasRoad: boolean;
+  /* hasRoad: boolean; // this should be set in the ILocationTemporaryData too. Putting this here is a quick path to get road used in pathfinding without ruining performance */
   rank: LocationRank;
   development: number; // can me modified , in other interface (ILocationTemporaryData ?)
   population: number; // can me modified , in other interface (ILocationTemporaryData ?)
@@ -89,10 +91,9 @@ export interface IConstructibleLocation {
   buildings: IBuildingInstance[];
 }
 
-type RoadRecordKey = `${string}<->${string}`; // location A <-> location B (location A < location B)
-type RoadRecord = Record<
-  RoadRecordKey,
-  { type: RoadType; createdByUser: boolean }
+export type RoadRecord = Record<
+  ILocationIdentifier,
+  Array<{ to: ILocationIdentifier; type: RoadType; createdByUser: boolean }>
 >;
 
 export interface IGameState {
@@ -137,4 +138,5 @@ export interface IGameData {
   buildingsTemplateMap: Record<string, IBuildingTemplate>;
   proximityComputationRule: IProximityComputationRule;
   countriesDataMap: Record<string, ICountryData>;
+  roads: RoadRecord;
 }

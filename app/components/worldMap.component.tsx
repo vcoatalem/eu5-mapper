@@ -15,7 +15,7 @@ import { ILocationIdentifier } from "../lib/types/general";
 import { DrawingService } from "@/app/lib/drawing.service";
 import { workerManager } from "@/app/lib/workerManager";
 import { LoadingScreenComponent } from "./loadingScreen.component";
-import { ZoomController } from "@/app/lib/zoomController";
+import { zoomController, zoomLevels } from "@/app/lib/zoomController";
 import { WorkerStatusComponent } from "./workerStatus.component";
 import { proximityComputationController } from "@/app/lib/proximityComputation.controller";
 import { ConstructibleMenusComponent } from "./constructibleMenus.component";
@@ -57,9 +57,10 @@ export function WorldMapComponent() {
   const areaDrawingCanvasRef = useRef<HTMLCanvasElement>(null);
   const topLayerRef = useRef<HTMLCanvasElement>(null);
   const constructibleCanvasRef = useRef<HTMLCanvasElement>(null); //TODO: hide this canvas when zoom level is low
+  const roadCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const drawingServiceRef = useRef<DrawingService>(null);
-  const zoomControllerRef = useRef<ZoomController>(new ZoomController());
+  /* const zoomControllerRef = useRef<ZoomController>(new ZoomController()); */
   const [, forceUpdate] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [loadingError, setLoadingError] = useState<string | null>(null);
@@ -165,6 +166,12 @@ export function WorldMapComponent() {
       zIndex: 12,
       createMethod: createTransparentCanvas,
     },
+    {
+      name: "roadLayer",
+      ref: roadCanvasRef,
+      zIndex: 10,
+      createMethod: createTransparentCanvas,
+    },
   ];
 
   const triggerRender = useCallback(() => {
@@ -255,8 +262,8 @@ export function WorldMapComponent() {
       const relX = event.clientX - rect.left;
       const relY = event.clientY - rect.top;
 
-      const imageX = relX / zoomControllerRef.current.getSnapshot().zoomLevel;
-      const imageY = relY / zoomControllerRef.current.getSnapshot().zoomLevel;
+      const imageX = relX / zoomController.getSnapshot().zoomLevel;
+      const imageY = relY / zoomController.getSnapshot().zoomLevel;
 
       const imageData = colorCanvas
         .getContext("2d", { willReadFrequently: true })
@@ -293,9 +300,8 @@ export function WorldMapComponent() {
       const targetY = 1991;
 
       const newLeft =
-        centerX - targetX * zoomControllerRef.current.getSnapshot().zoomLevel;
-      const newTop =
-        centerY - targetY * zoomControllerRef.current.getSnapshot().zoomLevel;
+        centerX - targetX * zoomController.getSnapshot().zoomLevel;
+      const newTop = centerY - targetY * zoomController.getSnapshot().zoomLevel;
 
       layers.forEach((layer) => {
         const canvas = layer.ref.current;
@@ -383,6 +389,7 @@ export function WorldMapComponent() {
     drawingServiceRef.current = new DrawingService(
       areaDrawingCanvasRef.current!,
       constructibleCanvasRef.current!,
+      roadCanvasRef.current!,
       { width: worldMapConfig.width, height: worldMapConfig.height },
       gameData,
     );
@@ -451,18 +458,21 @@ export function WorldMapComponent() {
       if (!topLayerRef.current) return;
       e.preventDefault();
       if (e.deltaY < 0) {
-        zoomControllerRef.current.zoomOut();
+        zoomController.zoomOut();
       } else {
-        zoomControllerRef.current.zoomIn();
+        zoomController.zoomIn();
       }
     };
 
-    zoomControllerRef.current.subscribe(({ zoomLevel, oldZoomLevel }) => {
+    zoomController.subscribe(({ zoomLevel, oldZoomLevel }) => {
       applyZoomLevel(zoomLevel, oldZoomLevel);
 
-      if (zoomLevel < 1 && oldZoomLevel >= 1) {
+      if (zoomLevel < zoomLevels.normal && oldZoomLevel >= zoomLevels.normal) {
         borderCanvasRef.current!.style.visibility = "hidden";
-      } else if (zoomLevel >= 1 && oldZoomLevel < 1) {
+      } else if (
+        zoomLevel >= zoomLevels.normal &&
+        oldZoomLevel < zoomLevels.normal
+      ) {
         borderCanvasRef.current!.style.visibility = "visible";
       }
     });
@@ -543,13 +553,13 @@ export function WorldMapComponent() {
   const handleZoomOut = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     setSelectedLocation(null);
-    zoomControllerRef.current.zoomOut();
+    zoomController.zoomOut();
   };
 
   const handleZoomIn = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     setSelectedLocation(null);
-    zoomControllerRef.current.zoomIn();
+    zoomController.zoomIn();
   };
 
   return (

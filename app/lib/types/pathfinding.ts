@@ -2,29 +2,35 @@ import { ILocationIdentifier } from "./general";
 
 export interface EdgeInfo {
   exists: boolean;
-  isRiver: boolean;
+  type: EdgeType;
+  /*   isRiver: boolean;
   isLand: boolean;
   isSea: boolean;
   isPort: boolean;
   isLake: boolean;
+  isPortRiver: boolean; */
 }
 
 export interface Neighbor {
   neighbor: number;
-  isRiver: boolean;
+  edgeType: EdgeType;
+  /* isRiver: boolean;
   isLand: boolean;
   isSea: boolean;
   isPort: boolean;
-  isLake: boolean;
+  isLake: boolean; */
+  /* isPortRiver: boolean; */
 }
 
 export interface NeighborInfo {
   name: string;
-  isRiver: boolean;
+  edgeType: EdgeType;
+  /*   isRiver: boolean;
   isLand: boolean;
   isSea: boolean;
   isPort: boolean;
   isLake: boolean;
+  isPortRiver: boolean; */
 }
 
 export interface GraphStats {
@@ -35,15 +41,16 @@ export interface GraphStats {
   seaEdges: number;
   portEdges: number;
   lakeEdges: number;
+  portRiverEdges: number;
 }
 
-type EdgeType =
+export type EdgeType =
   | "river"
   | "land"
   | "sea"
   | "port"
   | "lake"
-  | "unowned_location"
+  | "port-river"
   | "unknown";
 
 export type PathfindingResult = Record<
@@ -57,11 +64,7 @@ export type PathfindingResult = Record<
 export type CostFunction = (
   from: string,
   to: string,
-  isRiver: boolean,
-  isLand: boolean,
-  isSea: boolean,
-  isPort: boolean,
-  isLake: boolean,
+  edgeType: EdgeType,
 ) => {
   cost: number;
   through: EdgeType;

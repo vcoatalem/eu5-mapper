@@ -81,7 +81,7 @@
     _getCanonical(a, b) {
       return a < b ? [a, b] : [b, a];
     }
-    addEdge(a, b, isRiver = false, isLand = false, isSea = false, isPort = false, isLake = false) {
+    addEdge(a, b, edgeType) {
       const aId = this._getNodeId(a);
       const bId = this._getNodeId(b);
       const [from, to] = this._getCanonical(aId, bId);
@@ -90,11 +90,7 @@
       }
       this.adjacency[from].push({
         neighbor: to,
-        isRiver,
-        isLand,
-        isSea,
-        isPort,
-        isLake
+        edgeType
       });
     }
     getEdge(a, b) {
@@ -103,11 +99,7 @@
       if (aId === void 0 || bId === void 0) {
         return {
           exists: false,
-          isRiver: false,
-          isLand: false,
-          isSea: false,
-          isPort: false,
-          isLake: false
+          type: "unknown"
         };
       }
       const [from, to] = this._getCanonical(aId, bId);
@@ -115,28 +107,16 @@
       if (!neighbors) {
         return {
           exists: false,
-          isRiver: false,
-          isLand: false,
-          isSea: false,
-          isPort: false,
-          isLake: false
+          type: "unknown"
         };
       }
       const edge = neighbors.find((n) => n.neighbor === to);
       return edge ? {
         exists: true,
-        isRiver: edge.isRiver,
-        isLand: edge.isLand,
-        isSea: edge.isSea,
-        isPort: edge.isPort,
-        isLake: edge.isLake
+        type: edge.edgeType
       } : {
         exists: false,
-        isRiver: false,
-        isLand: false,
-        isSea: false,
-        isPort: false,
-        isLake: false
+        type: "unknown"
       };
     }
     reachableWithinCost(startNode, costLimit, getCost) {
@@ -170,33 +150,14 @@
             if (edge.neighbor === node) {
               neighbors.push({
                 neighbor: from,
-                isRiver: edge.isRiver,
-                isLand: edge.isLand,
-                isSea: edge.isSea,
-                isPort: edge.isPort,
-                isLake: edge.isLake
+                edgeType: edge.edgeType
               });
             }
           }
         }
-        for (const {
-          neighbor,
-          isRiver,
-          isLand,
-          isSea,
-          isPort,
-          isLake
-        } of neighbors) {
+        for (const { neighbor, edgeType } of neighbors) {
           const neighborStr = this._getNodeString(neighbor);
-          const edgeCost = getCost(
-            nodeStr,
-            neighborStr,
-            isRiver,
-            isLand,
-            isSea,
-            isPort,
-            isLake
-          );
+          const edgeCost = getCost(nodeStr, neighborStr, edgeType);
           const newCost = cost + edgeCost.cost;
           if (newCost <= costLimit && (!(neighbor in distances) || newCost < distances[neighbor].cost)) {
             distances[neighbor] = { cost: newCost, through: edgeCost.through };
@@ -241,22 +202,24 @@
             if (edge.neighbor === node) {
               neighbors.push({
                 neighbor: fromNum,
-                isRiver: edge.isRiver,
+                edgeType: edge.edgeType
+                /*  isRiver: edge.isRiver,
                 isLand: edge.isLand,
                 isSea: edge.isSea,
                 isPort: edge.isPort,
-                isLake: edge.isLake
+                isLake: edge.isLake, */
               });
             }
           }
         }
         for (const {
           neighbor,
-          isRiver,
+          edgeType
+          /*  isRiver,
           isLand,
           isSea,
           isPort,
-          isLake
+          isLake, */
         } of neighbors) {
           if (visited.has(neighbor))
             continue;
@@ -264,11 +227,11 @@
           const edgeCost = getCost(
             this._getNodeString(node),
             neighborStr,
-            isRiver,
-            isLand,
+            edgeType
+            /*  isLand,
             isSea,
             isPort,
-            isLake
+            isLake, */
           );
           const newCost = cost + edgeCost.cost;
           if (!(neighbor in minCost) || newCost < minCost[neighbor].cost) {
@@ -301,14 +264,18 @@
       let seaEdges = 0;
       let portEdges = 0;
       let lakeEdges = 0;
+      let portRiverEdges = 0;
       for (const key in this.adjacency) {
         const neighbors = this.adjacency[key];
         totalEdges += neighbors.length;
-        riverEdges += neighbors.filter((n) => n.isRiver).length;
-        landEdges += neighbors.filter((n) => n.isLand).length;
-        seaEdges += neighbors.filter((n) => n.isSea).length;
-        portEdges += neighbors.filter((n) => n.isPort).length;
-        lakeEdges += neighbors.filter((n) => n.isLake).length;
+        riverEdges += neighbors.filter((n) => n.edgeType === "river").length;
+        landEdges += neighbors.filter((n) => n.edgeType === "land").length;
+        seaEdges += neighbors.filter((n) => n.edgeType === "sea").length;
+        portEdges += neighbors.filter((n) => n.edgeType === "port").length;
+        lakeEdges += neighbors.filter((n) => n.edgeType === "lake").length;
+        portRiverEdges += neighbors.filter(
+          (n) => n.edgeType === "port-river"
+        ).length;
       }
       return {
         nodes: Object.keys(this.adjacency).length,
@@ -317,7 +284,8 @@
         landEdges,
         seaEdges,
         portEdges,
-        lakeEdges
+        lakeEdges,
+        portRiverEdges
       };
     }
   };
@@ -336,23 +304,32 @@
         const line = lines[i].trim();
         if (!line)
           continue;
-        const [locationA, locationB, accessType] = line.split(",");
-        const isRiver = accessType === "river";
-        const isLand = accessType === "land";
-        const isSea = accessType === "sea";
-        const isPort = accessType === "port";
-        const isLake = accessType === "lake";
-        graph2.addEdge(
-          locationA,
-          locationB,
-          isRiver,
-          isLand,
-          isSea,
-          isPort,
-          isLake
-        );
+        const [locationA, locationB, edgeType] = line.split(",");
+        if (["river", "land", "sea", "port", "lake", "port-river"].includes(
+          edgeType
+        ) === false) {
+          throw new Error(
+            `Invalid edge type "${edgeType}" in adjacency CSV at line ${i + 1}`
+          );
+        }
+        graph2.addEdge(locationA, locationB, edgeType);
       }
       return graph2;
+    }
+    static parseRoadFile(jsonContent) {
+      const roadRecord = {};
+      for (const roadEntry of jsonContent) {
+        const [from, to] = roadEntry;
+        if (roadRecord[from] === void 0) {
+          roadRecord[from] = [];
+        }
+        roadRecord[from].push({
+          to,
+          type: "gravel",
+          createdByUser: false
+        });
+      }
+      return roadRecord;
     }
   };
 
@@ -377,18 +354,19 @@
       }
       return proximitySourceLocations;
     }
-    static getFlatProximityCost(through, gameState, rule, maritimePresence, options) {
-      let baseCost = rule.baseCost;
-      const isNaval = through.isSea || through.isLake;
+    static getFlatProximityCost(edgeType, gameState, rule, maritimePresence, roadToDestination, options) {
+      const baseCost = edgeType.includes("river") ? rule.baseRiverCost : rule.baseCost;
+      const isImpactedByRoad = edgeType === "land";
+      const isNaval = edgeType === "sea" || edgeType === "lake";
       const flatProximityCostReduction = [
-        through.isRiver ? rule.riverCostReduction : 0,
-        isNaval && gameState.country.landVsNaval > 0 ? rule.valuesImpact.landVsNaval[1].flatModifier * gameState.country.landVsNaval : 0
+        isNaval && gameState.country.landVsNaval > 0 ? rule.valuesImpact.landVsNaval[1].flatModifier * gameState.country.landVsNaval : 0,
+        isImpactedByRoad && roadToDestination ? rule.roadProximityCostReduction[roadToDestination] : 0
         // TODO: advances ?
       ].reduce((a, b) => a + b, 0);
       if (!isNaval) {
         return baseCost - flatProximityCostReduction;
       } else {
-        let normalizedMaritimePresence = through.isLake ? 1 : maritimePresence / 100;
+        let normalizedMaritimePresence = edgeType === "lake" ? 1 : maritimePresence / 100;
         normalizedMaritimePresence = Math.max(
           0,
           Math.min(1, normalizedMaritimePresence)
@@ -430,7 +408,7 @@
           return 0;
       }
     }
-    static getPercentageProximityCostModifiers(from, to, through, gameData2, gameState, options) {
+    static getPercentageProximityCostModifiers(from, to, edgeType, gameData2, gameState, options) {
       const modifiers = [];
       const toLocationData = gameData2.locationDataMap[to];
       const isNaval = toLocationData.isSea || toLocationData.isLake;
@@ -438,7 +416,7 @@
         this.getTransportationModeProximityCostModifiers(
           from,
           to,
-          isNaval ? "naval" : through.isPort ? "harbor" : "land",
+          isNaval ? "naval" : edgeType === "port" ? "harbor" : "land",
           gameData2,
           gameState,
           options
@@ -453,14 +431,19 @@
       return modifiers.reduce((a, b) => a + b, 0);
     }
     static getProximityCostFunction(gameState, gameData2, options) {
-      return (from, to, isRiver, isLand, isSea, isPort, isLake) => {
+      return (from, to, edgeType) => {
         const rule = gameData2.proximityComputationRule;
+        const [locationA, locationB] = [from, to].sort();
+        const road = gameData2.roads[locationA]?.find(
+          ({ to: to2 }) => to2 === locationB
+        );
         const maritimePresence = 30;
         const baseCost = this.getFlatProximityCost(
-          { isRiver, isLand, isSea, isPort, isLake },
+          edgeType,
           gameState,
           rule,
-          maritimePresence
+          maritimePresence,
+          road?.type ?? null
         );
         if (options?.logForLocations?.includes(from) || options?.logForLocations?.includes(to)) {
           options.logMethod?.(
@@ -468,7 +451,7 @@
             {
               from,
               to,
-              through: { isRiver, isLand, isSea, isPort, isLake },
+              through: { edgeType },
               baseCost
             }
           );
@@ -476,14 +459,13 @@
         const toLocationData = gameData2.locationDataMap[to];
         const isToSeaZone = toLocationData.isSea;
         const isToLakeZone = toLocationData.isLake;
-        const edgeType = isRiver ? "river" : isLand ? "land" : isSea ? "sea" : isPort ? "port" : isLake ? "lake" : "unknown";
         if (!options?.allowUnownedLocations && !Object.keys(gameState.ownedLocations).includes(to) && !isToSeaZone && !isToLakeZone) {
           return { cost: 100, through: edgeType };
         }
         const proximityModifiersSummed = this.getPercentageProximityCostModifiers(
           from,
           to,
-          { isRiver, isLand, isPort },
+          edgeType,
           gameData2,
           gameState,
           options
@@ -495,7 +477,7 @@
             {
               from,
               to,
-              through: { isRiver, isLand, isSea, isPort, isLake },
+              edgeType,
               modifiedCost
             }
           );
@@ -507,7 +489,7 @@
       };
     }
   };
-  _ProximityComputationHelper.getEnvironmentalProximityCostIncreasePercentage = (location, gameData2) => {
+  _ProximityComputationHelper.getEnvironmentalProximityCostIncreasePercentage = (location, gameData2, roadToDestination) => {
     const rule = gameData2.proximityComputationRule;
     if (!Object.keys(rule.proximityCostIncreasePercentage.topography).includes(
       location.topography
@@ -526,7 +508,7 @@
         location.vegetation
       );
     }
-    const vegetationCostIncreasePercentage = location.vegetation ? rule.proximityCostIncreasePercentage.vegetation?.[location.vegetation] ?? 0 : 0;
+    const vegetationCostIncreasePercentage = location.vegetation && !roadToDestination ? rule.proximityCostIncreasePercentage.vegetation?.[location.vegetation] ?? 0 : 0;
     const totalEnvironmentalCostIncrease = topographyCostIncreasePercentage + vegetationCostIncreasePercentage;
     return totalEnvironmentalCostIncrease;
   };

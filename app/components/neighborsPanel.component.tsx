@@ -3,6 +3,7 @@ import { ILocationIdentifier } from "../lib/types/general";
 import { neighborsProximityComputationController } from "../lib/neighborsProximityComputation.controller";
 import { DrawingHelper } from "../lib/drawing/drawing.helper";
 import { gameStateController } from "../lib/gameState.controller";
+import { ColorHelper } from "../lib/drawing/color.helper";
 
 interface NeighborsPanelProps {
   locationName: ILocationIdentifier;
@@ -55,13 +56,13 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
                 <span
                   className={
                     " truncate col-span-2 " +
-                    (neighborName in gameState.ownedLocations
+                    (!(neighborName in gameState.ownedLocations)
                       ? "text-stone-500 italic"
                       : "")
                   }
                 >
                   {neighborName}
-                  {neighborName in gameState.ownedLocations && (
+                  {!(neighborName in gameState.ownedLocations) && (
                     <span> (unowned)</span>
                   )}
                 </span>
@@ -69,8 +70,8 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
                 <span
                   className="ml-2"
                   style={{
-                    color: DrawingHelper.rgbToHex(
-                      ...DrawingHelper.getEvaluationColor(cost),
+                    color: ColorHelper.rgbToHex(
+                      ...ColorHelper.getEvaluationColor(cost),
                     ),
                   }}
                 >

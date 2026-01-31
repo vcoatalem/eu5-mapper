@@ -1,4 +1,6 @@
 import { CompactGraph } from "./graph";
+import { RoadRecord } from "./types/general";
+import { EdgeType } from "./types/pathfinding";
 
 export class ParserHelper {
   /**
@@ -15,26 +17,38 @@ export class ParserHelper {
       const line = lines[i].trim();
       if (!line) continue;
 
-      const [locationA, locationB, accessType] = line.split(",");
+      const [locationA, locationB, edgeType] = line.split(",");
+      if (
+        ["river", "land", "sea", "port", "lake", "port-river"].includes(
+          edgeType,
+        ) === false
+      ) {
+        throw new Error(
+          `Invalid edge type "${edgeType}" in adjacency CSV at line ${i + 1}`,
+        );
+      }
 
-      // Add edge with appropriate flags based on access type
-      const isRiver = accessType === "river";
-      const isLand = accessType === "land";
-      const isSea = accessType === "sea";
-      const isPort = accessType === "port";
-      const isLake = accessType === "lake";
-
-      graph.addEdge(
-        locationA,
-        locationB,
-        isRiver,
-        isLand,
-        isSea,
-        isPort,
-        isLake,
-      );
+      graph.addEdge(locationA, locationB, edgeType as EdgeType);
     }
 
     return graph;
+  }
+
+  static parseRoadFile(jsonContent: any): RoadRecord {
+    const roadRecord: RoadRecord = {};
+
+    for (const roadEntry of jsonContent) {
+      const [from, to] = roadEntry;
+      if (roadRecord[from] === undefined) {
+        roadRecord[from] = [];
+      }
+
+      roadRecord[from].push({
+        to: to,
+        type: "gravel",
+        createdByUser: false,
+      });
+    }
+    return roadRecord;
   }
 }

@@ -308,6 +308,9 @@ def determine_access_type(loc1, loc2, sea_zones, lakes,
     # Land-to-sea adjacency (automatically creates port connection)
     if (loc1_is_sea and not loc2_is_sea and not loc2_is_lake) or \
        (loc2_is_sea and not loc1_is_sea and not loc1_is_lake):
+        if (loc1, loc2) in location_pair_to_rivers or (loc2, loc1) in location_pair_to_rivers:
+            # If there's a river connection, prefer that
+            return 'port-river'
         return 'port'
     
     # Land-to-land adjacency

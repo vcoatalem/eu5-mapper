@@ -18,6 +18,7 @@ import {
   dbStoreNames,
   dbVersion,
 } from "./lib/indexeddb/indexeddb.const";
+import { ParserHelper } from "./lib/parser.helper";
 
 interface IAppContext {
   selectedLocation: ILocationIdentifier | null;
@@ -68,6 +69,7 @@ export const AppContextProvider = ({
           adjacencyRes,
           proximityComputationRuleRes,
           countriesDataRes,
+          roadsRes,
         ] = await Promise.all([
           fetch(`${basePath}/location-data-map.json`),
           fetch(`${basePath}/color-to-name-map.json`),
@@ -75,6 +77,7 @@ export const AppContextProvider = ({
           fetch(`${basePath}/adjacency-data.csv`),
           fetch(`${basePath}/proximity-calculation-rules.json`),
           fetch(`${basePath}/countries-data-map.json`),
+          fetch(`${basePath}/roads.json`),
         ]);
 
         if (
@@ -97,6 +100,7 @@ export const AppContextProvider = ({
           adjacencyCsv,
           proximityComputationRule,
           countriesDataMap,
+          roadsJson,
         ] = await Promise.all([
           locationDataRes.json(),
           colorToNameRes.json(),
@@ -104,7 +108,10 @@ export const AppContextProvider = ({
           adjacencyRes.text(),
           proximityComputationRuleRes.json(),
           countriesDataRes.json(),
+          roadsRes.json(),
         ]);
+        const roads = ParserHelper.parseRoadFile(roadsJson);
+        console.log("[AppContext] Parsed roads:", roads);
 
         const toBePersistedGameData: IGameData = {
           locationDataMap,
@@ -112,6 +119,7 @@ export const AppContextProvider = ({
           buildingsTemplateMap: {},
           proximityComputationRule,
           countriesDataMap: {},
+          roads,
         };
         const indexedDBWriter = new IndexedDBWriter(
           dbName,
@@ -153,6 +161,7 @@ export const AppContextProvider = ({
           buildingsTemplateMap,
           proximityComputationRule,
           countriesDataMap,
+          roads,
         });
 
         console.log(

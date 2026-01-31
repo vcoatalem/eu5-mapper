@@ -9,43 +9,97 @@ export class DrawingHelper {
     return { x: gameCoordinates.x, y: canvasHeight - gameCoordinates.y };
   }
 
-  public static getEvaluationColor(
-    evaluation: number,
-  ): [r: number, g: number, b: number] {
-    /*  console.log(
-      "get evaluation color for",
-      evaluation,
-      Math.round(evaluation),
-      greenToRedGradient.length,
-    ); */
-    const rounded = Math.round(evaluation);
-    if (evaluation < 0 || evaluation > 100) {
-      return [208, 208, 208]; // Grey for invalid evaluations
-    } else {
-      const color = greenToRedGradient[rounded];
-      if (color?.length !== 3) {
-        console.warn(
-          "[DrawingHelper] invalid color in gradient:",
-          color,
-          evaluation,
-        );
-        return [208, 208, 208];
-      }
-      const [r, g, b] = color;
-      return [r, g, b];
-    }
+  public static drawCircle(
+    ctx: CanvasRenderingContext2D,
+    canvasCoordinate: ICoordinate,
+    radius: number,
+    color: string,
+  ): void {
+    ctx.beginPath();
+    ctx.arc(canvasCoordinate.x, canvasCoordinate.y, radius, 0, 2 * Math.PI);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 1;
+    ctx.stroke();
   }
 
-  private static componentToHex(c: number): string {
-    var hex = c.toString(16);
-    return hex.length == 1 ? "0" + hex : hex;
-  }
-  public static rgbToHex(r: number, g: number, b: number): string {
-    return (
-      "#" +
-      this.componentToHex(r) +
-      this.componentToHex(g) +
-      this.componentToHex(b)
+  public static drawSquare(
+    ctx: CanvasRenderingContext2D,
+    canvasCoordinate: ICoordinate,
+    size: number,
+    color: string,
+  ): void {
+    ctx.fillStyle = color;
+    ctx.fillRect(
+      canvasCoordinate.x - size / 2,
+      canvasCoordinate.y - size / 2,
+      size,
+      size,
     );
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(
+      canvasCoordinate.x - size / 2,
+      canvasCoordinate.y - size / 2,
+      size,
+      size,
+    );
+  }
+
+  public static drawPentagon(
+    ctx: CanvasRenderingContext2D,
+    canvasCoordinate: ICoordinate,
+    size: number,
+    color: string,
+  ): void {
+    const radius = size / 2;
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const angle = (i * 2 * Math.PI) / 5 - Math.PI / 2; // Start from top
+      const px = canvasCoordinate.x + radius * Math.cos(angle);
+      const py = canvasCoordinate.y + radius * Math.sin(angle);
+      if (i === 0) {
+        ctx.moveTo(px, py);
+      } else {
+        ctx.lineTo(px, py);
+      }
+    }
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  public static drawLine(
+    ctx: CanvasRenderingContext2D,
+    drawParams: {
+      canvasCoordFrom: ICoordinate;
+      canvasCoordTo: ICoordinate;
+      lineWidth: number;
+      color: string;
+    },
+  ): void {
+    ctx.beginPath();
+    ctx.moveTo(drawParams.canvasCoordFrom.x, drawParams.canvasCoordFrom.y);
+    ctx.lineTo(drawParams.canvasCoordTo.x, drawParams.canvasCoordTo.y);
+    ctx.strokeStyle = drawParams.color;
+    ctx.lineWidth = drawParams.lineWidth;
+    ctx.stroke();
+    //console.log("drawLine done", { canvasCoordFrom, canvasCoordTo });
+  }
+
+  public static draw(
+    ctx: CanvasRenderingContext2D[],
+    drawMethods: Array<() => void>,
+  ): void {
+    for (const drawMethod of drawMethods) {
+      drawMethod();
+    }
+    for (const c of ctx) {
+      c.stroke();
+    }
   }
 }

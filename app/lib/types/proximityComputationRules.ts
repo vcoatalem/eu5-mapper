@@ -1,13 +1,15 @@
+import { RoadType } from "./general";
+
 interface IValueImpact {
   percentageModifier: 10;
   flatModifier: 0;
 }
 
-interface IProximityComputationRule {
+export interface IProximityComputationRule {
   baseCost: number;
+  baseRiverCost: number;
   baseCostWithMaritimePresence: number;
   baseCostWithoutMaritimePresence: number;
-  riverCostReduction: number;
   proximityCostIncreasePercentage: {
     topography: {
       flatland: number;
@@ -33,4 +35,5 @@ interface IProximityComputationRule {
     centralizationVsDecentralization: [IValueImpact, IValueImpact];
   };
   rulerAdministrativeAbilityImpact: number;
+  roadProximityCostReduction: Record<RoadType, number>;
 }

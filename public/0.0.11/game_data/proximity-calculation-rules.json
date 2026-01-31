@@ -1,8 +1,8 @@
 {
   "baseCost": 40,
+  "baseRiverCost": 10,
   "baseCostWithMaritimePresence": 5,
   "baseCostWithoutMaritimePresence": 30,
-  "riverCostReduction": 30,
   "proximityCostIncreasePercentage": {
     "topography": {
       "flatland": 0,
@@ -45,5 +45,11 @@
       }
     ]
   },
-  "rulerAdministrativeAbilityImpact": 0.1
+  "rulerAdministrativeAbilityImpact": 0.1,
+  "roadProximityCostReduction": {
+    "gravel": 20,
+    "paved": 25,
+    "modern": 30,
+    "railroad": 35
+  }
 }

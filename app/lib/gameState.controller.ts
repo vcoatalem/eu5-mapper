@@ -28,7 +28,7 @@ class GameStateController extends Observable<IGameState> {
     this.subject = {
       countryCode: null,
       country: baseCountryValues,
-      roads: {},
+      roads: gameData.roads,
       ownedLocations: {},
     };
     this.notifyListeners();
@@ -215,7 +215,7 @@ class GameStateController extends Observable<IGameState> {
     this.subject = {
       countryCode: null,
       country: baseCountryValues,
-      roads: {},
+      roads: this.gameData?.roads || {},
       ownedLocations: {},
     };
     if (countryCode) {

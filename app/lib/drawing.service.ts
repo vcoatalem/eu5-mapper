@@ -88,12 +88,12 @@ export class DrawingService {
     this.roadDrawingContext = roadDrawingContext;
     this.drawRoads(gameStateController.getSnapshot());
     workerManager.subscribe(({ lastCompletedTask }) => {
-      console.log(
+      /*  console.log(
         "[DrawingLogicService] WorkerManager status update on lastCompletedTask",
         {
           lastCompletedTask,
         },
-      );
+      ); */
       if (!lastCompletedTask) {
         return;
       }
@@ -140,7 +140,7 @@ export class DrawingService {
       .debounce(10)
       .subscribe(({ values: [gameState, zoom] }) => {
         //this.gameStateSnapshot = gameState;
-        console.log({ gameState, zoom });
+        //console.log({ gameState, zoom });
         this.drawConstructibles(gameState, zoom);
       });
   }

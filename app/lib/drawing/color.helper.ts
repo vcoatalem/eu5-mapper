@@ -56,6 +56,12 @@ export class ColorHelper {
     }
   }
 
+  public static getProximityColor(
+    proximity: number,
+  ): [r: number, g: number, b: number] {
+    return this.getEvaluationColor(100 - proximity);
+  }
+
   public static getRoadHexColor(roadType: RoadType): string {
     switch (roadType) {
       case "gravel":

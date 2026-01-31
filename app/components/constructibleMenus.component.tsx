@@ -9,13 +9,15 @@ import {
 import { ConstructibleHelper } from "../lib/constructible.helper";
 import { AppContext } from "../appContextProvider";
 import { getGuiImage } from "../lib/drawing/namedGuiImagesMap.const";
+import { proximityComputationController } from "../lib/proximityComputation.controller";
+import { DrawingHelper } from "../lib/drawing/drawing.helper";
 
 const capitalPicker = (
   location: ILocationIdentifier,
   isCapital: boolean,
 ): React.JSX.Element => {
   return (
-    <div className={"bg-white ml-1"}>
+    <div className={"bg-white ml-1 w-4"}>
       <button
         onClick={() => {
           gameStateController.changeCapital(location);
@@ -152,6 +154,12 @@ export function ConstructibleMenusComponent() {
     gameStateController.subscribe.bind(gameStateController),
     () => gameStateController.getSnapshot(),
   );
+  const proximityComputation = useSyncExternalStore(
+    proximityComputationController.subscribe.bind(
+      proximityComputationController,
+    ),
+    () => proximityComputationController.getSnapshot(),
+  );
   const { gameData, setHoveredLocation } = useContext(AppContext);
   if (!gameData) {
     throw new Error(
@@ -161,29 +169,46 @@ export function ConstructibleMenusComponent() {
 
   /*  console.log("ConstructibleMenusComponent render"); */
   return (
-    <div className="min-h-96 w-40 hover:w-[600px] overflow-y-auto overflow-x-hidden max-h-[50vh] transition-[width] duration-300 ease-in-out">
+    <div className="min-h-96 w-45 hover:w-[600px] overflow-y-auto overflow-x-hidden max-h-[50vh] transition-[width] duration-300 ease-in-out">
       {Object.entries(gameState.ownedLocations).map(
         ([locationName, constructibleData]) => (
           <div
             key={locationName}
-            className="py-1 h-10 flex flex-row items-center whitespace-nowrap"
+            className="py-1 h-10 grid grid-cols-9 items-center whitespace-nowrap gap-2 w-[600px]"
             onMouseEnter={() => setHoveredLocation(locationName)}
             onMouseLeave={() => setHoveredLocation(null)}
           >
-            <div className="font-bold w-32 truncate ... flex-none">
+            <div className="font-bold col-span-2 truncate ... flex-none">
               <span className="text-lg ">{locationName}</span>
             </div>
-            {capitalPicker(
-              locationName,
-              gameState.capitalLocation === locationName,
-            )}
-            {locationRankPicker(locationName, constructibleData)}
-            {buildingList(
-              locationName,
-              gameData,
-              gameState.ownedLocations,
-              constructibleData,
-            )}
+            <span
+              className="col-span-1"
+              style={{
+                color: DrawingHelper.rgbToHex(
+                  ...DrawingHelper.getEvaluationColor(
+                    proximityComputation.result[locationName]?.cost ?? 100,
+                  ),
+                ),
+              }}
+            >
+              {proximityComputation.result[locationName]?.cost?.toFixed(2) ??
+                "∞"}
+            </span>
+            <div className="col-span-2 flex flex-row items-center space-x-2">
+              {capitalPicker(
+                locationName,
+                gameState.capitalLocation === locationName,
+              )}
+              {locationRankPicker(locationName, constructibleData)}
+            </div>
+            <div className="col-span-1">
+              {buildingList(
+                locationName,
+                gameData,
+                gameState.ownedLocations,
+                constructibleData,
+              )}
+            </div>
           </div>
         ),
       )}

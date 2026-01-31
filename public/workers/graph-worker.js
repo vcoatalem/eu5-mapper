@@ -404,10 +404,10 @@
         return costWithoutMaritimePresence * (1 - normalizedMaritimePresence) + costWithMaritimePresence * normalizedMaritimePresence;
       }
     }
-    static getTransportationModeProximityCostModifiers(from, to, transportationMode, gameData2, gameState) {
+    static getTransportationModeProximityCostModifiers(from, to, transportationMode, gameData2, gameState, options) {
       switch (transportationMode) {
         case "land":
-          if (from in gameState.ownedLocations) {
+          if (from in gameState.ownedLocations || options?.allowUnownedLocations) {
             return _ProximityComputationHelper.getLandLocationProximityModifiers(
               gameData2.locationDataMap[from],
               gameState.ownedLocations[from],
@@ -440,7 +440,8 @@
           to,
           isNaval ? "naval" : through.isPort ? "harbor" : "land",
           gameData2,
-          gameState
+          gameState,
+          options
         )
       );
       if (options?.logForLocations?.includes(from) || options?.logForLocations?.includes(to)) {
@@ -484,7 +485,8 @@
           to,
           { isRiver, isLand, isPort },
           gameData2,
-          gameState
+          gameState,
+          options
         );
         const modifiedCost = baseCost * (1 - proximityModifiersSummed / 100);
         if (options?.logForLocations?.includes(from) || options?.logForLocations?.includes(to)) {

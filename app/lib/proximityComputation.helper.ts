@@ -207,11 +207,14 @@ export class ProximityComputationHelper {
     transportationMode: "land" | "naval" | "harbor",
     gameData: IGameData,
     gameState: IGameState,
+    options?: PathFindingOptions,
   ): number {
     switch (transportationMode) {
       case "land":
-        if (from in gameState.ownedLocations) {
-          // TODO : handle unowned locations too
+        if (
+          from in gameState.ownedLocations ||
+          options?.allowUnownedLocations
+        ) {
           return ProximityComputationHelper.getLandLocationProximityModifiers(
             gameData.locationDataMap[from],
             gameState.ownedLocations[from],
@@ -264,6 +267,7 @@ export class ProximityComputationHelper {
         isNaval ? "naval" : through.isPort ? "harbor" : "land",
         gameData,
         gameState,
+        options,
       ),
     );
 
@@ -366,6 +370,7 @@ export class ProximityComputationHelper {
         { isRiver, isLand, isPort },
         gameData,
         gameState,
+        options,
       );
 
       const modifiedCost = baseCost * (1 - proximityModifiersSummed / 100);

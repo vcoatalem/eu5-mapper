@@ -21,5 +21,28 @@
   },
   "developmentImpact": 0.2,
   "harborCapacityImpact": 0.75,
-  "maritimePresenceImpact": 1
+  "maritimePresenceImpact": 1,
+  "valuesImpact": {
+    "navalVsLand": [
+      {
+        "percentageModifier": 0,
+        "flatModifier": 1
+      },
+      {
+        "percentageModifier": 10,
+        "flatModifier": 0
+      }
+    ],
+    "centralizationVsDecentralization": [
+      {
+        "percentageModifier": 10,
+        "flatModifier": 0
+      },
+      {
+        "percentageModifier": 0,
+        "flatModifier": 0
+      }
+    ]
+  },
+  "rulerAdministrativeAbilityImpact": 0.1
 }

@@ -75,8 +75,8 @@ const getCountryStats = (
   );
 
   return (
-    <div className="grid grid-cols-3">
-      <div className="col-span-2">Mean Proximity:</div>
+    <div className="grid grid-cols-4 gap-x-3">
+      <div className="col-span-2 text-right">Mean Proximity:</div>
       <span
         className="col-span-1"
         style={{
@@ -87,10 +87,12 @@ const getCountryStats = (
       >
         {meanProximity.toFixed(2)}
       </span>
-      <div className="col-span-2">Total Population: {totalPopulation}</div>
-      <div className="col-span-2">
-        Population scaled by proximity: {totalPopulationScaledByProximity}
+      <div className="col-span-2 text-right">Total Population:</div>
+      <span className="col-span-1">{totalPopulation}</span>
+      <div className="col-span-2 text-right">
+        Population scaled by proximity:
       </div>
+      <span className="col-span-1">{totalPopulationScaledByProximity}</span>
     </div>
   );
 };
@@ -117,8 +119,8 @@ export function CountryOverview() {
   return (
     <div>
       <p className="font-bold">{gameState.countryCode}</p>
-      <div className="grid grid-cols-3 gap-2 text-center">
-        <span>Land</span>
+      <div className="grid grid-cols-3 gap-2">
+        <span className="text-right">Land</span>
         <input
           type="range"
           min={-100}
@@ -126,10 +128,10 @@ export function CountryOverview() {
           value={gameState.country.landVsNaval}
           onChange={(e) => updateValue(e, "landVsNaval")}
         />
-        <span>Naval</span>
+        <span className="text-left">Naval</span>
       </div>
-      <div className="grid grid-cols-3 gap-2 text-center">
-        <span>Centralization</span>
+      <div className="grid grid-cols-3 gap-2">
+        <span className="text-right">Centralization</span>
         <input
           type="range"
           min={-100}
@@ -137,13 +139,13 @@ export function CountryOverview() {
           value={gameState.country.centralizationVsDecentralization}
           onChange={(e) => updateValue(e, "centralizationVsDecentralization")}
         />
-        <span>Decentralization</span>
+        <span className="text-left">Decentralization</span>
       </div>
-      <div className="grid grid-cols-3 text-center gap-2">
-        <span>Administrative Ability</span>
+      <div className="grid grid-cols-3 gap-2">
+        <span className="text-right">Administrative Ability</span>
         <input
           id="rulerAdministrativeAbility"
-          className="col-span-2"
+          className="col-span-1"
           type="range"
           min={0}
           max={100}

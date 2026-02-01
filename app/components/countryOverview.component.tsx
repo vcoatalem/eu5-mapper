@@ -10,8 +10,8 @@ import { ProximityComputationHelper } from "../lib/proximityComputation.helper";
 import { proximityComputationController } from "@/app/lib/proximityComputation.controller";
 import { AppContext } from "../appContextProvider";
 import { PathfindingResult } from "../lib/types/pathfinding";
-import { DrawingHelper } from "../lib/drawing/drawing.helper";
 import { ColorHelper } from "../lib/drawing/color.helper";
+import { NumbersHelper } from "../lib/utils/numbers.helper";
 
 const updateValue = (
   event: React.ChangeEvent<HTMLInputElement>,
@@ -88,11 +88,17 @@ const getCountryStats = (
         {meanProximity.toFixed(2)}
       </span>
       <div className="col-span-2 text-right">Total Population:</div>
-      <span className="col-span-1">{totalPopulation}</span>
+      <span className="col-span-1">
+        {NumbersHelper.addDecimalThousandSeparators(totalPopulation)}
+      </span>
       <div className="col-span-2 text-right">
         Population scaled by proximity:
       </div>
-      <span className="col-span-1">{totalPopulationScaledByProximity}</span>
+      <span className="col-span-1">
+        {NumbersHelper.addDecimalThousandSeparators(
+          totalPopulationScaledByProximity,
+        )}
+      </span>
     </div>
   );
 };

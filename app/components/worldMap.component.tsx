@@ -25,6 +25,7 @@ import { neighborsProximityComputationController } from "../lib/neighborsProximi
 import { NeighborsPanelComponent } from "./neighborsPanel.component";
 import { HeaderComponent } from "./header.component";
 import { CountryOverview } from "./countryOverview.component";
+import { locationSearchController } from "@/app/lib/locationSearchController";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
@@ -385,6 +386,7 @@ export function WorldMapComponent() {
     gameStateController.init(gameData);
     proximityComputationController.init();
     neighborsProximityComputationController.init();
+    locationSearchController.init(gameData);
 
     drawingServiceRef.current = new DrawingService(
       areaDrawingCanvasRef.current!,
@@ -595,7 +597,8 @@ export function WorldMapComponent() {
         />
       ) : (
         <div>
-          <GuiElement className="fixed top-2 left-5 right-5">
+          <GuiElement className="fixed top-2 left-5 right-5 z-50">
+            {/* z-50 here is so that dropdowns from header show above of other guiElement */}
             <HeaderComponent />
           </GuiElement>
           {hasOwnedLocations && (

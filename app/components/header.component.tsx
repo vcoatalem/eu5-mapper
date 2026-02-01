@@ -2,6 +2,7 @@ import { useContext, useMemo, useSyncExternalStore } from "react";
 import { AppContext } from "../appContextProvider";
 import { gameStateController } from "../lib/gameState.controller";
 import { WorkerStatusComponent } from "./workerStatus.component";
+import { LocationSearchBar } from "./locationSearchBar.component";
 
 export function HeaderComponent() {
   const { gameData } = useContext(AppContext);
@@ -17,8 +18,9 @@ export function HeaderComponent() {
   };
 
   return (
-    <div className="w-full h-10 flex">
+    <div className="w-full h-10 flex divide-x-2 divide-stone-60">
       <WorkerStatusComponent />
+      <LocationSearchBar />
       <select
         className="ml-auto"
         value={gameState.countryCode || ""}

@@ -72,7 +72,7 @@ const buildingList = (
                   : "")
               }
               onClick={() => {
-                if (!building.canBuild) {
+                if (!building.canBuild && building.amountBuilt > 0) {
                   gameStateController.removeBuildingFromLocation(
                     locationName,
                     building.name,

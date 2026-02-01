@@ -27,7 +27,8 @@ export interface ILocationGameData {
     | "narrows"
     | "inland_sea"
     | "ocean_wasteland"
-    | "mountain_wasteland";
+    | "mountain_wasteland"
+    | "high_lakes";
   vegetation:
     | null
     | "farmland"

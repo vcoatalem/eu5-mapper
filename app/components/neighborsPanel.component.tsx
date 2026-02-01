@@ -40,11 +40,10 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
 
   return (
     <div className="max-h-96 overflow-y-auto bg-black/90 backdrop-blur-sm border border-stone-700 rounded p-3">
-      <span>{neighborLocationResult?.status}</span>
-      <div className="font-semibold text-sm mb-2 text-stone-300">
+      <div className="font-semibold mb-2 text-stone-300">
         Proximity costs for {locationName}
       </div>
-      {
+      {neighborLocationResult?.status === "completed" && (
         <div className="flex flex-col gap-1 text-xs">
           {Object.entries(neighborLocationResult.neighbors)
             .filter(([neighborName]) => neighborName !== locationName)
@@ -55,7 +54,7 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
               >
                 <span
                   className={
-                    " truncate col-span-2 " +
+                    " truncate col-span-3 " +
                     (!(neighborName in gameState.ownedLocations)
                       ? "text-stone-500 italic"
                       : "")
@@ -68,7 +67,7 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
                 </span>
 
                 <span
-                  className="ml-2"
+                  className="ml-2 col-span-1"
                   style={{
                     color: ColorHelper.rgbToHex(
                       ...ColorHelper.getEvaluationColor(cost),
@@ -77,11 +76,11 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
                 >
                   {cost.toFixed(2)}
                 </span>
-                <span> ({through})</span>
+                <span className="col-span-1"> ({through})</span>
               </div>
             ))}
         </div>
-      }
+      )}
     </div>
   );
 }

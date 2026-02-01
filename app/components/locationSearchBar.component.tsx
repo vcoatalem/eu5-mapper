@@ -26,7 +26,6 @@ const LocationSearchResultItem = React.memo(function LocationSearchResultItem({
   useEffect(() => {
     const el = divRef.current;
     if (el) {
-      console.log("[LocationSearchResultItem] registering action sources");
       actionEventDispatcher.registerHoverActionSource(
         el,
         () => loc.name,
@@ -40,7 +39,6 @@ const LocationSearchResultItem = React.memo(function LocationSearchResultItem({
     }
     return () => {
       if (el) {
-        console.log("[LocationSearchResultItem] unregistering action sources");
         actionEventDispatcher.clearEventListenersForElement(el);
       }
     };

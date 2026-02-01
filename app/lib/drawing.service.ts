@@ -200,6 +200,7 @@ export class DrawingService {
     });
 
     this.reDraw.debounce(5).subscribe(() => {
+      // TODO: type drawingCallbackBuffer better to avoid all the casts
       if (this.drawingCallbackBuffer["areas"]) {
         const missingCoordinates = this.drawingCallbackBuffer[
           "areas"

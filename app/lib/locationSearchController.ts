@@ -47,7 +47,9 @@ export class LocationSearchController extends Observable<ILocationSearchResult> 
       this.gameData.locationDataMap,
     )
       .filter(([name, data]) => {
-        return name.toLowerCase().includes(query.toLowerCase());
+        return (
+          name.toLowerCase().includes(query.toLowerCase()) && !!data.ownable
+        );
       })
       .slice(0, 25)
       .map(([name, data]) => ({

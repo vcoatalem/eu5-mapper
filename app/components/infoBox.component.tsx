@@ -2,6 +2,7 @@ import { JSX, useContext, useSyncExternalStore } from "react";
 import { AppContext } from "../appContextProvider";
 import { IGameState, ILocationGameData } from "../lib/types/general";
 import { gameStateController } from "@/app/lib/gameState.controller";
+import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
 
 const buildLocationDisplay = (
   locationData: ILocationGameData,
@@ -43,33 +44,38 @@ const buildLocationDisplay = (
 };
 
 export function InfoBoxComponent() {
-  const context = useContext(AppContext);
   const gameLogic = useSyncExternalStore(
     gameStateController.subscribe.bind(gameStateController),
     () => gameStateController.getSnapshot(),
   );
-  if (!context) {
-    throw new Error("InfoBoxComponent must be used within AppContextProvider");
-  }
-  if (!context.gameData) {
+  const { gameData } = useContext(AppContext);
+
+  const hoveredLocation = useSyncExternalStore(
+    actionEventDispatcher.hoveredLocation.subscribe.bind(
+      actionEventDispatcher.hoveredLocation,
+    ),
+    () => {
+      return actionEventDispatcher.hoveredLocation.getSnapshot();
+    },
+  );
+
+  if (!gameData) {
     throw new Error("Game data is not available in InfoBoxComponent");
   }
 
-  const locationName =
-    context?.hoveredLocation ?? context?.selectedLocation ?? null;
-
-  if (!locationName) {
+  if (!hoveredLocation?.location) {
     return (
-      <span className="text-sm text-stone-400 px-4">
+      <span className="h-10 bg-black/80 text-stone-400 px-4">
         Hover or select a location to view details
       </span>
     );
   }
 
-  const locationData = context.gameData.locationDataMap[locationName];
+  const locationData =
+    gameData.locationDataMap?.[hoveredLocation?.location ?? ""];
   if (!locationData) {
     console.warn(
-      `[InfoBoxComponent] No location data found for location: ${locationName}`,
+      `[InfoBoxComponent] No location data found for location: ${hoveredLocation?.location}`,
     );
   }
   const locationDisplay = buildLocationDisplay(locationData, gameLogic);

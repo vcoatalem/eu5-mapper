@@ -1,4 +1,9 @@
-import { useContext, useState, useSyncExternalStore } from "react";
+import React, {
+  useContext,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { gameStateController } from "@/app/lib/gameState.controller";
 import {
   IConstructibleLocation,
@@ -12,6 +17,7 @@ import { getGuiImage } from "../lib/drawing/namedGuiImagesMap.const";
 import { proximityComputationController } from "../lib/proximityComputation.controller";
 import { ColorHelper } from "../lib/drawing/color.helper";
 import { ProximityComputationHelper } from "../lib/proximityComputation.helper";
+import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
 
 const capitalPicker = (
   location: ILocationIdentifier,
@@ -150,6 +156,87 @@ const locationRankPicker = (
   );
 };
 
+const ConstructibleLocationItem = React.memo(
+  function constructibleLocationItem({
+    location,
+    constructible,
+    gameData,
+    gameState,
+    proximityComputation,
+  }: {
+    location: ILocationIdentifier;
+    constructible: IConstructibleLocation;
+    gameData: IGameData;
+    gameState: IGameState;
+    proximityComputation: ReturnType<
+      typeof proximityComputationController.getSnapshot
+    >;
+  }) {
+    const locationNameDivRef = React.useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+      const el = locationNameDivRef.current;
+      if (el) {
+        console.log("[ConstructibleLocationItem] registering action sources");
+        actionEventDispatcher.registerHoverActionSource(el, () => location);
+        actionEventDispatcher.registerClickActionSource(
+          el,
+          () => location,
+          "goto",
+        );
+      }
+      return () => {
+        if (el) {
+          console.log(
+            "[ConstructibleLocationItem] unregistering action sources",
+          );
+          actionEventDispatcher.clearEventListenersForElement(el);
+        }
+      };
+    }, [location]);
+
+    return (
+      <div
+        key={location}
+        className="py-1 h-10 grid grid-cols-9 items-center whitespace-nowrap gap-2 w-[600px]"
+      >
+        <div
+          className="font-bold col-span-2 truncate ... flex-none cursor-pointer"
+          ref={locationNameDivRef}
+        >
+          <span className="text-lg ">{location}</span>
+        </div>
+        <span
+          className="col-span-1"
+          style={{
+            color: ColorHelper.rgbToHex(
+              ...ColorHelper.getEvaluationColor(
+                proximityComputation.result[location]?.cost ?? 100,
+              ),
+            ),
+          }}
+        >
+          {ProximityComputationHelper.evaluationToProximity(
+            proximityComputation.result[location]?.cost,
+          ) ?? 0}
+        </span>
+        <div className="col-span-2 flex flex-row items-center space-x-2">
+          {capitalPicker(location, gameState.capitalLocation === location)}
+          {locationRankPicker(location, constructible)}
+        </div>
+        <div className="col-span-1">
+          {buildingList(
+            location,
+            gameData,
+            gameState.ownedLocations,
+            constructible,
+          )}
+        </div>
+      </div>
+    );
+  },
+);
+
 export function ConstructibleMenusComponent() {
   const gameState = useSyncExternalStore(
     gameStateController.subscribe.bind(gameStateController),
@@ -161,7 +248,7 @@ export function ConstructibleMenusComponent() {
     ),
     () => proximityComputationController.getSnapshot(),
   );
-  const { gameData, setHoveredLocation } = useContext(AppContext);
+  const { gameData } = useContext(AppContext);
 
   const [search, setSearch] = useState("");
   if (!gameData) {
@@ -179,50 +266,20 @@ export function ConstructibleMenusComponent() {
         onChange={(e) => setSearch(e.target.value)}
         style={{ outline: "none" }}
       />
+      <hr className="w-full"></hr>
       {Object.entries(gameState.ownedLocations)
         .filter(([locationName]) =>
           locationName.toLowerCase().includes(search.toLowerCase()),
         )
         .map(([locationName, constructibleData]) => (
-          <div
+          <ConstructibleLocationItem
             key={locationName}
-            className="py-1 h-10 grid grid-cols-9 items-center whitespace-nowrap gap-2 w-[600px]"
-            onMouseEnter={() => setHoveredLocation(locationName)}
-            onMouseLeave={() => setHoveredLocation(null)}
-          >
-            <div className="font-bold col-span-2 truncate ... flex-none">
-              <span className="text-lg ">{locationName}</span>
-            </div>
-            <span
-              className="col-span-1"
-              style={{
-                color: ColorHelper.rgbToHex(
-                  ...ColorHelper.getEvaluationColor(
-                    proximityComputation.result[locationName]?.cost ?? 100,
-                  ),
-                ),
-              }}
-            >
-              {ProximityComputationHelper.evaluationToProximity(
-                proximityComputation.result[locationName]?.cost,
-              ) ?? 0}
-            </span>
-            <div className="col-span-2 flex flex-row items-center space-x-2">
-              {capitalPicker(
-                locationName,
-                gameState.capitalLocation === locationName,
-              )}
-              {locationRankPicker(locationName, constructibleData)}
-            </div>
-            <div className="col-span-1">
-              {buildingList(
-                locationName,
-                gameData,
-                gameState.ownedLocations,
-                constructibleData,
-              )}
-            </div>
-          </div>
+            location={locationName}
+            constructible={constructibleData}
+            gameData={gameData}
+            gameState={gameState}
+            proximityComputation={proximityComputation}
+          />
         ))}
     </div>
   );

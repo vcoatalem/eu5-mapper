@@ -21,10 +21,6 @@ import {
 import { ParserHelper } from "./lib/parser.helper";
 
 interface IAppContext {
-  selectedLocation: ILocationIdentifier | null;
-  setSelectedLocation: Dispatch<SetStateAction<ILocationIdentifier | null>>;
-  hoveredLocation: ILocationIdentifier | null;
-  setHoveredLocation: Dispatch<SetStateAction<ILocationIdentifier | null>>;
   gameData: IGameData | null;
   isLoading: boolean;
   error: string | null;
@@ -41,10 +37,6 @@ export const AppContextProvider = ({
 }) => {
   const params = useParams();
   const version = params?.version as string;
-  const [selectedLocation, setSelectedLocation] =
-    useState<ILocationIdentifier | null>(null);
-  const [hoveredLocation, setHoveredLocation] =
-    useState<ILocationIdentifier | null>(null);
 
   // Game data state
   const [gameData, setGameData] = useState<IGameData | null>(null);
@@ -183,10 +175,6 @@ export const AppContextProvider = ({
   return (
     <AppContext.Provider
       value={{
-        selectedLocation,
-        setSelectedLocation,
-        hoveredLocation,
-        setHoveredLocation,
         gameData,
         isLoading,
         error,

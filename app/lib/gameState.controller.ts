@@ -62,6 +62,10 @@ export class GameStateController extends Observable<IGameState> {
   ): void {
     const toAdd: Record<ILocationIdentifier, IConstructibleLocation> = {};
     for (const location of locationNames) {
+      const locationData = this.gameData?.locationDataMap[location];
+      if (!locationData?.ownable) {
+        continue;
+      }
       const baseLocationRank = this.gameData?.locationDataMap[location].rank;
       const newLocation: IConstructibleLocation = {
         rank: baseLocationRank ?? "rural",

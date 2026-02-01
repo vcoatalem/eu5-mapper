@@ -6,7 +6,7 @@ export class Subject<T> extends Observable<T> {
   }
 
   public emit(value: T): void {
-    this.subject = { ...value } as T;
+    this.subject = value;
     this.notifyListeners();
   }
 }

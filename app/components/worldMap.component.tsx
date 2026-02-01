@@ -28,17 +28,11 @@ import { CountryOverview } from "./countryOverview.component";
 import { locationSearchController } from "@/app/lib/locationSearchController";
 import { DrawingHelper } from "../lib/drawing/drawing.helper";
 import { CameraService } from "../lib/camera.service";
+import { actionEventDispatcher } from "../lib/actionEventDispatcher";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
-  const {
-    hoveredLocation,
-    setSelectedLocation,
-    selectedLocation,
-    setHoveredLocation,
-    gameData,
-    error: gameDataLoadingError,
-  } = context;
+  const { gameData, error: gameDataLoadingError } = context;
 
   /* console.log("render worldmap component"); */
 
@@ -53,7 +47,6 @@ export function WorldMapComponent() {
 
   const isDraggingRef = useRef(false);
   const initializedRef = useRef(false);
-  const clickedOnLocationRef = useRef<ILocationIdentifier | null>(null);
   const colorCanvasRef = useRef<HTMLCanvasElement>(null);
   const terrainCanvasRef = useRef<HTMLCanvasElement>(null);
   const blackCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -68,8 +61,8 @@ export function WorldMapComponent() {
   const [, forceUpdate] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [loadingError, setLoadingError] = useState<string | null>(null);
-  const [showNeighborsPanel, setShowNeighborsPanel] = useState(false);
-  const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [showNeighborsPanel, setShowNeighborsPanel] =
+    useState<ILocationIdentifier | null>(null);
   const layersRenderedRef = useRef(0);
   const totalLayersRef = useRef(0);
 
@@ -181,34 +174,6 @@ export function WorldMapComponent() {
   const triggerRender = useCallback(() => {
     forceUpdate({});
   }, []);
-
-  // Watch for hoveredLocation changes and manage neighbors panel timer
-  useEffect(() => {
-    const hoveredLocation = context.hoveredLocation;
-
-    // Clear existing timer
-    if (hoverTimerRef.current) {
-      clearTimeout(hoverTimerRef.current);
-      hoverTimerRef.current = null;
-    }
-
-    // Reset neighbors panel if no location
-    if (!hoveredLocation) {
-      setShowNeighborsPanel(false);
-    } else {
-      // Start new timer for this location
-      hoverTimerRef.current = setTimeout(() => {
-        setShowNeighborsPanel(true);
-      }, 1500);
-    }
-
-    return () => {
-      if (hoverTimerRef.current) {
-        clearTimeout(hoverTimerRef.current);
-        hoverTimerRef.current = null;
-      }
-    };
-  }, [context.hoveredLocation]);
 
   // initialization effect
   useEffect(() => {
@@ -364,25 +329,14 @@ export function WorldMapComponent() {
       const rect = colorCanvas.getBoundingClientRect();
       scrollLeft = rect.left;
       scrollTop = rect.top;
-      const location = cameraServiceRef.current?.getLocationAtPointer(e);
-      if (location) {
-        clickedOnLocationRef.current = location;
-      }
     };
 
     const handleMouseMove = (e: MouseEvent) => {
-      const hoverLocation = cameraServiceRef.current?.getLocationAtPointer(e);
-      setHoveredLocation(hoverLocation ?? null);
-
       if (!isDraggingRef.current) return;
       e.preventDefault();
 
       const x = e.clientX - startX;
       const y = e.clientY - startY;
-      dragDistance = Math.sqrt(x * x + y * y);
-      if (dragDistance > MIN_DRAG_DISTANCE) {
-        setSelectedLocation(null);
-      }
 
       layers.forEach((layer) => {
         const canvas = layer.ref.current;
@@ -394,40 +348,19 @@ export function WorldMapComponent() {
     };
 
     const handleMouseUp = () => {
-      if (dragDistance < MIN_DRAG_DISTANCE && clickedOnLocationRef.current) {
-        console.log({
-          clickedLocation:
-            gameData.locationDataMap[clickedOnLocationRef.current],
-        });
-
-        const location = gameData.locationDataMap[clickedOnLocationRef.current];
-
-        if (location && location.ownable) {
-          setSelectedLocation(clickedOnLocationRef.current);
-          gameStateController.selectLocation(clickedOnLocationRef.current);
-        }
-      }
       isDraggingRef.current = false;
       triggerRender();
     };
 
-    const handleMouseLeave = () => {
-      isDraggingRef.current = false;
-      setHoveredLocation(null);
-      triggerRender();
-    };
-
-    const handleWheel = (e: WheelEvent) => {
-      if (!topLayerRef.current) return;
-      e.preventDefault();
-      if (e.deltaY < 0) {
-        zoomController.zoomOut();
-      } else {
-        zoomController.zoomIn();
-      }
-    };
+    zoomController.init(topLayerRef.current);
 
     zoomController.subscribe(({ zoomLevel, oldZoomLevel }) => {
+      if (!borderCanvasRef.current) {
+        console.error(
+          "[WorldMapComponent] borderCanvasRef is nullish. Check if this is due to HMR or proper bug",
+        );
+        return;
+      }
       cameraServiceRef.current?.applyZoomLevel(zoomLevel, oldZoomLevel);
 
       if (zoomLevel < zoomLevels.normal && oldZoomLevel >= zoomLevels.normal) {
@@ -441,15 +374,66 @@ export function WorldMapComponent() {
     });
 
     console.log({ topLayerRefForCreate: topLayerRef });
+
+    actionEventDispatcher.registerHoverActionSource(
+      topLayerRef.current,
+      (e) => {
+        const locationName = cameraServiceRef.current?.getLocationAtPointer(e);
+        return locationName ?? null;
+      },
+      null,
+      800,
+    );
+
+    actionEventDispatcher.registerClickActionSource(
+      topLayerRef.current,
+      (e) => {
+        const locationName = cameraServiceRef.current?.getLocationAtPointer(e);
+        return locationName ?? null;
+      },
+      "acquire",
+    );
+
+    actionEventDispatcher.prolongedHoverLocation.subscribe(
+      ({ location, type: actionType }) => {
+        setShowNeighborsPanel(location);
+      },
+    );
+
+    actionEventDispatcher.clickedLocationSource.subscribe(
+      ({ location, type }) => {
+        if (location && type === "acquire") {
+          gameStateController.selectLocation(location);
+        }
+        if (location && type === "goto") {
+          const coordinates = DrawingHelper.gameCoordinatesToCanvasCoordinates(
+            gameData.locationDataMap[location]
+              ?.constructibleLocationCoordinate ?? { x: 0, y: 0 },
+            colorCanvasRef.current?.height ?? 0,
+          );
+          cameraServiceRef.current?.panToCoordinate(coordinates);
+        }
+      },
+    );
+
+    actionEventDispatcher.prolongedHoverLocation.subscribe(
+      ({ location, type }) => {
+        if (location && type === "search") {
+          const coordinates = DrawingHelper.gameCoordinatesToCanvasCoordinates(
+            gameData.locationDataMap[location]
+              ?.constructibleLocationCoordinate ?? { x: 0, y: 0 },
+            colorCanvasRef.current?.height ?? 0,
+          );
+          cameraServiceRef.current?.panToCoordinate(coordinates);
+        }
+      },
+    );
+
     if (topLayerRef.current) {
-      console.log("add mouse event listeners");
+      console.log("add drag mouse event listeners");
       topLayerRef.current.addEventListener("mousedown", handleMouseDown);
       topLayerRef.current.addEventListener("mousemove", handleMouseMove);
       topLayerRef.current.addEventListener("mouseup", handleMouseUp);
-      topLayerRef.current.addEventListener("mouseleave", handleMouseLeave);
-      topLayerRef.current.addEventListener("wheel", handleWheel, {
-        passive: false,
-      });
     }
 
     setInitialPosition();
@@ -470,8 +454,7 @@ export function WorldMapComponent() {
         topLayerRef.current.removeEventListener("mousedown", handleMouseDown);
         topLayerRef.current.removeEventListener("mousemove", handleMouseMove);
         topLayerRef.current.removeEventListener("mouseup", handleMouseUp);
-        topLayerRef.current.removeEventListener("mouseleave", handleMouseLeave);
-        topLayerRef.current.removeEventListener("wheel", handleWheel);
+        /*         topLayerRef.current.removeEventListener("wheel", handleWheel); */
       }
       workerManager.terminate();
       initializedRef.current = false;
@@ -479,7 +462,7 @@ export function WorldMapComponent() {
   }, [gameData]);
 
   // pan to location effect
-  useEffect(() => {
+  /*  useEffect(() => {
     if (!gameData || !selectedLocation) {
       return;
     }
@@ -490,16 +473,16 @@ export function WorldMapComponent() {
     );
     cameraServiceRef.current?.panToCoordinate(coordinates);
   }, [selectedLocation]);
-
+ */
   const handleZoomOut = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
-    setSelectedLocation(null);
+    /* setSelectedLocation(null); */
     zoomController.zoomOut();
   };
 
   const handleZoomIn = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
-    setSelectedLocation(null);
+    /* setSelectedLocation(null); */
     zoomController.zoomIn();
   };
 
@@ -548,9 +531,9 @@ export function WorldMapComponent() {
           <GuiElement className="fixed left-5 right-5 bottom-1">
             <InfoBoxComponent />
           </GuiElement>
-          {showNeighborsPanel && hoveredLocation && (
+          {showNeighborsPanel && (
             <GuiElement className="fixed left-5 bottom-20">
-              <NeighborsPanelComponent locationName={hoveredLocation} />
+              <NeighborsPanelComponent locationName={showNeighborsPanel} />
             </GuiElement>
           )}
 

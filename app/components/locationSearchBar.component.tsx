@@ -14,8 +14,15 @@ export function LocationSearchBar() {
     () => locationSearchController.getSnapshot(),
   );
 
-  console.log("render LocationSearchBar", locationSearchResult);
+  /* console.log("render LocationSearchBar", locationSearchResult); */
 
+  const selectLocation = (locationName: string) => {
+    console.log("select location:", locationName);
+    locationSearchController.search("");
+    setSelectedLocation(locationName);
+  };
+
+  const { setSelectedLocation } = useContext(AppContext);
   return (
     <div className="px-2 w-62">
       <input
@@ -32,6 +39,7 @@ export function LocationSearchBar() {
               <div
                 key={loc.name}
                 className="hover:bg-stone-700 cursor-pointer px-1"
+                onClick={() => selectLocation(loc.name)}
               >
                 <span>{loc.name}</span>
                 <span className="text-stone-500 italic">

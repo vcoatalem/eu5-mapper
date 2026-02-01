@@ -225,15 +225,15 @@ export class DrawingService {
     };
     switch (level) {
       case "rural":
-        return zoom.zoomLevel >= zoomLevels.strongIn
+        return zoom.zoomLevel >= zoomLevels.maxedIn
           ? DrawingHelper.drawCircle(ctx, coordinate, 2, color)
           : skip();
       case "town":
-        return zoom.zoomLevel >= zoomLevels.lightIn
+        return zoom.zoomLevel >= zoomLevels.strongIn
           ? DrawingHelper.drawSquare(ctx, coordinate, 4, color)
           : skip();
       case "city":
-        return zoom.zoomLevel >= zoomLevels.normal
+        return zoom.zoomLevel >= zoomLevels.lightIn
           ? DrawingHelper.drawPentagon(ctx, coordinate, 8, color)
           : skip();
       default:

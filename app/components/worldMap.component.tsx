@@ -26,12 +26,15 @@ import { NeighborsPanelComponent } from "./neighborsPanel.component";
 import { HeaderComponent } from "./header.component";
 import { CountryOverview } from "./countryOverview.component";
 import { locationSearchController } from "@/app/lib/locationSearchController";
+import { DrawingHelper } from "../lib/drawing/drawing.helper";
+import { CameraService } from "../lib/camera.service";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
   const {
     hoveredLocation,
     setSelectedLocation,
+    selectedLocation,
     setHoveredLocation,
     gameData,
     error: gameDataLoadingError,
@@ -57,11 +60,11 @@ export function WorldMapComponent() {
   const borderCanvasRef = useRef<HTMLCanvasElement>(null);
   const areaDrawingCanvasRef = useRef<HTMLCanvasElement>(null);
   const topLayerRef = useRef<HTMLCanvasElement>(null);
-  const constructibleCanvasRef = useRef<HTMLCanvasElement>(null); //TODO: hide this canvas when zoom level is low
+  const constructibleCanvasRef = useRef<HTMLCanvasElement>(null);
   const roadCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const drawingServiceRef = useRef<DrawingService>(null);
-  /* const zoomControllerRef = useRef<ZoomController>(new ZoomController()); */
+  const cameraServiceRef = useRef<CameraService>(null);
   const [, forceUpdate] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [loadingError, setLoadingError] = useState<string | null>(null);
@@ -207,6 +210,7 @@ export function WorldMapComponent() {
     };
   }, [context.hoveredLocation]);
 
+  // initialization effect
   useEffect(() => {
     console.log("enter useEffect for setup worldmap component");
 
@@ -254,63 +258,12 @@ export function WorldMapComponent() {
     let dragDistance = 0;
     const MIN_DRAG_DISTANCE = 5;
 
-    const getLocationAtPointer = (
-      colorCanvas: HTMLCanvasElement,
-      event: MouseEvent,
-    ): ILocationIdentifier | null => {
-      const rect = colorCanvas.getBoundingClientRect();
-
-      const relX = event.clientX - rect.left;
-      const relY = event.clientY - rect.top;
-
-      const imageX = relX / zoomController.getSnapshot().zoomLevel;
-      const imageY = relY / zoomController.getSnapshot().zoomLevel;
-
-      const imageData = colorCanvas
-        .getContext("2d", { willReadFrequently: true })
-        ?.getImageData(imageX, imageY, 1, 1);
-
-      if (!imageData) {
-        return null;
-      }
-
-      const [r, g, b] = [
-        parseInt(`${imageData.data[0]}`),
-        parseInt(`${imageData.data[1]}`),
-        parseInt(`${imageData.data[2]}`),
-      ];
-
-      const hexStr = [
-        r.toString(16).padStart(2, "0"),
-        g.toString(16).padStart(2, "0"),
-        b.toString(16).padStart(2, "0"),
-      ].join("");
-
-      const locationName = gameStateController.findLocationName(hexStr) ?? null;
-      return locationName;
-    };
-
     const setInitialPosition = () => {
       // Position user at coordinates X: 7934, Y: 1991
       if (!colorCanvas || !container) return;
 
-      const containerRect = container.getBoundingClientRect();
-      const centerX = containerRect.width / 2;
-      const centerY = containerRect.height / 2;
-      const targetX = 7934;
-      const targetY = 1991;
-
-      const newLeft =
-        centerX - targetX * zoomController.getSnapshot().zoomLevel;
-      const newTop = centerY - targetY * zoomController.getSnapshot().zoomLevel;
-
-      layers.forEach((layer) => {
-        const canvas = layer.ref.current;
-        if (canvas) {
-          canvas.style.left = newLeft + "px";
-          canvas.style.top = newTop + "px";
-        }
-      });
+      // Use smooth pan for initial position
+      cameraServiceRef.current?.panToCoordinate({ x: 7934, y: 1991 }, 0);
     };
 
     // Count all layers that need to be rendered
@@ -396,6 +349,12 @@ export function WorldMapComponent() {
       gameData,
     );
 
+    cameraServiceRef.current = new CameraService(
+      containerRef!,
+      colorCanvasRef!,
+      layers,
+    );
+
     const handleMouseDown = (e: MouseEvent) => {
       isDraggingRef.current = true;
       triggerRender();
@@ -405,13 +364,15 @@ export function WorldMapComponent() {
       const rect = colorCanvas.getBoundingClientRect();
       scrollLeft = rect.left;
       scrollTop = rect.top;
-      const location = getLocationAtPointer(colorCanvas, e);
-      clickedOnLocationRef.current = location;
+      const location = cameraServiceRef.current?.getLocationAtPointer(e);
+      if (location) {
+        clickedOnLocationRef.current = location;
+      }
     };
 
     const handleMouseMove = (e: MouseEvent) => {
-      const hoverLocation = getLocationAtPointer(colorCanvas, e);
-      setHoveredLocation(hoverLocation);
+      const hoverLocation = cameraServiceRef.current?.getLocationAtPointer(e);
+      setHoveredLocation(hoverLocation ?? null);
 
       if (!isDraggingRef.current) return;
       e.preventDefault();
@@ -467,7 +428,7 @@ export function WorldMapComponent() {
     };
 
     zoomController.subscribe(({ zoomLevel, oldZoomLevel }) => {
-      applyZoomLevel(zoomLevel, oldZoomLevel);
+      cameraServiceRef.current?.applyZoomLevel(zoomLevel, oldZoomLevel);
 
       if (zoomLevel < zoomLevels.normal && oldZoomLevel >= zoomLevels.normal) {
         borderCanvasRef.current!.style.visibility = "hidden";
@@ -517,40 +478,18 @@ export function WorldMapComponent() {
     };
   }, [gameData]);
 
-  const applyZoomLevel = (newZoom: number, oldZoom: number) => {
-    const colorCanvas = colorCanvasRef.current;
-    const container = containerRef.current;
-
-    if (!colorCanvas || !container) return;
-
-    const containerRect = container.getBoundingClientRect();
-
-    // Calculate center of viewport
-    const centerX = containerRect.width / 2;
-    const centerY = containerRect.height / 2;
-
-    // Get current position and zoom
-    const currentLeft = parseFloat(colorCanvas.style.left) || 0;
-    const currentTop = parseFloat(colorCanvas.style.top) || 0;
-
-    // Calculate the point on the canvas that's at the center of the viewport
-    const canvasCenterX = (centerX - currentLeft) / oldZoom;
-    const canvasCenterY = (centerY - currentTop) / oldZoom;
-
-    // Calculate new position so that the same canvas point remains at the viewport center
-    const newLeft = centerX - canvasCenterX * newZoom;
-    const newTop = centerY - canvasCenterY * newZoom;
-
-    layers.forEach((layer) => {
-      const canvas = layer.ref.current;
-      if (canvas) {
-        canvas.style.transform = `scale(${newZoom})`;
-        canvas.style.transformOrigin = "0 0";
-        canvas.style.left = newLeft + "px";
-        canvas.style.top = newTop + "px";
-      }
-    });
-  };
+  // pan to location effect
+  useEffect(() => {
+    if (!gameData || !selectedLocation) {
+      return;
+    }
+    const coordinates = DrawingHelper.gameCoordinatesToCanvasCoordinates(
+      gameData.locationDataMap[selectedLocation]
+        ?.constructibleLocationCoordinate ?? { x: 0, y: 0 },
+      colorCanvasRef.current?.height ?? 0,
+    );
+    cameraServiceRef.current?.panToCoordinate(coordinates);
+  }, [selectedLocation]);
 
   const handleZoomOut = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();

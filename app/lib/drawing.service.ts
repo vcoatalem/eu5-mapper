@@ -28,6 +28,7 @@ import {
   ColorHelper,
   defaultAreaColor,
 } from "./drawing/color.helper";
+import { Subject } from "./subject";
 
 export class DrawingService {
   private areaDrawingCanvas: HTMLCanvasElement;
@@ -39,10 +40,7 @@ export class DrawingService {
   private mapInfos: { width: number; height: number };
   private coordinateMap: Record<ILocationIdentifier, Array<ICoordinate>> = {};
   private gameData: IGameData | null = null;
-
-  private gameStateSnapshot: IGameState | null = null;
-  private proximityComputationSnapshot: IProximityComputationResults | null =
-    null;
+  private reDraw: Subject<Date> = new Subject<Date>();
 
   public addCoordinate(
     name: ILocationIdentifier,
@@ -104,21 +102,17 @@ export class DrawingService {
         for (const [locationName, coords] of Object.entries(coordinates)) {
           this.addCoordinate(locationName, coords);
         }
-        if (this.gameStateSnapshot) {
-          if (this.proximityComputationSnapshot) {
-            this.drawAreas(
-              this.gameStateSnapshot,
-              this.proximityComputationSnapshot,
-            );
-          }
-          /* this.drawConstructible(this.gameStateSnapshot!); */
-        }
+        console.log("[DrawingService] received color search results", {
+          coordinates,
+        });
+        this.reDraw.emit(new Date());
       }
     });
 
     new ObservableCombiner([
       gameStateController,
       proximityComputationController,
+      this.reDraw,
     ])
       .debounce(10)
       .subscribe(({ values: [gameState, proximityEvaluation] }) => {
@@ -130,8 +124,6 @@ export class DrawingService {
           },
         );
 
-        this.gameStateSnapshot = gameState;
-        this.proximityComputationSnapshot = proximityEvaluation;
         this.drawAreas(gameState, proximityEvaluation);
         this.drawRoads(gameState);
       });
@@ -143,6 +135,8 @@ export class DrawingService {
         //console.log({ gameState, zoom });
         this.drawConstructibles(gameState, zoom);
       });
+
+    this.reDraw.emit(new Date()); // this has to be after subscriptions are set up
   }
 
   private drawAreas(

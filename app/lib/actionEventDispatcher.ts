@@ -45,6 +45,10 @@ export class ActionEventDispatcher {
   ) {
     const mouseMoveHandler = (e: MouseEvent) => {
       const locationName = locationNameFn(e);
+      /* console.log("Hover detected:", {
+        locationName,
+        hoveredLocation: this.hoveredLocation.getSnapshot()?.location,
+      }); */
       if (this.hoveredLocation.getSnapshot()?.location === locationName) {
         return;
       } else {
@@ -53,9 +57,9 @@ export class ActionEventDispatcher {
           this.hoverTimer = null;
         }
       }
-      if (
-        this.prolongedHoverLocation.getSnapshot()?.location !== locationName
-      ) {
+      const prolongedHoverLocation =
+        this.prolongedHoverLocation.getSnapshot()?.location;
+      if (prolongedHoverLocation && prolongedHoverLocation !== locationName) {
         this.prolongedHoverLocation.emit({ location: null, type: null });
       }
       this.hoveredLocation.emit({ location: locationName ?? null, type });
@@ -71,9 +75,14 @@ export class ActionEventDispatcher {
         clearTimeout(this.hoverTimer);
         this.hoverTimer = null;
       }
-      if (this.hoveredLocation.getSnapshot()?.location === locationNameFn(e)) {
+      const locationName = locationNameFn(e);
+      if (this.hoveredLocation.getSnapshot()?.location === locationName) {
         this.hoveredLocation.emit({ location: null, type: null });
-        this.prolongedHoverLocation.emit({ location: null, type: null });
+        if (
+          this.prolongedHoverLocation.getSnapshot()?.location === locationName
+        ) {
+          this.prolongedHoverLocation.emit({ location: null, type: null });
+        }
       }
     };
     element.addEventListener("mousemove", mouseMoveHandler);

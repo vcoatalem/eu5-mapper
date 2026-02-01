@@ -91,6 +91,20 @@ export class DrawingHelper {
     //console.log("drawLine done", { canvasCoordFrom, canvasCoordTo });
   }
 
+  public static drawHighlights(
+    ctx: CanvasRenderingContext2D,
+    borderCanvas: ICoordinate[][],
+  ): void {
+    ctx.save();
+    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    for (const coords of borderCanvas) {
+      for (const c of coords) {
+        ctx.fillRect(c.x, c.y, 1, 1);
+      }
+    }
+    ctx.restore();
+  }
+
   public static draw(
     ctx: CanvasRenderingContext2D[],
     drawMethods: Array<() => void>,

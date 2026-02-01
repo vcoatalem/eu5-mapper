@@ -30,7 +30,7 @@ class NeighborProximityComputationController extends Observable<NeighborsProximi
 
       const data = lastCompletedTask.data as IWorkerTaskComputeNeighborsResult;
 
-      console.log("got completed task data:", data);
+      /* console.log("got completed task data:", data); */
 
       this.subject.computationResults[data.locationName] = {
         neighbors: data.neighbors,

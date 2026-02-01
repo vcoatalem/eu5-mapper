@@ -55,6 +55,7 @@ export function WorldMapComponent() {
   const topLayerRef = useRef<HTMLCanvasElement>(null);
   const constructibleCanvasRef = useRef<HTMLCanvasElement>(null);
   const roadCanvasRef = useRef<HTMLCanvasElement>(null);
+  const indicatorCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const drawingServiceRef = useRef<DrawingService>(null);
   const cameraServiceRef = useRef<CameraService>(null);
@@ -145,30 +146,36 @@ export function WorldMapComponent() {
     {
       name: "borderLayer",
       ref: borderCanvasRef,
-      zIndex: 6,
+      zIndex: 5,
       path: worldMapConfig.borderMapFileName,
     },
     {
       name: "areaDrawingLayer",
       ref: areaDrawingCanvasRef,
-      zIndex: 4,
+      zIndex: 2,
       createMethod: createTransparentCanvas,
     },
     {
       name: "terrainLayer",
       ref: terrainCanvasRef,
-      zIndex: 5,
+      zIndex: 4,
       path: worldMapConfig.terrainLayerFileName,
     },
     {
       name: "constructibleLayer",
       ref: constructibleCanvasRef,
-      zIndex: 12,
+      zIndex: 8,
       createMethod: createTransparentCanvas,
     },
     {
       name: "roadLayer",
       ref: roadCanvasRef,
+      zIndex: 7,
+      createMethod: createTransparentCanvas,
+    },
+    {
+      name: "indicatorLayer",
+      ref: indicatorCanvasRef,
       zIndex: 10,
       createMethod: createTransparentCanvas,
     },
@@ -223,8 +230,6 @@ export function WorldMapComponent() {
     let startY = 0;
     let scrollLeft = 0;
     let scrollTop = 0;
-    let dragDistance = 0;
-    const MIN_DRAG_DISTANCE = 5;
 
     const setInitialPosition = () => {
       // Position user at coordinates X: 7934, Y: 1991
@@ -304,15 +309,11 @@ export function WorldMapComponent() {
       throw new Error("could not set top layer ref");
     }
 
-    gameStateController.init(gameData);
-    proximityComputationController.init();
-    neighborsProximityComputationController.init();
-    locationSearchController.init(gameData);
-
     drawingServiceRef.current = new DrawingService(
       areaDrawingCanvasRef.current!,
       constructibleCanvasRef.current!,
       roadCanvasRef.current!,
+      indicatorCanvasRef.current!,
       { width: worldMapConfig.width, height: worldMapConfig.height },
       gameData,
     );
@@ -323,10 +324,14 @@ export function WorldMapComponent() {
       layers,
     );
 
+    gameStateController.init(gameData);
+    proximityComputationController.init();
+    neighborsProximityComputationController.init();
+    locationSearchController.init(gameData);
+
     const handleMouseDown = (e: MouseEvent) => {
       isDraggingRef.current = true;
       triggerRender();
-      dragDistance = 0;
       startX = e.clientX;
       startY = e.clientY;
       const rect = colorCanvas.getBoundingClientRect();

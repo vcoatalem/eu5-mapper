@@ -28,6 +28,7 @@ import {
   defaultAreaColor,
 } from "./drawing/color.helper";
 import { Subject } from "./subject";
+import { actionEventDispatcher } from "./actionEventDispatcher";
 
 export class DrawingService {
   private areaDrawingCanvas: HTMLCanvasElement;
@@ -36,10 +37,16 @@ export class DrawingService {
   private constructibleDrawingContext: CanvasRenderingContext2D;
   private roadDrawingCanvas: HTMLCanvasElement;
   private roadDrawingContext: CanvasRenderingContext2D;
+  private indicatorDrawingCanvas: HTMLCanvasElement;
+  private indicatorDrawingContext: CanvasRenderingContext2D;
   private mapInfos: { width: number; height: number };
   private coordinateMap: Record<ILocationIdentifier, Array<ICoordinate>> = {};
   private gameData: IGameData | null = null;
+  private drawingCallbackBuffer: Partial<
+    Record<"areas" | "constructibles" | "roads" | "indicators", () => unknown>
+  > = {};
   private reDraw: Subject<Date> = new Subject<Date>();
+  private queriedLocationsColor: Set<ILocationIdentifier> = new Set();
 
   public addCoordinate(
     name: ILocationIdentifier,
@@ -50,18 +57,59 @@ export class DrawingService {
     }
   }
 
+  private requestColorSearch(missingLocations: ILocationIdentifier[]): void {
+    /*  console.log(
+      "[DrawingService] requestColorSearch",
+      missingLocations,
+      this.queriedLocationsColor.entries(),
+    ); */
+    const notYetQueried = missingLocations.filter(
+      (loc) => !this.queriedLocationsColor.has(loc),
+    );
+    if (notYetQueried.length === 0) {
+      return;
+    }
+    const taskId = `colorSearch-${Date.now()}`;
+    const taskPayload: IWorkerTaskColorSearchPayload & {} = {
+      canvasWidth: this.areaDrawingCanvas.width,
+      canvasHeight: this.areaDrawingCanvas.height,
+      startCoordinates: notYetQueried.reduce(
+        (acc, loc) => {
+          const locData = this.gameData?.locationDataMap[loc];
+          if (locData?.constructibleLocationCoordinate) {
+            acc[loc] = DrawingHelper.gameCoordinatesToCanvasCoordinates(
+              locData.constructibleLocationCoordinate,
+              this.areaDrawingCanvas.height,
+            );
+          }
+          return acc;
+        },
+        {} as Record<ILocationIdentifier, { x: number; y: number }>,
+      ),
+    };
+    for (const missingLocation of notYetQueried) {
+      this.queriedLocationsColor.add(missingLocation);
+    }
+    workerManager.queueTask({
+      id: taskId,
+      type: "colorSearch",
+      payload: taskPayload,
+    });
+  }
+
   constructor(
     areaDrawingCanvas: HTMLCanvasElement,
     constructibleDrawingCanvas: HTMLCanvasElement,
     roadDrawingCanvas: HTMLCanvasElement,
+    indicatorDrawingCanvas: HTMLCanvasElement,
     mapInfos: { width: number; height: number },
     gameData: IGameData,
   ) {
-    this.areaDrawingCanvas = areaDrawingCanvas;
-    this.constructibleDrawingCanvas = constructibleDrawingCanvas;
-    this.roadDrawingCanvas = roadDrawingCanvas;
     this.mapInfos = mapInfos;
     this.gameData = gameData;
+
+    // Area canvas
+    this.areaDrawingCanvas = areaDrawingCanvas;
     const areaDrawingContext = this.areaDrawingCanvas.getContext("2d", {});
     if (!areaDrawingContext) {
       throw new Error(
@@ -69,13 +117,20 @@ export class DrawingService {
       );
     }
     this.areaDrawingContext = areaDrawingContext;
-    const drawingContext = this.constructibleDrawingCanvas.getContext("2d", {});
-    if (!drawingContext) {
+
+    // Constructible Canvas
+    this.constructibleDrawingCanvas = constructibleDrawingCanvas;
+    const constructibleDrawingContext =
+      this.constructibleDrawingCanvas.getContext("2d", {});
+    if (!constructibleDrawingContext) {
       throw new Error(
         "DrawingLogicController constructor error: could not get constructible drawing context",
       );
     }
-    this.constructibleDrawingContext = drawingContext;
+    this.constructibleDrawingContext = constructibleDrawingContext;
+
+    // Road canvas
+    this.roadDrawingCanvas = roadDrawingCanvas;
     const roadDrawingContext = this.roadDrawingCanvas.getContext("2d", {});
     if (!roadDrawingContext) {
       throw new Error(
@@ -83,27 +138,30 @@ export class DrawingService {
       );
     }
     this.roadDrawingContext = roadDrawingContext;
-    this.drawRoads(gameStateController.getSnapshot());
+
+    // Indicators canvas
+    this.indicatorDrawingCanvas = indicatorDrawingCanvas;
+    const indicatorDrawingContext = this.indicatorDrawingCanvas.getContext(
+      "2d",
+      {},
+    );
+    if (!indicatorDrawingContext) {
+      throw new Error(
+        "DrawingLogicController constructor error: could not get indicator drawing context",
+      );
+    }
+    this.indicatorDrawingContext = indicatorDrawingContext;
+
     workerManager.subscribe(({ lastCompletedTask }) => {
-      /*  console.log(
-        "[DrawingLogicService] WorkerManager status update on lastCompletedTask",
-        {
-          lastCompletedTask,
-        },
-      ); */
       if (!lastCompletedTask) {
         return;
       }
-
       if (lastCompletedTask.type === "colorSearch") {
         const data = lastCompletedTask.data as IWorkerTaskColorSearchResult;
         const coordinates = data.result;
         for (const [locationName, coords] of Object.entries(coordinates)) {
           this.addCoordinate(locationName, coords);
         }
-        console.log("[DrawingService] received color search results", {
-          coordinates,
-        });
         this.reDraw.emit(new Date());
       }
     });
@@ -111,37 +169,79 @@ export class DrawingService {
     new ObservableCombiner([
       gameStateController,
       proximityComputationController,
-      this.reDraw,
     ])
       .debounce(10)
       .subscribe(({ values: [gameState, proximityEvaluation] }) => {
-        console.log(
-          "[DrawingLogicService] game state and proximity subscription triggered",
-          {
-            gameState,
-            proximityEvaluation,
-          },
-        );
-
-        this.drawAreas(gameState, proximityEvaluation);
-        this.drawRoads(gameState);
+        this.drawingCallbackBuffer["areas"] = () =>
+          this.drawAreas(gameState, proximityEvaluation);
+        this.drawingCallbackBuffer["roads"] = () => this.drawRoads(gameState);
+        this.reDraw.emit(new Date());
       });
 
     new ObservableCombiner([gameStateController, zoomController])
       .debounce(10)
       .subscribe(({ values: [gameState, zoom] }) => {
-        //this.gameStateSnapshot = gameState;
-        //console.log({ gameState, zoom });
-        this.drawConstructibles(gameState, zoom);
+        this.drawingCallbackBuffer["constructibles"] = () =>
+          this.drawConstructibles(gameState, zoom);
+        this.reDraw.emit(new Date());
       });
 
+    new ObservableCombiner([
+      actionEventDispatcher.prolongedHoverLocation,
+      actionEventDispatcher.hoveredLocation,
+    ]).subscribe(({ values: [prolongedHoverLocation, hoveredLocation] }) => {
+      const toHighlight = [
+        hoveredLocation?.location ?? "",
+        prolongedHoverLocation?.location ?? "",
+      ].filter((loc) => !!loc);
+      this.drawingCallbackBuffer["indicators"] = () =>
+        this.drawHighlighted(toHighlight);
+      this.reDraw.emit(new Date());
+    });
+
+    this.reDraw.debounce(5).subscribe(() => {
+      if (this.drawingCallbackBuffer["areas"]) {
+        const missingCoordinates = this.drawingCallbackBuffer[
+          "areas"
+        ]() as ILocationIdentifier[];
+
+        if (!missingCoordinates?.length) {
+          delete this.drawingCallbackBuffer["areas"];
+        } else {
+          this.reDraw.emit(new Date()); //try again when missing coordinates get there
+        }
+      }
+      if (this.drawingCallbackBuffer["roads"]) {
+        this.drawingCallbackBuffer["roads"]();
+        delete this.drawingCallbackBuffer["roads"];
+      }
+      if (this.drawingCallbackBuffer["constructibles"]) {
+        this.drawingCallbackBuffer["constructibles"]();
+        delete this.drawingCallbackBuffer["constructibles"];
+      }
+      if (this.drawingCallbackBuffer["indicators"]) {
+        const missingCoordinates = this.drawingCallbackBuffer[
+          "indicators"
+        ]() as ILocationIdentifier[];
+        if (!missingCoordinates?.length) {
+          delete this.drawingCallbackBuffer["indicators"];
+        } else {
+          this.reDraw.emit(new Date()); //try again when missing coordinates get there
+        }
+      }
+    });
+
+    actionEventDispatcher.prolongedHoverLocation.emit({
+      location: null,
+      type: null,
+    }); // don't like this, but need a way to set first emition for now
     this.reDraw.emit(new Date()); // this has to be after subscriptions are set up
   }
 
   private drawAreas(
     gameState: IGameState,
     proximityEvaluation: IProximityComputationResults,
-  ): void {
+  ): ILocationIdentifier[] {
     const imageData = this.areaDrawingContext.createImageData(
       this.mapInfos.width,
       this.mapInfos.height,
@@ -172,42 +272,13 @@ export class DrawingService {
       }
     }
 
-    /*     console.log(
-      "[DrawingService] missing coordinates for locations:",
-      missingCoordinates,
-    ); */
     if (missingCoordinates.length > 0) {
-      const taskId = `colorSearch-${Date.now()}`;
-      const taskPayload: IWorkerTaskColorSearchPayload & {
-        type: "colorSearch";
-      } = {
-        type: "colorSearch", // todo: see if this is really needed
-        canvasWidth: this.areaDrawingCanvas.width,
-        canvasHeight: this.areaDrawingCanvas.height,
-        startCoordinates: missingCoordinates.reduce(
-          (acc, loc) => {
-            const locData = this.gameData?.locationDataMap[loc];
-            if (locData?.constructibleLocationCoordinate) {
-              acc[loc] = DrawingHelper.gameCoordinatesToCanvasCoordinates(
-                locData.constructibleLocationCoordinate,
-                this.areaDrawingCanvas.height,
-              );
-            }
-            return acc;
-          },
-          {} as Record<ILocationIdentifier, { x: number; y: number }>,
-        ),
-      };
-      workerManager.queueTask({
-        id: taskId,
-        type: "colorSearch",
-        payload: taskPayload,
-      });
+      this.requestColorSearch(missingCoordinates);
     }
 
     // Draw once
     this.areaDrawingContext.putImageData(imageData, 0, 0);
-    console.log("put image data done");
+    return missingCoordinates;
   }
 
   private drawLocation(
@@ -283,7 +354,6 @@ export class DrawingService {
   }
 
   private drawRoads(gameState: IGameState): void {
-    console.log("[DrawingService] drawRoads called");
     this.roadDrawingContext.clearRect(
       0,
       0,
@@ -328,5 +398,46 @@ export class DrawingService {
       }
     }
     DrawingHelper.draw([this.roadDrawingContext], drawCallbacks);
+  }
+
+  private drawHighlighted(
+    locations: ILocationIdentifier[],
+  ): ILocationIdentifier[] {
+    const toHighlight: Record<ILocationIdentifier, ICoordinate[]> = {};
+    const missingCoordinates: ILocationIdentifier[] = [];
+
+    for (const location of locations) {
+      if (!(location in this.coordinateMap)) {
+        missingCoordinates.push(location);
+      } else {
+        toHighlight[location] = this.coordinateMap[location];
+      }
+    }
+
+    if (missingCoordinates.length > 0) {
+      this.requestColorSearch(missingCoordinates);
+    }
+
+    /* console.log("[DrawingService] will draw highlighted:", toHighlight); */
+
+    DrawingHelper.draw(
+      [this.indicatorDrawingContext],
+      [
+        () =>
+          this.indicatorDrawingContext.clearRect(
+            0,
+            0,
+            this.mapInfos.width,
+            this.mapInfos.height,
+          ),
+        () =>
+          DrawingHelper.drawHighlights(
+            this.indicatorDrawingContext,
+            Object.values(toHighlight),
+          ),
+      ],
+    );
+
+    return missingCoordinates;
   }
 }

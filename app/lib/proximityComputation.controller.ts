@@ -20,6 +20,7 @@ export class ProximityComputationController extends Observable<IProximityComputa
     this.subject = {
       result: {},
     };
+    this.notifyListeners();
     workerManager.subscribe((workerManagerStatus) => {
       const stats = (
         workerManagerStatus.lastCompletedTask?.data as {

@@ -321,7 +321,7 @@ export class ProximityComputationHelper {
     return modifiers.reduce((a, b) => a + b, 0);
   }
 
-  private static getProximityCostFunction(
+  public static getProximityCostFunction(
     gameState: IGameState,
     gameData: IGameData,
     options?: PathFindingOptions,

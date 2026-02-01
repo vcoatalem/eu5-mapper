@@ -4,6 +4,8 @@ import { join } from "path";
 
 type GameVersion = "0.0.11"; // || future game versions
 
+// TODO: come back to this, as we will still need a proper way to load version files
+
 type GameDataFiles = {
   locationClassificationFilePath: string;
   locationDataFilePath: string;
@@ -11,7 +13,6 @@ type GameDataFiles = {
   locationsColorMappingFilePath: string;
   locationsCityCoordinatesMapFilePath: string;
   buildingsDataFilePath: string;
-  countriesDataFilePath: string;
 };
 
 const baseFolderNames: GameDataFiles = {
@@ -21,7 +22,6 @@ const baseFolderNames: GameDataFiles = {
   locationsColorMappingFilePath: "locations_color_mapping",
   locationsCityCoordinatesMapFilePath: "locations_city_coordinates",
   buildingsDataFilePath: "buildings_data",
-  countriesDataFilePath: "countries_data",
 };
 
 export class GameDataLoader {

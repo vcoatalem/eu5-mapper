@@ -42,9 +42,17 @@ export class ParserHelper {
       if (roadRecord[from] === undefined) {
         roadRecord[from] = [];
       }
-
+      if (roadRecord[to] === undefined) {
+        // doubling the size of the road record allows us to have O(1) lookups for both directions
+        roadRecord[to] = [];
+      }
       roadRecord[from].push({
         to: to,
+        type: "gravel",
+        createdByUser: false,
+      });
+      roadRecord[to].push({
+        to: from,
         type: "gravel",
         createdByUser: false,
       });

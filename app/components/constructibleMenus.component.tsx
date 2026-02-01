@@ -1,4 +1,4 @@
-import { useContext, useSyncExternalStore } from "react";
+import { useContext, useState, useSyncExternalStore } from "react";
 import { gameStateController } from "@/app/lib/gameState.controller";
 import {
   IConstructibleLocation,
@@ -162,17 +162,28 @@ export function ConstructibleMenusComponent() {
     () => proximityComputationController.getSnapshot(),
   );
   const { gameData, setHoveredLocation } = useContext(AppContext);
+
+  const [search, setSearch] = useState("");
   if (!gameData) {
     throw new Error(
       "[ConstructibleMenusComponent]: need gameData in context to render",
     );
   }
 
-  /*  console.log("ConstructibleMenusComponent render"); */
   return (
     <div className="min-h-96 w-52 hover:w-[600px] overflow-y-auto overflow-x-hidden max-h-[50vh] transition-[width] duration-300 ease-in-out">
-      {Object.entries(gameState.ownedLocations).map(
-        ([locationName, constructibleData]) => (
+      <input
+        type="search"
+        placeholder="Search for a location..."
+        className="w-full"
+        onChange={(e) => setSearch(e.target.value)}
+        style={{ outline: "none" }}
+      />
+      {Object.entries(gameState.ownedLocations)
+        .filter(([locationName]) =>
+          locationName.toLowerCase().includes(search.toLowerCase()),
+        )
+        .map(([locationName, constructibleData]) => (
           <div
             key={locationName}
             className="py-1 h-10 grid grid-cols-9 items-center whitespace-nowrap gap-2 w-[600px]"
@@ -212,8 +223,7 @@ export function ConstructibleMenusComponent() {
               )}
             </div>
           </div>
-        ),
-      )}
+        ))}
     </div>
   );
 }

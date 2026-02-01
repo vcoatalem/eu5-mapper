@@ -119,6 +119,7 @@ class GameStateController extends Observable<IGameState> {
         locationName,
         this.gameData!,
         this.subject.ownedLocations,
+        this.gameData!.roads,
       );
       if (reason !== "restriction") {
         buildingToKeep.push(building.template.name);
@@ -153,6 +154,7 @@ class GameStateController extends Observable<IGameState> {
         locationName,
         this.gameData!,
         this.subject.ownedLocations,
+        this.gameData!.roads,
       );
 
       if (!canBuild) {

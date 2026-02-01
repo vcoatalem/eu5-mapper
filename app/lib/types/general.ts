@@ -51,7 +51,6 @@ export interface ILocationGameData {
   isCoastal: boolean;
   isOnRiver: boolean;
   isOnLake: boolean;
-  /* hasRoad: boolean; // this should be set in the ILocationTemporaryData too. Putting this here is a quick path to get road used in pathfinding without ruining performance */
   rank: LocationRank;
   development: number; // can me modified , in other interface (ILocationTemporaryData ?)
   population: number; // can me modified , in other interface (ILocationTemporaryData ?)

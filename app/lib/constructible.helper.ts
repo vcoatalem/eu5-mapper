@@ -1,3 +1,4 @@
+import { LocationsHelper } from "./locations.helper";
 import {
   IBuildingTemplate,
   IConstructibleLocation,
@@ -6,6 +7,7 @@ import {
   ILocationGameData,
   ILocationIdentifier,
   PlacementRestrictions,
+  RoadRecord,
 } from "./types/general";
 
 type ConstructibleState = {
@@ -21,6 +23,7 @@ export class ConstructibleHelper {
   private static evaluatePlacementCondition(
     condition: PlacementRestrictions,
     location: ILocationGameData,
+    roads: RoadRecord,
   ): boolean {
     switch (condition) {
       case "is_coastal":
@@ -30,13 +33,14 @@ export class ConstructibleHelper {
       case "is_on_lake":
         return location.isOnLake;
       case "has_road":
-        return false; // TODO: implement road check
+        return LocationsHelper.locationHasRoad(location.name, roads);
     }
   }
 
   private static locationDataSupportsBuildingRestrictions(
     building: IBuildingTemplate,
     location: ILocationGameData,
+    roads: RoadRecord,
   ): boolean {
     if (!building.placementRestriction) return true;
 
@@ -45,11 +49,11 @@ export class ConstructibleHelper {
     let res: boolean = false;
     if (restrictions.mode === "all") {
       res = restrictions.conditions.every((condition) =>
-        this.evaluatePlacementCondition(condition, location),
+        this.evaluatePlacementCondition(condition, location, roads),
       );
     } else if (restrictions.mode === "any") {
       res = restrictions.conditions.some((condition) =>
-        this.evaluatePlacementCondition(condition, location),
+        this.evaluatePlacementCondition(condition, location, roads),
       );
     }
 
@@ -91,11 +95,13 @@ export class ConstructibleHelper {
     location: ILocationIdentifier,
     gameData: IGameData,
     ownedLocations: IGameState["ownedLocations"],
+    roads: RoadRecord,
   ): { canBuild: boolean; reason: null | "limit" | "restriction" } {
     const locationSupportsBuilding =
       this.locationDataSupportsBuildingRestrictions(
         building,
         gameData.locationDataMap[location],
+        roads,
       );
 
     if (!locationSupportsBuilding) {
@@ -140,6 +146,7 @@ export class ConstructibleHelper {
         location,
         gameData,
         ownedLocations,
+        gameData.roads,
       );
 
       constructibleState.buildings.push({

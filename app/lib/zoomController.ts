@@ -34,14 +34,17 @@ class ZoomController extends Observable<IZoomState> {
   }
 
   public init(element: HTMLElement): void {
-    element.addEventListener("wheel", (e) => {
-      e.preventDefault();
-      if (e.deltaY < 0) {
-        zoomController.zoomOut();
-      } else {
-        zoomController.zoomIn();
-      }
-    });
+    element.addEventListener(
+      "wheel",
+      (e) => {
+        if (e.deltaY < 0) {
+          zoomController.zoomOut();
+        } else {
+          zoomController.zoomIn();
+        }
+      },
+      { passive: true },
+    );
   }
 
   private updateZoomState(oldZoomLevel: number): void {

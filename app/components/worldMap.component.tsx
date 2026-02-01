@@ -1,4 +1,4 @@
-import {
+import React, {
   RefObject,
   useCallback,
   useContext,
@@ -66,9 +66,9 @@ export function WorldMapComponent() {
   const layersRenderedRef = useRef(0);
   const totalLayersRef = useRef(0);
 
-  const waitForInitialization = async (): Promise<void> => {
+  const waitForInitialization = React.useCallback(async () => {
     try {
-      // Wait for all layers to be rendered
+      // Wait for all layers to be rendered before removing loading screen
       await new Promise<void>((resolve) => {
         const checkLayersRendered = () => {
           if (
@@ -97,6 +97,9 @@ export function WorldMapComponent() {
         };
       });
 
+      console.log(
+        "[WorldMapComponent] All layers rendered, proceeding with initialization",
+      );
       setLoadingError(null);
       setIsLoading(false);
     } catch (error) {
@@ -106,7 +109,7 @@ export function WorldMapComponent() {
       setIsLoading(false);
       console.error("[WorldMapComponent] Initialization error:", errorMsg);
     }
-  };
+  }, []);
 
   const createBlackCanvas = (ctx: CanvasRenderingContext2D) => {
     ctx.fillStyle = "#4a4a4a";
@@ -189,7 +192,7 @@ export function WorldMapComponent() {
       return;
     }
 
-    waitForInitialization(); // TODO: what does this do again ?
+    waitForInitialization();
 
     const colorCanvas = colorCanvasRef.current;
     const container = containerRef.current;
@@ -454,35 +457,19 @@ export function WorldMapComponent() {
         topLayerRef.current.removeEventListener("mousedown", handleMouseDown);
         topLayerRef.current.removeEventListener("mousemove", handleMouseMove);
         topLayerRef.current.removeEventListener("mouseup", handleMouseUp);
-        /*         topLayerRef.current.removeEventListener("wheel", handleWheel); */
       }
       workerManager.terminate();
       initializedRef.current = false;
     };
   }, [gameData]);
 
-  // pan to location effect
-  /*  useEffect(() => {
-    if (!gameData || !selectedLocation) {
-      return;
-    }
-    const coordinates = DrawingHelper.gameCoordinatesToCanvasCoordinates(
-      gameData.locationDataMap[selectedLocation]
-        ?.constructibleLocationCoordinate ?? { x: 0, y: 0 },
-      colorCanvasRef.current?.height ?? 0,
-    );
-    cameraServiceRef.current?.panToCoordinate(coordinates);
-  }, [selectedLocation]);
- */
   const handleZoomOut = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
-    /* setSelectedLocation(null); */
     zoomController.zoomOut();
   };
 
   const handleZoomIn = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
-    /* setSelectedLocation(null); */
     zoomController.zoomIn();
   };
 

@@ -21,7 +21,6 @@ import {
   IZoomState,
   zoomController,
   zoomLevels,
-  ZoomListener,
 } from "@/app/lib/zoomController";
 import {
   capitalColor,

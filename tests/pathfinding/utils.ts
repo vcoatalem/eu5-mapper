@@ -1,16 +1,24 @@
 import { CompactGraph } from "@/app/lib/graph";
 import { ParserHelper } from "@/app/lib/parser.helper";
+import { ILocationIdentifier } from "@/app/lib/types/general";
 import fs from "fs";
 
 export const readReferenceFile = async (
   path: string,
-): Promise<[string, number][]> => {
+): Promise<Record<ILocationIdentifier, number>> => {
   const f = await fs.readFileSync(path, "utf-8");
   return f
     .split("\n")
-    .splice(0, 1)
+    .slice(1) // skip header
+    .filter((line) => line.trim().length > 0) // ignore empty lines
     .map((line) => line.trim().split(",") as [string, string])
-    .map(([location, proximity]) => [location, parseFloat(proximity)]);
+    .reduce(
+      (acc, [location, proximity]) => {
+        acc[location] = Number(proximity);
+        return acc;
+      },
+      {} as Record<ILocationIdentifier, number>,
+    );
 };
 
 export const readAdjacencyFile = async (

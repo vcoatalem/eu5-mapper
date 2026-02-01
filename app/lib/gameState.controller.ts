@@ -16,7 +16,7 @@ const baseCountryValues: IGameState["country"] = {
   rulerAdministrativeAbility: 50,
 };
 
-class GameStateController extends Observable<IGameState> {
+export class GameStateController extends Observable<IGameState> {
   private gameData: IGameData | null = null;
 
   constructor() {
@@ -242,7 +242,7 @@ class GameStateController extends Observable<IGameState> {
       }
     }
 
-    console.log("[GameStateController] Reseted game state to:", this.subject);
+    /* console.log("[GameStateController] Reseted game state to:", this.subject); */
     this.notifyListeners();
   }
 

@@ -127,41 +127,53 @@ export function CountryOverview() {
       <p className="font-bold">{gameState.countryCode}</p>
       <div className="grid grid-cols-3 gap-2">
         <span className="text-right">Land</span>
-        <input
-          type="range"
-          min={-100}
-          max={100}
-          value={gameState.country.landVsNaval}
-          onChange={(e) => updateValue(e, "landVsNaval")}
-        />
+        {gameState?.country?.landVsNaval !== undefined ? (
+          <input
+            type="range"
+            min={-100}
+            max={100}
+            value={gameState.country.landVsNaval}
+            onChange={(e) => updateValue(e, "landVsNaval")}
+          />
+        ) : (
+          <span>Loading...</span>
+        )}
+
         <span className="text-left">Naval</span>
       </div>
       <div className="grid grid-cols-3 gap-2">
         <span className="text-right">Centralization</span>
-        <input
-          type="range"
-          min={-100}
-          max={100}
-          value={gameState.country.centralizationVsDecentralization}
-          onChange={(e) => updateValue(e, "centralizationVsDecentralization")}
-        />
+        {gameState?.country?.centralizationVsDecentralization !== undefined ? (
+          <input
+            type="range"
+            min={-100}
+            max={100}
+            value={gameState.country.centralizationVsDecentralization}
+            onChange={(e) => updateValue(e, "centralizationVsDecentralization")}
+          />
+        ) : (
+          <span>Loading...</span>
+        )}
         <span className="text-left">Decentralization</span>
       </div>
       <div className="grid grid-cols-3 gap-2">
         <span className="text-right">Administrative Ability</span>
-        <input
-          id="rulerAdministrativeAbility"
-          className="col-span-1"
-          type="range"
-          min={0}
-          max={100}
-          value={gameState.country.rulerAdministrativeAbility}
-          onChange={(e) => updateValue(e, "rulerAdministrativeAbility")}
-        />
-        <output name="result" htmlFor="rulerAdministrativeAbility"></output>
+        {gameState?.country?.rulerAdministrativeAbility !== undefined ? (
+          <input
+            id="rulerAdministrativeAbility"
+            className="col-span-1"
+            type="range"
+            min={0}
+            max={100}
+            value={gameState.country.rulerAdministrativeAbility}
+            onChange={(e) => updateValue(e, "rulerAdministrativeAbility")}
+          />
+        ) : (
+          <span>Loading...</span>
+        )}
       </div>
 
-      {Object.keys(gameState.ownedLocations).length > 0 && (
+      {Object.keys(gameState?.ownedLocations ?? []).length > 0 && (
         <>
           <hr className="my-1"></hr>
           {getCountryStats(

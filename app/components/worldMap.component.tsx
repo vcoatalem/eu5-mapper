@@ -473,13 +473,6 @@ export function WorldMapComponent() {
     };
   }, [gameData]);
 
-  useEffect(() => {
-    return () => {
-      console.log("[WorldMapComponent] Component unmounting, terminating workers");
-      workerManager.terminate();
-    };
-  }, []);
-
   const handleZoomOut = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     zoomController.zoomOut();

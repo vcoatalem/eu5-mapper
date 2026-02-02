@@ -38,6 +38,8 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
     return <></>;
   }
 
+  // TODO: this might actually be the place to add road building.
+
   return (
     <div className="max-h-96 overflow-y-auto bg-black/90 backdrop-blur-sm border border-stone-700 rounded p-3">
       <div className="font-semibold mb-2 text-stone-300">

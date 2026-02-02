@@ -53,6 +53,7 @@ export interface ILocationGameData {
   isOnRiver: boolean;
   isOnLake: boolean;
   rank: LocationRank;
+  buildings: string[]; //building names
   development: number; // can me modified , in other interface (ILocationTemporaryData ?)
   population: number; // can me modified , in other interface (ILocationTemporaryData ?)
 }

@@ -67,9 +67,25 @@ export class GameStateController extends Observable<IGameState> {
         continue;
       }
       const baseLocationRank = this.gameData?.locationDataMap[location].rank;
+      const baseBuildings =
+        this.gameData?.locationDataMap[location].buildings ?? [];
+      const initialLocationBuildings = baseBuildings.map((buildingName) => {
+        const buildingTemplate =
+          this.gameData?.buildingsTemplateMap[buildingName];
+        if (!buildingTemplate) {
+          throw new Error(
+            `Unknown building template: ${buildingName} for location: ${location}`,
+          );
+        }
+        return {
+          template: buildingTemplate,
+          level: 1,
+          createdByUser: false,
+        };
+      });
       const newLocation: IConstructibleLocation = {
         rank: baseLocationRank ?? "rural",
-        buildings: [], // TODO: get location base buildings
+        buildings: initialLocationBuildings,
       };
       toAdd[location] = newLocation;
     }

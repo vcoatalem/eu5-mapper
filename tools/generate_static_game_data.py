@@ -432,7 +432,8 @@ country of {country}:
             "constructibleLocationCoordinate": coords_dict,
             "population": population,
             "development": development,
-            "rank": rank
+            "rank": rank,
+            "buildings": location_buildings.get(location_name, [])
         }
 
     

@@ -470,6 +470,7 @@ export function WorldMapComponent() {
     );
 
     if (topLayerRef.current) {
+      // TODO: fix weird dragging behavior with right click + left click, drag + zoom, etc.
       console.log("add drag mouse event listeners");
       topLayerRef.current.addEventListener("mousedown", handleMouseDown);
       topLayerRef.current.addEventListener("mousemove", handleMouseMove);

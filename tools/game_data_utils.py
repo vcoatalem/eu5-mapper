@@ -521,14 +521,28 @@ def parse_cities_and_buildings_file(cities_buildings_file: str, whitelisted_buil
             if isinstance(props, dict) and 'rank' in props:
                 location_ranks[location_name] = props['rank']
 
-    # Parse buildings
-    for building_name in whitelisted_buildings:
-        building_data = parsed.get(building_name)
-        if isinstance(building_data, dict) and 'location' in building_data:
-            location_name = building_data['location']
-            if location_name not in location_buildings:
-                location_buildings[location_name] = []
-            location_buildings[location_name].append(building_name)
+    # Parse buildings from building_manager block
+    building_manager = parsed.get('building_manager', {})
+    # building_manager can be a dict (single entry per type) or list (multiple entries)
+    if isinstance(building_manager, dict):
+        # If dict, keys are building types, values are dict or list of dicts
+        for building_type, entries in building_manager.items():
+            if building_type in whitelisted_buildings:
+                if isinstance(entries, dict):
+                    entries = [entries]
+                for entry in entries:
+                    location_name = entry.get('location')
+                    if location_name:
+                        location_buildings.setdefault(location_name, []).append(building_type)
+    elif isinstance(building_manager, list):
+        # If list, each item is a dict with building_type as key
+        for entry in building_manager:
+            for building_type, building_data in entry.items():
+                if building_type in whitelisted_buildings:
+                    if isinstance(building_data, dict):
+                        location_name = building_data.get('location')
+                        if location_name:
+                            location_buildings.setdefault(location_name, []).append(building_type)
 
     return location_ranks, location_buildings
 

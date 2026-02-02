@@ -3,6 +3,7 @@ import { AppContext } from "../appContextProvider";
 import { IGameState, ILocationGameData } from "../lib/types/general";
 import { gameStateController } from "@/app/lib/gameState.controller";
 import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
+import { ProximityComputationHelper } from "@/app/lib/proximityComputation.helper";
 
 const buildLocationDisplay = (
   locationData: ILocationGameData,
@@ -10,6 +11,7 @@ const buildLocationDisplay = (
 ): JSX.Element => {
   const owned = gameState.ownedLocations[locationData?.name];
 
+  const harborCapacity = locationData.isCoastal ? ProximityComputationHelper.getLocationHarborCapacity(locationData, gameState.ownedLocations[locationData.name], {}) : 0;
   if (!locationData) {
     return <span>No data available</span>;
   }
@@ -25,10 +27,18 @@ const buildLocationDisplay = (
 
         <div className="flex items-center gap-4 text-sm">
           <span>🏔️ {locationData.topography}</span>
+          {locationData.ownable && (
+            <>
+              <span>📈 Dev: {locationData.development}</span>
+              <span>👥 Pop: {locationData.population}</span>
+              <span>{owned ? "✓ Owned" : "○ Not Owned"}</span>
+            </>
+
+          )}
+          {locationData.isCoastal && locationData.ownable && <span>⚓ Capacity: {harborCapacity}</span>}
           {locationData.vegetation && <span>🌿 {locationData.vegetation}</span>}
-          <span>📈 Dev: {locationData.development}</span>
-          <span>👥 Pop: {locationData.population}</span>
-          <span>{owned ? "✓ Owned" : "○ Not Owned"}</span>
+          
+ 
         </div>
 
         {locationData.hierarchy && (

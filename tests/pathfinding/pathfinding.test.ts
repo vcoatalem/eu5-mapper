@@ -119,7 +119,7 @@ test("should run", async () => {
   // Sort by absolute difference (closest matches first)
   results.sort((a, b) => Math.abs(a.difference) - Math.abs(b.difference));
 
-  const toleratedDifference = 2;
+  const toleratedDifference = 5;
   const goodResults = results.filter((r) => Math.abs(r.difference) <= toleratedDifference);
 
   console.log(

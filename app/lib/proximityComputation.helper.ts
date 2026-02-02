@@ -52,7 +52,8 @@ export class ProximityComputationHelper {
   public static getEnvironmentalProximityCostIncreasePercentage = (
     location: ILocationGameData,
     gameData: IGameData,
-    roadToDestination?: RoadType,
+    discardVegetationModifiers: boolean,
+    options: PathFindingOptions,
   ): number => {
     const rule = gameData.proximityComputationRule;
 
@@ -84,11 +85,18 @@ export class ProximityComputationHelper {
     }
 
     const vegetationCostIncreasePercentage =
-      location.vegetation && !roadToDestination
+      location.vegetation && !discardVegetationModifiers
         ? (rule.proximityCostIncreasePercentage.vegetation?.[
             location.vegetation as keyof IProximityComputationRule["proximityCostIncreasePercentage"]["vegetation"]
           ] ?? 0)
         : 0;
+
+      logProximityComputation(
+        location.name,
+        options,
+        "Environmental proximity cost increase percentage",
+        { topographyCostIncreasePercentage, vegetationCostIncreasePercentage, discardVegetationModifiers },
+      );
 
     const totalEnvironmentalCostIncrease =
       topographyCostIncreasePercentage + vegetationCostIncreasePercentage;
@@ -101,6 +109,8 @@ export class ProximityComputationHelper {
     locationConstructibleData: IConstructibleLocation,
     gameData: IGameData,
     country: ICountryValues,
+    discardVegetationModifiers: boolean,
+    options: PathFindingOptions,
   ): number => {
     if (location.isSea || location.isLake || !location.ownable) {
       return 0;
@@ -116,6 +126,8 @@ export class ProximityComputationHelper {
       ProximityComputationHelper.getEnvironmentalProximityCostIncreasePercentage(
         location,
         gameData,
+        discardVegetationModifiers,
+        options,
       );
 
     const development = location.development;
@@ -135,6 +147,13 @@ export class ProximityComputationHelper {
       0,
     );
 
+
+    logProximityComputation(
+      location.name,
+      options,
+      "Land location proximity modifiers",
+      { totalBuildingsCostReduction, countryLandProximityReduction, developmentCostReduction, environmentalProximityCostIncreasePercentage },
+    );
     const total =
       // positive proximity (cost reduction)
       totalBuildingsCostReduction +
@@ -277,17 +296,23 @@ export class ProximityComputationHelper {
           from in gameState.ownedLocations ||
           options.allowUnownedLocations
         ) {
+          const hasRoadToDestination = !!gameData.roads[from]?.find(
+            ({ to }) => to === to,
+          )?.type;
           return ProximityComputationHelper.getLandLocationProximityModifiers(
             gameData.locationDataMap[from],
             gameState.ownedLocations[from],
             gameData,
             gameState.country,
+            hasRoadToDestination,
+            options,
           );
         } else {
           return 0;
         }
       case "harbor":
         const toLocation = gameData.locationDataMap[to];
+        const fromLocation = gameData.locationDataMap[from];
         const locationWithHarbor = toLocation.isSea ? from : to;
         const harborCapacity =
           ProximityComputationHelper.getLocationHarborCapacity(
@@ -297,8 +322,31 @@ export class ProximityComputationHelper {
           );
         const harborImpact =
           gameData.proximityComputationRule.harborCapacityImpact;
-        const proximityModifier = harborImpact * harborCapacity * 100;
-        return proximityModifier;
+          
+        const harborCapacityModifier = harborCapacity * harborImpact * 100;
+        /* const proximityModifier = harborImpact * harborCapacity * 100; */
+
+        if (fromLocation.isSea) {
+          return harborCapacityModifier;
+        }
+        else {
+          // when going OUT from harbor, also apply land location proximity modifiers
+          const harborLocationProximityModifiers = ProximityComputationHelper.getLandLocationProximityModifiers(
+            gameData.locationDataMap[locationWithHarbor],
+            gameState.ownedLocations[locationWithHarbor],
+            gameData,
+            gameState.country,
+            true,
+            options
+          );
+          logProximityComputation(
+            locationWithHarbor,
+            options,
+            "Summing Harbor Modifiers",
+            { harborLocationProximityModifiers, harborCapacityModifier },
+          );
+          return harborLocationProximityModifiers + harborCapacityModifier;
+        }
       case "naval":
       default:
         return 0;

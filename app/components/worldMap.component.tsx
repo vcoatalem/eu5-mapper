@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -35,9 +36,9 @@ import { IWorkerTaskInitWithImagePayload } from "@/workers/types/workerTypes";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
-  const { gameData, isLoading: gameDataIsLoading, error: gameDataLoadingError } = context;
+  const { gameData, imagePaths, isLoading: gameDataIsLoading, error: gameDataLoadingError } = context;
 
-  console.log("render worldmap component", { gameDataIsLoading, gameDataLoadingError });
+ /*  console.log("render worldmap component", { gameDataIsLoading, gameDataLoadingError }); */
 
   const gameState = useSyncExternalStore(
     gameStateController.subscribe.bind(gameStateController),
@@ -47,7 +48,7 @@ export function WorldMapComponent() {
   const hasOwnedLocations = gameState?.ownedLocations
     ? !!Object.keys(gameState?.ownedLocations)?.length
     : false;
-
+  //THIS USAGE OF USEREF IS NOT AN ERROR, DO NOT REPLACE IT BY USESTATE - WILL BE REFACTORED LATER
   const isDraggingRef = useRef(false);
   const initializedRef = useRef(false);
   const colorCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -64,20 +65,20 @@ export function WorldMapComponent() {
   const cameraServiceRef = useRef<CameraService>(null);
   const [, forceUpdate] = useState({});
   const [isLoading, setIsLoading] = useState(true);
-  const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [initializationError, setInitializationError] = useState<string | null>(null);
   const [showNeighborsPanel, setShowNeighborsPanel] =
     useState<ILocationIdentifier | null>(null);
   const layersRenderedRef = useRef(0);
-  const totalLayersRef = useRef(0);
+  const imageLoadHandlersRef = useRef<Array<{ img: HTMLImageElement; layer: string }>>([]);
 
-  const waitForInitialization = React.useCallback(async () => {
+  const waitForInitialization = React.useCallback(async (expectedLayerCount: number) => {
     try {
       // Wait for all layers to be rendered before removing loading screen
-      await new Promise<void>((resolve) => {
+      await new Promise<void>((resolve, reject) => {
         const checkLayersRendered = () => {
           if (
-            layersRenderedRef.current === totalLayersRef.current &&
-            totalLayersRef.current > 0
+            layersRenderedRef.current === expectedLayerCount &&
+            expectedLayerCount > 0
           ) {
             resolve();
           }
@@ -92,7 +93,7 @@ export function WorldMapComponent() {
         // Cleanup interval after a timeout (e.g., 30 seconds)
         const timeout = setTimeout(() => {
           clearInterval(interval);
-          resolve(); // Resolve anyway to prevent infinite loading
+          reject(new Error("Layer initialization timed out after 30 seconds. Some layers may not have loaded correctly."));
         }, 30000);
 
         // TODO: check that color canvas worker is initialized
@@ -106,12 +107,10 @@ export function WorldMapComponent() {
       console.log(
         "[WorldMapComponent] All layers rendered, proceeding with initialization",
       );
-      setLoadingError(null);
       setIsLoading(false);
     } catch (error) {
       const errorMsg =
         error instanceof Error ? error.message : "Initialization failed";
-      setLoadingError(errorMsg);
       setIsLoading(false);
       console.error("[WorldMapComponent] Initialization error:", errorMsg);
     }
@@ -127,19 +126,20 @@ export function WorldMapComponent() {
     return;
   };
 
-  const layers: Array<{
+  // Memoize layers array to prevent recreation on every render
+  const layers = useMemo<Array<{
     name: string;
     ref: RefObject<HTMLCanvasElement | null>;
     zIndex: number;
     path?: string;
     createMethod?: (ctx: CanvasRenderingContext2D) => unknown;
     initializeWorkerCanvas?: boolean;
-  }> = [
+  }>>(() => [
     {
       name: "colorLayer",
       ref: colorCanvasRef,
       zIndex: 0,
-      path: worldMapConfig.colorMapFileName,
+      path: imagePaths?.locationsImage,
       initializeWorkerCanvas: true,
     },
     {
@@ -152,7 +152,7 @@ export function WorldMapComponent() {
       name: "borderLayer",
       ref: borderCanvasRef,
       zIndex: 5,
-      path: worldMapConfig.borderMapFileName,
+      path: imagePaths?.borderLayer,
     },
     {
       name: "areaDrawingLayer",
@@ -164,7 +164,7 @@ export function WorldMapComponent() {
       name: "terrainLayer",
       ref: terrainCanvasRef,
       zIndex: 4,
-      path: worldMapConfig.terrainLayerFileName,
+      path: imagePaths?.terrainLayer,
     },
     {
       name: "constructibleLayer",
@@ -184,7 +184,7 @@ export function WorldMapComponent() {
       zIndex: 10,
       createMethod: createTransparentCanvas,
     },
-  ];
+  ], [imagePaths?.locationsImage, imagePaths?.borderLayer, imagePaths?.terrainLayer]);
 
   const triggerRender = useCallback(() => {
     forceUpdate({});
@@ -199,6 +199,11 @@ export function WorldMapComponent() {
       return;
     }
 
+    if (!imagePaths) {
+      console.log("image paths not yet loaded");
+      return;
+    }
+
     if (initializedRef.current) {
       console.log("worldmap component already initialized, skipping");
       return;
@@ -207,8 +212,6 @@ export function WorldMapComponent() {
     // Clear any stale worker assignments from previous initialization attempts
     // This is critical when gameData changes and component re-initializes
     workerManager.clearAssignments();
-
-    waitForInitialization();
 
     const colorCanvas = colorCanvasRef.current;
     const container = containerRef.current;
@@ -248,25 +251,36 @@ export function WorldMapComponent() {
       cameraServiceRef.current?.panToCoordinate({ x: 7934, y: 1991 }, 0);
     };
 
-    // Count all layers that need to be rendered
-    totalLayersRef.current = layers.length;
+    // Reset layer counter
     layersRenderedRef.current = 0;
+    imageLoadHandlersRef.current = []; // Clear any previous handlers
 
     layers.forEach((layer) => {
-      const img = new Image();
       const ctx = layer.ref.current?.getContext("2d");
       if (!ctx) {
         console.log("could not get layer ref context");
         return;
       }
       if (layer.path) {
-        img.src = layer.path;
+        const img = new Image();
+        // Track the image for cleanup
+        imageLoadHandlersRef.current.push({ img, layer: layer.name });
+        
         img.onload = () => {
+          // Check if this image is still being tracked (not cleaned up from a previous init)
+          const isStillTracked = imageLoadHandlersRef.current.some(
+            handler => handler.img === img && handler.layer === layer.name
+          );
+          if (!isStillTracked) {
+            // This image was cleaned up, ignore stale callback
+            console.log(`[WorldMapInit] Ignoring stale onload callback for ${layer.name} (image was cleaned up)`);
+            return;
+          }
           console.log(`[WorldMapInit] loaded image for layer ${layer.name}`);
           ctx.drawImage(img, 0, 0);
           layersRenderedRef.current++;
           console.log(
-            `[WorldMapInit] initialized layer ${layer.name}. Total progress: ${layersRenderedRef.current}/${totalLayersRef.current}`,
+            `[WorldMapInit] initialized layer ${layer.name}. Total progress: ${layersRenderedRef.current}/${layers.length}`,
           );
           if (layer.initializeWorkerCanvas && workerManager.isAvailable()) {
             const config = workerManagerConfig.workers.find((w) =>
@@ -300,11 +314,18 @@ export function WorldMapComponent() {
             }
           }
         };
+        img.onerror = (e) => {
+          console.error(`[WorldMapInit] Failed to load image for layer ${layer.name} from path: ${layer.path}`, e);
+          // Still increment counter even on error to prevent blocking
+          layersRenderedRef.current++;
+        };
+        console.log(`[WorldMapInit] Starting to load image for layer ${layer.name} from: ${layer.path}`);
+        img.src = layer.path;
       } else if (layer.createMethod) {
         layer.createMethod(ctx);
         layersRenderedRef.current++;
         console.log(
-          `[WorldMapInit] initialized layer ${layer.name}. Total progress: ${layersRenderedRef.current}/${totalLayersRef.current}`,
+          `[WorldMapInit] initialized layer ${layer.name}. Total progress: ${layersRenderedRef.current}/${layers.length}`,
         );
       } else {
         console.error(
@@ -456,9 +477,22 @@ export function WorldMapComponent() {
     }
 
     setInitialPosition();
-    initializedRef.current = true;
 
     console.log({ workerManagerConfig });
+    
+    // Reset error state at start of initialization
+    setInitializationError(null);
+    
+    // Mark as initialized only after waitForInitialization completes
+    waitForInitialization(layers.length).then(() => {
+      initializedRef.current = true;
+      setInitializationError(null);
+    }).catch((error) => {
+      const errorMsg = error instanceof Error ? error.message : "Initialization failed";
+      console.error("[WorldMapComponent] Initialization wait failed:", errorMsg);
+      setInitializationError(errorMsg);
+      // Don't mark as initialized so the error screen stays visible
+    });
 
     // Use unique task ID to avoid conflicts when re-initializing
     const uniqueDummyTaskId = `testDummyTask-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -470,6 +504,19 @@ export function WorldMapComponent() {
 
     return () => {
       console.log({ topLayerRefForDestroy: topLayerRef });
+      
+      // Cancel any pending image loads
+      imageLoadHandlersRef.current.forEach(({ img }) => {
+        img.onload = null;
+        img.onerror = null;
+        img.src = ''; // Cancel image load
+      });
+      imageLoadHandlersRef.current = [];
+      
+      // Reset layer counter and error state
+      layersRenderedRef.current = 0;
+      setInitializationError(null);
+      
       if (topLayerRef.current) {
         console.log("remove mouse event listeners");
         topLayerRef.current.removeEventListener("mousedown", handleMouseDown);
@@ -481,7 +528,7 @@ export function WorldMapComponent() {
       }
       initializedRef.current = false;
     };
-  }, [gameData]);
+  }, [gameData, imagePaths]);
 
   const handleZoomOut = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -506,11 +553,13 @@ export function WorldMapComponent() {
       {(() => {
         switch (true) {
           case gameDataIsLoading:
-            return <LoadingScreenComponent message="Loading game data..." />;
+            return <LoadingScreenComponent message="Loading game data..." progress={25} />;
           case !!gameDataLoadingError:
-            return <LoadingScreenComponent message={gameDataLoadingError} />;
+            return <LoadingScreenComponent message={gameDataLoadingError} error={true} />;
+          case !!initializationError:
+            return <LoadingScreenComponent message={initializationError} error={true} />;
           case !!isLoading: // rendering canvases
-            return <LoadingScreenComponent message="Rendering map..." />;
+            return <LoadingScreenComponent message="Rendering map..." progress={75} />;
           default:
             return <></>;
         }

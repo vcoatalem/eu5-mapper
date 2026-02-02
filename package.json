@@ -5,6 +5,7 @@
   "scripts": {
     "build:workers": "node scripts/build-and-publish-workers.js",
     "build:workers:watch": "nodemon --watch workers --ext ts --exec 'node scripts/build-and-publish-workers.js'",
+    "build:manifest": "tsx scripts/generate-versions-manifest.ts",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -18,16 +19,18 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/jest": "30.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "esbuild": "^0.19.2",
     "eslint": "^9",
     "eslint-config-next": "16.1.4",
-    "tailwindcss": "^4",
-    "typescript": "^5",
-    "esbuild": "^0.19.2",
-    "nodemon": "3.1.11",
+    "husky": "^9.1.7",
     "jest": "30.2.0",
-    "@types/jest": "30.0.0"
+    "nodemon": "3.1.11",
+    "tailwindcss": "^4",
+    "tsx": "^4.19.2",
+    "typescript": "^5"
   }
 }

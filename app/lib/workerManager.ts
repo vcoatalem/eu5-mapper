@@ -70,7 +70,7 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
    * @param workerScriptName e.g. "canvas-worker.js"
    */
   private resolveWorkerScriptUrl(workerScriptName: string): string {
-    console.log("enter resolveWorkerScriptUrl", { workerScriptName });
+    /* console.log("enter resolveWorkerScriptUrl", { workerScriptName }); */
     const url = "/workers/" + workerScriptName + ".js";
     // This assumes the dist/ folder is a sibling to this file (workerManager.js)
     // and that the consumer uses import.meta.url context

@@ -1,0 +1,64 @@
+{
+  "versions": [
+    "0.0.11",
+    "0.1.0"
+  ],
+  "files": {
+    "locationDataMap": {
+      "0.0.11": {
+        "path": "/0.0.11/game_data/location-data-map.json"
+      }
+    },
+    "colorToNameMap": {
+      "0.0.11": {
+        "path": "/0.0.11/game_data/color-to-name-map.json"
+      }
+    },
+    "buildingsTemplateMap": {
+      "0.0.11": {
+        "path": "/0.0.11/game_data/buildings-template-map.json"
+      },
+      "0.1.0": {
+        "path": "/0.1.0/game_data/buildings-template-map.json"
+      }
+    },
+    "adjacencyCsv": {
+      "0.0.11": {
+        "path": "/0.0.11/game_data/adjacency-data.csv"
+      }
+    },
+    "proximityComputationRule": {
+      "0.0.11": {
+        "path": "/0.0.11/game_data/proximity-calculation-rules.json"
+      },
+      "0.1.0": {
+        "path": "/0.1.0/game_data/proximity-calculation-rules.json"
+      }
+    },
+    "countriesDataMap": {
+      "0.0.11": {
+        "path": "/0.0.11/game_data/countries-data-map.json"
+      }
+    },
+    "roads": {
+      "0.0.11": {
+        "path": "/0.0.11/game_data/roads.json"
+      }
+    },
+    "locationsImage": {
+      "0.0.11": {
+        "path": "/0.0.11/images/locations.png"
+      }
+    },
+    "borderLayer": {
+      "0.0.11": {
+        "path": "/0.0.11/images/border_layer.png"
+      }
+    },
+    "terrainLayer": {
+      "0.0.11": {
+        "path": "/0.0.11/images/terrain_layer.png"
+      }
+    }
+  }
+}

@@ -24,10 +24,21 @@ import {
   dbVersion,
 } from "./lib/indexeddb/indexeddb.const";
 import { ParserHelper } from "./lib/parser.helper";
-import { worldMapConfig } from "./components/worldMap.config";
+import { VersionResolver } from "./lib/versionResolver";
+import {
+  GameDataFileType,
+  FILE_TYPE_TO_FILENAME,
+} from "./lib/types/versionsManifest";
+
+interface IImagePaths {
+  locationsImage: string;
+  borderLayer: string;
+  terrainLayer: string;
+}
 
 interface IAppContext {
   gameData: IGameData | null;
+  imagePaths: IImagePaths | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -46,6 +57,7 @@ export const AppContextProvider = ({
 
   // Game data state
   const [gameData, setGameData] = useState<IGameData | null>(null);
+  const [imagePaths, setImagePaths] = useState<IImagePaths | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,19 +69,28 @@ export const AppContextProvider = ({
 
         console.log(`[AppContext] Loading game data for version ${version}...`);
 
-        const basePath = `/${version}/game_data`;
+        // Initialize version resolver and load manifest once
+        const versionResolver = new VersionResolver();
+        await versionResolver.loadVersionsManifest();
 
-        // Preload map images in parallel with data fetches
-        const preloadImages = () => {
-          const imagePaths = [
-            worldMapConfig.colorMapFileName,
-            worldMapConfig.borderMapFileName,
-            worldMapConfig.terrainLayerFileName,
+        // Resolve and preload map images with version resolution
+        const resolveAndPreloadImages = async (): Promise<IImagePaths> => {
+          const imageFileTypes: GameDataFileType[] = [
+            'locationsImage',
+            'borderLayer',
+            'terrainLayer',
           ];
 
-          return Promise.all(
-            imagePaths.map((imagePath) => {
-              return new Promise<void>((resolve, reject) => {
+          const imagePathsEntries = await Promise.all(
+            imageFileTypes.map(async (fileType) => {
+              const resolvedVersion = await versionResolver.resolveFileVersion(
+                fileType,
+                version
+              );
+              const imagePath = versionResolver.getFilePath(fileType, resolvedVersion);
+              
+              // Preload the image
+              await new Promise<void>((resolve, reject) => {
                 const img = new Image();
                 img.onload = () => {
                   console.log(`[AppContext] Preloaded image: ${imagePath}`);
@@ -82,41 +103,67 @@ export const AppContextProvider = ({
                 };
                 img.src = imagePath;
               });
+
+              return [fileType, imagePath] as const;
             })
           );
+
+          // Build IImagePaths object with proper typing
+          const imagePaths: IImagePaths = {
+            locationsImage: '',
+            borderLayer: '',
+            terrainLayer: '',
+          };
+          
+          for (const [fileType, path] of imagePathsEntries) {
+            if (fileType === 'locationsImage' || fileType === 'borderLayer' || fileType === 'terrainLayer') {
+              imagePaths[fileType] = path;
+            }
+          }
+          
+          return imagePaths;
         };
 
         const preloadGameDataFiles = async () => {
-          const gameDataFiles = {
-            locationDataMap: `${basePath}/location-data-map.json`,
-            colorToNameMap: `${basePath}/color-to-name-map.json`,
-            buildingsTemplateMap: `${basePath}/buildings-template-map.json`,
-            adjacencyCsv: `${basePath}/adjacency-data.csv`,
-            proximityComputationRule: `${basePath}/proximity-calculation-rules.json`,
-            countriesDataMap: `${basePath}/countries-data-map.json`,
-            roads: `${basePath}/roads.json`,
-          };
+          const gameDataFileTypes: GameDataFileType[] = [
+            'locationDataMap',
+            'colorToNameMap',
+            'buildingsTemplateMap',
+            'adjacencyCsv',
+            'proximityComputationRule',
+            'countriesDataMap',
+            'roads',
+          ];
 
           const entries = await Promise.all(
-            Object.entries(gameDataFiles).map(async ([key, filePath]) => {
+            gameDataFileTypes.map(async (fileType) => {
               try {
+                // Resolve version for this file
+                const resolvedVersion = await versionResolver.resolveFileVersion(
+                  fileType,
+                  version
+                );
+                const filePath = versionResolver.getFilePath(fileType, resolvedVersion);
+                const fileName = FILE_TYPE_TO_FILENAME[fileType];
+
+                // Fetch and parse the file
                 const res = await fetch(filePath);
                 if (!res.ok) {
-                  throw new Error(`could not fetch ${key}: ${res.status}`);
+                  throw new Error(`could not fetch ${fileType}: ${res.status}`);
                 }
 
-                if (filePath.endsWith('.json')) {
+                if (fileName.endsWith('.json')) {
                   const data = await res.json();
-                  return [key, data] as const;
-                } else if (filePath.endsWith('.csv')) {
+                  return [fileType, data] as const;
+                } else if (fileName.endsWith('.csv')) {
                   const data = await res.text();
-                  return [key, data] as const;
+                  return [fileType, data] as const;
                 } else {
-                  throw new Error(`Unsupported file type: ${filePath}`);
+                  throw new Error(`Unsupported file type: ${fileName}`);
                 }
               } catch (error) {
                 const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-                throw new Error(`Failed to preload game data file ${key}: ${errorMsg}`);
+                throw new Error(`Failed to preload game data file ${fileType}: ${errorMsg}`);
               }
             })
           );
@@ -130,11 +177,11 @@ export const AppContextProvider = ({
             countriesDataMap: Record<string, ICountryData>;
             roads: unknown; // Raw JSON, will be parsed by ParserHelper.parseRoadFile
           };
-        }
+        };
 
-        const [gameDataFiles] = await Promise.all([
+        const [gameDataFiles, resolvedImagePaths] = await Promise.all([
           preloadGameDataFiles(),
-          preloadImages(),
+          resolveAndPreloadImages(),
         ]);
 
         const {
@@ -191,6 +238,7 @@ export const AppContextProvider = ({
           );
 
         // indexedDB operations have to be done before setGameData to ensure this happens before worldmap component initializes
+        setImagePaths(resolvedImagePaths);
         setGameData({
           locationDataMap,
           colorToNameMap,
@@ -220,6 +268,7 @@ export const AppContextProvider = ({
     <AppContext.Provider
       value={{
         gameData,
+        imagePaths,
         isLoading,
         error,
       }}

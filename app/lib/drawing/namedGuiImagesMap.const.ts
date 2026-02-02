@@ -4,8 +4,8 @@
  */
 export const NAMED_GUI_IMAGES_MAP: Record<string, string> = {
   // Buildings
-  bridge: "/gui/buildings/bridge.png",
-  canal: "/gui/buildings/canal.png",
+  bridge_infrastructure: "/gui/buildings/bridge_infrastructure.png",
+  canal_infrastructure: "/gui/buildings/canal_infrastructure.png",
   dock: "/gui/buildings/dock.png",
   wharf: "/gui/buildings/wharf.png",
   "protected harbor": "/gui/buildings/protected_harbor.png",

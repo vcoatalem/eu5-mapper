@@ -15,7 +15,6 @@ export function HeaderComponent() {
   if (!gameData) return;
 
   const selectCountry = (code: string) => {
-    console.log("select country:", code);
     gameStateController.reset(code);
   };
 

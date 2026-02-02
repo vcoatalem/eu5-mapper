@@ -34,11 +34,6 @@ const getCountryStats = (
     number
   > = {};
 
-  /*   console.log("get country stats:", {
-    ownedLocations,
-    proximityResults,
-    locationsData,
-  }); */
   for (const loc of Object.keys(ownedLocations)) {
     proximityByLocations[loc] =
       ProximityComputationHelper.evaluationToProximity(
@@ -49,12 +44,6 @@ const getCountryStats = (
     populationScaledByProximityPerLocation[loc] =
       (proximityByLocations[loc] * populationByLocation[loc]) / 100;
   }
-  /*   console.log("proximityByLocations", proximityByLocations);
-  console.log("populationByLocation", populationByLocation);
-  console.log(
-    "populationScaledByProximityPerLocation",
-    populationScaledByProximityPerLocation,
-  ); */
   const meanProximity = Math.max(
     0,
     Object.values(proximityByLocations).reduce((a, b) => a + b, 0) /

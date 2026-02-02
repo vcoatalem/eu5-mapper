@@ -3,34 +3,16 @@ import { ILocationIdentifier } from "./general";
 export interface EdgeInfo {
   exists: boolean;
   type: EdgeType;
-  /*   isRiver: boolean;
-  isLand: boolean;
-  isSea: boolean;
-  isPort: boolean;
-  isLake: boolean;
-  isPortRiver: boolean; */
 }
 
 export interface Neighbor {
   neighbor: number;
   edgeType: EdgeType;
-  /* isRiver: boolean;
-  isLand: boolean;
-  isSea: boolean;
-  isPort: boolean;
-  isLake: boolean; */
-  /* isPortRiver: boolean; */
 }
 
 export interface NeighborInfo {
   name: string;
   edgeType: EdgeType;
-  /*   isRiver: boolean;
-  isLand: boolean;
-  isSea: boolean;
-  isPort: boolean;
-  isLake: boolean;
-  isPortRiver: boolean; */
 }
 
 export interface GraphStats {
@@ -73,5 +55,5 @@ export type CostFunction = (
 export type PathFindingOptions = {
   allowUnownedLocations?: boolean;
   logForLocations?: ILocationIdentifier[];
-  logMethod?: (...args: any[]) => void;
+  logMethod?: (message: string, data: Record<string, unknown>) => void;
 };

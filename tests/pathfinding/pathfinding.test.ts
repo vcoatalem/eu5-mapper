@@ -64,6 +64,10 @@ test("should run", async () => {
     gameData,
     {
       allowUnownedLocations: true,
+      logForLocations: ['london'],
+      logMethod: (...args) => {
+        console.log(...args);
+      },
     },
   );
 

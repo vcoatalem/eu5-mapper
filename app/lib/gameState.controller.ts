@@ -243,8 +243,6 @@ export class GameStateController extends Observable<IGameState> {
       ownedLocations: {},
     };
     if (countryCode) {
-      console.log("country code:", countryCode);
-      console.log("country data for code:", this.gameData?.countriesDataMap);
       const country = this.gameData?.countriesDataMap[countryCode];
       if (!country) {
         throw new Error(`Unknown country code: ${countryCode}`);

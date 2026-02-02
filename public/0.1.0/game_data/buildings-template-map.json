@@ -1,6 +1,6 @@
 {
   "bridge_infrastructure": {
-    "name": "bridge",
+    "name": "bridge_infrastructure",
     "type": "common",
     "levels": 1,
     "localProximitySource": 0,
@@ -14,7 +14,7 @@
     "countryRestriction": []
   },
   "canal_infrastructure": {
-    "name": "canal",
+    "name": "canal_infrastructure",
     "type": "city",
     "levels": 1,
     "localProximitySource": 0,

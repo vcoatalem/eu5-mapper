@@ -1,8 +1,9 @@
 import fs from "fs/promises";
-import { readAdjacencyFile, readReferenceFile } from "./utils";
+import { readAdjacencyFile, readReferenceFile, generateHtmlReport } from "./utils";
 import { IGameData, ILocationIdentifier } from "@/app/lib/types/general";
 import { GameStateController } from "@/app/lib/gameState.controller";
 import { ProximityComputationHelper } from "@/app/lib/proximityComputation.helper";
+import { ParserHelper } from "@/app/lib/parser.helper";
 
 test("should run", async () => {
   const testData = await readReferenceFile(
@@ -30,7 +31,8 @@ test("should run", async () => {
   const proximityComputationRule = await JSON.parse(
     await fs.readFile(files[1], "utf-8"),
   );
-  const roads = await JSON.parse(await fs.readFile(files[2], "utf-8"));
+  const roadsJson = await JSON.parse(await fs.readFile(files[2], "utf-8"));
+  const roads = ParserHelper.parseRoadFile(roadsJson);
   const countriesDataMap = await JSON.parse(
     await fs.readFile(files[3], "utf-8"),
   );
@@ -78,25 +80,43 @@ test("should run", async () => {
     { expected: number; actual: number }
   > = {};
 
+  const unrecognisedLocations: ILocationIdentifier[] = [];
+
   for (const [location, data] of Object.entries(testData)) {
-    differences[location] = {
-      expected: data,
-      actual: ProximityComputationHelper.evaluationToProximity(
-        reachable[location]?.cost,
-      ),
-    };
+    if (location in gameData.locationDataMap) {
+      differences[location] = {
+        expected: data,
+        actual: ProximityComputationHelper.evaluationToProximity(
+          reachable[location]?.cost,
+        ),
+      };
+    } else {
+      unrecognisedLocations.push(location);
+    }
   }
 
-  const results: Record<ILocationIdentifier, number> = {};
+  const results: Array<{
+    location: ILocationIdentifier;
+    expected: number;
+    actual: number;
+    difference: number;
+  }> = [];
+
   for (const [location, { expected, actual }] of Object.entries(differences)) {
-    const difference = Math.abs(expected - actual);
-    results[location] = difference;
+    const difference = actual - expected; // Signed difference: positive = actual higher, negative = actual lower
+    results.push({
+      location,
+      expected,
+      actual,
+      difference,
+    });
   }
+
+  // Sort by absolute difference (closest matches first)
+  results.sort((a, b) => Math.abs(a.difference) - Math.abs(b.difference));
 
   const toleratedDifference = 2;
-  const goodResults = Object.entries(results)
-    .filter(([_, diff]) => diff <= toleratedDifference)
-    .map(([loc, _]) => results[loc]);
+  const goodResults = results.filter((r) => Math.abs(r.difference) <= toleratedDifference);
 
   console.log(
     "Good results:",
@@ -105,24 +125,20 @@ test("should run", async () => {
     Object.keys(testData).length,
   );
 
-  const badResults = Object.entries(differences)
-    .filter(
-      ([_, { expected, actual }]) =>
-        Math.abs(expected - actual) > toleratedDifference,
-    )
-    .map(([loc, { expected, actual }]) => ({
-      locationName: loc,
-      actual,
-      expected,
-    }));
+  // Generate HTML report
+  await generateHtmlReport(results, toleratedDifference, unrecognisedLocations);
+
+  const badResults = results.filter(
+    (r) => Math.abs(r.difference) > toleratedDifference,
+  );
 
   if (badResults.length > 0)
     throw new Error(
       "The following locations have bad proximity results:\n" +
         badResults
           .map(
-            ({ locationName, actual, expected }) =>
-              `${locationName}: actual=${actual}, expected=${expected}`,
+            ({ location, actual, expected }) =>
+              `${location}: actual=${actual}, expected=${expected}`,
           )
           .join("\n"),
     );

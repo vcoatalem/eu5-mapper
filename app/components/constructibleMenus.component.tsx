@@ -271,6 +271,11 @@ export function ConstructibleMenusComponent() {
         .filter(([locationName]) =>
           locationName.toLowerCase().includes(search.toLowerCase()),
         )
+        .sort(
+          ([a], [b]) =>
+            (proximityComputation.result[a]?.cost ?? 100) -
+            (proximityComputation.result[b]?.cost ?? 100),
+        )
         .map(([locationName, constructibleData]) => (
           <ConstructibleLocationItem
             key={locationName}

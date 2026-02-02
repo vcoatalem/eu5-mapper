@@ -274,6 +274,7 @@ export function WorldMapComponent() {
               worldMapConfig.height,
             );
             for (let i = 0; i < config.poolSize; i++) {
+              // TODO: make sure this has completed before removing loading screen
               const taskId = `initWithImage-${i}`;
               const pixelDataCopy = new Uint8ClampedArray(imageData.data);
               workerManager.queueTask({

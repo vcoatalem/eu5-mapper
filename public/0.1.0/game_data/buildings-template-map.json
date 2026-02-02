@@ -88,7 +88,7 @@
     "countryRestriction": []
   },
   "naval_governor": {
-    "name": "naval_governorrr",
+    "name": "naval_governor",
     "type": "city",
     "levels": 1,
     "harborCapacity": [0],

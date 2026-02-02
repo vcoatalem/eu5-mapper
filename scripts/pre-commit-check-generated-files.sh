@@ -4,33 +4,35 @@
 # 1. versions-manifest.json is updated when public/{semver}/ files change
 # 2. public/workers/*.js files are updated when workers/*-worker.ts files change
 
-# Get list of staged files
-STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+# Get list of staged files and their status
+STAGED_FILES=$(git diff --cached --name-status)
 
 # ============================================================================
 # Check 1: Manifest file check for semver directories
 # ============================================================================
+
 SEMVER_PATTERN='^public/[0-9]+\.[0-9]+\.[0-9]+/'
-HAS_SEMVER_CHANGES=false
 MANIFEST_FILE="public/versions-manifest.json"
 HAS_MANIFEST_CHANGE=false
+HAS_SEMVER_ADDS=false
 
-# Check for semver directory changes
-for file in $STAGED_FILES; do
-  if [[ $file =~ $SEMVER_PATTERN ]]; then
-    HAS_SEMVER_CHANGES=true
+# Check for added files in semver directories
+while IFS=$'\t' read -r status file; do
+  if [[ "$status" == "A" && $file =~ $SEMVER_PATTERN ]]; then
+    HAS_SEMVER_ADDS=true
     break
   fi
-done
+done <<< "$STAGED_FILES"
 
 # Check if manifest is also staged
-if [[ "$STAGED_FILES" == *"$MANIFEST_FILE"* ]]; then
+if git diff --cached --name-only | grep -q "^$MANIFEST_FILE$"; then
   HAS_MANIFEST_CHANGE=true
 fi
 
-# If semver files changed but manifest didn't, block the commit
-if [ "$HAS_SEMVER_CHANGES" = true ] && [ "$HAS_MANIFEST_CHANGE" = false ]; then
-  echo "❌ Error: Changes detected in public/{semver}/ directories, but versions-manifest.json is not updated."
+# If new files are being added to public/{semver}/ but manifest didn't change, block the commit
+if [ "$HAS_SEMVER_ADDS" = true ] && [ "$HAS_MANIFEST_CHANGE" = false ]; then
+  echo "❌ Error: New files are being added under public/{semver}/ directories, but versions-manifest.json is not updated."
   echo ""
   echo "Please run 'npm run build:manifest' to update the manifest file, then stage and commit it:"
   echo "  npm run build:manifest"

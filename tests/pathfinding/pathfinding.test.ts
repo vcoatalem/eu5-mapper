@@ -64,7 +64,7 @@ test("should run", async () => {
     gameData,
     {
       allowUnownedLocations: true,
-      logForLocations: ['london'],
+      /* logForLocations: ['solent', 'seven_sisters'], */
       logMethod: (...args) => {
         console.log(...args);
       },
@@ -76,6 +76,16 @@ test("should run", async () => {
     100,
     costFunction,
   );
+
+
+  const pathFromLondonToNewCastle = adjGraph.getShortestPath(
+    "london",
+    "daventry",
+    100,
+    costFunction,
+  );
+
+  console.log({pathFromLondonToNewCastle});
 
   // Assert
 

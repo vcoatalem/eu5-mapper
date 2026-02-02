@@ -132,15 +132,15 @@ self.onmessage = async function (e: MessageEvent<IWorkerTask>) {
               graph,
               {
                 allowUnownedLocations: true, // allow passing over unowned
-                logForLocations: ["calais"],
-                /* logMethod: (...args: any[]) => {
+                logForLocations: [],
+                logMethod: (...args: any[]) => {
                   sendMessage(self, {
                     data: null,
                     message: args.join(" "),
                     level: "log",
                     task: e.data,
                   });
-                }, */
+                },
               },
             ),
         };

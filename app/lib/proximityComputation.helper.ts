@@ -275,6 +275,8 @@ export class ProximityComputationHelper {
         rule.baseCostWithMaritimePresence -
         flatProximityCostWithMaritimePresence;
 
+
+      /* console.log("Flat proximity cost", { costWithoutMaritimePresence, costWithMaritimePresence, normalizedMaritimePresence }); */
       return (
         costWithoutMaritimePresence * (1 - normalizedMaritimePresence) +
         costWithMaritimePresence * normalizedMaritimePresence
@@ -297,7 +299,7 @@ export class ProximityComputationHelper {
           options.allowUnownedLocations
         ) {
           const hasRoadToDestination = !!gameData.roads[from]?.find(
-            ({ to }) => to === to,
+            ({ to: roadTo }) => roadTo === to,
           )?.type;
           return ProximityComputationHelper.getLandLocationProximityModifiers(
             gameData.locationDataMap[from],
@@ -425,14 +427,12 @@ export class ProximityComputationHelper {
       edgeType: EdgeType,
     ) => {
       const rule = gameData.proximityComputationRule;
-
-      const [locationA, locationB] = [from, to].sort(); // same sorting as in graph.
-      const road = gameData.roads[locationA]?.find(
-        ({ to }) => to === locationB,
+      const road = gameData.roads[from]?.find(
+        ({ to: roadTo }) => roadTo === to,
       );
-      // For now, assume maritime presence is 30 everywhere (as percent)
-      const maritimePresence = 30; // [0,100]
-      const baseCost = this.getFlatProximityCost(
+      // For now, assume maritime presence is 50 everywhere except Ocean, where it is 0
+      const maritimePresence = gameData.locationDataMap[to].topography === "ocean" ? 0 : 50; // [0,100]
+      const baseCost = this.getFlatProximityCost( 
         edgeType,
         gameState,
         rule,
@@ -440,7 +440,8 @@ export class ProximityComputationHelper {
         road?.type ?? null,
       );
 
-   /*    logProximityComputation(
+
+      logProximityComputation(
         [from, to],
         options,
         "Base proximity cost",
@@ -450,7 +451,7 @@ export class ProximityComputationHelper {
           through: { edgeType },
           baseCost,
         },
-      ); */
+      );
 
       const toLocationData = gameData.locationDataMap[to];
       const isToSeaZone = toLocationData.isSea;

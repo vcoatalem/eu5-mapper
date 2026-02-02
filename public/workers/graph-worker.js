@@ -78,18 +78,21 @@
     _getNodeString(id) {
       return this.idToNode[id];
     }
-    _getCanonical(a, b) {
-      return a < b ? [a, b] : [b, a];
-    }
     addEdge(a, b, edgeType) {
       const aId = this._getNodeId(a);
       const bId = this._getNodeId(b);
-      const [from, to] = this._getCanonical(aId, bId);
-      if (!(from in this.adjacency)) {
-        this.adjacency[from] = [];
+      if (!(aId in this.adjacency)) {
+        this.adjacency[aId] = [];
       }
-      this.adjacency[from].push({
-        neighbor: to,
+      if (!(bId in this.adjacency)) {
+        this.adjacency[bId] = [];
+      }
+      this.adjacency[aId].push({
+        neighbor: bId,
+        edgeType
+      });
+      this.adjacency[bId].push({
+        neighbor: aId,
         edgeType
       });
     }
@@ -102,15 +105,14 @@
           type: "unknown"
         };
       }
-      const [from, to] = this._getCanonical(aId, bId);
-      const neighbors = this.adjacency[from];
+      const neighbors = this.adjacency[aId];
       if (!neighbors) {
         return {
           exists: false,
           type: "unknown"
         };
       }
-      const edge = neighbors.find((n) => n.neighbor === to);
+      const edge = neighbors.find((n) => n.neighbor === bId);
       return edge ? {
         exists: true,
         type: edge.edgeType
@@ -139,20 +141,11 @@
         const nodeStr = this._getNodeString(node);
         const neighbors = [];
         if (node in this.adjacency) {
-          neighbors.push(...this.adjacency[node]);
-        }
-        for (const fromStr in this.adjacency) {
-          const from = Number(fromStr);
-          if (from === node)
-            continue;
-          const edges = this.adjacency[from];
-          for (const edge of edges) {
-            if (edge.neighbor === node) {
-              neighbors.push({
-                neighbor: from,
-                edgeType: edge.edgeType
-              });
-            }
+          for (const edge of this.adjacency[node]) {
+            neighbors.push({
+              neighbor: edge.neighbor,
+              edgeType: edge.edgeType
+            });
           }
         }
         for (const { neighbor, edgeType } of neighbors) {
@@ -171,6 +164,74 @@
         result[this._getNodeString(id)] = distances[id];
       }
       return result;
+    }
+    /**
+     * Finds the shortest path from startNode to endNode and returns the path as an array of edges.
+     * Each edge contains { from, to, edgeType, cost }.
+     * Returns null if no path exists within the cost limit.
+     */
+    getShortestPath(startNode, endNode, costLimit, getCost) {
+      const startId = this.nodeToId[startNode];
+      const endId = this.nodeToId[endNode];
+      if (startId === void 0 || endId === void 0)
+        return null;
+      if (startId === endId)
+        return [];
+      const distances = {};
+      const predecessors = {};
+      const pq = [
+        { node: startId, cost: 0 }
+      ];
+      distances[startId] = 0;
+      predecessors[startId] = null;
+      while (pq.length > 0) {
+        pq.sort((a, b) => a.cost - b.cost);
+        const current = pq.shift();
+        const { node, cost } = current;
+        if (node === endId) {
+          const path = [];
+          let currentNode = endId;
+          while (predecessors[currentNode] !== null) {
+            const pred = predecessors[currentNode];
+            const fromStr = this._getNodeString(pred.node);
+            const toStr = this._getNodeString(currentNode);
+            const edgeCost = getCost(fromStr, toStr, pred.edgeType);
+            path.unshift({
+              from: fromStr,
+              to: toStr,
+              edgeType: pred.edgeType,
+              cost: edgeCost.cost
+            });
+            currentNode = pred.node;
+          }
+          return path;
+        }
+        if (cost > costLimit)
+          continue;
+        if (cost > distances[node])
+          continue;
+        const nodeStr = this._getNodeString(node);
+        const neighbors = [];
+        if (node in this.adjacency) {
+          for (const edge of this.adjacency[node]) {
+            neighbors.push({
+              neighbor: edge.neighbor,
+              edgeType: edge.edgeType
+            });
+          }
+        }
+        for (const { neighbor, edgeType } of neighbors) {
+          const neighborStr = this._getNodeString(neighbor);
+          const edgeCost = getCost(nodeStr, neighborStr, edgeType);
+          const newCost = cost + edgeCost.cost;
+          if (newCost <= costLimit && (!(neighbor in distances) || newCost < distances[neighbor])) {
+            distances[neighbor] = newCost;
+            predecessors[neighbor] = { node, edgeType };
+            pq.push({ node: neighbor, cost: newCost });
+          }
+        }
+      }
+      return null;
     }
     /**
      * Returns a map of all nodes reachable from startNode within a given number of edges (no cycles),
@@ -192,47 +253,22 @@
           continue;
         const neighbors = [];
         if (node in this.adjacency) {
-          neighbors.push(...this.adjacency[node]);
-        }
-        for (const [from, edges] of Object.entries(this.adjacency)) {
-          const fromNum = Number(from);
-          if (fromNum === node)
-            continue;
-          for (const edge of edges) {
-            if (edge.neighbor === node) {
-              neighbors.push({
-                neighbor: fromNum,
-                edgeType: edge.edgeType
-                /*  isRiver: edge.isRiver,
-                isLand: edge.isLand,
-                isSea: edge.isSea,
-                isPort: edge.isPort,
-                isLake: edge.isLake, */
-              });
-            }
+          for (const edge of this.adjacency[node]) {
+            neighbors.push({
+              neighbor: edge.neighbor,
+              edgeType: edge.edgeType
+            });
           }
         }
         for (const {
           neighbor,
           edgeType
-          /*  isRiver,
-          isLand,
-          isSea,
-          isPort,
-          isLake, */
         } of neighbors) {
           if (visited.has(neighbor))
             continue;
           const neighborStr = this._getNodeString(neighbor);
-          const edgeCost = getCost(
-            this._getNodeString(node),
-            neighborStr,
-            edgeType
-            /*  isLand,
-            isSea,
-            isPort,
-            isLake, */
-          );
+          const nodeStr = this._getNodeString(node);
+          const edgeCost = getCost(nodeStr, neighborStr, edgeType);
           const newCost = cost + edgeCost.cost;
           if (!(neighbor in minCost) || newCost < minCost[neighbor].cost) {
             minCost[neighbor] = { cost: newCost, through: edgeCost.through };
@@ -407,7 +443,7 @@
         case "land":
           if (from in gameState.ownedLocations || options.allowUnownedLocations) {
             const hasRoadToDestination = !!gameData2.roads[from]?.find(
-              ({ to: to2 }) => to2 === to2
+              ({ to: roadTo }) => roadTo === to
             )?.type;
             return _ProximityComputationHelper.getLandLocationProximityModifiers(
               gameData2.locationDataMap[from],
@@ -491,17 +527,27 @@
     static getProximityCostFunction(gameState, gameData2, options) {
       return (from, to, edgeType) => {
         const rule = gameData2.proximityComputationRule;
-        const [locationA, locationB] = [from, to].sort();
-        const road = gameData2.roads[locationA]?.find(
-          ({ to: to2 }) => to2 === locationB
+        const road = gameData2.roads[from]?.find(
+          ({ to: roadTo }) => roadTo === to
         );
-        const maritimePresence = 30;
+        const maritimePresence = gameData2.locationDataMap[to].topography === "ocean" ? 0 : 50;
         const baseCost = this.getFlatProximityCost(
           edgeType,
           gameState,
           rule,
           maritimePresence,
           road?.type ?? null
+        );
+        logProximityComputation(
+          [from, to],
+          options,
+          "Base proximity cost",
+          {
+            from,
+            to,
+            through: { edgeType },
+            baseCost
+          }
         );
         const toLocationData = gameData2.locationDataMap[to];
         const isToSeaZone = toLocationData.isSea;
@@ -786,15 +832,15 @@
               {
                 allowUnownedLocations: true,
                 // allow passing over unowned
-                logForLocations: ["calais"]
-                /* logMethod: (...args: any[]) => {
+                logForLocations: [],
+                logMethod: (...args) => {
                   sendMessage(self, {
                     data: null,
                     message: args.join(" "),
                     level: "log",
-                    task: e.data,
+                    task: e.data
                   });
-                }, */
+                }
               }
             )
           };

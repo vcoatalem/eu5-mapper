@@ -134,7 +134,7 @@ export class ConstructibleHelper {
     gameData: IGameData,
     ownedLocations: IGameState["ownedLocations"],
   ): ConstructibleState {
-    let constructibleState: ConstructibleState = { buildings: [] };
+    const constructibleState: ConstructibleState = { buildings: [] };
 
     const templates = Object.values(gameData.buildingsTemplateMap).sort(
       (a, b) => a.name.localeCompare(b.name),

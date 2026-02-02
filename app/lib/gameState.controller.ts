@@ -133,7 +133,7 @@ export class GameStateController extends Observable<IGameState> {
     }
     location.rank = newRank;
 
-    let buildingToKeep: string[] = [];
+    const buildingToKeep: string[] = [];
     for (const building of location.buildings) {
       const { reason } = ConstructibleHelper.getBuildability(
         building.template,

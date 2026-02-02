@@ -33,21 +33,23 @@ export class CompactGraph {
     return this.idToNode[id]!;
   }
 
-  private _getCanonical(a: number, b: number): [number, number] {
-    return a < b ? [a, b] : [b, a];
-  }
-
   addEdge(a: string, b: string, edgeType: EdgeType): void {
     const aId = this._getNodeId(a);
     const bId = this._getNodeId(b);
-    const [from, to] = this._getCanonical(aId, bId);
 
-    if (!(from in this.adjacency)) {
-      this.adjacency[from] = [];
+    if (!(aId in this.adjacency)) {
+      this.adjacency[aId] = [];
+    }
+    if (!(bId in this.adjacency)) {
+      this.adjacency[bId] = [];
     }
 
-    this.adjacency[from].push({
-      neighbor: to,
+    this.adjacency[aId].push({
+      neighbor: bId,
+      edgeType,
+    });
+    this.adjacency[bId].push({
+      neighbor: aId,
       edgeType,
     });
   }
@@ -63,9 +65,8 @@ export class CompactGraph {
       };
     }
 
-    const [from, to] = this._getCanonical(aId, bId);
-    const neighbors = this.adjacency[from];
-
+    // With bidirectional storage, check either direction
+    const neighbors = this.adjacency[aId];
     if (!neighbors) {
       return {
         exists: false,
@@ -73,7 +74,7 @@ export class CompactGraph {
       };
     }
 
-    const edge = neighbors.find((n) => n.neighbor === to);
+    const edge = neighbors.find((n) => n.neighbor === bId);
     return edge
       ? {
           exists: true,
@@ -109,21 +110,14 @@ export class CompactGraph {
       const nodeStr = this._getNodeString(node);
 
       // Get neighbors as IDs for efficiency
-      const neighbors: Neighbor[] = [];
+      // Edges are stored bidirectionally, so we just need to look in adjacency[node]
+      const neighbors: Array<{ neighbor: number; edgeType: EdgeType }> = [];
       if (node in this.adjacency) {
-        neighbors.push(...this.adjacency[node]!);
-      }
-      for (const fromStr in this.adjacency) {
-        const from = Number(fromStr);
-        if (from === node) continue; // Skip self
-        const edges = this.adjacency[from];
-        for (const edge of edges) {
-          if (edge.neighbor === node) {
-            neighbors.push({
-              neighbor: from,
-              edgeType: edge.edgeType,
-            });
-          }
+        for (const edge of this.adjacency[node]!) {
+          neighbors.push({
+            neighbor: edge.neighbor,
+            edgeType: edge.edgeType,
+          });
         }
       }
 
@@ -149,6 +143,97 @@ export class CompactGraph {
       result[this._getNodeString(id)] = distances[id];
     }
     return result;
+  }
+
+  /**
+   * Finds the shortest path from startNode to endNode and returns the path as an array of edges.
+   * Each edge contains { from, to, edgeType, cost }.
+   * Returns null if no path exists within the cost limit.
+   */
+  getShortestPath(
+    startNode: string,
+    endNode: string,
+    costLimit: number,
+    getCost: CostFunction,
+  ): Array<{ from: string; to: string; edgeType: EdgeType; cost: number }> | null {
+    const startId = this.nodeToId[startNode];
+    const endId = this.nodeToId[endNode];
+    
+    if (startId === undefined || endId === undefined) return null;
+    if (startId === endId) return []; // Same node, empty path
+
+    // Track distances and predecessors
+    const distances: Record<number, number> = {};
+    const predecessors: Record<number, { node: number; edgeType: EdgeType } | null> = {};
+    const pq: Array<{ node: number; cost: number }> = [
+      { node: startId, cost: 0 },
+    ];
+    
+    distances[startId] = 0;
+    predecessors[startId] = null;
+
+    while (pq.length > 0) {
+      pq.sort((a, b) => a.cost - b.cost);
+      const current = pq.shift()!;
+      const { node, cost } = current;
+
+      // If we reached the destination, reconstruct and return the path
+      if (node === endId) {
+        const path: Array<{ from: string; to: string; edgeType: EdgeType; cost: number }> = [];
+        let currentNode = endId;
+        
+        while (predecessors[currentNode] !== null) {
+          const pred = predecessors[currentNode]!;
+          const fromStr = this._getNodeString(pred.node);
+          const toStr = this._getNodeString(currentNode);
+          const edgeCost = getCost(fromStr, toStr, pred.edgeType);
+          
+          path.unshift({
+            from: fromStr,
+            to: toStr,
+            edgeType: pred.edgeType,
+            cost: edgeCost.cost,
+          });
+          
+          currentNode = pred.node;
+        }
+        
+        return path;
+      }
+
+      if (cost > costLimit) continue;
+      if (cost > distances[node]) continue;
+
+      const nodeStr = this._getNodeString(node);
+
+      // Get neighbors
+      const neighbors: Array<{ neighbor: number; edgeType: EdgeType }> = [];
+      if (node in this.adjacency) {
+        for (const edge of this.adjacency[node]!) {
+          neighbors.push({
+            neighbor: edge.neighbor,
+            edgeType: edge.edgeType,
+          });
+        }
+      }
+
+      for (const { neighbor, edgeType } of neighbors) {
+        const neighborStr = this._getNodeString(neighbor);
+        const edgeCost = getCost(nodeStr, neighborStr, edgeType);
+        const newCost = cost + edgeCost.cost;
+
+        if (
+          newCost <= costLimit &&
+          (!(neighbor in distances) || newCost < distances[neighbor])
+        ) {
+          distances[neighbor] = newCost;
+          predecessors[neighbor] = { node, edgeType };
+          pq.push({ node: neighbor, cost: newCost });
+        }
+      }
+    }
+
+    return null;
   }
 
   /**
@@ -182,48 +267,25 @@ export class CompactGraph {
       if (edgesUsed >= edgeLimit) continue;
 
       // Get neighbors as IDs for efficiency
-      const neighbors: Neighbor[] = [];
+      // Edges are stored bidirectionally, so we just need to look in adjacency[node]
+      const neighbors: Array<{ neighbor: number; edgeType: EdgeType }> = [];
       if (node in this.adjacency) {
-        neighbors.push(...this.adjacency[node]!);
-      }
-      for (const [from, edges] of Object.entries(this.adjacency)) {
-        const fromNum = Number(from);
-        if (fromNum === node) continue;
-        for (const edge of edges) {
-          if (edge.neighbor === node) {
-            neighbors.push({
-              neighbor: fromNum,
-              edgeType: edge.edgeType,
-              /*  isRiver: edge.isRiver,
-              isLand: edge.isLand,
-              isSea: edge.isSea,
-              isPort: edge.isPort,
-              isLake: edge.isLake, */
-            });
-          }
+        for (const edge of this.adjacency[node]!) {
+          neighbors.push({
+            neighbor: edge.neighbor,
+            edgeType: edge.edgeType,
+          });
         }
       }
 
       for (const {
         neighbor,
         edgeType,
-        /*  isRiver,
-        isLand,
-        isSea,
-        isPort,
-        isLake, */
       } of neighbors) {
         if (visited.has(neighbor)) continue; // Prevent cycles
         const neighborStr = this._getNodeString(neighbor);
-        const edgeCost = getCost(
-          this._getNodeString(node),
-          neighborStr,
-          edgeType,
-          /*  isLand,
-          isSea,
-          isPort,
-          isLake, */
-        );
+        const nodeStr = this._getNodeString(node);
+        const edgeCost = getCost(nodeStr, neighborStr, edgeType);
         const newCost = cost + edgeCost.cost;
         // Only add if this is the first time or a cheaper path
         if (!(neighbor in minCost) || newCost < minCost[neighbor]!.cost) {

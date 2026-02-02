@@ -115,7 +115,7 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
 
     this.taskQueue.push(task);
     console.log(
-      `[WorkerManager] Task queued. Queue size: ${this.taskQueue.length}`,
+      `[WorkerManager] Task queued. Queue size: ${this.taskQueue.length}`, { task},
     );
     this.updateStatus();
     this.processQueue();

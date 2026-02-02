@@ -469,10 +469,16 @@ export function WorldMapComponent() {
           topLayerRef.current,
         );
       }
-      workerManager.terminate();
       initializedRef.current = false;
     };
   }, [gameData]);
+
+  useEffect(() => {
+    return () => {
+      console.log("[WorldMapComponent] Component unmounting, terminating workers");
+      workerManager.terminate();
+    };
+  }, []);
 
   const handleZoomOut = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();

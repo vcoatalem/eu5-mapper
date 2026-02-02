@@ -92,6 +92,8 @@ export function WorldMapComponent() {
           resolve(); // Resolve anyway to prevent infinite loading
         }, 30000);
 
+        // TODO: check that color canvas worker is initialized
+
         return () => {
           clearInterval(interval);
           clearTimeout(timeout);
@@ -463,6 +465,9 @@ export function WorldMapComponent() {
         topLayerRef.current.removeEventListener("mousedown", handleMouseDown);
         topLayerRef.current.removeEventListener("mousemove", handleMouseMove);
         topLayerRef.current.removeEventListener("mouseup", handleMouseUp);
+        actionEventDispatcher.clearEventListenersForElement(
+          topLayerRef.current,
+        );
       }
       workerManager.terminate();
       initializedRef.current = false;

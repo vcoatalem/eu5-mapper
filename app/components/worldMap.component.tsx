@@ -29,6 +29,7 @@ import { locationSearchController } from "@/app/lib/locationSearchController";
 import { DrawingHelper } from "../lib/drawing/drawing.helper";
 import { CameraService } from "../lib/camera.service";
 import { actionEventDispatcher } from "../lib/actionEventDispatcher";
+import { IWorkerTaskInitGraphWorkerPayload, IWorkerTaskInitWithImagePayload } from "@/workers/types/workerTypes";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
@@ -200,6 +201,10 @@ export function WorldMapComponent() {
       console.log("worldmap component already initialized, skipping");
       return;
     }
+    
+    // Clear any stale worker assignments from previous initialization attempts
+    // This is critical when gameData changes and component re-initializes
+    workerManager.clearAssignments();
 
     waitForInitialization();
 
@@ -218,12 +223,12 @@ export function WorldMapComponent() {
     }
 
     if (workerManager.isAvailable()) {
+      // Use unique task ID with timestamp to avoid conflicts when re-initializing
+      const uniqueTaskId = `initGraphWorkerTask-${Date.now()}`;
       workerManager.queueTask({
-        id: "initGraphWorkerTask",
+        id: uniqueTaskId,
         type: "initGraphWorker",
-        payload: {
-          type: "initGraphWorker",
-        },
+        payload: {}
       });
     }
 
@@ -277,17 +282,18 @@ export function WorldMapComponent() {
             );
             for (let i = 0; i < config.poolSize; i++) {
               // TODO: make sure this has completed before removing loading screen
-              const taskId = `initWithImage-${i}`;
+              // Use unique task ID with timestamp to avoid conflicts when re-initializing
+              const uniqueTaskId = `initWithImage-${i}-${Date.now()}`;
               const pixelDataCopy = new Uint8ClampedArray(imageData.data);
+              const taskPayload: IWorkerTaskInitWithImagePayload = {
+                pixelDataBuffer: pixelDataCopy.buffer,
+                canvasWidth: worldMapConfig.width,
+                canvasHeight: worldMapConfig.height,
+              }
               workerManager.queueTask({
-                id: taskId,
+                id: uniqueTaskId,
                 type: "initWithImage",
-                payload: {
-                  type: "initWithImage",
-                  pixelDataBuffer: pixelDataCopy.buffer,
-                  canvasWidth: worldMapConfig.width,
-                  canvasHeight: worldMapConfig.height,
-                },
+                payload: taskPayload
               });
             }
           }
@@ -452,8 +458,10 @@ export function WorldMapComponent() {
 
     console.log({ workerManagerConfig });
 
+    // Use unique task ID to avoid conflicts when re-initializing
+    const uniqueDummyTaskId = `testDummyTask-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     workerManager.queueTask({
-      id: "testDummyTask",
+      id: uniqueDummyTaskId,
       type: "dummy",
       payload: { type: "dummy" },
     });

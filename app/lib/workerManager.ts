@@ -19,7 +19,6 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
   private workerPools: Map<string, WorkerPool> = new Map(); // workerFileName -> pool
   private taskQueue: IWorkerTask[] = [];
   private activeTasks: Map<string, IWorkerTask> = new Map();
-  private processedTaskIds: Set<string> = new Set();
 
   public isAvailable(): boolean {
     return this.workerPools.size > 0;
@@ -96,13 +95,6 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
   }
 
   public queueTask(task: IWorkerTask): void {
-    // Check if task has already been processed
-    if (this.processedTaskIds.has(task.id)) {
-      console.warn(
-        `[WorkerManager] Task ${task.id} has already been processed, skipping`,
-      );
-      return;
-    }
 
     // Find which worker pool should handle this task
     const workerFileName = workerManagerConfig.taskWorkerMapping[task.type];
@@ -141,6 +133,15 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
         console.error(`[WorkerManager] No pool for worker: ${workerFileName}`);
         continue;
       }
+      
+      // Debug: Log pool state
+      const assignedCount = Array.from(pool.assignments.values()).filter(
+        (a) => a !== null,
+      ).length;
+      console.log(
+        `[WorkerManager] Processing task ${task.id} (type: ${task.type}), pool: ${workerFileName}, workers: ${pool.workers.length}, assigned: ${assignedCount}, available: ${pool.workers.length - assignedCount}`,
+      );
+      
       const availableWorker = pool.workers.find(
         (w) => pool.assignments.get(w) === null,
       );
@@ -186,10 +187,37 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
         // Continue processing if there are more tasks
         this.processQueue();
         return;
+      } else {
+        // No available worker - log why
+        console.warn(
+          `[WorkerManager] No available worker for task ${task.id} (type: ${task.type}). Pool: ${workerFileName}, Total workers: ${pool.workers.length}, All assignments:`,
+          Array.from(pool.assignments.entries()).map(([w, taskId]) => ({
+            worker: w,
+            taskId,
+          })),
+        );
       }
     }
     // If no available worker for any task, just return
     // (will be retried when a worker becomes available)
+  }
+  
+  /**
+   * Clears all worker assignments. Useful when component re-initializes
+   * and we want to reset the state without terminating workers.
+   * Note: Does NOT clear activeTasks - let them complete naturally.
+   * Orphaned completions will be silently ignored.
+   */
+  public clearAssignments(): void {
+    for (const pool of this.workerPools.values()) {
+      pool.assignments.clear();
+      pool.workers.forEach((worker) => {
+        pool.assignments.set(worker, null);
+      });
+    }
+    // Don't clear activeTasks - workers may still be processing them
+    // Orphaned completions will be silently ignored in handleWorkerMessage
+    console.log("[WorkerManager] Cleared all worker assignments (active tasks will complete naturally)");
   }
 
   private handleWorkerMessage(message: IWorkerMessage, worker: Worker): void {
@@ -197,9 +225,10 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
 
     const task = this.activeTasks.get(taskId);
     if (!task) {
-      console.warn(
-        `[WorkerManager] Received message for unknown task: ${taskId}`,
-      );
+      console.debug('[WorkerManager] ignoring orphaned task completion', { message });
+      // Silently ignore orphaned task completions - these happen when component
+      // re-initializes and old workers complete tasks that were cleared
+      // This is expected behavior and not an error
       return;
     }
 
@@ -230,7 +259,6 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
 
       case "result":
         this.activeTasks.delete(taskId);
-        this.processedTaskIds.add(taskId);
         pool.assignments.set(worker, null); // Free up worker
         console.log(`[WorkerManager] Task completed: ${taskId}`);
         this.updateStatus({
@@ -245,7 +273,6 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
 
       case "error":
         this.activeTasks.delete(taskId);
-        this.processedTaskIds.add(taskId);
         pool.assignments.set(worker, null); // Free up worker
         console.error(`[WorkerManager] Task failed: ${taskId}`);
         console.error(`[WorkerManager] worker error: ${message.message}`);
@@ -274,14 +301,9 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
     }
     this.taskQueue = [];
     this.activeTasks.clear();
-    this.processedTaskIds.clear();
     console.log("[WorkerManager] Terminated all workers");
   }
 
-  public clearProcessedTasks(): void {
-    this.processedTaskIds.clear();
-    console.log("[WorkerManager] Cleared processed task history");
-  }
 }
 
 export const workerManager = new WorkerManager();

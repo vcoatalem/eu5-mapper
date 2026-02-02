@@ -86,5 +86,15 @@
     "localProximitySource": [80],
     "locationRestriction": [],
     "countryRestriction": []
+  },
+  "naval_governor": {
+    "name": "naval_governor",
+    "type": "city",
+    "levels": 1,
+    "harborCapacity": [0],
+    "proximityCostReductionPercentage": [0],
+    "localProximitySource": [80],
+    "locationRestriction": [],
+    "countryRestriction": []
   }
 }

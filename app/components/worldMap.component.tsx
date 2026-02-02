@@ -1,3 +1,5 @@
+"use client";
+
 import React, {
   RefObject,
   useCallback,
@@ -29,13 +31,13 @@ import { locationSearchController } from "@/app/lib/locationSearchController";
 import { DrawingHelper } from "../lib/drawing/drawing.helper";
 import { CameraService } from "../lib/camera.service";
 import { actionEventDispatcher } from "../lib/actionEventDispatcher";
-import { IWorkerTaskInitGraphWorkerPayload, IWorkerTaskInitWithImagePayload } from "@/workers/types/workerTypes";
+import { IWorkerTaskInitWithImagePayload } from "@/workers/types/workerTypes";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
-  const { gameData, error: gameDataLoadingError } = context;
+  const { gameData, isLoading: gameDataIsLoading, error: gameDataLoadingError } = context;
 
-  /* console.log("render worldmap component"); */
+  console.log("render worldmap component", { gameDataIsLoading, gameDataLoadingError });
 
   const gameState = useSyncExternalStore(
     gameStateController.subscribe.bind(gameStateController),
@@ -120,7 +122,7 @@ export function WorldMapComponent() {
     ctx.fillRect(0, 0, worldMapConfig.width, worldMapConfig.height);
   };
 
-  const createTransparentCanvas = (ctx: CanvasRenderingContext2D) => {
+  const createTransparentCanvas = () => {
     // by default, canvas is transparent
     return;
   };
@@ -201,7 +203,7 @@ export function WorldMapComponent() {
       console.log("worldmap component already initialized, skipping");
       return;
     }
-    
+
     // Clear any stale worker assignments from previous initialization attempts
     // This is critical when gameData changes and component re-initializes
     workerManager.clearAssignments();
@@ -289,7 +291,7 @@ export function WorldMapComponent() {
                 pixelDataBuffer: pixelDataCopy.buffer,
                 canvasWidth: worldMapConfig.width,
                 canvasHeight: worldMapConfig.height,
-              }
+              };
               workerManager.queueTask({
                 id: uniqueTaskId,
                 type: "initWithImage",
@@ -412,7 +414,7 @@ export function WorldMapComponent() {
     );
 
     actionEventDispatcher.prolongedHoverLocation.subscribe(
-      ({ location, type: actionType }) => {
+      ({ location }) => {
         setShowNeighborsPanel(location);
       },
     );
@@ -501,63 +503,68 @@ export function WorldMapComponent() {
         cursor: isDraggingRef.current ? "grabbing" : "default",
       }}
     >
-      {gameDataLoadingError ? (
-        <LoadingScreenComponent message={gameDataLoadingError} />
-      ) : (
-        layers.map((layer) => (
-          <canvas
-            ref={layer.ref}
-            height={worldMapConfig.height}
-            width={worldMapConfig.width}
-            key={layer.zIndex}
-            className={"absolute"}
-            style={{
-              zIndex: layer.zIndex,
-              imageRendering: "pixelated",
-            }}
-          ></canvas>
-        ))
-      )}
-      {isLoading ? (
-        <LoadingScreenComponent
-          message={loadingError ? `Error: ${loadingError}` : "Loading..."}
+      {(() => {
+        switch (true) {
+          case gameDataIsLoading:
+            return <LoadingScreenComponent message="Loading game data..." />;
+          case !!gameDataLoadingError:
+            return <LoadingScreenComponent message={gameDataLoadingError} />;
+          case !!isLoading: // rendering canvases
+            return <LoadingScreenComponent message="Rendering map..." />;
+          default:
+            return <></>;
+        }
+      })()}
+      {layers.map((layer) => (
+        <canvas
+          ref={layer.ref}
+          height={worldMapConfig.height}
+          width={worldMapConfig.width}
+          key={layer.zIndex}
+          className="absolute"
+          style={{
+            zIndex: layer.zIndex,
+            imageRendering: "pixelated",
+          }}
         />
-      ) : (
-        <div>
-          <GuiElement className="fixed top-2 left-5 right-5 z-50">
-            {/* z-50 here is so that dropdowns from header show above of other guiElement */}
-            <HeaderComponent />
-          </GuiElement>
-          {hasOwnedLocations && (
-            <GuiElement className={"fixed left-5 top-18"}>
-              <ConstructibleMenusComponent></ConstructibleMenusComponent>
-            </GuiElement>
-          )}
-          <GuiElement className="fixed left-5 right-5 bottom-1">
-            <InfoBoxComponent />
-          </GuiElement>
-          {showNeighborsPanel && (
-            <GuiElement className="fixed left-5 bottom-20">
-              <NeighborsPanelComponent locationName={showNeighborsPanel} />
-            </GuiElement>
-          )}
+      ))}
 
-          <GuiElement className="fixed right-5 top-16">
-            <CountryOverview />
+      <div className={`${isLoading ? "hidden" : "visible"}`}>
+        <GuiElement className="fixed top-2 left-5 right-5 z-50">
+          {/* z-50 here is so that dropdowns from header show above of other guiElement */}
+          <HeaderComponent />
+        </GuiElement>
+        {hasOwnedLocations && (
+          <GuiElement className="fixed left-5 top-18">
+            <ConstructibleMenusComponent />
           </GuiElement>
+        )}
+        <GuiElement className="fixed left-5 right-5 bottom-1">
+          <InfoBoxComponent />
+        </GuiElement>
+        {showNeighborsPanel && (
+          <GuiElement className="fixed left-5 bottom-20">
+            <NeighborsPanelComponent locationName={showNeighborsPanel} />
+          </GuiElement>
+        )}
 
-          <GuiElement className="fixed right-20 bottom-15">
-            <button onClick={handleZoomOut} className={`w-8 px-2 py-1`}>
-              -
-            </button>
-          </GuiElement>
-          <GuiElement className="fixed right-5 bottom-15">
-            <button onClick={handleZoomIn} className={`w-8  px-2 py-1`}>
-              +
-            </button>
-          </GuiElement>
-        </div>
-      )}
+        <GuiElement className="fixed right-5 top-16">
+          <CountryOverview />
+        </GuiElement>
+
+        <GuiElement className="fixed right-20 bottom-15">
+          <button onClick={handleZoomOut} className="w-8 px-2 py-1">
+            -
+          </button>
+        </GuiElement>
+        <GuiElement className="fixed right-5 bottom-15">
+          <button onClick={handleZoomIn} className="w-8 px-2 py-1">
+            +
+          </button>
+        </GuiElement>
+      </div>
     </div>
   );
 }
+
+export default WorldMapComponent;

@@ -338,8 +338,8 @@ def main():
         print(f"✓ Found game files:")
         print(f"  - Locations map: {game_files.locations_map}")
         print(f"  - Rivers map: {game_files.rivers_map}")
-        print(f"  - Color mapping: {game_files.color_mapping}")
-        print(f"  - Default map: {game_files.default_map}")
+        print(f"  - Color mapping: {game_files.locations_color_mapping}")
+        print(f"  - Default map: {game_files.location_classification}")
         print(f"  - Ports file: {game_files.ports_file}")
     except (FileNotFoundError, ValueError) as e:
         print(f"Error loading game data: {e}")
@@ -353,11 +353,11 @@ def main():
     rivers_array = np.array(rivers_img)
     
     print("Loading color mapping...")
-    color_to_name, name_to_color = load_color_to_name_mapping(game_files.color_mapping)
+    color_to_name, name_to_color = load_color_to_name_mapping(game_files.locations_color_mapping)
     print(f"Loaded {len(color_to_name)} location mappings")
     
     print("Parsing default.map...")
-    sea_zones, lakes = parse_default_map(game_files.default_map)
+    sea_zones, lakes = parse_default_map(game_files.location_classification)
     print(f"Found {len(sea_zones)} sea zones and {len(lakes)} lakes")
     
     print("Parsing location templates...")

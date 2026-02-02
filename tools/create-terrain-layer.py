@@ -114,8 +114,8 @@ def main():
         game_files = loader.get_game_files_for_version(version)
         print(f"✓ Found game files:")
         print(f"  - Locations map: {game_files.locations_map}")
-        print(f"  - Color mapping: {game_files.color_mapping}")
-        print(f"  - Default map: {game_files.default_map}")
+        print(f"  - Color mapping: {game_files.locations_color_mapping}")
+        print(f"  - Default map: {game_files.location_classification}")
         print(f"  - Rivers map: {game_files.rivers_map}")
         
         # Use rivers_map from game_files if not explicitly provided
@@ -133,14 +133,14 @@ def main():
     print(f"Image size: {width}x{height}")
     
     print("Loading color to name mapping...")
-    color_to_name, name_to_color = load_color_to_name_mapping(game_files.color_mapping)
+    color_to_name, name_to_color = load_color_to_name_mapping(game_files.locations_color_mapping)
     print(f"Loaded {len(color_to_name)} location mappings")
     
     print("Parsing default.map...")
-    sea_zones, lakes = parse_default_map(game_files.default_map)
+    sea_zones, lakes = parse_default_map(game_files.location_classification)
     print(f"Found {len(sea_zones)} sea zones and {len(lakes)} lakes")
     
-    non_ownable, impassable = parse_non_ownable_impassable(game_files.default_map)
+    non_ownable, impassable = parse_non_ownable_impassable(game_files.location_classification)
     print(f"Found {len(non_ownable)} non-ownable and {len(impassable)} impassable locations")
     
     # Water locations are just seas and lakes

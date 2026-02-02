@@ -44,11 +44,11 @@ const buildLocationDisplay = (
 };
 
 export function InfoBoxComponent() {
+
   const gameLogic = useSyncExternalStore(
     gameStateController.subscribe.bind(gameStateController),
-    () => gameStateController.getSnapshot(),
+    () => gameStateController.getSnapshot()
   );
-  const { gameData } = useContext(AppContext);
 
   const hoveredLocation = useSyncExternalStore(
     actionEventDispatcher.hoveredLocation.subscribe.bind(
@@ -59,9 +59,14 @@ export function InfoBoxComponent() {
     },
   );
 
+
+  const { gameData } = useContext(AppContext);
   if (!gameData) {
-    throw new Error("Game data is not available in InfoBoxComponent");
+    return;
   }
+  
+
+
 
   if (!hoveredLocation?.location) {
     return (

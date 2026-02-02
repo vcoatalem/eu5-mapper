@@ -1,14 +1,19 @@
 "use client";
 
 import {
-  Dispatch,
-  SetStateAction,
   useState,
   useEffect,
   createContext,
 } from "react";
 import { useParams } from "next/navigation";
-import { ILocationIdentifier, IGameData } from "./lib/types/general";
+import {
+  IGameData,
+  ILocationDataMap,
+  ILocationIdentifierMap,
+  IBuildingTemplate,
+  ICountryData,
+} from "./lib/types/general";
+import { IProximityComputationRule } from "./lib/types/proximityComputationRules";
 import { IndexedDBWriter } from "./lib/indexeddb/indexeddb-writer";
 import {
   dbAdjacencyDataStoreName,
@@ -19,6 +24,7 @@ import {
   dbVersion,
 } from "./lib/indexeddb/indexeddb.const";
 import { ParserHelper } from "./lib/parser.helper";
+import { worldMapConfig } from "./components/worldMap.config";
 
 interface IAppContext {
   gameData: IGameData | null;
@@ -53,55 +59,94 @@ export const AppContextProvider = ({
 
         const basePath = `/${version}/game_data`;
 
-        // Fetch all JSON files and CSV in parallel
-        const [
-          locationDataRes,
-          colorToNameRes,
-          buildingsRes,
-          adjacencyRes,
-          proximityComputationRuleRes,
-          countriesDataRes,
-          roadsRes,
-        ] = await Promise.all([
-          fetch(`${basePath}/location-data-map.json`),
-          fetch(`${basePath}/color-to-name-map.json`),
-          fetch(`${basePath}/buildings-template-map.json`),
-          fetch(`${basePath}/adjacency-data.csv`),
-          fetch(`${basePath}/proximity-calculation-rules.json`),
-          fetch(`${basePath}/countries-data-map.json`),
-          fetch(`${basePath}/roads.json`),
-        ]);
+        // Preload map images in parallel with data fetches
+        const preloadImages = () => {
+          const imagePaths = [
+            worldMapConfig.colorMapFileName,
+            worldMapConfig.borderMapFileName,
+            worldMapConfig.terrainLayerFileName,
+          ];
 
-        if (
-          !locationDataRes.ok ||
-          !colorToNameRes.ok ||
-          !buildingsRes.ok ||
-          !adjacencyRes.ok ||
-          !proximityComputationRuleRes.ok ||
-          !countriesDataRes.ok
-        ) {
-          throw new Error(
-            `Failed to load game data files for version ${version}`,
+          return Promise.all(
+            imagePaths.map((imagePath) => {
+              return new Promise<void>((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                  console.log(`[AppContext] Preloaded image: ${imagePath}`);
+                  resolve();
+                };
+                img.onerror = (e) => {
+                  const error = new Error(`Failed to preload image: ${imagePath}`);
+                  console.error(`[AppContext] ${error.message}`, e);
+                  reject(error);
+                };
+                img.src = imagePath;
+              });
+            })
           );
+        };
+
+        const preloadGameDataFiles = async () => {
+          const gameDataFiles = {
+            locationDataMap: `${basePath}/location-data-map.json`,
+            colorToNameMap: `${basePath}/color-to-name-map.json`,
+            buildingsTemplateMap: `${basePath}/buildings-template-map.json`,
+            adjacencyCsv: `${basePath}/adjacency-data.csv`,
+            proximityComputationRule: `${basePath}/proximity-calculation-rules.json`,
+            countriesDataMap: `${basePath}/countries-data-map.json`,
+            roads: `${basePath}/roads.json`,
+          };
+
+          const entries = await Promise.all(
+            Object.entries(gameDataFiles).map(async ([key, filePath]) => {
+              try {
+                const res = await fetch(filePath);
+                if (!res.ok) {
+                  throw new Error(`could not fetch ${key}: ${res.status}`);
+                }
+
+                if (filePath.endsWith('.json')) {
+                  const data = await res.json();
+                  return [key, data] as const;
+                } else if (filePath.endsWith('.csv')) {
+                  const data = await res.text();
+                  return [key, data] as const;
+                } else {
+                  throw new Error(`Unsupported file type: ${filePath}`);
+                }
+              } catch (error) {
+                const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+                throw new Error(`Failed to preload game data file ${key}: ${errorMsg}`);
+              }
+            })
+          );
+
+          return Object.fromEntries(entries) as {
+            locationDataMap: ILocationDataMap;
+            colorToNameMap: ILocationIdentifierMap;
+            buildingsTemplateMap: Record<string, IBuildingTemplate>;
+            adjacencyCsv: string;
+            proximityComputationRule: IProximityComputationRule;
+            countriesDataMap: Record<string, ICountryData>;
+            roads: unknown; // Raw JSON, will be parsed by ParserHelper.parseRoadFile
+          };
         }
 
-        const [
+        const [gameDataFiles] = await Promise.all([
+          preloadGameDataFiles(),
+          preloadImages(),
+        ]);
+
+        const {
           locationDataMap,
           colorToNameMap,
           buildingsTemplateMap,
           adjacencyCsv,
           proximityComputationRule,
           countriesDataMap,
-          roadsJson,
-        ] = await Promise.all([
-          locationDataRes.json(),
-          colorToNameRes.json(),
-          buildingsRes.json(),
-          adjacencyRes.text(),
-          proximityComputationRuleRes.json(),
-          countriesDataRes.json(),
-          roadsRes.json(),
-        ]);
+          roads: roadsJson,
+        } = gameDataFiles;
+
         const roads = ParserHelper.parseRoadFile(roadsJson);
         console.log("[AppContext] Parsed roads:", roads);
 
@@ -146,7 +191,6 @@ export const AppContextProvider = ({
           );
 
         // indexedDB operations have to be done before setGameData to ensure this happens before worldmap component initializes
-
         setGameData({
           locationDataMap,
           colorToNameMap,

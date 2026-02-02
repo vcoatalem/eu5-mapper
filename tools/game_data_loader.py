@@ -19,8 +19,6 @@ class GameDataFiles:
     """Paths to game data files for a specific version"""
     locations_map: str
     rivers_map: str
-    color_mapping: str
-    default_map: str
     ports_file: str
     location_classification: str
     location_data: str
@@ -45,8 +43,6 @@ class GameDataLoader:
     BASE_FOLDER_NAMES = {
         'locations_map': 'world_map',
         'rivers_map': 'river_map',
-        'color_mapping': 'locations_color_mapping',
-        'default_map': 'locations_classification',
         'ports_file': 'ports',
         'location_classification': 'locations_classification',
         'location_data': 'locations_data',
@@ -63,8 +59,6 @@ class GameDataLoader:
     FILE_NAMES = {
         'locations_map': 'locations.png',
         'rivers_map': 'rivers.png',
-        'color_mapping': '00_default.txt',
-        'default_map': 'default.map',
         'ports_file': 'ports.csv',
         'location_classification': 'default.map',
         'location_data': 'location_templates.txt',

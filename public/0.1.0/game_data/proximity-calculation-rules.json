@@ -1,5 +1,5 @@
 {
-  "proximityModifiersStackingMode": "additive",
+  "proximityModifiersStackingMode": "multiplicative",
   "baseCost": 40,
   "baseRiverCost": 10,
   "baseCostWithMaritimePresence": 5,

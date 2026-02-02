@@ -1,8 +1,7 @@
 export const worldMapConfig = {
   width: 16384,
   height: 8192,
-  colorMapFileName: "test/locations.png",
-  borderMapFileName: "test/border_layer.png",
-  terrainLayerFileName: "test/terrain_layer.png",
-  riverMapFileName: "test/river_layer.png",
+  colorMapFileName: "0.0.11/images/locations.png",
+  borderMapFileName: "0.0.11/images/border_layer.png",
+  terrainLayerFileName: "0.0.11/images/terrain_layer.png",
 };

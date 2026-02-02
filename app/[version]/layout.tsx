@@ -1,6 +1,5 @@
 import { AppContextProvider } from "@/app/appContextProvider";
 
-
 export default function VersionLayout({
   children,
 }: Readonly<{

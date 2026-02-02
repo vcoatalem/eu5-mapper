@@ -1,16 +1,18 @@
-import { useContext, useMemo, useSyncExternalStore } from "react";
+import { useContext, useSyncExternalStore } from "react";
 import { AppContext } from "../appContextProvider";
 import { gameStateController } from "../lib/gameState.controller";
 import { WorkerStatusComponent } from "./workerStatus.component";
 import { LocationSearchBar } from "./locationSearchBar.component";
 
 export function HeaderComponent() {
-  const { gameData } = useContext(AppContext);
-  if (!gameData) return;
+
   const gameState = useSyncExternalStore(
     gameStateController.subscribe.bind(gameStateController),
     () => gameStateController.getSnapshot(),
   );
+
+  const { gameData } = useContext(AppContext);
+  if (!gameData) return;
 
   const selectCountry = (code: string) => {
     console.log("select country:", code);
@@ -30,7 +32,7 @@ export function HeaderComponent() {
           Custom Country
         </option>
         {Object.entries(gameData?.countriesDataMap).map(
-          ([countryName, countryData]) => (
+          ([countryName]) => (
             <option key={countryName} value={countryName}>
               {countryName}
             </option>

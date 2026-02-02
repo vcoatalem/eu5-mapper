@@ -6,6 +6,7 @@ interface IValueImpact {
 }
 
 export interface IProximityComputationRule {
+  proximityModifiersStackingMode: "additive" | "multiplicative";
   baseCost: number;
   baseRiverCost: number;
   baseCostWithMaritimePresence: number;

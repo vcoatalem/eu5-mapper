@@ -302,7 +302,7 @@ country of {country}:
             loc_a = row['locationA']
             loc_b = row['locationB']
             
-            if access_type == 'port':
+            if access_type == 'port' or access_type == 'port-river':
                 # Both locations in a port connection are coastal
                 coastal_locations.add(loc_a)
                 coastal_locations.add(loc_b)

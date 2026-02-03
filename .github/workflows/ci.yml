@@ -38,12 +38,14 @@ jobs:
       - name: Run tests
         run: ${{ steps.detect-package-manager.outputs.runner }} npm run test
       - name: Configure AWS credentials
+        if: always()
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       - name: Export results to S3
+        if: always()
         run: |
           COMMIT_SHA="${{ github.sha }}"
           S3_BUCKET="eu5-mapapp"

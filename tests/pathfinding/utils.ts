@@ -31,6 +31,8 @@ export const readAdjacencyFile = async (
 };
 
 export async function generateHtmlReport(
+  country: string,
+  version: string,
   results: Array<{
     location: ILocationIdentifier;
     expected: number;
@@ -399,10 +401,18 @@ export async function generateHtmlReport(
 </body>
 </html>`;
 
+const outputFolder = path.join(
+  process.cwd(),
+  "tests/pathfinding/output/",
+  version.replaceAll('.', '_'),
+);
   const outputPath = path.join(
-    process.cwd(),
-    "tests/pathfinding/test-results.html",
+     outputFolder,
+    `${country.toLowerCase()}.html`,
   );
+  if (!fs.existsSync(outputFolder)) {
+    fs.mkdirSync(outputFolder, { recursive: true });
+  }
   await fsPromises.writeFile(outputPath, html, "utf-8");
   console.log(`\n📊 HTML report generated: ${outputPath}`);
 }

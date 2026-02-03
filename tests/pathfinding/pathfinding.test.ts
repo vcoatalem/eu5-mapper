@@ -6,11 +6,17 @@ import { ProximityComputationHelper } from "@/app/lib/proximityComputation.helpe
 import { ParserHelper } from "@/app/lib/parser.helper";
 
 test("should run", async () => {
+
+  const country = "ENG";
+  const baseCountryRulerAdministrativeAbility = 80;
+  const version = "0.0.11";
+
+
   const testData = await readReferenceFile(
-    "tests/pathfinding/references/0.0.11/reference_gamestart_proximity_england_0_0_11.csv",
+    `tests/pathfinding/references/${version}/eng_0_0_11.csv`,
   );
 
-  const gameDataFolder = "public/0.0.11/game_data";
+  const gameDataFolder = `public/${version}/game_data`;
 
   const adjGraph = await readAdjacencyFile(
     `${gameDataFolder}/adjacency-data.csv`,
@@ -52,9 +58,9 @@ test("should run", async () => {
 
   const gameStateController = new GameStateController();
   gameStateController.init(gameData);
-  gameStateController.reset("ENG");
+  gameStateController.reset(country);
   gameStateController.changeCountryValues({
-    rulerAdministrativeAbility: 80,
+    rulerAdministrativeAbility: baseCountryRulerAdministrativeAbility,
   });
 
   const gameState = gameStateController.getSnapshot();
@@ -80,7 +86,7 @@ test("should run", async () => {
 
   const pathFromLondonToNewCastle = adjGraph.getShortestPath(
     "london",
-    "daventry",
+    "winchester",
     100,
     costFunction,
   );
@@ -105,7 +111,20 @@ test("should run", async () => {
         ),
       };
     } else {
+      // exclude locations that do not exist in the game (e.g typo)
       unrecognisedLocations.push(location);
+    }
+  }
+
+  for (const [location, evaluation] of Object.entries(reachable)) {
+    if (!(location in testData) && gameData.countriesDataMap[country].locations.includes(location)) {
+      // TODO: figure out exactly the cases we want to measure here.
+      // location belonging to country has evaluation > 0 but is not in ref file
+
+      differences[location] = {
+        expected: -1,
+        actual: ProximityComputationHelper.evaluationToProximity(evaluation.cost)
+      }
     }
   }
 
@@ -140,7 +159,7 @@ test("should run", async () => {
   );
 
   // Generate HTML report
-  await generateHtmlReport(results, toleratedDifference, unrecognisedLocations);
+  await generateHtmlReport(country, version, results, toleratedDifference, unrecognisedLocations);
 
   const badResults = results.filter(
     (r) => Math.abs(r.difference) > toleratedDifference,

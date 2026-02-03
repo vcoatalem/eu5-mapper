@@ -37,3 +37,22 @@ jobs:
         run: ${{ steps.detect-package-manager.outputs.manager }} ${{ steps.detect-package-manager.outputs.command }}
       - name: Run tests
         run: ${{ steps.detect-package-manager.outputs.runner }} npm run test
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - name: Export results to S3
+        run: |
+          COMMIT_SHA="${{ github.sha }}"
+          S3_BUCKET="eu5-mapapp"
+          S3_PREFIX="test-results/${COMMIT_SHA}"
+          
+          # Upload all HTML files from tests/pathfinding/output
+          if [ -d "tests/pathfinding/output" ]; then
+            aws s3 sync tests/pathfinding/output s3://${S3_BUCKET}/${S3_PREFIX}/ --exclude "*" --include "*.html" --include "*.json" --delete
+            echo "✅ Uploaded test results to s3://${S3_BUCKET}/${S3_PREFIX}/"
+          else
+            echo "⚠️ No test results directory found"
+          fi

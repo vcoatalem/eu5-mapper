@@ -342,6 +342,9 @@ export async function generateHtmlReport(
 <body>
   <div class="container">
     <div class="header">
+      <div style="text-align: left; margin-bottom: 20px;">
+        <a href="index.html" style="color: white; text-decoration: none; font-size: 1em; padding: 10px 20px; background: rgba(255, 255, 255, 0.2); border-radius: 6px; display: inline-block; transition: background 0.2s;" onmouseover="this.style.background='rgba(255, 255, 255, 0.3)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.2)'">← Back to Index</a>
+      </div>
       <h1>🧭 Pathfinding Test Results</h1>
       <div class="stats">
         <div class="stat-card">
@@ -473,6 +476,26 @@ const outputFolder = path.join(
   }
   await fsPromises.writeFile(outputPath, html, "utf-8");
   console.log(`\n📊 HTML report generated: ${outputPath}`);
+
+  // Generate metadata JSON file for index generation
+  const metadataPath = path.join(
+    outputFolder,
+    `${country.toLowerCase()}.json`,
+  );
+  const metadata = {
+    country,
+    version,
+    totalCount,
+    goodCount,
+    badCount,
+    successRate: parseFloat(successRate),
+    averageAbsoluteDifference: totalCount > 0
+      ? results.reduce((sum, r) => sum + Math.abs(r.difference), 0) / totalCount
+      : 0,
+    unrecognisedCount: unrecognisedLocations.length,
+    reportPath: `${country.toLowerCase()}.html`,
+  };
+  await fsPromises.writeFile(metadataPath, JSON.stringify(metadata, null, 2), "utf-8");
 }
 
 function escapeHtml(text: string): string {
@@ -484,4 +507,286 @@ function escapeHtml(text: string): string {
     "'": "&#039;",
   };
   return text.replace(/[&<>"']/g, (m) => map[m]);
+}
+
+interface ReportMetadata {
+  country: string;
+  version: string;
+  totalCount: number;
+  goodCount: number;
+  badCount: number;
+  successRate: number;
+  averageAbsoluteDifference: number;
+  unrecognisedCount: number;
+  reportPath: string;
+}
+
+export async function generateIndexFile(): Promise<void> {
+  const outputBasePath = path.join(process.cwd(), "tests/pathfinding/output");
+  
+  if (!fs.existsSync(outputBasePath)) {
+    console.log("No output directory found. Run tests first to generate reports.");
+    return;
+  }
+
+  // Scan all version directories
+  const versionDirs = fs.readdirSync(outputBasePath, { withFileTypes: true })
+    .filter(entry => entry.isDirectory())
+    .map(entry => entry.name);
+
+  // Generate an index file for each version folder
+  for (const versionDir of versionDirs) {
+    const versionPath = path.join(outputBasePath, versionDir);
+    const jsonFiles = fs.readdirSync(versionPath)
+      .filter(file => file.endsWith('.json'));
+
+    const reports: ReportMetadata[] = [];
+
+    for (const jsonFile of jsonFiles) {
+      const metadataPath = path.join(versionPath, jsonFile);
+      try {
+        const metadataContent = await fsPromises.readFile(metadataPath, 'utf-8');
+        const metadata: ReportMetadata = JSON.parse(metadataContent);
+        reports.push(metadata);
+      } catch (error) {
+        console.warn(`Failed to read metadata file ${metadataPath}:`, error);
+      }
+    }
+
+    // Sort by country
+    reports.sort((a, b) => a.country.localeCompare(b.country));
+
+    // Generate index HTML for this version
+    if (reports.length > 0) {
+      const version = reports[0].version; // All reports in a version folder should have the same version
+
+      const indexHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pathfinding Test Reports Index - Version ${version}</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    
+    .header h1 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+    
+    .content {
+      padding: 30px;
+    }
+    
+    .table-container {
+      overflow-x: auto;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+    
+    thead {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    
+    th {
+      padding: 15px;
+      text-align: left;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.85em;
+      letter-spacing: 0.5px;
+    }
+    
+    tbody tr {
+      border-bottom: 1px solid #e5e7eb;
+      transition: background-color 0.2s;
+    }
+    
+    tbody tr:hover {
+      background-color: #f9fafb;
+    }
+    
+    td {
+      padding: 12px 15px;
+    }
+    
+    .country-link {
+      color: #2563eb;
+      text-decoration: none;
+      font-weight: 600;
+      font-family: 'Monaco', 'Menlo', monospace;
+    }
+    
+    .country-link:hover {
+      text-decoration: underline;
+    }
+    
+    .score {
+      font-weight: 700;
+      font-size: 1.1em;
+    }
+    
+    .score.excellent {
+      color: #059669;
+    }
+    
+    .score.good {
+      color: #2563eb;
+    }
+    
+    .score.fair {
+      color: #d97706;
+    }
+    
+    .score.poor {
+      color: #dc2626;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.85em;
+      font-weight: 600;
+    }
+    
+    .badge.success {
+      background: #d1fae5;
+      color: #059669;
+    }
+    
+    .badge.warning {
+      background: #fef3c7;
+      color: #d97706;
+    }
+    
+    .badge.error {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+    
+    .footer {
+      padding: 20px 30px;
+      background: #f9fafb;
+      text-align: center;
+      color: #6b7280;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📊 Pathfinding Test Reports Index</h1>
+      <p style="margin-top: 10px; opacity: 0.9;">Version ${version}</p>
+    </div>
+    
+    <div class="content">
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Country</th>
+              <th>Success Rate</th>
+              <th>Average Difference</th>
+              <th>Total Tests</th>
+              <th>Passed</th>
+              <th>Failed</th>
+              <th>Unrecognised</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reports
+              .map((report) => {
+                const getScoreClass = (avgDiff: number) => {
+                  if (avgDiff <= 2) return 'excellent';
+                  if (avgDiff <= 5) return 'good';
+                  if (avgDiff <= 10) return 'fair';
+                  return 'poor';
+                };
+                
+                const getSuccessBadge = (rate: number) => {
+                  if (rate >= 90) return '<span class="badge success">Excellent</span>';
+                  if (rate >= 70) return '<span class="badge success">Good</span>';
+                  if (rate >= 50) return '<span class="badge warning">Fair</span>';
+                  return '<span class="badge error">Poor</span>';
+                };
+                
+                const reportUrl = report.reportPath; // Just the filename since it's in the same directory
+                const scoreClass = getScoreClass(report.averageAbsoluteDifference);
+                
+                return `
+                  <tr>
+                    <td>
+                      <a href="${escapeHtml(reportUrl)}" class="country-link">
+                        ${escapeHtml(report.country.toUpperCase())}
+                      </a>
+                    </td>
+                    <td>${getSuccessBadge(report.successRate)} ${report.successRate.toFixed(2)}%</td>
+                    <td class="score ${scoreClass}">${report.averageAbsoluteDifference.toFixed(2)}</td>
+                    <td>${report.totalCount}</td>
+                    <td style="color: #059669; font-weight: 600;">${report.goodCount}</td>
+                    <td style="color: #dc2626; font-weight: 600;">${report.badCount}</td>
+                    <td>${report.unrecognisedCount}</td>
+                  </tr>
+                `;
+              })
+              .join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <div class="footer">
+      Generated on ${new Date().toLocaleString()} | 
+      Average Difference: Lower is better (measures closeness to expected values)
+    </div>
+  </div>
+</body>
+</html>`;
+
+      const indexPath = path.join(versionPath, 'index.html');
+      await fsPromises.writeFile(indexPath, indexHtml, 'utf-8');
+      console.log(`\n📑 Index file generated: ${indexPath}`);
+    }
+  }
 }

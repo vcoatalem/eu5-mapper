@@ -1,4 +1,4 @@
-import { readReferenceFile, generateHtmlReport, getAllReferenceFilePaths } from "./utils";
+import { readReferenceFile, generateHtmlReport, getAllReferenceFilePaths, generateIndexFile } from "./utils";
 import { IGameData, ILocationIdentifier } from "@/app/lib/types/general";
 import { GameStateController } from "@/app/lib/gameState.controller";
 import { ProximityComputationHelper } from "@/app/lib/proximityComputation.helper";
@@ -142,4 +142,6 @@ if (badResults.length > 0)
   );
 });
 
-/* console.log("referenceFiles", referenceFiles); */
+test('generate index file', async () => {
+  await generateIndexFile();
+});

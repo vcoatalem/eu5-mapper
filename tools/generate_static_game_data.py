@@ -252,7 +252,7 @@ def generate_game_data_json(version: str = "0.0.11", output_dir: str = None):
     hierarchy = parse_location_hierarchy(files.provinces_data)
 
     # Parse countries file and extract whitelisted countries' locations
-    whitelisted_countries = ["SWE", "DAN", "NOR", "ENG", "FRA", "TEU", "BRA", "BOH", "HUN", "POL", "LIT", "MOS", "NOV", "OTT", "RUS", "CAS", "POR", "VEN", "PAP", "ARB", "MOR", "TUN", "DHL", "ARA", "HAB", "KIE", "GEO", "MAM", "OMA", "VIJ" ]
+    whitelisted_countries = ["SWE", "DAN", "NOR", "ENG", "FRA", "TEU", "BRA", "BOH", "HUN", "POL", "LIT", "MOS", "NOV", "OTT", "RUS", "CAS", "POR", "VEN", "PAP", "ARB", "MOR", "TUN", "DHL", "ARA", "HAB", "KIE", "GEO", "MAM", "OMA", "VIJ", "BYZ" ]
     countries_data_map = parse_countries_files(files.countries_file, whitelisted_countries)
 
     print("Parsed countries:", countries_data_map)

@@ -3,6 +3,7 @@ import { AppContext } from "../appContextProvider";
 import { gameStateController } from "../lib/gameState.controller";
 import { WorkerStatusComponent } from "./workerStatus.component";
 import { LocationSearchBar } from "./locationSearchBar.component";
+import { PathfindingInfosComponent } from "@/app/components/pathfindingInfos.component";
 
 export function HeaderComponent() {
 
@@ -19,17 +20,19 @@ export function HeaderComponent() {
   };
 
   return (
-    <div className="w-full h-10 flex divide-x-2 divide-stone-60">
+    <div className="w-full h-10 flex items-center">
       <WorkerStatusComponent />
       <LocationSearchBar />
       <select
-        className="ml-auto"
+        className="text-xl font-bold hover:bg-stone-600 px-2 py-1 rounded-sm"
+        style={{ appearance: "none" }}
         value={gameState.countryCode || ""}
         onChange={(e) => selectCountry(e.target.value)}
       >
-        <option value="" disabled>
-          Custom Country
+        <option className="" value="">
+          Select a country
         </option>
+
         {Object.entries(gameData?.countriesDataMap).map(
           ([countryName]) => (
             <option key={countryName} value={countryName}>
@@ -38,6 +41,7 @@ export function HeaderComponent() {
           ),
         )}
       </select>
+      <PathfindingInfosComponent className="ml-auto"/>
     </div>
   );
 }

@@ -1,8 +1,8 @@
 import React, {
-  useCallback,
   useContext,
   useEffect,
   useRef,
+  useState,
   useSyncExternalStore,
 } from "react";
 import { AppContext } from "../appContextProvider";
@@ -58,37 +58,69 @@ const LocationSearchResultItem = React.memo(function LocationSearchResultItem({
 
 export function LocationSearchBar() {
   const { gameData } = useContext(AppContext);
-  if (!gameData) {
-    return <div></div>;
-  }
-
   const locationSearchResult = useSyncExternalStore(
     locationSearchController.subscribe.bind(locationSearchController),
     () => locationSearchController.getSnapshot(),
   );
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isFocused, setIsFocused] = useState(false);
+
+  if (!gameData) {
+    return <div></div>;
+  }
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const relatedTarget = e.relatedTarget as Node | null;
+    if (relatedTarget && dropdownRef.current?.contains(relatedTarget)) {
+      return;
+    }
+    // Delay hiding to allow click events to fire first
+    setTimeout(() => {
+      if (document.activeElement !== inputRef.current) {
+        setIsFocused(false);
+      }
+    }, 150);
+  };
+
+  const handleDropdownMouseDown = (e: React.MouseEvent) => {
+    // Prevent input from losing focus when clicking on dropdown
+    e.preventDefault();
+  };
+
+  const handleMouseLeave = () => {
+    setIsFocused(false);
+  };
 
   return (
-    <div className="px-2 w-62">
+    <div 
+      className="px-2 w-62 h-full flex items-center relative"
+      onMouseLeave={handleMouseLeave}
+    >
       <input
         ref={inputRef}
         type="text"
         placeholder="Search location..."
         className="w-full px-2 h-full"
         style={{ outline: "none" }}
-        onChange={(e) => locationSearchController.search(e.target.value)}
+        onChange={(e) => {locationSearchController.search(e.target.value); setIsFocused(true)}}
+        onFocus={() => setIsFocused(true)}
+        onBlur={handleBlur}
       />
       <GuiElement
         className={
-          " top-5 relative " +
-          (!!locationSearchResult.locations.length &&
-          inputRef.current === document.activeElement
+          "absolute top-full left-2 right-2 z-50 " +
+          (!!locationSearchResult.locations.length && isFocused
             ? "visible"
             : "invisible")
         }
       >
-        <div className="max-h-96 overflow-y-auto overflow-x-hidden w-full bg-black/90">
+        <div 
+          ref={dropdownRef} 
+          className="max-h-96 overflow-y-auto overflow-x-hidden w-full bg-black/90"
+          onMouseDown={handleDropdownMouseDown}
+        >
           {locationSearchResult.locations.map((loc) => (
             <LocationSearchResultItem key={loc.name} loc={loc} />
           ))}

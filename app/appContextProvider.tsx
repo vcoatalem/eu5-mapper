@@ -34,7 +34,7 @@ interface IAppContext {
   gameData: IGameData | null;
   imagePaths: IImagePaths | null;
   isLoading: boolean;
-  error: string | null;
+  error: string | null
 }
 
 const emptyContext = {} as IAppContext;

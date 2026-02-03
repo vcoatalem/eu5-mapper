@@ -34,7 +34,9 @@ export class ParserHelper {
     return graph;
   }
 
+  // jsonContent should be an array of [from, to] pairs
   static parseRoadFile(jsonContent: any): RoadRecord {
+
     const roadRecord: RoadRecord = {};
 
     for (const roadEntry of jsonContent) {

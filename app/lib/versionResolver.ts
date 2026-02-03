@@ -12,13 +12,25 @@ export class VersionResolver {
       return this.manifest;
     }
     
-    const response = await fetch('/versions-manifest.json');
-    if (!response.ok) {
-      throw new Error('Failed to load versions manifest');
+    const isNodeEnv = typeof window === 'undefined';
+    
+    if (isNodeEnv) {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      const manifestPath = path.join(process.cwd(), 'public/versions-manifest.json');
+      const manifestContent = await fs.readFile(manifestPath, 'utf-8');
+      const manifest = JSON.parse(manifestContent) as VersionsManifest;
+      this.manifest = manifest;
+      return manifest;
+    } else {
+      const response = await fetch('/versions-manifest.json');
+      if (!response.ok) {
+        throw new Error('Failed to load versions manifest');
+      }
+      const manifest = await response.json() as VersionsManifest;
+      this.manifest = manifest;
+      return manifest;
     }
-    const manifest = await response.json() as VersionsManifest;
-    this.manifest = manifest;
-    return manifest;
   }
 
 

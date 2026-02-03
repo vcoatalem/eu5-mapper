@@ -1,19 +1,12 @@
 "use client";
 
-import {
-  useState,
-  useEffect,
-  createContext,
-} from "react";
+import { GameDataLoaderHelper } from "@/app/lib/gameDataLoader.helper";
 import { useParams } from "next/navigation";
 import {
-  IGameData,
-  ILocationDataMap,
-  ILocationIdentifierMap,
-  IBuildingTemplate,
-  ICountryData,
-} from "./lib/types/general";
-import { IProximityComputationRule } from "./lib/types/proximityComputationRules";
+  createContext,
+  useEffect,
+  useState,
+} from "react";
 import { IndexedDBWriter } from "./lib/indexeddb/indexeddb-writer";
 import {
   dbAdjacencyDataStoreName,
@@ -23,12 +16,13 @@ import {
   dbStoreNames,
   dbVersion,
 } from "./lib/indexeddb/indexeddb.const";
-import { ParserHelper } from "./lib/parser.helper";
-import { VersionResolver } from "./lib/versionResolver";
 import {
-  GameDataFileType,
-  FILE_TYPE_TO_FILENAME,
+  IGameData
+} from "./lib/types/general";
+import {
+  GameDataFileType
 } from "./lib/types/versionsManifest";
+import { VersionResolver } from "./lib/versionResolver";
 
 interface IImagePaths {
   locationsImage: string;
@@ -124,63 +118,9 @@ export const AppContextProvider = ({
           return imagePaths;
         };
 
-        const preloadGameDataFiles = async () => {
-          const gameDataFileTypes: GameDataFileType[] = [
-            'locationDataMap',
-            'colorToNameMap',
-            'buildingsTemplateMap',
-            'adjacencyCsv',
-            'proximityComputationRule',
-            'countriesDataMap',
-            'roads',
-          ];
-
-          const entries = await Promise.all(
-            gameDataFileTypes.map(async (fileType) => {
-              try {
-                // Resolve version for this file
-                const resolvedVersion = await versionResolver.resolveFileVersion(
-                  fileType,
-                  version
-                );
-                const filePath = versionResolver.getFilePath(fileType, resolvedVersion);
-                const fileName = FILE_TYPE_TO_FILENAME[fileType];
-
-                // Fetch and parse the file
-                const res = await fetch(filePath);
-                if (!res.ok) {
-                  throw new Error(`could not fetch ${fileType}: ${res.status}`);
-                }
-
-                if (fileName.endsWith('.json')) {
-                  const data = await res.json();
-                  return [fileType, data] as const;
-                } else if (fileName.endsWith('.csv')) {
-                  const data = await res.text();
-                  return [fileType, data] as const;
-                } else {
-                  throw new Error(`Unsupported file type: ${fileName}`);
-                }
-              } catch (error) {
-                const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-                throw new Error(`Failed to preload game data file ${fileType}: ${errorMsg}`);
-              }
-            })
-          );
-
-          return Object.fromEntries(entries) as {
-            locationDataMap: ILocationDataMap;
-            colorToNameMap: ILocationIdentifierMap;
-            buildingsTemplateMap: Record<string, IBuildingTemplate>;
-            adjacencyCsv: string;
-            proximityComputationRule: IProximityComputationRule;
-            countriesDataMap: Record<string, ICountryData>;
-            roads: unknown; // Raw JSON, will be parsed by ParserHelper.parseRoadFile
-          };
-        };
 
         const [gameDataFiles, resolvedImagePaths] = await Promise.all([
-          preloadGameDataFiles(),
+          GameDataLoaderHelper.loadGameDataFilesForVersion(version, versionResolver),
           resolveAndPreloadImages(),
         ]);
 
@@ -191,10 +131,9 @@ export const AppContextProvider = ({
           adjacencyCsv,
           proximityComputationRule,
           countriesDataMap,
-          roads: roadsJson,
+          roads,
         } = gameDataFiles;
 
-        const roads = ParserHelper.parseRoadFile(roadsJson);
         console.log("[AppContext] Parsed roads:", roads);
 
         const toBePersistedGameData: IGameData = {
@@ -203,7 +142,7 @@ export const AppContextProvider = ({
           buildingsTemplateMap: {},
           proximityComputationRule,
           countriesDataMap: {},
-          roads,
+          roads
         };
         const indexedDBWriter = new IndexedDBWriter(
           dbName,

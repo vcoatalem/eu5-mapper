@@ -7,10 +7,25 @@ import path from "path";
 
 export const readReferenceFile = async (
   path: string,
-): Promise<Record<ILocationIdentifier, number>> => {
+): Promise<{
+  countryCode: string;
+  version: string;
+  rulerAdministrativeAbility: number;
+  data: Record<ILocationIdentifier, number>;
+}> => {
   const f = await fs.readFileSync(path, "utf-8");
-  return f
-    .split("\n")
+  const lines = f.split("\n");
+  const headerLine = lines[0];
+  
+  // Parse header: location,proximity,<COUNTRY_CODE>,version:<VERSION>,admin_ability:<ADMIN_ABILITY>
+  const headerParts = headerLine.split(",");
+  const countryCode = headerParts[2];
+  const versionPart = headerParts[3]; // version:<value>
+  const version = versionPart.split(":")[1];
+  const adminAbilityPart = headerParts[4]; // admin_ability:<value>
+  const rulerAdministrativeAbility = Number(adminAbilityPart.split(":")[1]);
+  
+  const data = lines
     .slice(1) // skip header
     .filter((line) => line.trim().length > 0) // ignore empty lines
     .map((line) => line.trim().split(",") as [string, string])
@@ -21,6 +36,13 @@ export const readReferenceFile = async (
       },
       {} as Record<ILocationIdentifier, number>,
     );
+  
+  return {
+    countryCode,
+    version,
+    rulerAdministrativeAbility,
+    data,
+  };
 };
 
 export const readAdjacencyFile = async (
@@ -28,6 +50,42 @@ export const readAdjacencyFile = async (
 ): Promise<CompactGraph> => {
   const adjacencyData = await fs.readFileSync(path, "utf-8");
   return ParserHelper.parseAdjacencyCSV(adjacencyData);
+};
+
+/**
+ * Recursively finds all CSV files in the references folder
+ * @param referencesFolderPath - Optional path to the references folder. Defaults to tests/pathfinding/references
+ * @returns Array of file paths to all CSV files found in the references folder
+ */
+export const getAllReferenceFilePaths = (
+  referencesFolderPath?: string,
+): string[] => {
+  const basePath = referencesFolderPath || path.join(
+    process.cwd(),
+    "tests/pathfinding/references",
+  );
+  
+  const csvFiles: string[] = [];
+  
+  const findCsvFiles = (dir: string): void => {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      
+      if (entry.isDirectory()) {
+        findCsvFiles(fullPath);
+      } else if (entry.isFile() && entry.name.endsWith(".csv")) {
+        csvFiles.push(fullPath);
+      }
+    }
+  };
+  
+  if (fs.existsSync(basePath)) {
+    findCsvFiles(basePath);
+  }
+  
+  return csvFiles.sort();
 };
 
 export async function generateHtmlReport(

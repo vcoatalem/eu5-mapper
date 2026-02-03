@@ -1,10 +1,9 @@
-import { Observable } from "./observable";
-import { IGameData, ILocationIdentifier } from "./types/general";
 import { gameStateController } from "@/app/lib/gameState.controller";
-import { GraphStats, PathfindingResult } from "./types/pathfinding";
-import { CompactGraph } from "./graph";
-import { workerManager } from "./workerManager";
 import { IWorkerTaskComputeProximityResult } from "@/workers/types/workerTypes";
+import { Observable } from "./observable";
+import { ILocationIdentifier } from "./types/general";
+import { GraphStats, PathfindingResult } from "./types/pathfinding";
+import { workerManager } from "./workerManager";
 
 export interface IProximityComputationResults {
   result: PathfindingResult;

@@ -352,6 +352,7 @@
       }
       return graph2;
     }
+    // jsonContent should be an array of [from, to] pairs
     static parseRoadFile(jsonContent) {
       const roadRecord = {};
       for (const roadEntry of jsonContent) {

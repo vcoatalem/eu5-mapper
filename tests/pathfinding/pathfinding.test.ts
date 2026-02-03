@@ -110,8 +110,19 @@ for (const [location, { expected, actual }] of Object.entries(differences)) {
   });
 }
 
-// Sort by absolute difference (closest matches first)
-results.sort((a, b) => Math.abs(a.difference) - Math.abs(b.difference));
+// Sort: results with expected > 0 first (sorted by absolute difference), then results with expected <= 0
+results.sort((a, b) => {
+  const aHasExpected = a.expected > 0;
+  const bHasExpected = b.expected > 0;
+  
+  // If one has expected > 0 and the other doesn't, prioritize the one with expected > 0
+  if (aHasExpected !== bHasExpected) {
+    return aHasExpected ? -1 : 1;
+  }
+  
+  // Within the same group, sort by absolute difference (closest matches first)
+  return Math.abs(a.difference) - Math.abs(b.difference);
+});
 
 const toleratedDifference = 5;
 const goodResults = results.filter((r) => Math.abs(r.difference) <= toleratedDifference);

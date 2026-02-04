@@ -48,8 +48,6 @@ export function WorldMapComponent() {
   const hasOwnedLocations = gameState?.ownedLocations
     ? !!Object.keys(gameState?.ownedLocations)?.length
     : false;
-  //THIS USAGE OF USEREF IS NOT AN ERROR, DO NOT REPLACE IT BY USESTATE - WILL BE REFACTORED LATER
-  const isDraggingRef = useRef(false);
   const initializedRef = useRef(false);
   const colorCanvasRef = useRef<HTMLCanvasElement>(null);
   const terrainCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -68,6 +66,11 @@ export function WorldMapComponent() {
   const [initializationError, setInitializationError] = useState<string | null>(null);
   const [showNeighborsPanel, setShowNeighborsPanel] =
     useState<ILocationIdentifier | null>(null);
+  // Using ref instead of state: we use forceUpdate() (triggerRender) to trigger render
+  // after applying the drag state, so we don't need useState's automatic re-renders.
+  // The cursor style can read from ref.current during render, and the zoom controller
+  // closure needs a ref to access the current value.
+  const isDraggingRef = useRef(false);
   const layersRenderedRef = useRef(0);
   const imageLoadHandlersRef = useRef<Array<{ img: HTMLImageElement; layer: string }>>([]);
 
@@ -247,8 +250,28 @@ export function WorldMapComponent() {
       // Position user at coordinates X: 7934, Y: 1991
       if (!colorCanvas || !container) return;
 
-      // Use smooth pan for initial position
-      cameraServiceRef.current?.panToCoordinate({ x: 7934, y: 1991 }, 0);
+      // Ensure canvas has initial position set before panning
+      // This prevents zoom calculations from using invalid positions
+      const containerRect = container.getBoundingClientRect();
+      const centerX = containerRect.width / 2;
+      const centerY = containerRect.height / 2;
+      const initialZoom = zoomController.getSnapshot().zoomLevel;
+      const targetX = 7934;
+      const targetY = 1991;
+      
+      // Set initial position directly to avoid animation issues on first load
+      const initialLeft = centerX - targetX * initialZoom;
+      const initialTop = centerY - targetY * initialZoom;
+      
+      layers.forEach((layer) => {
+        const canvas = layer.ref.current;
+        if (canvas) {
+          canvas.style.left = initialLeft + "px";
+          canvas.style.top = initialTop + "px";
+          canvas.style.transform = `scale(${initialZoom})`;
+          canvas.style.transformOrigin = "0 0";
+        }
+      });
     };
 
     // Reset layer counter
@@ -366,9 +389,12 @@ export function WorldMapComponent() {
       triggerRender();
       startX = e.clientX;
       startY = e.clientY;
-      const rect = colorCanvas.getBoundingClientRect();
-      scrollLeft = rect.left;
-      scrollTop = rect.top;
+      // Get positions relative to container, not viewport
+      const canvasRect = colorCanvas.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      // Store the current style.left/top values (container-relative)
+      scrollLeft = parseFloat(colorCanvas.style.left) || (canvasRect.left - containerRect.left);
+      scrollTop = parseFloat(colorCanvas.style.top) || (canvasRect.top - containerRect.top);
     };
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -392,6 +418,12 @@ export function WorldMapComponent() {
       triggerRender();
     };
 
+    // Set initial position BEFORE initializing zoom controller
+    // This ensures canvas positions are set before any zoom events can fire
+    setInitialPosition();
+
+    // Set up dragging check before initializing zoom controller
+    zoomController.setDraggingCheck(() => isDraggingRef.current);
     zoomController.init(topLayerRef.current);
 
     zoomController.subscribe(({ zoomLevel, oldZoomLevel }) => {
@@ -476,8 +508,6 @@ export function WorldMapComponent() {
       topLayerRef.current.addEventListener("mousemove", handleMouseMove);
       topLayerRef.current.addEventListener("mouseup", handleMouseUp);
     }
-
-    setInitialPosition();
 
     console.log({ workerManagerConfig });
     

@@ -24,7 +24,7 @@ export function HeaderComponent() {
       <WorkerStatusComponent />
       <LocationSearchBar />
       <select
-        className="text-xl font-bold hover:bg-stone-600 px-2 py-1 rounded-sm"
+        className="font-bold hover:bg-stone-600 px-2 py-1 rounded-sm"
         style={{ appearance: "none" }}
         value={gameState.countryCode || ""}
         onChange={(e) => selectCountry(e.target.value)}

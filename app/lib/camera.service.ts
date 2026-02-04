@@ -161,13 +161,20 @@ export class CameraService {
     const centerX = containerRect.width / 2;
     const centerY = containerRect.height / 2;
 
-    // Get current position and zoom
-    const currentLeft = parseFloat(colorCanvas.style.left) || 0;
-    const currentTop = parseFloat(colorCanvas.style.top) || 0;
+    // Get current position from style (source of truth)
+    const currentLeft = parseFloat(colorCanvas.style.left);
+    const currentTop = parseFloat(colorCanvas.style.top);
+
+    if (isNaN(currentLeft) || isNaN(currentTop)) {
+      console.warn('[CameraService]: Invalid left or top position when applying zoom level');
+    }
+
+    // Ensure oldZoom is valid (fallback to 1 if invalid)
+    const validOldZoom = oldZoom > 0 ? oldZoom : 1;
 
     // Calculate the point on the canvas that's at the center of the viewport
-    const canvasCenterX = (centerX - currentLeft) / oldZoom;
-    const canvasCenterY = (centerY - currentTop) / oldZoom;
+    const canvasCenterX = (centerX - currentLeft) / validOldZoom;
+    const canvasCenterY = (centerY - currentTop) / validOldZoom;
 
     // Calculate new position so that the same canvas point remains at the viewport center
     const newLeft = centerX - canvasCenterX * newZoom;

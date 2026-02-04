@@ -8,8 +8,8 @@ export const NAMED_GUI_IMAGES_MAP: Record<string, string> = {
   canal_infrastructure: "/gui/buildings/canal_infrastructure.png",
   dock: "/gui/buildings/dock.png",
   wharf: "/gui/buildings/wharf.png",
-  "protected harbor": "/gui/buildings/protected_harbor.png",
-  "fishing village": "/gui/buildings/fishing_village.png",
+  "protected_harbor": "/gui/buildings/protected_harbor.png",
+  "fishing_village": "/gui/buildings/fishing_village.png",
   bailiff: "/gui/buildings/bailiff.png",
 
   // Icons

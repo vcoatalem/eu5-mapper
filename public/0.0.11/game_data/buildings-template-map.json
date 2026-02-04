@@ -51,8 +51,8 @@
     },
     "countryRestriction": []
   },
-  "protected harbor": {
-    "name": "protected harbor",
+  "protected_harbor": {
+    "name": "protected_harbor",
     "type": "urban",
     "levels": 1,
     "harborCapacity": [0.1],
@@ -63,8 +63,8 @@
     },
     "countryRestriction": []
   },
-  "fishing village": {
-    "name": "fishing village",
+  "fishing_village": {
+    "name": "fishing_village",
     "type": "rural",
     "levels": 10,
     "harborCapacity": [

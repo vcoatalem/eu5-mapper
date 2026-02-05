@@ -19,6 +19,7 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
   private workerPools: Map<string, WorkerPool> = new Map(); // workerFileName -> pool
   private taskQueue: IWorkerTask[] = [];
   private activeTasks: Map<string, IWorkerTask> = new Map();
+  private taskTimeouts: Map<string, NodeJS.Timeout> = new Map(); // taskId -> timeout
 
   public isAvailable(): boolean {
     return this.workerPools.size > 0;
@@ -149,6 +150,22 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
         this.taskQueue.splice(i, 1);
         this.activeTasks.set(task.id, task);
         pool.assignments.set(availableWorker, task.id);
+        const timeoutDuration = 30000;
+        const timeout = setTimeout(() => {
+          console.warn(`[WorkerManager] Task ${task.id} (type: ${task.type}) timed out after ${timeoutDuration}ms. Freeing worker.`);
+          this.taskTimeouts.delete(task.id);
+          this.activeTasks.delete(task.id);
+          pool.assignments.set(availableWorker, null); // Free up worker
+          this.updateStatus({
+            taskId: task.id,
+            type: task.type,
+            success: false,
+            error: `Task timed out after ${timeoutDuration}ms`,
+            data: null,
+          });
+          this.processQueue(); // Try to process next task
+        }, timeoutDuration);
+        this.taskTimeouts.set(task.id, timeout);
 
         // Collect transferable objects from payload
         const transferables: Transferable[] = [];
@@ -177,6 +194,13 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
               "Transferables count:",
               transferables.length,
             );
+            const timeout = this.taskTimeouts.get(task.id);
+            if (timeout) {
+              clearTimeout(timeout);
+              this.taskTimeouts.delete(task.id);
+            }
+            this.activeTasks.delete(task.id);
+            pool.assignments.set(availableWorker, null);
             throw error;
           }
         } else {
@@ -205,19 +229,30 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
   /**
    * Clears all worker assignments. Useful when component re-initializes
    * and we want to reset the state without terminating workers.
-   * Note: Does NOT clear activeTasks - let them complete naturally.
+   * Also clears stuck tasks (those that have been active for too long).
    * Orphaned completions will be silently ignored.
    */
   public clearAssignments(): void {
+    // Clear timeouts for all active tasks
+    for (const [taskId, timeout] of this.taskTimeouts.entries()) {
+      clearTimeout(timeout);
+    }
+    this.taskTimeouts.clear();
+    
+    // Clear assignments but keep workers alive
     for (const pool of this.workerPools.values()) {
       pool.assignments.clear();
       pool.workers.forEach((worker) => {
         pool.assignments.set(worker, null);
       });
     }
-    // Don't clear activeTasks - workers may still be processing them
-    // Orphaned completions will be silently ignored in handleWorkerMessage
-    console.log("[WorkerManager] Cleared all worker assignments (active tasks will complete naturally)");
+    
+    // Clear active tasks that might be stuck
+    // This is safe because handleWorkerMessage already handles orphaned completions
+    const clearedCount = this.activeTasks.size;
+    this.activeTasks.clear();
+    
+    console.log(`[WorkerManager] Cleared all worker assignments and ${clearedCount} active tasks (workers will continue, orphaned completions will be ignored)`);
   }
 
   private handleWorkerMessage(message: IWorkerMessage, worker: Worker): void {
@@ -248,6 +283,12 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
       return;
     }
 
+    const resultTimeout = this.taskTimeouts.get(taskId);
+    if (resultTimeout) {
+      clearTimeout(resultTimeout);
+      this.taskTimeouts.delete(taskId);
+    }
+    
     switch (message.type) {
       case "log":
         console.log({

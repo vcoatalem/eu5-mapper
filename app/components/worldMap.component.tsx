@@ -73,6 +73,7 @@ export function WorldMapComponent() {
   const isDraggingRef = useRef(false);
   const layersRenderedRef = useRef(0);
   const imageLoadHandlersRef = useRef<Array<{ img: HTMLImageElement; layer: string }>>([]);
+  const zoomUnsubscribeRef = useRef<(() => void) | null>(null);
 
   const waitForInitialization = React.useCallback(async (expectedLayerCount: number) => {
     try {
@@ -211,6 +212,8 @@ export function WorldMapComponent() {
       console.log("worldmap component already initialized, skipping");
       return;
     }
+
+    setInitializationError(null);
 
     // Clear any stale worker assignments from previous initialization attempts
     // This is critical when gameData changes and component re-initializes
@@ -418,32 +421,18 @@ export function WorldMapComponent() {
       triggerRender();
     };
 
-    // Set initial position BEFORE initializing zoom controller
-    // This ensures canvas positions are set before any zoom events can fire
+    const handleMouseLeave = () => {
+      // Stop dragging when mouse leaves the canvas
+      if (isDraggingRef.current) {
+        isDraggingRef.current = false;
+        triggerRender();
+      }
+    };
+
+
+    // Set initial position - will be set again after initialization completes
+    // to ensure positions are correct before zoom controller is initialized
     setInitialPosition();
-
-    // Set up dragging check before initializing zoom controller
-    zoomController.setDraggingCheck(() => isDraggingRef.current);
-    zoomController.init(topLayerRef.current);
-
-    zoomController.subscribe(({ zoomLevel, oldZoomLevel }) => {
-      if (!borderCanvasRef.current) {
-        console.error(
-          "[WorldMapComponent] borderCanvasRef is nullish. Check if this is due to HMR or proper bug",
-        );
-        return;
-      }
-      cameraServiceRef.current?.applyZoomLevel(zoomLevel, oldZoomLevel);
-
-      if (zoomLevel < zoomLevels.normal && oldZoomLevel >= zoomLevels.normal) {
-        borderCanvasRef.current!.style.visibility = "hidden";
-      } else if (
-        zoomLevel >= zoomLevels.normal &&
-        oldZoomLevel < zoomLevels.normal
-      ) {
-        borderCanvasRef.current!.style.visibility = "visible";
-      }
-    });
 
     console.log({ topLayerRefForCreate: topLayerRef });
 
@@ -507,13 +496,42 @@ export function WorldMapComponent() {
       topLayerRef.current.addEventListener("mousedown", handleMouseDown);
       topLayerRef.current.addEventListener("mousemove", handleMouseMove);
       topLayerRef.current.addEventListener("mouseup", handleMouseUp);
-    }
+      topLayerRef.current.addEventListener("mouseleave", handleMouseLeave);
 
-    console.log({ workerManagerConfig });
+      if (zoomUnsubscribeRef.current) {
+        zoomUnsubscribeRef.current();
+        zoomUnsubscribeRef.current = null;
+      }
+      
+      zoomController.setDraggingCheck(() => isDraggingRef.current);
+      zoomController.init(topLayerRef.current);
+      
+      // Subscribe to zoom changes
+      zoomUnsubscribeRef.current = zoomController.subscribe(({ zoomLevel, oldZoomLevel }) => {
+        if (!borderCanvasRef.current) {
+          console.error(
+            "[WorldMapComponent] borderCanvasRef is nullish. Check if this is due to HMR or proper bug",
+          );
+          return;
+        }
+        if (!cameraServiceRef.current) {
+          console.warn("[WorldMapComponent] Camera service not ready, skipping zoom");
+          return;
+        }
+        cameraServiceRef.current.applyZoomLevel(zoomLevel, oldZoomLevel);
+
+        if (zoomLevel < zoomLevels.normal && oldZoomLevel >= zoomLevels.normal) {
+          borderCanvasRef.current!.style.visibility = "hidden";
+        } else if (
+          zoomLevel >= zoomLevels.normal &&
+          oldZoomLevel < zoomLevels.normal
+        ) {
+          borderCanvasRef.current!.style.visibility = "visible";
+        }
+      });
+    }
     
-    // Reset error state at start of initialization
-    setInitializationError(null);
-    
+
     // Mark as initialized only after waitForInitialization completes
     waitForInitialization(layers.length).then(() => {
       initializedRef.current = true;
@@ -523,14 +541,6 @@ export function WorldMapComponent() {
       console.error("[WorldMapComponent] Initialization wait failed:", errorMsg);
       setInitializationError(errorMsg);
       // Don't mark as initialized so the error screen stays visible
-    });
-
-    // Use unique task ID to avoid conflicts when re-initializing
-    const uniqueDummyTaskId = `testDummyTask-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    workerManager.queueTask({
-      id: uniqueDummyTaskId,
-      type: "dummy",
-      payload: { type: "dummy" },
     });
 
     return () => {
@@ -548,11 +558,19 @@ export function WorldMapComponent() {
       layersRenderedRef.current = 0;
       setInitializationError(null);
       
+      // Clean up zoom controller
+      if (zoomUnsubscribeRef.current) {
+        zoomUnsubscribeRef.current();
+        zoomUnsubscribeRef.current = null;
+      }
+      zoomController.cleanup();
+      
       if (topLayerRef.current) {
         console.log("remove mouse event listeners");
         topLayerRef.current.removeEventListener("mousedown", handleMouseDown);
         topLayerRef.current.removeEventListener("mousemove", handleMouseMove);
         topLayerRef.current.removeEventListener("mouseup", handleMouseUp);
+        topLayerRef.current.removeEventListener("mouseleave", handleMouseLeave);
         actionEventDispatcher.clearEventListenersForElement(
           topLayerRef.current,
         );

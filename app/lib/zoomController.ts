@@ -23,6 +23,8 @@ export type ZoomListener = (zoom: IZoomState) => void;
 class ZoomController extends Observable<IZoomState> {
   private currentZoomIndex: number;
   private isDraggingCheck: (() => boolean) | null = null;
+  private wheelHandler: ((e: WheelEvent) => void) | null = null;
+  private currentElement: HTMLElement | null = null;
 
   constructor() {
     super();
@@ -39,21 +41,31 @@ class ZoomController extends Observable<IZoomState> {
   }
 
   public init(element: HTMLElement): void {
-    element.addEventListener(
-      "wheel",
-      (e) => {
-        // Prevent zoom while dragging
-        if (this.isDraggingCheck && this.isDraggingCheck()) {
-          return;
-        }
-        if (e.deltaY < 0) {
-          zoomController.zoomOut();
-        } else {
-          zoomController.zoomIn();
-        }
-      },
-      { passive: true },
-    );
+    // Clean up previous initialization if any
+    this.cleanup();
+    
+    this.currentElement = element;
+    this.wheelHandler = (e: WheelEvent) => {
+      // Prevent zoom while dragging
+      if (this.isDraggingCheck && this.isDraggingCheck()) {
+        return;
+      }
+      if (e.deltaY < 0) {
+        zoomController.zoomIn();
+      } else {
+        zoomController.zoomOut();
+      }
+    };
+    
+    element.addEventListener("wheel", this.wheelHandler, { passive: true });
+  }
+
+  public cleanup(): void {
+    if (this.currentElement && this.wheelHandler) {
+      this.currentElement.removeEventListener("wheel", this.wheelHandler);
+      this.currentElement = null;
+      this.wheelHandler = null;
+    }
   }
 
   private updateZoomState(oldZoomLevel: number): void {

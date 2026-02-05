@@ -158,6 +158,10 @@ export class DrawingService {
       }
       if (lastCompletedTask.type === "colorSearch") {
         const data = lastCompletedTask.data as IWorkerTaskColorSearchResult;
+        if (!data.result) {
+          console.warn('[DrawingService] colorSearch result is missing', data);
+          return;
+        }
         const coordinates = data.result;
         for (const [locationName, coords] of Object.entries(coordinates)) {
           this.addCoordinate(locationName, coords);

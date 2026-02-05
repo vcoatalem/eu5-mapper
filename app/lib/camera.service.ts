@@ -165,7 +165,7 @@ export class CameraService {
     const currentLeft = parseFloat(colorCanvas.style.left);
     const currentTop = parseFloat(colorCanvas.style.top);
 
-    if (isNaN(currentLeft) || isNaN(currentTop)) {
+    if (isNaN(currentLeft) || isNaN(currentTop)) {
       console.warn('[CameraService]: Invalid left or top position when applying zoom level');
     }
 

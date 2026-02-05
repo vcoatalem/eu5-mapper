@@ -92,6 +92,11 @@ export function InfoBoxComponent() {
     console.warn(
       `[InfoBoxComponent] No location data found for location: ${hoveredLocation?.location}`,
     );
+    return (
+      <span className="h-10 bg-black/80 text-stone-400 px-4">
+        Hover or select a location to view details
+      </span>
+    );
   }
   const locationDisplay = buildLocationDisplay(locationData, gameLogic);
 

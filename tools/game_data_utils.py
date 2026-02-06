@@ -675,9 +675,7 @@ def parse_countries_files(country_file: str, whitelisted_countries: list) -> Dic
     countries_data = parsed.get("countries", {}).get("countries", {})
 
     for code in whitelisted_countries:
-        print("will try to get country:", code)
         country = countries_data.get(code)
-        print("got country:", country)
         if not country or not isinstance(country, dict):
             continue
         locations = list(sorted(set([

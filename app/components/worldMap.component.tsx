@@ -456,8 +456,9 @@ export function WorldMapComponent() {
     );
 
     actionEventDispatcher.prolongedHoverLocation.subscribe(
-      ({ location }) => {
-        setShowNeighborsPanel(location);
+      ({ locations }) => {
+        // Show neighbors panel for the first location if any locations are hovered
+        setShowNeighborsPanel(locations.length > 0 ? locations[0] : null);
       },
     );
 
@@ -478,8 +479,9 @@ export function WorldMapComponent() {
     );
 
     actionEventDispatcher.prolongedHoverLocation.subscribe(
-      ({ location, type }) => {
-        if (location && type === "search") {
+      ({ locations, type }) => {
+        if (locations.length > 0 && type === "search") {
+          const location = locations[0];
           const coordinates = DrawingHelper.gameCoordinatesToCanvasCoordinates(
             gameData.locationDataMap[location]
               ?.constructibleLocationCoordinate ?? { x: 0, y: 0 },

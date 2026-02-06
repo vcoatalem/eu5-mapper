@@ -1,7 +1,6 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { ILocationIdentifier } from "../lib/types/general";
 import { neighborsProximityComputationController } from "../lib/neighborsProximityComputation.controller";
-import { DrawingHelper } from "../lib/drawing/drawing.helper";
 import { gameStateController } from "../lib/gameState.controller";
 import { ColorHelper } from "../lib/drawing/color.helper";
 

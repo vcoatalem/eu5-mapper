@@ -50,12 +50,12 @@ export class ParserHelper {
       }
       roadRecord[from].push({
         to: to,
-        type: "gravel",
+        type: "gravel_road",
         createdByUser: false,
       });
       roadRecord[to].push({
         to: from,
-        type: "gravel",
+        type: "gravel_road",
         createdByUser: false,
       });
     }

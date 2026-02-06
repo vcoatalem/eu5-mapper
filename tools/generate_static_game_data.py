@@ -254,30 +254,12 @@ def generate_game_data_json(version: str = "0.0.11", output_dir: str = None):
     # Parse countries file and extract whitelisted countries' locations
     whitelisted_countries = ["SWE", "DAN", "NOR", "ENG", "FRA", "TEU", "BRA", "BOH", "HUN", "POL", "LIT", "MOS", "NOV", "OTT", "RUS", "CAS", "POR", "VEN", "PAP", "ARB", "MOR", "TUN", "DHL", "ARA", "HAB", "KIE", "GEO", "MAM", "OMA", "VIJ", "BYZ" ]
     countries_data_map = parse_countries_files(files.countries_file, whitelisted_countries)
-
-    print("Parsed countries:", countries_data_map)
-
-    for country in whitelisted_countries:
-        print(
-            f"""
-country of {country}:
-    - found {len(countries_data_map.get(country).locations) if countries_data_map.get(country) else 0} locations
-    - capital: {countries_data_map.get(country).capital if countries_data_map.get(country) else 'N/A'}
-    - land VS naval: {countries_data_map.get(country).landVsNaval if countries_data_map.get(country) else 'N/A'}
-    - centralization VS decentralization: {countries_data_map.get(country).centralizationVsDecentralization if countries_data_map.get(country) else 'N/A'}
-"""
-        )
-
-    for loc in locations_to_print:
-        print(f"hierarchy of {loc}:", hierarchy.get(loc, []))
     
     city_coordinates = parse_city_coordinates(files.locations_city_coordinates)
     
     # Load new game_setup files
     print("Parsing game setup files...")
     populations = parse_pops_file(files.pops_file)
-    for loc in locations_to_print:
-        print(f"population of {loc}:", populations.get(loc, 0))
     roads = parse_roads_file(files.roads_file)
     development_rules = parse_development_file(files.development_file)
     #print("development rules:", development_rules)

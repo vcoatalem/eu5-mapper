@@ -82,7 +82,8 @@ export function InfoBoxComponent() {
 
 
 
-  if (!hoveredLocation?.location) {
+  const hoveredLocations = hoveredLocation?.locations ?? [];
+  if (hoveredLocations.length === 0) {
     return (
       <span className="h-10 bg-black/80 text-stone-400 px-4">
         Hover or select a location to view details
@@ -90,11 +91,12 @@ export function InfoBoxComponent() {
     );
   }
 
+  const primaryLocation = hoveredLocations[0];
   const locationData =
-    gameData.locationDataMap?.[hoveredLocation?.location ?? ""];
+    gameData.locationDataMap?.[primaryLocation ?? ""];
   if (!locationData) {
     console.warn(
-      `[InfoBoxComponent] No location data found for location: ${hoveredLocation?.location}`,
+      `[InfoBoxComponent] No location data found for location: ${primaryLocation}`,
     );
     return (
       <span className="h-10 bg-black/80 text-stone-400 px-4">

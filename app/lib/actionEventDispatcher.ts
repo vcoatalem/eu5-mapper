@@ -3,18 +3,18 @@ import { ICoordinate, ILocationIdentifier } from "./types/general";
 
 export class ActionEventDispatcher {
   public hoveredLocation: Subject<{
-    location: ILocationIdentifier | null;
+    locations: ILocationIdentifier[];
     type: "search" | null;
   }> = new Subject<{
-    location: ILocationIdentifier | null;
+    locations: ILocationIdentifier[];
     type: "search" | null;
   }>();
 
   public prolongedHoverLocation: Subject<{
-    location: ILocationIdentifier | null;
+    locations: ILocationIdentifier[];
     type: "search" | null;
   }> = new Subject<{
-    location: ILocationIdentifier | null;
+    locations: ILocationIdentifier[];
     type: "search" | null;
   }>();
 
@@ -39,17 +39,26 @@ export class ActionEventDispatcher {
   > = new Map();
   public registerHoverActionSource(
     element: HTMLElement,
-    locationNameFn: (e: MouseEvent) => ILocationIdentifier | null,
+    locationNameFn: (e: MouseEvent) => ILocationIdentifier | ILocationIdentifier[] | null,
     type: "search" | null = null,
     prolongedHoverDelay: number = 1500,
   ) {
     const mouseMoveHandler = (e: MouseEvent) => {
-      const locationName = locationNameFn(e);
-      /* console.log("Hover detected:", {
-        locationName,
-        hoveredLocation: this.hoveredLocation.getSnapshot()?.location,
-      }); */
-      if (this.hoveredLocation.getSnapshot()?.location === locationName) {
+      const locationResult = locationNameFn(e);
+      const locationNames = Array.isArray(locationResult) 
+        ? locationResult 
+        : locationResult !== null 
+          ? [locationResult] 
+          : [];
+      
+      const currentLocations = this.hoveredLocation.getSnapshot()?.locations ?? [];
+      // Check if locations are the same (order-independent comparison)
+      const locationsEqual = 
+        locationNames.length === currentLocations.length &&
+        locationNames.every(loc => currentLocations.includes(loc)) &&
+        currentLocations.every(loc => locationNames.includes(loc));
+      
+      if (locationsEqual) {
         return;
       } else {
         if (this.hoverTimer) {
@@ -57,15 +66,23 @@ export class ActionEventDispatcher {
           this.hoverTimer = null;
         }
       }
-      const prolongedHoverLocation =
-        this.prolongedHoverLocation.getSnapshot()?.location;
-      if (prolongedHoverLocation && prolongedHoverLocation !== locationName) {
-        this.prolongedHoverLocation.emit({ location: null, type: null });
+      
+      const prolongedHoverLocations =
+        this.prolongedHoverLocation.getSnapshot()?.locations ?? [];
+      // Clear prolonged hover if it doesn't match current hover
+      const prolongedMatches = 
+        prolongedHoverLocations.length === locationNames.length &&
+        prolongedHoverLocations.every(loc => locationNames.includes(loc)) &&
+        locationNames.every(loc => prolongedHoverLocations.includes(loc));
+      
+      if (prolongedHoverLocations.length > 0 && !prolongedMatches) {
+        this.prolongedHoverLocation.emit({ locations: [], type: null });
       }
-      this.hoveredLocation.emit({ location: locationName ?? null, type });
+      
+      this.hoveredLocation.emit({ locations: locationNames, type });
       this.hoverTimer = setTimeout(() => {
         this.prolongedHoverLocation.emit({
-          location: locationName ?? null,
+          locations: locationNames,
           type,
         });
       }, prolongedHoverDelay);
@@ -75,13 +92,29 @@ export class ActionEventDispatcher {
         clearTimeout(this.hoverTimer);
         this.hoverTimer = null;
       }
-      const locationName = locationNameFn(e);
-      if (this.hoveredLocation.getSnapshot()?.location === locationName) {
-        this.hoveredLocation.emit({ location: null, type: null });
-        if (
-          this.prolongedHoverLocation.getSnapshot()?.location === locationName
-        ) {
-          this.prolongedHoverLocation.emit({ location: null, type: null });
+      const locationResult = locationNameFn(e);
+      const locationNames = Array.isArray(locationResult) 
+        ? locationResult 
+        : locationResult !== null 
+          ? [locationResult] 
+          : [];
+      
+      const currentLocations = this.hoveredLocation.getSnapshot()?.locations ?? [];
+      const locationsEqual = 
+        locationNames.length === currentLocations.length &&
+        locationNames.every(loc => currentLocations.includes(loc)) &&
+        currentLocations.every(loc => locationNames.includes(loc));
+      
+      if (locationsEqual) {
+        this.hoveredLocation.emit({ locations: [], type: null });
+        const prolongedLocations = this.prolongedHoverLocation.getSnapshot()?.locations ?? [];
+        const prolongedMatches = 
+          prolongedLocations.length === locationNames.length &&
+          prolongedLocations.every(loc => locationNames.includes(loc)) &&
+          locationNames.every(loc => prolongedLocations.includes(loc));
+        
+        if (prolongedMatches) {
+          this.prolongedHoverLocation.emit({ locations: [], type: null });
         }
       }
     };
@@ -158,7 +191,7 @@ export class ActionEventDispatcher {
     const handlers = this.elementEventHandlers.get(element);
     if (handlers) {
       handlers.forEach(({ type, handler }) => {
-        element.removeEventListener(type, handler as any);
+        element.removeEventListener(type, handler as EventListener);
       });
       this.elementEventHandlers.delete(element);
       /*       console.log(

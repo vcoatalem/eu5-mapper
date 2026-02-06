@@ -20,6 +20,7 @@ import { proximityComputationController } from "../lib/proximityComputation.cont
 import { ColorHelper } from "../lib/drawing/color.helper";
 import { ProximityComputationHelper } from "../lib/proximityComputation.helper";
 import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
+import { FoldableMenu } from "./foldableMenu.component";
 
 const capitalPicker = (
   location: ILocationIdentifier,
@@ -159,12 +160,13 @@ const locationRankPicker = (
 };
 
 const ConstructibleLocationItem = React.memo(
-  function constructibleLocationItem({
+  function ConstructibleLocationItem({
     location,
     constructible,
     gameData,
     gameState,
     proximityComputation,
+    expanded, 
   }: {
     location: ILocationIdentifier;
     constructible: IConstructibleLocation;
@@ -173,9 +175,10 @@ const ConstructibleLocationItem = React.memo(
     proximityComputation: ReturnType<
       typeof proximityComputationController.getSnapshot
     >;
+    expanded: boolean;
   }) {
     const locationNameDivRef = React.useRef<HTMLDivElement>(null);
-
+    
     useEffect(() => {
       const el = locationNameDivRef.current;
       if (el) {
@@ -195,6 +198,8 @@ const ConstructibleLocationItem = React.memo(
           actionEventDispatcher.clearEventListenersForElement(el);
         }
       };
+      // Note: expanded is intentionally NOT in the dependency array
+      // to prevent re-registering actions when menu expands/collapses
     }, [location]);
 
     return (
@@ -222,85 +227,90 @@ const ConstructibleLocationItem = React.memo(
             proximityComputation.result[location]?.cost,
           ) ?? 0}
         </span>
-        <div className="col-span-2 flex flex-row items-center space-x-2">
-          {capitalPicker(location, gameState.capitalLocation === location)}
-          {locationRankPicker(location, constructible)}
-        </div>
-        <div className="col-span-1">
-          {buildingList(
-            location,
-            gameData,
-            gameState.ownedLocations,
-            constructible,
-          )}
-        </div>
+        {
+          expanded && (
+            <div className="col-span-2 flex flex-row items-center space-x-2">
+            {capitalPicker(location, gameState.capitalLocation === location)}
+            {locationRankPicker(location, constructible)}
+          </div>
+          )
+        }
+        {
+          expanded && (
+            <div className="col-span-1">
+            {buildingList(
+              location,
+              gameData,
+              gameState.ownedLocations,
+              constructible,
+            )}
+          </div>
+          )
+        }
       </div>
     );
   },
 );
 
-const RoadItem = React.memo(function roadItem({ roadKey, type }: { roadKey: `${string}-${string}`; type: RoadType }) {
+const RoadItem = React.memo(function RoadItem({ roadKey, type, expanded }: { roadKey: `${string}-${string}`; type: RoadType; expanded: boolean }) { // eslint-disable-line @typescript-eslint/no-unused-vars
   const [from, to] = roadKey.split('-');
+  const roadKeyElementRef = React.useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const el = roadKeyElementRef.current;
+    if (el) {
+      console.log("[RoadItem] registering action sources");
+      actionEventDispatcher.registerHoverActionSource(el, () => [from, to]);
+      actionEventDispatcher.registerClickActionSource(el, () => from, "goto");
+    }
+    return () => {
+      if (el) {
+        console.log(
+          "[RoadItem] unregistering action sources",
+        );
+        actionEventDispatcher.clearEventListenersForElement(el);
+      }
+    };
+    // Note: expanded is intentionally NOT in the dependency array
+    // to prevent re-registering actions when menu expands/collapses
+  }, [roadKey]);
+
   if (!from || !to) {
     return <></>;
   }
   return (
-    <div key={roadKey} className="flex flex-row items-center gap-2">
-      <span>{from} - {to}</span>
-      <div className="flex flex-row items-center-gap-2">
-        {
-          (["gravel_road", "paved_road", "modern_road", "rail_road"] satisfies RoadType[]).map((possibleRoadType) => (
-            <button key={possibleRoadType}
-            onClick={() => {
-              gameStateController.changeRoadType(roadKey, possibleRoadType);
-            }}
-            className={`${type === possibleRoadType ? "bg-yellow-300" : "bg-black hover:bg-yellow-400"}`}
-            >
-              <img src={getGuiImage(possibleRoadType)} alt={possibleRoadType} width={24} height={24} />
-            </button>
-          ))
-        }
-        
-      </div>
+    <div key={roadKey} className="py-1 h-10 grid grid-cols-9 items-center whitespace-nowrap gap-2 w-[600px]">
+      <span className="col-span-2 truncate ... cursor-pointer" ref={roadKeyElementRef}>{from} - {to}</span>
+      
+      {
+        !expanded && (
+          <span className="col-span-1">
+            <img src={getGuiImage(type)} alt={type} width={24} height={24} />
+          </span>
+        )
+      }
+      {
+        expanded && (
+          <div className="col-span-3 flex flex-row items-center-gap-2">
+            {
+              (["gravel_road", "paved_road", "modern_road", "rail_road"] satisfies RoadType[]).map((possibleRoadType) => (
+                <button key={possibleRoadType}
+                onClick={() => {
+                  gameStateController.changeRoadType(roadKey, possibleRoadType);
+                }}
+                className={`${type === possibleRoadType ? "bg-yellow-300" : "bg-black hover:bg-yellow-400"}`}
+                >
+                  <img src={getGuiImage(possibleRoadType)} alt={possibleRoadType} width={24} height={24} />
+                </button>
+              ))
+            }    
+          </div>
+        )
+      }
+      
     </div>
   );
 });
-
-interface FoldableMenuProps {
-  title: string | React.ReactNode;
-  isExpanded: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}
-
-function FoldableMenu({ title, isExpanded, onToggle, children }: FoldableMenuProps) {
-  return (
-    <>
-      <div className="flex-shrink-0">
-        <span 
-          onClick={onToggle} 
-          className="font-bold hover:bg-stone-600 rounded-md py-1 cursor-pointer flex items-center gap-2 truncate ... ellipsis"
-        >
-          <span 
-            className={`inline-block transition-transform duration-300 ease-in-out ${isExpanded ? 'rotate-180' : ''}`}
-          >
-            ▼
-          </span>
-          {title}
-        </span>
-      </div>
-      <div 
-        className={`flex-1 transition-all duration-300 ease-in-out ${
-          isExpanded 
-            ? 'max-h-[1000px] opacity-100 overflow-y-auto overflow-x-hidden' 
-            : 'max-h-0 opacity-0 overflow-hidden'
-        }`}
-      >
-        {children}
-      </div>
-    </>
-  );
-}
 
 export function ConstructibleMenusComponent() {
   const gameState = useSyncExternalStore(
@@ -426,6 +436,7 @@ export function ConstructibleMenusComponent() {
               gameData={gameData}
               gameState={gameState}
               proximityComputation={proximityComputation}
+              expanded={isExpanded}
             />
           ))}
       </FoldableMenu>
@@ -434,8 +445,10 @@ export function ConstructibleMenusComponent() {
         isExpanded={roadsExpanded}
         onToggle={() => setRoadsExpanded(!roadsExpanded)}
       >
-        {filteredRoadsEntries && Object.entries(filteredRoadsEntries).map(([key, type]) => (
-          <RoadItem key={key} roadKey={key as `${string}-${string}`} type={type} />
+        {filteredRoadsEntries && Object.entries(filteredRoadsEntries)
+          .sort(([keyA,], [keyB,]) => keyA.localeCompare(keyB))
+          .map(([key, type]) => (
+          <RoadItem key={key} roadKey={key as `${string}-${string}`} type={type} expanded={isExpanded} />
         ))}
       </FoldableMenu>
     </div>

@@ -64,13 +64,13 @@ export class ColorHelper {
 
   public static getRoadHexColor(roadType: RoadType): string {
     switch (roadType) {
-      case "gravel":
+      case "gravel_road":
         return gravelRoadColor;
-      case "paved":
+      case "paved_road":
         return pavedRoadColor;
-      case "modern":
+      case "modern_road":
         return modernRoadColor;
-      case "rail":
+      case "rail_road":
         return railroadColor;
       default:
         return "#000000"; // Default to black if unknown

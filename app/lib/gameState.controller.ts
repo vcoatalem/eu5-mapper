@@ -300,14 +300,17 @@ export class GameStateController extends Observable<IGameState> {
     if (!locationA || !locationB) {
       throw new Error(`Invalid road key: ${key}`);
     }
-    this.subject.roads[locationA] = [
-      ...this.subject.roads[locationA].filter((road) => road.to !== locationB),
-      { to: locationB, type, createdByUser: true },
-    ];
-    this.subject.roads[locationB] = [
-      ...this.subject.roads[locationB].filter((road) => road.to !== locationA),
-      { to: locationA, type, createdByUser: true },
-    ];
+    this.subject.roads = {
+      ...this.subject.roads,
+      [locationA]: [
+        ...this.subject.roads[locationA].filter((road) => road.to !== locationB),
+        { to: locationB, type, createdByUser: true },
+      ],
+      [locationB]: [
+        ...this.subject.roads[locationB].filter((road) => road.to !== locationA),
+        { to: locationA, type, createdByUser: true },
+      ],
+    };
     this.notifyListeners();
   }
 }

@@ -157,6 +157,15 @@ export class DrawingService {
         return;
       }
       if (lastCompletedTask.type === "colorSearch") {
+        // Handle failed tasks (data is null on error/timeout)
+        if (!lastCompletedTask.success || !lastCompletedTask.data) {
+          console.warn('[DrawingService] colorSearch task failed or data is missing', {
+            success: lastCompletedTask.success,
+            error: lastCompletedTask.error,
+            data: lastCompletedTask.data,
+          });
+          return;
+        }
         const data = lastCompletedTask.data as IWorkerTaskColorSearchResult;
         if (!data.result) {
           console.warn('[DrawingService] colorSearch result is missing', data);
@@ -195,8 +204,8 @@ export class DrawingService {
       actionEventDispatcher.hoveredLocation,
     ]).subscribe(({ values: [prolongedHoverLocation, hoveredLocation] }) => {
       const toHighlight = [
-        hoveredLocation?.location ?? "",
-        prolongedHoverLocation?.location ?? "",
+        ...(hoveredLocation?.locations ?? []),
+        ...(prolongedHoverLocation?.locations ?? []),
       ].filter((loc) => !!loc);
       this.drawingCallbackBuffer["indicators"] = () =>
         this.drawHighlighted(toHighlight);
@@ -237,7 +246,7 @@ export class DrawingService {
     });
 
     actionEventDispatcher.prolongedHoverLocation.emit({
-      location: null,
+      locations: [],
       type: null,
     }); // don't like this, but need a way to set first emition for now
     this.reDraw.emit(new Date()); // this has to be after subscriptions are set up
@@ -254,14 +263,14 @@ export class DrawingService {
 
     const data = imageData.data;
 
-    let missingCoordinates: ILocationIdentifier[] = [];
+    const missingCoordinates: ILocationIdentifier[] = [];
     for (const location of Object.keys(gameState.ownedLocations)) {
       const coordinates = this.coordinateMap[location];
       if (!coordinates) {
         missingCoordinates.push(location);
         continue;
       }
-      let evaluation: number | undefined =
+      const evaluation: number | undefined =
         proximityEvaluation.result?.[location]?.cost ?? -1;
 
       const color = ColorHelper.getEvaluationColor(evaluation);

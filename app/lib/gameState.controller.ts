@@ -8,6 +8,7 @@ import {
   IGameData,
   IGameState,
   ILocationIdentifier,
+  RoadType,
 } from "./types/general";
 
 const baseCountryValues: IGameState["country"] = {
@@ -291,6 +292,22 @@ export class GameStateController extends Observable<IGameState> {
       this.subject.country.rulerAdministrativeAbility =
         value.rulerAdministrativeAbility;
     }
+    this.notifyListeners();
+  }
+
+  public changeRoadType(key: string, type: RoadType): void {
+    const [locationA, locationB] = key.split('-');
+    if (!locationA || !locationB) {
+      throw new Error(`Invalid road key: ${key}`);
+    }
+    this.subject.roads[locationA] = [
+      ...this.subject.roads[locationA].filter((road) => road.to !== locationB),
+      { to: locationB, type, createdByUser: true },
+    ];
+    this.subject.roads[locationB] = [
+      ...this.subject.roads[locationB].filter((road) => road.to !== locationA),
+      { to: locationA, type, createdByUser: true },
+    ];
     this.notifyListeners();
   }
 }

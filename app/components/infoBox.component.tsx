@@ -9,6 +9,10 @@ const buildLocationDisplay = (
   locationData: ILocationGameData,
   gameState: IGameState,
 ): JSX.Element => {
+  if (!locationData || !gameState.ownedLocations) {
+    // can happen with HMR
+    return <></>
+  }
   const owned = gameState.ownedLocations[locationData?.name];
 
   const harborCapacity = locationData.isCoastal ? ProximityComputationHelper.getLocationHarborCapacity(locationData, gameState.ownedLocations[locationData.name], {}) : 0;

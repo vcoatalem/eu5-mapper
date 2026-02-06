@@ -19,7 +19,7 @@ export const NAMED_GUI_IMAGES_MAP: Record<string, string> = {
   gravel_road: "/gui/icons/gravel_road.png",
   modern_road: "/gui/icons/modern_road.png",
   paved_road: "/gui/icons/paved_road.png",
-  railroad: "/gui/icons/railroad.png",
+  rail_road: "/gui/icons/railroad.png",
 } as const;
 
 /**

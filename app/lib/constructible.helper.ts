@@ -8,6 +8,7 @@ import {
   ILocationIdentifier,
   PlacementRestrictions,
   RoadRecord,
+  RoadType,
 } from "./types/general";
 
 type ConstructibleState = {
@@ -160,5 +161,20 @@ export class ConstructibleHelper {
       });
     }
     return constructibleState;
+  }
+
+  public static getOwnedRoads(
+    ownedLocations: IGameState["ownedLocations"],
+    roads: RoadRecord,
+  ): Record<`${ILocationIdentifier}-${ILocationIdentifier}`, RoadType> {
+    const ownedRoads: Record<ILocationIdentifier, RoadType> = {};
+    for (const [fromLocation,] of Object.entries(ownedLocations)) {
+      if (!(fromLocation in roads)) continue;
+      for (const {to: toLocation, type} of roads[fromLocation]) {
+        const key = fromLocation < toLocation ? `${fromLocation}-${toLocation}` : `${toLocation}-${fromLocation}`;
+        ownedRoads[key] = type;
+      }
+    }
+    return ownedRoads;
   }
 }

@@ -11,6 +11,7 @@ import {
   IGameData,
   IGameState,
   ILocationIdentifier,
+  RoadType,
 } from "../lib/types/general";
 import { ConstructibleHelper } from "../lib/constructible.helper";
 import { AppContext } from "../appContextProvider";
@@ -238,6 +239,33 @@ const ConstructibleLocationItem = React.memo(
   },
 );
 
+const RoadItem = React.memo(function roadItem({ roadKey, type }: { roadKey: `${string}-${string}`; type: RoadType }) {
+  const [from, to] = roadKey.split('-');
+  if (!from || !to) {
+    return <></>;
+  }
+  return (
+    <div key={roadKey} className="flex flex-row items-center gap-2">
+      <span>{from} - {to}</span>
+      <div className="flex flex-row items-center-gap-2">
+        {
+          (["gravel_road", "paved_road", "modern_road", "rail_road"] satisfies RoadType[]).map((possibleRoadType) => (
+            <button key={possibleRoadType}
+            onClick={() => {
+              gameStateController.changeRoadType(roadKey, possibleRoadType);
+            }}
+            className={`${type === possibleRoadType ? "bg-yellow-300" : "bg-black hover:bg-yellow-400"}`}
+            >
+              <img src={getGuiImage(possibleRoadType)} alt={possibleRoadType} width={24} height={24} />
+            </button>
+          ))
+        }
+        
+      </div>
+    </div>
+  );
+});
+
 interface FoldableMenuProps {
   title: string | React.ReactNode;
   isExpanded: boolean;
@@ -290,6 +318,7 @@ export function ConstructibleMenusComponent() {
   const [search, setSearch] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
   const [ownedLocationsExpanded, setOwnedLocationsExpanded] = useState<boolean>(false);
+  const [roadsExpanded, setRoadsExpanded] = useState<boolean>(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
   const borderThreshold = 20; // pixels from edge to trigger expansion/collapse
 
@@ -303,6 +332,21 @@ export function ConstructibleMenusComponent() {
       locationName.toLowerCase().includes(searchLower)
     );
   }, [search, gameState.ownedLocations]);
+
+  const filteredRoadsEntries = useMemo(() => {
+    const entries = ConstructibleHelper.getOwnedRoads(gameState.ownedLocations, gameState.roads);
+    if (!search) {
+      return entries;
+    }
+    const searchLower = search.toLowerCase();
+
+    for (const [key,] of Object.entries(entries)) {
+      if (!(key.toLowerCase().includes(searchLower))) {
+        delete entries[key as keyof typeof entries];
+      }
+    }
+    return entries;
+  }, [search, gameState.ownedLocations, gameState.roads])
 
   // Auto-expand when search has results
   // This is a legitimate side effect: syncing UI state (expansion) with user input (search)
@@ -384,6 +428,15 @@ export function ConstructibleMenusComponent() {
               proximityComputation={proximityComputation}
             />
           ))}
+      </FoldableMenu>
+      <FoldableMenu
+        title={`Owned Roads (${Object.keys(filteredRoadsEntries).length})`}
+        isExpanded={roadsExpanded}
+        onToggle={() => setRoadsExpanded(!roadsExpanded)}
+      >
+        {filteredRoadsEntries && Object.entries(filteredRoadsEntries).map(([key, type]) => (
+          <RoadItem key={key} roadKey={key as `${string}-${string}`} type={type} />
+        ))}
       </FoldableMenu>
     </div>
   );

@@ -1,6 +1,7 @@
 import React, {
   useContext,
   useEffect,
+  useMemo,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -237,6 +238,42 @@ const ConstructibleLocationItem = React.memo(
   },
 );
 
+interface FoldableMenuProps {
+  title: string | React.ReactNode;
+  isExpanded: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}
+
+function FoldableMenu({ title, isExpanded, onToggle, children }: FoldableMenuProps) {
+  return (
+    <>
+      <div className="flex-shrink-0">
+        <span 
+          onClick={onToggle} 
+          className="font-bold hover:bg-stone-600 rounded-md py-1 cursor-pointer flex items-center gap-2 truncate ... ellipsis"
+        >
+          <span 
+            className={`inline-block transition-transform duration-300 ease-in-out ${isExpanded ? 'rotate-180' : ''}`}
+          >
+            ▼
+          </span>
+          {title}
+        </span>
+      </div>
+      <div 
+        className={`flex-1 transition-all duration-300 ease-in-out ${
+          isExpanded 
+            ? 'max-h-[1000px] opacity-100 overflow-y-auto overflow-x-hidden' 
+            : 'max-h-0 opacity-0 overflow-hidden'
+        }`}
+      >
+        {children}
+      </div>
+    </>
+  );
+}
+
 export function ConstructibleMenusComponent() {
   const gameState = useSyncExternalStore(
     gameStateController.subscribe.bind(gameStateController),
@@ -251,6 +288,58 @@ export function ConstructibleMenusComponent() {
   const { gameData } = useContext(AppContext);
 
   const [search, setSearch] = useState("");
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [ownedLocationsExpanded, setOwnedLocationsExpanded] = useState<boolean>(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const borderThreshold = 20; // pixels from edge to trigger expansion/collapse
+
+  const filteredLocationEntries = useMemo(() => {
+    const entries = Object.entries(gameState.ownedLocations);
+    if (!search) {
+      return entries;
+    }
+    const searchLower = search.toLowerCase();
+    return entries.filter(([locationName]) =>
+      locationName.toLowerCase().includes(searchLower)
+    );
+  }, [search, gameState.ownedLocations]);
+
+  // Auto-expand when search has results
+  // This is a legitimate side effect: syncing UI state (expansion) with user input (search)
+  useEffect(() => {
+    if (search && filteredLocationEntries.length > 0) {
+      setOwnedLocationsExpanded(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredLocationEntries.length]);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!containerRef.current) return;
+    
+    const rect = containerRef.current.getBoundingClientRect();
+    const mouseX = e.clientX;
+    const leftEdge = rect.left;
+    const rightEdge = rect.right;
+    const distanceFromLeft = mouseX - leftEdge;
+    const distanceFromRight = rightEdge - mouseX;
+    
+    if (!isExpanded) {
+      // Not expanded: expand when mouse is near right border
+      if (distanceFromRight >= 0 && distanceFromRight <= borderThreshold) {
+        setIsExpanded(true);
+      }
+    } else {
+      // Expanded: collapse when mouse is near left border
+      if (distanceFromLeft >= 0 && distanceFromLeft <= borderThreshold) {
+        setIsExpanded(false);
+      }
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setIsExpanded(false);
+  };
+
   if (!gameData) {
     throw new Error(
       "[ConstructibleMenusComponent]: need gameData in context to render",
@@ -258,34 +347,44 @@ export function ConstructibleMenusComponent() {
   }
 
   return (
-    <div className="min-h-96 w-52 hover:w-[600px] overflow-y-auto overflow-x-hidden max-h-[50vh] transition-[width] duration-300 ease-in-out">
-      <input
-        type="search"
-        placeholder="Search for a location..."
-        className="w-full"
-        onChange={(e) => setSearch(e.target.value)}
-        style={{ outline: "none" }}
-      />
-      <hr className="w-full"></hr>
-      {Object.entries(gameState.ownedLocations)
-        .filter(([locationName]) =>
-          locationName.toLowerCase().includes(search.toLowerCase()),
-        )
-        .sort(
-          ([a], [b]) =>
-            (proximityComputation.result[a]?.cost ?? 100) -
-            (proximityComputation.result[b]?.cost ?? 100),
-        )
-        .map(([locationName, constructibleData]) => (
-          <ConstructibleLocationItem
-            key={locationName}
-            location={locationName}
-            constructible={constructibleData}
-            gameData={gameData}
-            gameState={gameState}
-            proximityComputation={proximityComputation}
-          />
-        ))}
+    <div
+      ref={containerRef}
+      className={`min-h-96 ${isExpanded ? 'w-[600px]' : 'w-52'} overflow-x-hidden max-h-[50vh] transition-[width] duration-300 ease-in-out flex flex-col`}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
+      <div className="flex-shrink-0">
+        <input
+          type="search"
+          placeholder="Search for a location..."
+          className="w-full"
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ outline: "none" }}
+        />
+        <hr className="w-full"></hr>
+      </div>
+      <FoldableMenu
+        title={`Owned Locations (${Object.keys(gameState.ownedLocations).length})`}
+        isExpanded={ownedLocationsExpanded}
+        onToggle={() => setOwnedLocationsExpanded(!ownedLocationsExpanded)}
+      >
+        {filteredLocationEntries
+          .sort(
+            ([a], [b]) =>
+              (proximityComputation.result[a]?.cost ?? 100) -
+              (proximityComputation.result[b]?.cost ?? 100),
+          )
+          .map(([locationName, constructibleData]) => (
+            <ConstructibleLocationItem
+              key={locationName}
+              location={locationName}
+              constructible={constructibleData}
+              gameData={gameData}
+              gameState={gameState}
+              proximityComputation={proximityComputation}
+            />
+          ))}
+      </FoldableMenu>
     </div>
   );
 }

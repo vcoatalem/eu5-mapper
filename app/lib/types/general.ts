@@ -139,5 +139,5 @@ export interface IGameData {
   buildingsTemplateMap: Record<string, IBuildingTemplate>;
   proximityComputationRule: IProximityComputationRule;
   countriesDataMap: Record<string, ICountryData>;
-  roads: RoadRecord;
+  roads: RoadRecord; // base roads initialized at the start of the game
 }

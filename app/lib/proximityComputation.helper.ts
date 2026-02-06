@@ -109,8 +109,8 @@ export class ProximityComputationHelper {
     locationConstructibleData: IConstructibleLocation,
     gameData: IGameData,
     country: ICountryValues,
-    discardVegetationModifiers: boolean,
     options: PathFindingOptions,
+    roadToDestinationType: RoadType | null,
   ): number => {
     if (location.isSea || location.isLake || !location.ownable) {
       return 0;
@@ -121,6 +121,16 @@ export class ProximityComputationHelper {
         (b) => b.template.proximityCostReductionPercentage?.[b.level - 1] ?? 0,
       )
       .reduce((a, b) => a + b, 0);
+
+    const discardVegetationModifiers = !!roadToDestinationType; //TODO: check in game how this applies to harbors in location with topography / vegetation with negative modifiers
+    const roadProximityCostReduction = roadToDestinationType ? gameData.proximityComputationRule.roadProximityCostReduction[roadToDestinationType] : 0;
+
+    logProximityComputation(
+      location.name,
+      options,
+      "Road proximity cost reduction",
+      { roadProximityCostReduction, roadType: roadToDestinationType },
+    );
 
     const environmentalProximityCostIncreasePercentage =
       ProximityComputationHelper.getEnvironmentalProximityCostIncreasePercentage(
@@ -141,6 +151,7 @@ export class ProximityComputationHelper {
               .percentageModifier) /
           100
         : 0,
+      // advances, estate privileges, etc.
     ];
     const countryLandProximityReduction = countryLandProximityModifiers.reduce(
       (a, b) => a + b,
@@ -152,12 +163,13 @@ export class ProximityComputationHelper {
       location.name,
       options,
       "Land location proximity modifiers",
-      { totalBuildingsCostReduction, countryLandProximityReduction, developmentCostReduction, environmentalProximityCostIncreasePercentage },
+      { totalBuildingsCostReduction, countryLandProximityReduction, developmentCostReduction, environmentalProximityCostIncreasePercentage, roadProximityCostReduction, roadType: roadToDestinationType },
     );
     const total =
       // positive proximity (cost reduction)
       totalBuildingsCostReduction +
       countryLandProximityReduction +
+      roadProximityCostReduction +
       developmentCostReduction -
       // negative proximity (cost increase)
       environmentalProximityCostIncreasePercentage;
@@ -291,6 +303,7 @@ export class ProximityComputationHelper {
     gameData: IGameData,
     gameState: IGameState,
     options: PathFindingOptions,
+    roadType: RoadType | null,
   ): number {
     switch (transportationMode) {
       case "land":
@@ -298,16 +311,13 @@ export class ProximityComputationHelper {
           from in gameState.ownedLocations ||
           options.allowUnownedLocations
         ) {
-          const hasRoadToDestination = !!gameData.roads[from]?.find(
-            ({ to: roadTo }) => roadTo === to,
-          )?.type;
           return ProximityComputationHelper.getLandLocationProximityModifiers(
             gameData.locationDataMap[from],
             gameState.ownedLocations[from],
             gameData,
             gameState.country,
-            hasRoadToDestination,
             options,
+            roadType,
           );
         } else {
           return 0;
@@ -338,8 +348,8 @@ export class ProximityComputationHelper {
             gameState.ownedLocations[locationWithHarbor],
             gameData,
             gameState.country,
-            true,
-            options
+            options,
+            roadType,
           );
           logProximityComputation(
             locationWithHarbor,
@@ -378,6 +388,7 @@ export class ProximityComputationHelper {
     gameData: IGameData,
     gameState: IGameState,
     options: PathFindingOptions,
+    roadType: RoadType | null,
   ): number {
     const modifiers: number[] = [];
 
@@ -399,6 +410,7 @@ export class ProximityComputationHelper {
         gameData,
         gameState,
         options,
+        roadType,
       ),
       this.getGenericCountryProximityCostModifiers(
         gameState.country,
@@ -427,7 +439,7 @@ export class ProximityComputationHelper {
       edgeType: EdgeType,
     ) => {
       const rule = gameData.proximityComputationRule;
-      const road = gameData.roads[from]?.find(
+      const road = gameState.roads[from]?.find(
         ({ to: roadTo }) => roadTo === to,
       );
       // For now, assume maritime presence is 50 everywhere except Ocean, where it is 0
@@ -477,6 +489,7 @@ export class ProximityComputationHelper {
         gameData,
         gameState,
         options,
+        road?.type ?? null,
       );
 
       const modifiedCost = baseCost * (1 - proximityModifiersSummed / 100);

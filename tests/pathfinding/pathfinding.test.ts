@@ -43,8 +43,8 @@ test.each(referenceFiles)('should do pathfinding evaluation for reference file %
     {
       allowUnownedLocations: true,
       /* logForLocations: ['solent', 'seven_sisters'], */
-      logMethod: (...args) => {
-        console.log(...args);
+      logMethod: (message: string, data?: Record<string, unknown>) => {
+        console.log(message, data);
       },
     },
   );

@@ -48,9 +48,9 @@
   },
   "rulerAdministrativeAbilityImpact": 0.1,
   "roadProximityCostReduction": {
-    "gravel": 20,
-    "paved": 25,
-    "modern": 30,
-    "railroad": 35
+    "gravel_road": 20,
+    "paved_road": 25,
+    "modern_road": 30,
+    "rail_road": 35
   }
 }

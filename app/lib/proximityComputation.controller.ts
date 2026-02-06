@@ -43,13 +43,6 @@ export class ProximityComputationController extends Observable<IProximityComputa
       ) {
         const data = workerManagerStatus.lastCompletedTask
           .data as IWorkerTaskComputeProximityResult;
-        console.log("got task results", {
-          results: workerManagerStatus?.lastCompletedTask,
-        });
-        const results = workerManagerStatus?.lastCompletedTask.data as Record<
-          ILocationIdentifier,
-          number
-        >;
         this.subject.result = data.result;
         console.log(
           "[ProximityComputationController] Proximity computation completed",

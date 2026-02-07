@@ -166,7 +166,7 @@ export class ConstructibleHelper {
   public static getOwnedRoads(
     ownedLocations: IGameState["ownedLocations"],
     roads: RoadRecord,
-  ): Record<`${ILocationIdentifier}-${ILocationIdentifier}`, RoadType> {
+  ): Record<string, RoadType> { // key is `${ILocationIdentifierFrom}-${ILocationIdentifierTo}`
     const ownedRoads: Record<ILocationIdentifier, RoadType> = {};
     for (const [fromLocation,] of Object.entries(ownedLocations)) {
       if (!(fromLocation in roads)) continue;

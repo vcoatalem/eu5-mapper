@@ -21,6 +21,7 @@ import { ColorHelper } from "../lib/drawing/color.helper";
 import { ProximityComputationHelper } from "../lib/proximityComputation.helper";
 import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
 import { FoldableMenu } from "./foldableMenu.component";
+import { ExpandablePanel } from "./expandablePanel.component";
 
 const capitalPicker = (
   location: ILocationIdentifier,
@@ -166,7 +167,7 @@ const ConstructibleLocationItem = React.memo(
     gameData,
     gameState,
     proximityComputation,
-    expanded, 
+    expanded,
   }: {
     location: ILocationIdentifier;
     constructible: IConstructibleLocation;
@@ -178,7 +179,7 @@ const ConstructibleLocationItem = React.memo(
     expanded: boolean;
   }) {
     const locationNameDivRef = React.useRef<HTMLDivElement>(null);
-    
+
     useEffect(() => {
       const el = locationNameDivRef.current;
       if (el) {
@@ -230,21 +231,21 @@ const ConstructibleLocationItem = React.memo(
         {
           expanded && (
             <div className="col-span-2 flex flex-row items-center space-x-2">
-            {capitalPicker(location, gameState.capitalLocation === location)}
-            {locationRankPicker(location, constructible)}
-          </div>
+              {capitalPicker(location, gameState.capitalLocation === location)}
+              {locationRankPicker(location, constructible)}
+            </div>
           )
         }
         {
           expanded && (
             <div className="col-span-1">
-            {buildingList(
-              location,
-              gameData,
-              gameState.ownedLocations,
-              constructible,
-            )}
-          </div>
+              {buildingList(
+                location,
+                gameData,
+                gameState.ownedLocations,
+                constructible,
+              )}
+            </div>
           )
         }
       </div>
@@ -279,9 +280,11 @@ const RoadItem = React.memo(function RoadItem({ roadKey, type, expanded }: { roa
     return <></>;
   }
   return (
-    <div key={roadKey} className="py-1 h-10 grid grid-cols-9 items-center whitespace-nowrap gap-2 w-[600px]">
-      <span className="col-span-2 truncate ... cursor-pointer" ref={roadKeyElementRef}>{from} - {to}</span>
-      
+    <div key={roadKey} className="py-1 h-10 grid grid-cols-9 items-center whitespace-nowrap gap-4 w-[600px]">
+      <span ref={roadKeyElementRef} className={" col-span-2 min-w-0 cursor-pointer truncate ... "}>
+        {from} - {to}
+      </span>
+
       {
         !expanded && (
           <span className="col-span-1">
@@ -291,23 +294,23 @@ const RoadItem = React.memo(function RoadItem({ roadKey, type, expanded }: { roa
       }
       {
         expanded && (
-          <div className="col-span-3 flex flex-row items-center-gap-2">
+          <div className="col-span-3 flex flex-row items-center gap-2">
             {
               (["gravel_road", "paved_road", "modern_road", "rail_road"] satisfies RoadType[]).map((possibleRoadType) => (
                 <button key={possibleRoadType}
-                onClick={() => {
-                  gameStateController.changeRoadType(roadKey, possibleRoadType);
-                }}
-                className={`${type === possibleRoadType ? "bg-yellow-300" : "bg-black hover:bg-yellow-400"}`}
+                  onClick={() => {
+                    gameStateController.changeRoadType(roadKey, possibleRoadType);
+                  }}
+                  className={`${type === possibleRoadType ? "bg-yellow-300" : "bg-black hover:bg-yellow-400"}`}
                 >
                   <img src={getGuiImage(possibleRoadType)} alt={possibleRoadType} width={24} height={24} />
                 </button>
               ))
-            }    
+            }
           </div>
         )
       }
-      
+
     </div>
   );
 });
@@ -326,14 +329,11 @@ export function ConstructibleMenusComponent() {
   const { gameData } = useContext(AppContext);
 
   const [search, setSearch] = useState("");
-  const [isExpanded, setIsExpanded] = useState(false);
   const [ownedLocationsExpanded, setOwnedLocationsExpanded] = useState<boolean>(false);
   const [roadsExpanded, setRoadsExpanded] = useState<boolean>(false);
-  const containerRef = React.useRef<HTMLDivElement>(null);
-  const borderThreshold = 20; // pixels from edge to trigger expansion/collapse
 
   const filteredLocationEntries = useMemo(() => {
-    const entries = Object.entries(gameState.ownedLocations);
+    const entries = Object.entries(gameState?.ownedLocations ?? {});
     if (!search) {
       return entries;
     }
@@ -344,15 +344,28 @@ export function ConstructibleMenusComponent() {
   }, [search, gameState.ownedLocations]);
 
   const filteredRoadsEntries = useMemo(() => {
-    const entries = ConstructibleHelper.getOwnedRoads(gameState.ownedLocations, gameState.roads);
+    const entries = ConstructibleHelper.getOwnedRoads(gameState?.ownedLocations ?? {}, gameState?.roads ?? {});
     if (!search) {
       return entries;
     }
     const searchLower = search.toLowerCase();
 
-    for (const [key,] of Object.entries(entries)) {
-      if (!(key.toLowerCase().includes(searchLower))) {
+
+    for (const [key] of Object.entries(entries)) {
+      const [from, to] = key.split('-');
+      const fromContains = from.toLowerCase().includes(searchLower);
+      const toContains = to.toLowerCase().includes(searchLower);
+      const fromScore = fromContains ? searchLower.length / from.length : 0;
+      const toScore = toContains ? searchLower.length / to.length : 0;
+      const keyMatched: "from" | "to" = fromScore >= toScore ? "from" : "to";
+
+      if (!key.toLowerCase().includes(searchLower)) {
         delete entries[key as keyof typeof entries];
+      } else if (keyMatched === "to") {
+        const type = entries[key];
+        delete entries[key];
+        const newKey = `${to}-${from}`;
+        entries[newKey] = type;
       }
     }
     return entries;
@@ -364,93 +377,72 @@ export function ConstructibleMenusComponent() {
     if (search && filteredLocationEntries.length > 0) {
       setOwnedLocationsExpanded(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredLocationEntries.length]);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current) return;
-    
-    const rect = containerRef.current.getBoundingClientRect();
-    const mouseX = e.clientX;
-    const leftEdge = rect.left;
-    const rightEdge = rect.right;
-    const distanceFromLeft = mouseX - leftEdge;
-    const distanceFromRight = rightEdge - mouseX;
-    
-    if (!isExpanded) {
-      // Not expanded: expand when mouse is near right border
-      if (distanceFromRight >= 0 && distanceFromRight <= borderThreshold) {
-        setIsExpanded(true);
-      }
-    } else {
-      // Expanded: collapse when mouse is near left border
-      if (distanceFromLeft >= 0 && distanceFromLeft <= borderThreshold) {
-        setIsExpanded(false);
-      }
+    if (search && Object.keys(filteredRoadsEntries).length > 0) {
+      setRoadsExpanded(true);
     }
-  };
-
-  const handleMouseLeave = () => {
-    setIsExpanded(false);
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredLocationEntries.length, filteredRoadsEntries]);
 
   if (!gameData) {
-    throw new Error(
-      "[ConstructibleMenusComponent]: need gameData in context to render",
-    );
+    return <div>Loading gameData</div>;
   }
 
   return (
-    <div
-      ref={containerRef}
-      className={`min-h-96 ${isExpanded ? 'w-[600px]' : 'w-52'} overflow-x-hidden max-h-[50vh] transition-[width] duration-300 ease-in-out flex flex-col`}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-    >
-      <div className="flex-shrink-0">
-        <input
-          type="search"
-          placeholder="Search for a location..."
-          className="w-full"
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ outline: "none" }}
-        />
-        <hr className="w-full"></hr>
-      </div>
-      <FoldableMenu
-        title={`Owned Locations (${Object.keys(gameState.ownedLocations).length})`}
-        isExpanded={ownedLocationsExpanded}
-        onToggle={() => setOwnedLocationsExpanded(!ownedLocationsExpanded)}
-      >
-        {filteredLocationEntries
-          .sort(
-            ([a], [b]) =>
-              (proximityComputation.result[a]?.cost ?? 100) -
-              (proximityComputation.result[b]?.cost ?? 100),
-          )
-          .map(([locationName, constructibleData]) => (
-            <ConstructibleLocationItem
-              key={locationName}
-              location={locationName}
-              constructible={constructibleData}
-              gameData={gameData}
-              gameState={gameState}
-              proximityComputation={proximityComputation}
-              expanded={isExpanded}
-            />
-          ))}
-      </FoldableMenu>
-      <FoldableMenu
-        title={`Owned Roads (${Object.keys(filteredRoadsEntries).length})`}
-        isExpanded={roadsExpanded}
-        onToggle={() => setRoadsExpanded(!roadsExpanded)}
-      >
-        {filteredRoadsEntries && Object.entries(filteredRoadsEntries)
-          .sort(([keyA,], [keyB,]) => keyA.localeCompare(keyB))
-          .map(([key, type]) => (
-          <RoadItem key={key} roadKey={key as `${string}-${string}`} type={type} expanded={isExpanded} />
-        ))}
-      </FoldableMenu>
-    </div>
+    <ExpandablePanel>
+      {(isExpanded) => (
+        <>
+          {!(gameState?.ownedLocations) || Object.keys(gameState.ownedLocations).length === 0 ? <div className="text-stone-400 text-italic">No locations selected - either select a country above, or create your own country from scratch by selecting a location</div> : (
+            <>
+              <div className="flex-shrink-0">
+                <input
+                  type="search"
+                  placeholder="Search for a location..."
+                  className="w-full"
+                  onChange={(e) => setSearch(e.target.value)}
+                  style={{ outline: "none" }}
+                />
+                <hr className="w-full"></hr>
+              </div>
+              <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable]">
+                <FoldableMenu
+                  title={`Owned Locations (${Object.keys(gameState.ownedLocations).length})`}
+                  isExpanded={ownedLocationsExpanded}
+                  onToggle={() => setOwnedLocationsExpanded(!ownedLocationsExpanded)}
+                >
+                  {filteredLocationEntries
+                    .sort(
+                      ([a], [b]) =>
+                        (proximityComputation.result[a]?.cost ?? 100) -
+                        (proximityComputation.result[b]?.cost ?? 100),
+                    )
+                    .map(([locationName, constructibleData]) => (
+                      <ConstructibleLocationItem
+                        key={locationName}
+                        location={locationName}
+                        constructible={constructibleData}
+                        gameData={gameData}
+                        gameState={gameState}
+                        proximityComputation={proximityComputation}
+                        expanded={isExpanded}
+                      />
+                    ))}
+                </FoldableMenu>
+                <FoldableMenu
+                  title={`Owned Roads (${Object.keys(filteredRoadsEntries).length})`}
+                  isExpanded={roadsExpanded}
+                  onToggle={() => setRoadsExpanded(!roadsExpanded)}
+                >
+                  {filteredRoadsEntries && Object.entries(filteredRoadsEntries)
+                    .sort(([keyA,], [keyB,]) => keyA.localeCompare(keyB))
+                    .map(([key, type]) => (
+                      <RoadItem key={key} roadKey={key as `${string}-${string}`} type={type} expanded={isExpanded} />
+                    ))}
+                </FoldableMenu>
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </ExpandablePanel>
   );
 }

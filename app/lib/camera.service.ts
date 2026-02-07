@@ -1,7 +1,14 @@
 import { RefObject } from "react";
 import { gameStateController } from "./gameState.controller";
+import { DrawingHelper } from "./drawing/drawing.helper";
 import { ICoordinate, ILocationIdentifier } from "./types/general";
+import type { ILocationDataMap } from "./types/general";
 import { zoomController } from "@/app/lib/zoomController";
+
+export type NeighborsPanelPlacement =
+  | { x: number; y: number; side: "left" }
+  | { x: number; y: number; side: "right" }
+  | null;
 
 export class CameraService {
   private container: RefObject<HTMLDivElement>;
@@ -190,4 +197,42 @@ export class CameraService {
       }
     });
   };
+
+  /**
+   * Returns viewport (screen) coordinates and placement side for the neighbors panel
+   * so it appears next to the given location (left or right of it depending on location position).
+   */
+  public getNeighborsPanelScreenPosition(
+    locationName: ILocationIdentifier,
+    locationDataMap: ILocationDataMap,
+    canvasHeight: number,
+  ): NeighborsPanelPlacement {
+    const gameCoord =
+      locationDataMap[locationName]?.constructibleLocationCoordinate;
+    if (!gameCoord) return null;
+
+    const canvasCoord = DrawingHelper.gameCoordinatesToCanvasCoordinates(
+      gameCoord,
+      canvasHeight,
+    );
+
+    const colorCanvas = this.colorCanvas.current;
+    const container = this.container.current;
+    if (!colorCanvas || !container) return null;
+
+    const containerRect = container.getBoundingClientRect();
+    const zoom = zoomController.getSnapshot().zoomLevel;
+    const currentLeft = parseFloat(colorCanvas.style.left) || 0;
+    const currentTop = parseFloat(colorCanvas.style.top) || 0;
+
+    const screenX =
+      containerRect.left + currentLeft + canvasCoord.x * zoom;
+    const screenY =
+      containerRect.top + currentTop + canvasCoord.y * zoom;
+
+    const viewportCenterX = containerRect.left + containerRect.width / 2;
+    const side = screenX >= viewportCenterX ? "left" : "right";
+
+    return { x: screenX, y: screenY, side };
+  }
 }

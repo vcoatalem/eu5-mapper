@@ -30,15 +30,17 @@ import { HeaderComponent } from "./header.component";
 import { CountryOverview } from "./countryOverview.component";
 import { locationSearchController } from "@/app/lib/locationSearchController";
 import { DrawingHelper } from "../lib/drawing/drawing.helper";
-import { CameraService } from "../lib/camera.service";
+import { CameraService, NeighborsPanelPlacement } from "../lib/camera.service";
 import { actionEventDispatcher } from "../lib/actionEventDispatcher";
 import { IWorkerTaskInitWithImagePayload } from "@/workers/types/workerTypes";
+import { ObservableCombiner } from "@/app/lib/observableCombiner";
+import { Subject } from "@/app/lib/subject";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
   const { gameData, imagePaths, isLoading: gameDataIsLoading, error: gameDataLoadingError } = context;
 
- /*  console.log("render worldmap component", { gameDataIsLoading, gameDataLoadingError }); */
+  /*  console.log("render worldmap component", { gameDataIsLoading, gameDataLoadingError }); */
 
   const gameState = useSyncExternalStore(
     gameStateController.subscribe.bind(gameStateController),
@@ -66,6 +68,8 @@ export function WorldMapComponent() {
   const [initializationError, setInitializationError] = useState<string | null>(null);
   const [showNeighborsPanel, setShowNeighborsPanel] =
     useState<ILocationIdentifier | null>(null);
+  const [neighborsPanelPosition, setNeighborsPanelPosition] =
+    useState<NeighborsPanelPlacement>(null);
   // Using ref instead of state: we use forceUpdate() (triggerRender) to trigger render
   // after applying the drag state, so we don't need useState's automatic re-renders.
   // The cursor style can read from ref.current during render, and the zoom controller
@@ -261,11 +265,11 @@ export function WorldMapComponent() {
       const initialZoom = zoomController.getSnapshot().zoomLevel;
       const targetX = 7934;
       const targetY = 1991;
-      
+
       // Set initial position directly to avoid animation issues on first load
       const initialLeft = centerX - targetX * initialZoom;
       const initialTop = centerY - targetY * initialZoom;
-      
+
       layers.forEach((layer) => {
         const canvas = layer.ref.current;
         if (canvas) {
@@ -291,7 +295,7 @@ export function WorldMapComponent() {
         const img = new Image();
         // Track the image for cleanup
         imageLoadHandlersRef.current.push({ img, layer: layer.name });
-        
+
         img.onload = () => {
           // Check if this image is still being tracked (not cleaned up from a previous init)
           const isStillTracked = imageLoadHandlersRef.current.some(
@@ -455,10 +459,22 @@ export function WorldMapComponent() {
       "acquire",
     );
 
+    new ObservableCombiner([actionEventDispatcher.prolongedHoverLocation])
     actionEventDispatcher.prolongedHoverLocation.subscribe(
       ({ locations }) => {
-        // Show neighbors panel for the first location if any locations are hovered
-        setShowNeighborsPanel(locations.length > 0 ? locations[0] : null);
+        if (locations.length > 0) {
+          const locationName = locations[0];
+          setShowNeighborsPanel(locationName);
+          const placement = cameraServiceRef.current?.getNeighborsPanelScreenPosition(
+            locationName,
+            gameData.locationDataMap,
+            worldMapConfig.height,
+          ) ?? null;
+          setNeighborsPanelPosition(placement);
+        } else {
+          setShowNeighborsPanel(null);
+          setNeighborsPanelPosition(null);
+        }
       },
     );
 
@@ -504,10 +520,10 @@ export function WorldMapComponent() {
         zoomUnsubscribeRef.current();
         zoomUnsubscribeRef.current = null;
       }
-      
+
       zoomController.setDraggingCheck(() => isDraggingRef.current);
       zoomController.init(topLayerRef.current);
-      
+
       // Subscribe to zoom changes
       zoomUnsubscribeRef.current = zoomController.subscribe(({ zoomLevel, oldZoomLevel }) => {
         if (!borderCanvasRef.current) {
@@ -532,7 +548,7 @@ export function WorldMapComponent() {
         }
       });
     }
-    
+
 
     // Mark as initialized only after waitForInitialization completes
     waitForInitialization(layers.length).then(() => {
@@ -547,7 +563,7 @@ export function WorldMapComponent() {
 
     return () => {
       console.log({ topLayerRefForDestroy: topLayerRef });
-      
+
       // Cancel any pending image loads
       imageLoadHandlersRef.current.forEach(({ img }) => {
         img.onload = null;
@@ -555,18 +571,18 @@ export function WorldMapComponent() {
         img.src = ''; // Cancel image load
       });
       imageLoadHandlersRef.current = [];
-      
+
       // Reset layer counter and error state
       layersRenderedRef.current = 0;
       setInitializationError(null);
-      
+
       // Clean up zoom controller
       if (zoomUnsubscribeRef.current) {
         zoomUnsubscribeRef.current();
         zoomUnsubscribeRef.current = null;
       }
       zoomController.cleanup();
-      
+
       if (topLayerRef.current) {
         console.log("remove mouse event listeners");
         topLayerRef.current.removeEventListener("mousedown", handleMouseDown);
@@ -634,23 +650,43 @@ export function WorldMapComponent() {
           {/* z-50 here is so that dropdowns from header show above of other guiElement */}
           <HeaderComponent />
         </GuiElement>
-        {hasOwnedLocations && (
-          <GuiElement className="fixed left-5 top-18">
-            <ConstructibleMenusComponent />
+        <div className="fixed left-5 top-16 flex flex-col gap-2 z-50">
+          <GuiElement className="w-fit">
+            <CountryOverview />
           </GuiElement>
-        )}
+          <GuiElement className="w-fit">
+            {hasOwnedLocations ? (
+              <ConstructibleMenusComponent />
+            ) : (<div className="max-w-52 text-stone-400 text-italic">No locations selected - either select a country above, or create your own country from scratch by selecting a location</div>)}
+          </GuiElement>
+        </div>
         <GuiElement className="fixed left-5 right-5 bottom-1">
           <InfoBoxComponent />
         </GuiElement>
         {showNeighborsPanel && (
-          <GuiElement className="fixed left-5 bottom-20">
-            <NeighborsPanelComponent locationName={showNeighborsPanel} />
+          <GuiElement
+            className="fixed pointer-events-none"
+            style={
+              neighborsPanelPosition
+                ? neighborsPanelPosition.side === "right"
+                  ? {
+                    left: neighborsPanelPosition.x + 12,
+                    top: neighborsPanelPosition.y,
+                    transform: "translate(0, 0)",
+                  }
+                  : {
+                    left: neighborsPanelPosition.x - 12,
+                    top: neighborsPanelPosition.y,
+                    transform: "translate(-100%, 0)",
+                  }
+                : { left: 20, top: 80 }
+            }
+          >
+            <div className="pointer-events-auto">
+              <NeighborsPanelComponent locationName={showNeighborsPanel} />
+            </div>
           </GuiElement>
         )}
-
-        <GuiElement className="fixed right-5 top-16">
-          <CountryOverview />
-        </GuiElement>
 
         <GuiElement className="fixed right-20 bottom-15">
           <button onClick={handleZoomOut} className="w-8 px-2 py-1">

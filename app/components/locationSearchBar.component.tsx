@@ -10,6 +10,7 @@ import { locationSearchController } from "@/app/lib/locationSearchController";
 import { GuiElement } from "./guiElement";
 import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
 import { ILocationIdentifier } from "../lib/types/general";
+import Image from "next/image";
 
 const LocationSearchResultItem = React.memo(function LocationSearchResultItem({
   loc,
@@ -56,7 +57,7 @@ const LocationSearchResultItem = React.memo(function LocationSearchResultItem({
   );
 });
 
-export function LocationSearchBar() {
+export function LocationSearchBar(props: { className?: string}) {
   const { gameData } = useContext(AppContext);
   const locationSearchResult = useSyncExternalStore(
     locationSearchController.subscribe.bind(locationSearchController),
@@ -95,9 +96,10 @@ export function LocationSearchBar() {
 
   return (
     <div 
-      className="px-2 w-62 h-full flex items-center relative"
+      className={props.className + " px-2 max-w-62 h-full flex items-center relative "} 
       onMouseLeave={handleMouseLeave}
     >
+      <Image src={"/icons/magnifyingGlass.svg"} className="invert" alt="magnifying glass" width={24} height={24}></Image>
       <input
         ref={inputRef}
         type="text"

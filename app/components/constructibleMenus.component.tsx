@@ -253,7 +253,7 @@ const ConstructibleLocationItem = React.memo(
   },
 );
 
-const RoadItem = React.memo(function RoadItem({ roadKey, type, expanded }: { roadKey: `${string}-${string}`; type: RoadType; expanded: boolean }) { // eslint-disable-line @typescript-eslint/no-unused-vars
+const RoadItem = React.memo(function RoadItem({ roadKey, type, expanded }: { roadKey: `${string}-${string}`; type: RoadType; expanded: boolean }) {
   const [from, to] = roadKey.split('-');
   const roadKeyElementRef = React.useRef<HTMLElement>(null);
 
@@ -281,7 +281,7 @@ const RoadItem = React.memo(function RoadItem({ roadKey, type, expanded }: { roa
   }
   return (
     <div key={roadKey} className="py-1 h-10 grid grid-cols-9 items-center whitespace-nowrap gap-4 w-[600px]">
-      <span ref={roadKeyElementRef} className={" col-span-2 min-w-0 cursor-pointer truncate ... "}>
+      <span ref={roadKeyElementRef} className={"  min-w-0 cursor-pointer truncate ... " + (expanded ? 'col-span-4' : 'col-span-2')}>
         {from} - {to}
       </span>
 
@@ -332,7 +332,9 @@ export function ConstructibleMenusComponent() {
   const [ownedLocationsExpanded, setOwnedLocationsExpanded] = useState<boolean>(false);
   const [roadsExpanded, setRoadsExpanded] = useState<boolean>(false);
 
-  const filteredLocationEntries = useMemo(() => {
+  const ownedLocationKeys = Object.keys(gameState?.ownedLocations ?? {});
+  const filteredLocationEntries = useMemo(
+    () => {
     const entries = Object.entries(gameState?.ownedLocations ?? {});
     if (!search) {
       return entries;
@@ -341,7 +343,9 @@ export function ConstructibleMenusComponent() {
     return entries.filter(([locationName]) =>
       locationName.toLowerCase().includes(searchLower)
     );
-  }, [search, gameState.ownedLocations]);
+    },
+    [search, gameState.ownedLocations, ownedLocationKeys.length],
+  );
 
   const filteredRoadsEntries = useMemo(() => {
     const entries = ConstructibleHelper.getOwnedRoads(gameState?.ownedLocations ?? {}, gameState?.roads ?? {});
@@ -369,7 +373,7 @@ export function ConstructibleMenusComponent() {
       }
     }
     return entries;
-  }, [search, gameState.ownedLocations, gameState.roads])
+  }, [search, gameState.ownedLocations, gameState.roads, ownedLocationKeys.length])
 
   // Auto-expand when search has results
   // This is a legitimate side effect: syncing UI state (expansion) with user input (search)

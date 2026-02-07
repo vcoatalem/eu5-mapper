@@ -9,10 +9,12 @@ export function HeaderComponent() {
   if (!gameData) return;
 
   return (
-    <div className="w-full h-10 flex items-center">
-      <WorkerStatusComponent />
-      <LocationSearchBar />
-      <PathfindingInfosComponent className="ml-auto"/>
+    <div className="w-full h-10 flex flex-row items-center">
+      <PathfindingInfosComponent/>
+      <div className="ml-auto flex flex-row items-center">
+        <LocationSearchBar className="w-52"/>
+        <WorkerStatusComponent className="w-32"/>
+      </div>
     </div>
   );
 }

@@ -34,7 +34,6 @@ import { CameraService, NeighborsPanelPlacement } from "../lib/camera.service";
 import { actionEventDispatcher } from "../lib/actionEventDispatcher";
 import { IWorkerTaskInitWithImagePayload } from "@/workers/types/workerTypes";
 import { ObservableCombiner } from "@/app/lib/observableCombiner";
-import { Subject } from "@/app/lib/subject";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
@@ -462,7 +461,8 @@ export function WorldMapComponent() {
     new ObservableCombiner([actionEventDispatcher.prolongedHoverLocation])
     actionEventDispatcher.prolongedHoverLocation.subscribe(
       ({ locations }) => {
-        if (locations.length > 0) {
+        if (locations.length === 1) {
+          // only show neighbors panel if there is exactly one location hovered
           const locationName = locations[0];
           setShowNeighborsPanel(locationName);
           const placement = cameraServiceRef.current?.getNeighborsPanelScreenPosition(
@@ -562,7 +562,7 @@ export function WorldMapComponent() {
     });
 
     return () => {
-      console.log({ topLayerRefForDestroy: topLayerRef });
+      console.log("enter cleanup for worldmap component -- async processed must be terminated, event listeners must be removed, and all subscriptions must be closed");
 
       // Cancel any pending image loads
       imageLoadHandlersRef.current.forEach(({ img }) => {
@@ -650,11 +650,11 @@ export function WorldMapComponent() {
           {/* z-50 here is so that dropdowns from header show above of other guiElement */}
           <HeaderComponent />
         </GuiElement>
-        <div className="fixed left-5 top-16 flex flex-col gap-2 z-50">
-          <GuiElement className="w-fit">
+        <div className="fixed left-5 top-16 flex flex-col gap-2 z-50 max-h-[85vh] min-h-0 overflow-y-auto">
+          <GuiElement className="w-fit min-h-0 shrink overflow-hidden">
             <CountryOverview />
           </GuiElement>
-          <GuiElement className="w-fit">
+          <GuiElement className="w-fit min-h-0 shrink overflow-hidden">
             {hasOwnedLocations ? (
               <ConstructibleMenusComponent />
             ) : (<div className="max-w-52 text-stone-400 text-italic">No locations selected - either select a country above, or create your own country from scratch by selecting a location</div>)}

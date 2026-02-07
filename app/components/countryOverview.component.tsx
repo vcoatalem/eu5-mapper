@@ -16,12 +16,9 @@ import { ExpandablePanel } from "@/app/components/expandablePanel.component";
 import { CountrySelector } from "@/app/components/countrySelector.component";
 import { FoldableMenu } from "@/app/components/foldableMenu.component";
 
-const updateValue = (
-  event: React.ChangeEvent<HTMLInputElement>,
-  value: keyof ICountryValues,
-) => {
+const updateValue = (numericValue: number, key: keyof ICountryValues) => {
   gameStateController.changeCountryValues({
-    [value]: Number(event.target.value),
+    [key]: numericValue,
   });
 };
 
@@ -99,7 +96,7 @@ function CountryValueSlider({ expanded, value, rangeMin, rangeMax, minValueLabel
   const collapsedLabel = value > 0 ? maxValueLabel : minValueLabel;
   return expanded ? (
     <div className="grid grid-cols-3 gap-2">
-      <span className="text-right">{minValueLabel}</span>
+      <span className={"text-right "}>{minValueLabel}</span>
       <input
         type="range"
         min={rangeMin}
@@ -110,7 +107,7 @@ function CountryValueSlider({ expanded, value, rangeMin, rangeMax, minValueLabel
       <span className="text-left">{maxValueLabel}</span>
     </div>
   ) : (
-    <span>{collapsedLabel}: {value}</span>
+    <p><span className="text-sm font-bold">{collapsedLabel}</span>: {value}</p>
   )
 }
 
@@ -145,7 +142,7 @@ export function CountryOverview() {
             <CountrySelector ></CountrySelector>
             <hr></hr>
             <FoldableMenu title="Country Values" isExpanded={countryMenuExpanded} onToggle={() => setCountryMenuExpanded(!countryMenuExpanded)}>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1">
                 <CountryValueSlider
                   expanded={isExpanded}
                   value={gameState.country.landVsNaval}
@@ -153,7 +150,7 @@ export function CountryOverview() {
                   rangeMax={100}
                   minValueLabel="Land"
                   maxValueLabel="Naval"
-                  onChange={(e) => updateValue(e, "landVsNaval")}
+                  onChange={(value) => updateValue(value, "landVsNaval")}
                 ></CountryValueSlider>
 
                 <CountryValueSlider
@@ -163,7 +160,7 @@ export function CountryOverview() {
                   rangeMax={100}
                   minValueLabel="Centralization"
                   maxValueLabel="Decentralization"
-                  onChange={(e) => updateValue(e, "centralizationVsDecentralization")}
+                  onChange={(value) => updateValue(value, "centralizationVsDecentralization")}
                 ></CountryValueSlider>
 
                 <CountryValueSlider
@@ -173,7 +170,7 @@ export function CountryOverview() {
                   rangeMax={100}
                   minValueLabel="Administrative Ability"
                   maxValueLabel="Administrative Ability"
-                  onChange={(e) => updateValue(e, "rulerAdministrativeAbility")}
+                  onChange={(value) => updateValue(value, "rulerAdministrativeAbility")}
                 ></CountryValueSlider>
               </div>
 

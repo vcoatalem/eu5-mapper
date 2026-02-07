@@ -296,22 +296,27 @@ export class GameStateController extends Observable<IGameState> {
   }
 
   public changeRoadType(key: string, type: RoadType): void {
-    const [locationA, locationB] = key.split('-');
-    if (!locationA || !locationB) {
-      throw new Error(`Invalid road key: ${key}`);
-    }
-    this.subject.roads = {
-      ...this.subject.roads,
-      [locationA]: [
-        ...this.subject.roads[locationA].filter((road) => road.to !== locationB),
-        { to: locationB, type, createdByUser: true },
-      ],
-      [locationB]: [
-        ...this.subject.roads[locationB].filter((road) => road.to !== locationA),
-        { to: locationA, type, createdByUser: true },
-      ],
-    };
+    ConstructibleHelper.applyRoadTypeChange(this.subject.roads, key, type);
     this.notifyListeners();
+  }
+
+  public changeRoadTypeBulk(
+    changes: Array<{ key: string; type: RoadType }>,
+  ): void {
+    const roads: IGameState["roads"] = {};
+    for (const loc of Object.keys(this.subject.roads)) {
+      roads[loc] = [...this.subject.roads[loc]];
+    }
+    for (const { key, type } of changes) {
+      ConstructibleHelper.applyRoadTypeChange(roads, key, type);
+    }
+    this.subject.roads = roads;
+    this.notifyListeners();
+  }
+
+  public changeAllOwnedRoadsToType(type: RoadType): void {
+    const roads = ConstructibleHelper.getOwnedRoads(this.subject.ownedLocations, this.subject.roads);
+    this.changeRoadTypeBulk(Object.entries(roads).map(([key,]) => ({ key, type })));
   }
 }
 export const gameStateController = new GameStateController();

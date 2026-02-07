@@ -280,7 +280,7 @@ const RoadItem = React.memo(function RoadItem({ roadKey, type, expanded }: { roa
     return <></>;
   }
   return (
-    <div key={roadKey} className="py-1 h-10 grid grid-cols-9 items-center whitespace-nowrap gap-4 w-[600px]">
+    <div key={roadKey} className="py-1 h-10 grid grid-cols-8 items-center whitespace-nowrap gap-4 w-[600px]">
       <span ref={roadKeyElementRef} className={"  min-w-0 cursor-pointer truncate ... " + (expanded ? 'col-span-4' : 'col-span-2')}>
         {from} - {to}
       </span>
@@ -335,14 +335,14 @@ export function ConstructibleMenusComponent() {
   const ownedLocationKeys = Object.keys(gameState?.ownedLocations ?? {});
   const filteredLocationEntries = useMemo(
     () => {
-    const entries = Object.entries(gameState?.ownedLocations ?? {});
-    if (!search) {
-      return entries;
-    }
-    const searchLower = search.toLowerCase();
-    return entries.filter(([locationName]) =>
-      locationName.toLowerCase().includes(searchLower)
-    );
+      const entries = Object.entries(gameState?.ownedLocations ?? {});
+      if (!search) {
+        return entries;
+      }
+      const searchLower = search.toLowerCase();
+      return entries.filter(([locationName]) =>
+        locationName.toLowerCase().includes(searchLower)
+      );
     },
     [search, gameState.ownedLocations, ownedLocationKeys.length],
   );
@@ -436,6 +436,28 @@ export function ConstructibleMenusComponent() {
                   isExpanded={roadsExpanded}
                   onToggle={() => setRoadsExpanded(!roadsExpanded)}
                 >
+                  {isExpanded && (
+                  <div className="grid grid-cols-8 gap-4 w-[600px] items-center py-1 h-10">
+                    <span className="col-span-4" aria-hidden />
+                    <div className="col-span-3 flex flex-row items-center gap-2">
+                      {
+                        (["gravel_road", "paved_road", "modern_road", "rail_road"] satisfies RoadType[]).map((possibleRoadType) => (
+                          <input
+                            key={possibleRoadType}
+                            type="checkbox"
+                            className="w-6 h-6 shrink-0"
+                            checked={ConstructibleHelper.areAllOwnedRoadsOfType(
+                              gameState.ownedLocations,
+                              gameState.roads,
+                              possibleRoadType,
+                            )}
+                            onChange={() => gameStateController.changeAllOwnedRoadsToType(possibleRoadType)}
+                          />
+                        ))
+                      }
+                    </div>
+                  </div>
+                  )}
                   {filteredRoadsEntries && Object.entries(filteredRoadsEntries)
                     .sort(([keyA,], [keyB,]) => keyA.localeCompare(keyB))
                     .map(([key, type]) => (

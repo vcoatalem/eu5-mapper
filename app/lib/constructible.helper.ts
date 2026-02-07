@@ -177,4 +177,34 @@ export class ConstructibleHelper {
     }
     return ownedRoads;
   }
+
+  public static areAllOwnedRoadsOfType(
+    ownedLocations: IGameState["ownedLocations"],
+    roads: RoadRecord,
+    type: RoadType,
+  ): boolean {
+    const ownedRoads = this.getOwnedRoads(ownedLocations, roads);
+    const types = Object.values(ownedRoads);
+    if (types.length === 0) return false;
+    return types.every((t) => t === type);
+  }
+
+  public static applyRoadTypeChange(
+    roads: RoadRecord,
+    key: string,
+    type: RoadType,
+  ): void {
+    const [locationA, locationB] = key.split('-');
+    if (!locationA || !locationB) {
+      throw new Error(`Invalid road key: ${key}`);
+    }
+    roads[locationA] = [
+      ...(roads[locationA] ?? []).filter((road) => road.to !== locationB),
+      { to: locationB, type, createdByUser: true },
+    ];
+    roads[locationB] = [
+      ...(roads[locationB] ?? []).filter((road) => road.to !== locationA),
+      { to: locationA, type, createdByUser: true },
+    ];
+  }
 }

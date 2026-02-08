@@ -251,8 +251,8 @@ def generate_game_data_json(version: str = "0.0.11", output_dir: str = None):
     
     hierarchy = parse_location_hierarchy(files.provinces_data)
 
-    # Parse countries file and extract whitelisted countries' locations
-    whitelisted_countries = ["SWE", "DAN", "NOR", "ENG", "FRA", "TEU", "BRA", "BOH", "HUN", "POL", "LIT", "MOS", "NOV", "OTT", "RUS", "CAS", "POR", "VEN", "PAP", "ARB", "MOR", "TUN", "DHL", "ARA", "HAB", "KIE", "GEO", "MAM", "OMA", "VIJ", "BYZ" ]
+    # Parse countries file and extract whitelisted countries locations
+    whitelisted_countries = {"SWE", "DAN", "NOR", "ENG", "FRA", "TEU", "BRA", "BOH", "HUN", "POL", "LIT", "MOS", "NOV", "OTT", "RUS", "CAS", "POR", "VEN", "PAP", "ARB", "MOR", "TUN", "DHL", "ARA", "HAB", "KIE", "GEO", "MAM", "OMA", "VIJ", "BYZ", "KOR" }
     countries_data_map = parse_countries_files(files.countries_file, whitelisted_countries)
     
     city_coordinates = parse_city_coordinates(files.locations_city_coordinates)
@@ -263,9 +263,10 @@ def generate_game_data_json(version: str = "0.0.11", output_dir: str = None):
     roads = parse_roads_file(files.roads_file)
     development_rules = parse_development_file(files.development_file)
     #print("development rules:", development_rules)
+    whitelisted_buildings = {'wharf', 'fishing_village', 'dock', 'bridge_infrastructure', 'bailiff'}
     location_ranks, location_buildings = parse_cities_and_buildings_file(
         files.cities_buildings_file,
-        {'wharf', 'fishing_village', 'dock', 'bridge_infrastructure', 'bailiff'}
+        whitelisted_buildings
     )
     for loc in locations_to_print:
         print(f"rank of {loc}:", location_ranks.get(loc))

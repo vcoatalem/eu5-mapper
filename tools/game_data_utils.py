@@ -667,7 +667,7 @@ def parse_city_coordinates(coordinates_file: str) -> Dict[str, LocationCoordinat
     return location_coordinates
 
 
-def parse_countries_files(country_file: str, whitelisted_countries: list) -> Dict[str, CountryData]:
+def parse_countries_files(country_file: str, whitelisted_countries: set[str]) -> Dict[str, CountryData]:
     parsed = parse_game_data_file(country_file)
     countriesDict = {}
 

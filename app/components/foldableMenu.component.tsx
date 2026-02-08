@@ -25,10 +25,10 @@ export function FoldableMenu({ title, isExpanded, onToggle, children }: Foldable
           {title}
         </span>
       </div>
-      <div 
+      <div
         className={`grow-0 min-h-0 transition-all duration-300 ease-in-out ${
-          isExpanded 
-            ? 'max-h-[1000px] opacity-100 overflow-hidden' 
+          isExpanded
+            ? 'max-h-[1000px] opacity-100'
             : 'max-h-0 opacity-0 overflow-hidden'
         }`}
       >

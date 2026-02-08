@@ -474,7 +474,9 @@
               gameData2,
               gameState.country,
               options,
-              roadType
+              roadType,
+              true
+              // going out of harbor
             );
             logProximityComputation(
               locationWithHarbor,
@@ -621,7 +623,7 @@
     const totalEnvironmentalCostIncrease = topographyCostIncreasePercentage + vegetationCostIncreasePercentage;
     return totalEnvironmentalCostIncrease;
   };
-  _ProximityComputationHelper.getLandLocationProximityModifiers = (location, locationConstructibleData, gameData2, country, options, roadToDestinationType) => {
+  _ProximityComputationHelper.getLandLocationProximityModifiers = (location, locationConstructibleData, gameData2, country, options, roadToDestinationType, goingOutOfHarbor) => {
     if (location.isSea || location.isLake || !location.ownable) {
       return 0;
     }
@@ -629,7 +631,6 @@
     const totalBuildingsCostReduction = buildings.map(
       (b) => b.template.proximityCostReductionPercentage?.[b.level - 1] ?? 0
     ).reduce((a, b) => a + b, 0);
-    const discardVegetationModifiers = !!roadToDestinationType;
     const roadProximityCostReduction = roadToDestinationType ? gameData2.proximityComputationRule.roadProximityCostReduction[roadToDestinationType] : 0;
     logProximityComputation(
       location.name,
@@ -637,12 +638,12 @@
       "Road proximity cost reduction",
       { roadProximityCostReduction, roadType: roadToDestinationType }
     );
-    const environmentalProximityCostIncreasePercentage = _ProximityComputationHelper.getEnvironmentalProximityCostIncreasePercentage(
+    const environmentalProximityCostIncreasePercentage = !goingOutOfHarbor ? _ProximityComputationHelper.getEnvironmentalProximityCostIncreasePercentage(
       location,
       gameData2,
-      discardVegetationModifiers,
+      !!roadToDestinationType,
       options
-    );
+    ) : 0;
     const development = location.development;
     const developmentCostReduction = development * gameData2.proximityComputationRule.developmentImpact;
     const countryLandProximityModifiers = [

@@ -111,6 +111,7 @@ export class ProximityComputationHelper {
     country: ICountryValues,
     options: PathFindingOptions,
     roadToDestinationType: RoadType | null,
+    goingOutOfHarbor?: boolean
   ): number => {
     if (location.isSea || location.isLake || !location.ownable) {
       return 0;
@@ -122,7 +123,6 @@ export class ProximityComputationHelper {
       )
       .reduce((a, b) => a + b, 0);
 
-    const discardVegetationModifiers = !!roadToDestinationType; //TODO: check in game how this applies to harbors in location with topography / vegetation with negative modifiers
     const roadProximityCostReduction = roadToDestinationType ? gameData.proximityComputationRule.roadProximityCostReduction[roadToDestinationType] : 0;
 
     logProximityComputation(
@@ -132,13 +132,13 @@ export class ProximityComputationHelper {
       { roadProximityCostReduction, roadType: roadToDestinationType },
     );
 
-    const environmentalProximityCostIncreasePercentage =
+    const environmentalProximityCostIncreasePercentage = !goingOutOfHarbor ?
       ProximityComputationHelper.getEnvironmentalProximityCostIncreasePercentage(
         location,
         gameData,
-        discardVegetationModifiers,
+        !!roadToDestinationType,
         options,
-      );
+      ) : 0;
 
     const development = location.development;
     const developmentCostReduction =
@@ -350,6 +350,7 @@ export class ProximityComputationHelper {
             gameState.country,
             options,
             roadType,
+            true, // going out of harbor
           );
           logProximityComputation(
             locationWithHarbor,

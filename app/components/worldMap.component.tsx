@@ -37,7 +37,12 @@ import { ObservableCombiner } from "@/app/lib/observableCombiner";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
-  const { gameData, imagePaths, isLoading: gameDataIsLoading, error: gameDataLoadingError } = context;
+  const {
+    gameData,
+    imagePaths,
+    isLoading: gameDataIsLoading,
+    error: gameDataLoadingError,
+  } = context;
 
   /*  console.log("render worldmap component", { gameDataIsLoading, gameDataLoadingError }); */
 
@@ -64,7 +69,9 @@ export function WorldMapComponent() {
   const cameraServiceRef = useRef<CameraService>(null);
   const [, forceUpdate] = useState({});
   const [isLoading, setIsLoading] = useState(true);
-  const [initializationError, setInitializationError] = useState<string | null>(null);
+  const [initializationError, setInitializationError] = useState<string | null>(
+    null,
+  );
   const [showNeighborsPanel, setShowNeighborsPanel] =
     useState<ILocationIdentifier | null>(null);
   const [neighborsPanelPosition, setNeighborsPanelPosition] =
@@ -75,53 +82,62 @@ export function WorldMapComponent() {
   // closure needs a ref to access the current value.
   const isDraggingRef = useRef(false);
   const layersRenderedRef = useRef(0);
-  const imageLoadHandlersRef = useRef<Array<{ img: HTMLImageElement; layer: string }>>([]);
+  const imageLoadHandlersRef = useRef<
+    Array<{ img: HTMLImageElement; layer: string }>
+  >([]);
   const zoomUnsubscribeRef = useRef<(() => void) | null>(null);
 
-  const waitForInitialization = React.useCallback(async (expectedLayerCount: number) => {
-    try {
-      // Wait for all layers to be rendered before removing loading screen
-      await new Promise<void>((resolve, reject) => {
-        const checkLayersRendered = () => {
-          if (
-            layersRenderedRef.current === expectedLayerCount &&
-            expectedLayerCount > 0
-          ) {
-            resolve();
-          }
-        };
+  const waitForInitialization = React.useCallback(
+    async (expectedLayerCount: number) => {
+      try {
+        // Wait for all layers to be rendered before removing loading screen
+        await new Promise<void>((resolve, reject) => {
+          const checkLayersRendered = () => {
+            if (
+              layersRenderedRef.current === expectedLayerCount &&
+              expectedLayerCount > 0
+            ) {
+              resolve();
+            }
+          };
 
-        // Check immediately in case layers are already rendered
-        checkLayersRendered();
+          // Check immediately in case layers are already rendered
+          checkLayersRendered();
 
-        // Set up an interval to check periodically
-        const interval = setInterval(checkLayersRendered, 50);
+          // Set up an interval to check periodically
+          const interval = setInterval(checkLayersRendered, 50);
 
-        // Cleanup interval after a timeout (e.g., 30 seconds)
-        const timeout = setTimeout(() => {
-          clearInterval(interval);
-          reject(new Error("Layer initialization timed out after 30 seconds. Some layers may not have loaded correctly."));
-        }, 30000);
+          // Cleanup interval after a timeout (e.g., 30 seconds)
+          const timeout = setTimeout(() => {
+            clearInterval(interval);
+            reject(
+              new Error(
+                "Layer initialization timed out after 30 seconds. Some layers may not have loaded correctly.",
+              ),
+            );
+          }, 30000);
 
-        // TODO: check that color canvas worker is initialized
+          // TODO: check that color canvas worker is initialized
 
-        return () => {
-          clearInterval(interval);
-          clearTimeout(timeout);
-        };
-      });
+          return () => {
+            clearInterval(interval);
+            clearTimeout(timeout);
+          };
+        });
 
-      console.log(
-        "[WorldMapComponent] All layers rendered, proceeding with initialization",
-      );
-      setIsLoading(false);
-    } catch (error) {
-      const errorMsg =
-        error instanceof Error ? error.message : "Initialization failed";
-      setIsLoading(false);
-      console.error("[WorldMapComponent] Initialization error:", errorMsg);
-    }
-  }, []);
+        console.log(
+          "[WorldMapComponent] All layers rendered, proceeding with initialization",
+        );
+        setIsLoading(false);
+      } catch (error) {
+        const errorMsg =
+          error instanceof Error ? error.message : "Initialization failed";
+        setIsLoading(false);
+        console.error("[WorldMapComponent] Initialization error:", errorMsg);
+      }
+    },
+    [],
+  );
 
   const createBlackCanvas = (ctx: CanvasRenderingContext2D) => {
     ctx.fillStyle = "#4a4a4a";
@@ -134,64 +150,73 @@ export function WorldMapComponent() {
   };
 
   // Memoize layers array to prevent recreation on every render
-  const layers = useMemo<Array<{
-    name: string;
-    ref: RefObject<HTMLCanvasElement | null>;
-    zIndex: number;
-    path?: string;
-    createMethod?: (ctx: CanvasRenderingContext2D) => unknown;
-    initializeWorkerCanvas?: boolean;
-  }>>(() => [
-    {
-      name: "colorLayer",
-      ref: colorCanvasRef,
-      zIndex: 0,
-      path: imagePaths?.locationsImage,
-      initializeWorkerCanvas: true,
-    },
-    {
-      name: "blackLayer",
-      ref: blackCanvasRef,
-      zIndex: 1,
-      createMethod: createBlackCanvas,
-    },
-    {
-      name: "borderLayer",
-      ref: borderCanvasRef,
-      zIndex: 5,
-      path: imagePaths?.borderLayer,
-    },
-    {
-      name: "areaDrawingLayer",
-      ref: areaDrawingCanvasRef,
-      zIndex: 2,
-      createMethod: createTransparentCanvas,
-    },
-    {
-      name: "terrainLayer",
-      ref: terrainCanvasRef,
-      zIndex: 4,
-      path: imagePaths?.terrainLayer,
-    },
-    {
-      name: "constructibleLayer",
-      ref: constructibleCanvasRef,
-      zIndex: 8,
-      createMethod: createTransparentCanvas,
-    },
-    {
-      name: "roadLayer",
-      ref: roadCanvasRef,
-      zIndex: 7,
-      createMethod: createTransparentCanvas,
-    },
-    {
-      name: "indicatorLayer",
-      ref: indicatorCanvasRef,
-      zIndex: 10,
-      createMethod: createTransparentCanvas,
-    },
-  ], [imagePaths?.locationsImage, imagePaths?.borderLayer, imagePaths?.terrainLayer]);
+  const layers = useMemo<
+    Array<{
+      name: string;
+      ref: RefObject<HTMLCanvasElement | null>;
+      zIndex: number;
+      path?: string;
+      createMethod?: (ctx: CanvasRenderingContext2D) => unknown;
+      initializeWorkerCanvas?: boolean;
+    }>
+  >(
+    () => [
+      {
+        name: "colorLayer",
+        ref: colorCanvasRef,
+        zIndex: 0,
+        path: imagePaths?.locationsImage,
+        initializeWorkerCanvas: true,
+      },
+      {
+        name: "blackLayer",
+        ref: blackCanvasRef,
+        zIndex: 1,
+        createMethod: createBlackCanvas,
+      },
+      {
+        name: "borderLayer",
+        ref: borderCanvasRef,
+        zIndex: 5,
+        path: imagePaths?.borderLayer,
+      },
+      {
+        name: "areaDrawingLayer",
+        ref: areaDrawingCanvasRef,
+        zIndex: 2,
+        createMethod: createTransparentCanvas,
+      },
+      {
+        name: "terrainLayer",
+        ref: terrainCanvasRef,
+        zIndex: 4,
+        path: imagePaths?.terrainLayer,
+      },
+      {
+        name: "constructibleLayer",
+        ref: constructibleCanvasRef,
+        zIndex: 8,
+        createMethod: createTransparentCanvas,
+      },
+      {
+        name: "roadLayer",
+        ref: roadCanvasRef,
+        zIndex: 7,
+        createMethod: createTransparentCanvas,
+      },
+      {
+        name: "indicatorLayer",
+        ref: indicatorCanvasRef,
+        zIndex: 10,
+        createMethod: createTransparentCanvas,
+      },
+    ],
+    [
+      imagePaths?.locationsImage,
+      imagePaths?.borderLayer,
+      imagePaths?.terrainLayer,
+    ],
+  );
 
   const triggerRender = useCallback(() => {
     forceUpdate({});
@@ -242,7 +267,7 @@ export function WorldMapComponent() {
       workerManager.queueTask({
         id: uniqueTaskId,
         type: "initGraphWorker",
-        payload: {}
+        payload: {},
       });
     }
 
@@ -298,11 +323,13 @@ export function WorldMapComponent() {
         img.onload = () => {
           // Check if this image is still being tracked (not cleaned up from a previous init)
           const isStillTracked = imageLoadHandlersRef.current.some(
-            handler => handler.img === img && handler.layer === layer.name
+            (handler) => handler.img === img && handler.layer === layer.name,
           );
           if (!isStillTracked) {
             // This image was cleaned up, ignore stale callback
-            console.log(`[WorldMapInit] Ignoring stale onload callback for ${layer.name} (image was cleaned up)`);
+            console.log(
+              `[WorldMapInit] Ignoring stale onload callback for ${layer.name} (image was cleaned up)`,
+            );
             return;
           }
           console.log(`[WorldMapInit] loaded image for layer ${layer.name}`);
@@ -338,17 +365,22 @@ export function WorldMapComponent() {
               workerManager.queueTask({
                 id: uniqueTaskId,
                 type: "initWithImage",
-                payload: taskPayload
+                payload: taskPayload,
               });
             }
           }
         };
         img.onerror = (e) => {
-          console.error(`[WorldMapInit] Failed to load image for layer ${layer.name} from path: ${layer.path}`, e);
+          console.error(
+            `[WorldMapInit] Failed to load image for layer ${layer.name} from path: ${layer.path}`,
+            e,
+          );
           // Still increment counter even on error to prevent blocking
           layersRenderedRef.current++;
         };
-        console.log(`[WorldMapInit] Starting to load image for layer ${layer.name} from: ${layer.path}`);
+        console.log(
+          `[WorldMapInit] Starting to load image for layer ${layer.name} from: ${layer.path}`,
+        );
         img.src = layer.path;
       } else if (layer.createMethod) {
         layer.createMethod(ctx);
@@ -399,8 +431,11 @@ export function WorldMapComponent() {
       const canvasRect = colorCanvas.getBoundingClientRect();
       const containerRect = container.getBoundingClientRect();
       // Store the current style.left/top values (container-relative)
-      scrollLeft = parseFloat(colorCanvas.style.left) || (canvasRect.left - containerRect.left);
-      scrollTop = parseFloat(colorCanvas.style.top) || (canvasRect.top - containerRect.top);
+      scrollLeft =
+        parseFloat(colorCanvas.style.left) ||
+        canvasRect.left - containerRect.left;
+      scrollTop =
+        parseFloat(colorCanvas.style.top) || canvasRect.top - containerRect.top;
     };
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -432,7 +467,6 @@ export function WorldMapComponent() {
       }
     };
 
-
     // Set initial position - will be set again after initialization completes
     // to ensure positions are correct before zoom controller is initialized
     setInitialPosition();
@@ -458,25 +492,28 @@ export function WorldMapComponent() {
       "acquire",
     );
 
-    new ObservableCombiner([actionEventDispatcher.prolongedHoverLocation])
-    actionEventDispatcher.prolongedHoverLocation.subscribe(
-      ({ locations }) => {
-        if (locations.length === 1) {
-          // only show neighbors panel if there is exactly one location hovered
-          const locationName = locations[0];
-          setShowNeighborsPanel(locationName);
-          const placement = cameraServiceRef.current?.getNeighborsPanelScreenPosition(
+    new ObservableCombiner([actionEventDispatcher.prolongedHoverLocation]);
+    actionEventDispatcher.prolongedHoverLocation.subscribe(({ locations }) => {
+      if (locations.length === 1) {
+        // only show neighbors panel if there is exactly one location hovered
+        const locationName = locations[0];
+        setShowNeighborsPanel(locationName);
+        const placement =
+          cameraServiceRef.current?.getNeighborsPanelScreenPosition(
             locationName,
             gameData.locationDataMap,
             worldMapConfig.height,
-          ) ?? null;
-          setNeighborsPanelPosition(placement);
-        } else {
-          setShowNeighborsPanel(null);
-          setNeighborsPanelPosition(null);
-        }
-      },
-    );
+          ) ?? {
+            x: 500,
+            y: 500,
+            side: "right",
+          };
+        setNeighborsPanelPosition(placement);
+      } else {
+        setShowNeighborsPanel(null);
+        setNeighborsPanelPosition(null);
+      }
+    });
 
     actionEventDispatcher.clickedLocationSource.subscribe(
       ({ location, type }) => {
@@ -525,50 +562,64 @@ export function WorldMapComponent() {
       zoomController.init(topLayerRef.current);
 
       // Subscribe to zoom changes
-      zoomUnsubscribeRef.current = zoomController.subscribe(({ zoomLevel, oldZoomLevel }) => {
-        if (!borderCanvasRef.current) {
-          console.error(
-            "[WorldMapComponent] borderCanvasRef is nullish. Check if this is due to HMR or proper bug",
-          );
-          return;
-        }
-        if (!cameraServiceRef.current) {
-          console.warn("[WorldMapComponent] Camera service not ready, skipping zoom");
-          return;
-        }
-        cameraServiceRef.current.applyZoomLevel(zoomLevel, oldZoomLevel);
+      zoomUnsubscribeRef.current = zoomController.subscribe(
+        ({ zoomLevel, oldZoomLevel }) => {
+          if (!borderCanvasRef.current) {
+            console.error(
+              "[WorldMapComponent] borderCanvasRef is nullish. Check if this is due to HMR or proper bug",
+            );
+            return;
+          }
+          if (!cameraServiceRef.current) {
+            console.warn(
+              "[WorldMapComponent] Camera service not ready, skipping zoom",
+            );
+            return;
+          }
+          cameraServiceRef.current.applyZoomLevel(zoomLevel, oldZoomLevel);
 
-        if (zoomLevel < zoomLevels.normal && oldZoomLevel >= zoomLevels.normal) {
-          borderCanvasRef.current!.style.visibility = "hidden";
-        } else if (
-          zoomLevel >= zoomLevels.normal &&
-          oldZoomLevel < zoomLevels.normal
-        ) {
-          borderCanvasRef.current!.style.visibility = "visible";
-        }
-      });
+          if (
+            zoomLevel < zoomLevels.normal &&
+            oldZoomLevel >= zoomLevels.normal
+          ) {
+            borderCanvasRef.current!.style.visibility = "hidden";
+          } else if (
+            zoomLevel >= zoomLevels.normal &&
+            oldZoomLevel < zoomLevels.normal
+          ) {
+            borderCanvasRef.current!.style.visibility = "visible";
+          }
+        },
+      );
     }
 
-
     // Mark as initialized only after waitForInitialization completes
-    waitForInitialization(layers.length).then(() => {
-      initializedRef.current = true;
-      setInitializationError(null);
-    }).catch((error) => {
-      const errorMsg = error instanceof Error ? error.message : "Initialization failed";
-      console.error("[WorldMapComponent] Initialization wait failed:", errorMsg);
-      setInitializationError(errorMsg);
-      // Don't mark as initialized so the error screen stays visible
-    });
+    waitForInitialization(layers.length)
+      .then(() => {
+        initializedRef.current = true;
+        setInitializationError(null);
+      })
+      .catch((error) => {
+        const errorMsg =
+          error instanceof Error ? error.message : "Initialization failed";
+        console.error(
+          "[WorldMapComponent] Initialization wait failed:",
+          errorMsg,
+        );
+        setInitializationError(errorMsg);
+        // Don't mark as initialized so the error screen stays visible
+      });
 
     return () => {
-      console.log("enter cleanup for worldmap component -- async processed must be terminated, event listeners must be removed, and all subscriptions must be closed");
+      console.log(
+        "enter cleanup for worldmap component -- async processed must be terminated, event listeners must be removed, and all subscriptions must be closed",
+      );
 
       // Cancel any pending image loads
       imageLoadHandlersRef.current.forEach(({ img }) => {
         img.onload = null;
         img.onerror = null;
-        img.src = ''; // Cancel image load
+        img.src = ""; // Cancel image load
       });
       imageLoadHandlersRef.current = [];
 
@@ -620,13 +671,33 @@ export function WorldMapComponent() {
       {(() => {
         switch (true) {
           case gameDataIsLoading:
-            return <LoadingScreenComponent message="Loading game data..." progress={25} />;
+            return (
+              <LoadingScreenComponent
+                message="Loading game data..."
+                progress={25}
+              />
+            );
           case !!gameDataLoadingError:
-            return <LoadingScreenComponent message={gameDataLoadingError} error={true} />;
+            return (
+              <LoadingScreenComponent
+                message={gameDataLoadingError}
+                error={true}
+              />
+            );
           case !!initializationError:
-            return <LoadingScreenComponent message={initializationError} error={true} />;
+            return (
+              <LoadingScreenComponent
+                message={initializationError}
+                error={true}
+              />
+            );
           case !!isLoading: // rendering canvases
-            return <LoadingScreenComponent message="Rendering map..." progress={75} />;
+            return (
+              <LoadingScreenComponent
+                message="Rendering map..."
+                progress={75}
+              />
+            );
           default:
             return <></>;
         }
@@ -657,7 +728,12 @@ export function WorldMapComponent() {
           <GuiElement className="w-fit min-h-0 shrink overflow-hidden">
             {hasOwnedLocations ? (
               <ConstructibleMenusComponent />
-            ) : (<div className="max-w-52 text-stone-400 text-italic">No locations selected - either select a country above, or create your own country from scratch by selecting a location</div>)}
+            ) : (
+              <div className="max-w-52 text-stone-400 text-italic">
+                No locations selected - either select a country above, or create
+                your own country from scratch by selecting a location
+              </div>
+            )}
           </GuiElement>
         </div>
         <GuiElement className="fixed left-5 right-5 bottom-1">
@@ -670,15 +746,15 @@ export function WorldMapComponent() {
               neighborsPanelPosition
                 ? neighborsPanelPosition.side === "right"
                   ? {
-                    left: neighborsPanelPosition.x + 12,
-                    top: neighborsPanelPosition.y,
-                    transform: "translate(0, 0)",
-                  }
+                      left: neighborsPanelPosition.x + 12,
+                      top: neighborsPanelPosition.y,
+                      transform: "translate(0, 0)",
+                    }
                   : {
-                    left: neighborsPanelPosition.x - 12,
-                    top: neighborsPanelPosition.y,
-                    transform: "translate(-100%, 0)",
-                  }
+                      left: neighborsPanelPosition.x - 12,
+                      top: neighborsPanelPosition.y,
+                      transform: "translate(-100%, 0)",
+                    }
                 : { left: 20, top: 80 }
             }
           >

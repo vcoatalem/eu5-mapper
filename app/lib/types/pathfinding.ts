@@ -25,6 +25,9 @@ export interface GraphStats {
   portEdges: number;
   lakeEdges: number;
   portRiverEdges: number;
+  throughSeaEdges: number; // TODO: through sea edges are unidirectional. i.e taking them in other direction counts as a "land" proximity
+  coastalEdges: number;
+  unknownEdges: number;
 }
 
 export type EdgeType =
@@ -35,6 +38,7 @@ export type EdgeType =
   | "lake"
   | "port-river" // river-mouth port
   | "through-sea" // special hard-coded ajacency. Allows going from location A -> B while applying sea travel cost of location C
+  | "coastal" // land <-> sea adjacency that is not a port (e.g. dover <-> thames)
   | "unknown";
 
 export type PathfindingResult = Record<

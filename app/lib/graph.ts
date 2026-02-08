@@ -337,6 +337,7 @@ export class CompactGraph {
     let lakeEdges = 0;
     let portRiverEdges = 0;
     let throughSeaEdges = 0;
+    let coastalEdges = 0;
 
     for (const key in this.adjacency) {
       const neighbors = this.adjacency[key];
@@ -346,6 +347,7 @@ export class CompactGraph {
       seaEdges += neighbors.filter((n) => n.edgeType === "sea").length;
       portEdges += neighbors.filter((n) => n.edgeType === "port").length;
       lakeEdges += neighbors.filter((n) => n.edgeType === "lake").length;
+      coastalEdges += neighbors.filter((n) => n.edgeType === "coastal").length;
       portRiverEdges += neighbors.filter(
         (n) => n.edgeType === "port-river",
       ).length;
@@ -363,6 +365,18 @@ export class CompactGraph {
       portEdges,
       lakeEdges,
       portRiverEdges,
+      coastalEdges,
+      throughSeaEdges,
+      unknownEdges:
+        totalEdges -
+        riverEdges -
+        landEdges -
+        seaEdges -
+        portEdges -
+        lakeEdges -
+        portRiverEdges -
+        throughSeaEdges -
+        coastalEdges,
     };
   }
 }

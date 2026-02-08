@@ -38,6 +38,10 @@ export class ProximityComputationController extends Observable<IProximityComputa
         console.log(`  - Sea edges: ${stats.seaEdges}`);
         console.log(`  - Port edges: ${stats.portEdges}`);
         console.log(`  - Lake edges: ${stats.lakeEdges}`);
+        console.log(`  - Port-River edges: ${stats.portRiverEdges}`);
+        console.log(`  - Through-Sea edges: ${stats.throughSeaEdges}`);
+        console.log(`  - Coastal edges: ${stats.coastalEdges}`);
+        console.log(`  - Unknown edges: ${stats.unknownEdges}`);
       } else if (
         workerManagerStatus.lastCompletedTask?.type === "computeProximity"
       ) {

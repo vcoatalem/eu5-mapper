@@ -296,6 +296,7 @@
       let lakeEdges = 0;
       let portRiverEdges = 0;
       let throughSeaEdges = 0;
+      let coastalEdges = 0;
       for (const key in this.adjacency) {
         const neighbors = this.adjacency[key];
         totalEdges += neighbors.length;
@@ -304,6 +305,7 @@
         seaEdges += neighbors.filter((n) => n.edgeType === "sea").length;
         portEdges += neighbors.filter((n) => n.edgeType === "port").length;
         lakeEdges += neighbors.filter((n) => n.edgeType === "lake").length;
+        coastalEdges += neighbors.filter((n) => n.edgeType === "coastal").length;
         portRiverEdges += neighbors.filter(
           (n) => n.edgeType === "port-river"
         ).length;
@@ -319,7 +321,10 @@
         seaEdges,
         portEdges,
         lakeEdges,
-        portRiverEdges
+        portRiverEdges,
+        coastalEdges,
+        throughSeaEdges,
+        unknownEdges: totalEdges - riverEdges - landEdges - seaEdges - portEdges - lakeEdges - portRiverEdges - throughSeaEdges - coastalEdges
       };
     }
   };
@@ -346,7 +351,8 @@
           "port",
           "lake",
           "port-river",
-          "through-sea"
+          "through-sea",
+          "coastal"
         ].includes(edgeType) === false) {
           throw new Error(
             `Invalid edge type "${edgeType}" in adjacency CSV at line ${i + 1}`
@@ -450,7 +456,7 @@
         return costWithoutMaritimePresence * (1 - normalizedMaritimePresence) + costWithMaritimePresence * normalizedMaritimePresence;
       }
     }
-    static getTransportationModeProximityCostModifiers(from, to, transportationMode, gameData2, gameState, options, roadType) {
+    static getTransportationModeProximityCostModifiers(from, to, transportationMode, gameData2, gameState, roadType, options) {
       switch (transportationMode) {
         case "land":
           if (from in gameState.ownedLocations || options.allowUnownedLocations) {
@@ -459,8 +465,11 @@
               gameState.ownedLocations[from],
               gameData2,
               gameState.country,
-              options,
-              roadType
+              {
+                discardVegetationModifiers: !!roadType,
+                discardVegetationAndTopographyModifiers: false
+              },
+              options
             );
           } else {
             return 0;
@@ -484,10 +493,11 @@
               gameState.ownedLocations[locationWithHarbor],
               gameData2,
               gameState.country,
-              options,
-              roadType,
-              true
-              // going out of harbor
+              {
+                discardVegetationAndTopographyModifiers: true,
+                discardVegetationModifiers: true
+              },
+              options
             );
             logProximityComputation(
               locationWithHarbor,
@@ -498,7 +508,7 @@
             return harborLocationProximityModifiers + harborCapacityModifier;
           }
         case "naval":
-        default:
+        case "coastal":
           return 0;
       }
     }
@@ -512,7 +522,7 @@
       const modifiers = [];
       const toLocationData = gameData2.locationDataMap[to];
       const isNaval = toLocationData.isSea || toLocationData.isLake;
-      const transportationMode = edgeType === "port" || edgeType === "port-river" ? "harbor" : isNaval ? "naval" : "land";
+      const transportationMode = edgeType === "port" || edgeType === "port-river" ? "harbor" : isNaval ? "naval" : edgeType === "coastal" ? "coastal" : "land";
       modifiers.push(
         this.getTransportationModeProximityCostModifiers(
           from,
@@ -520,9 +530,10 @@
           transportationMode,
           gameData2,
           gameState,
-          options,
-          roadType
+          roadType,
+          options
         ),
+        // generic proximity modifiers go here
         this.getGenericCountryProximityCostModifiers(
           gameState.country,
           gameData2.proximityComputationRule
@@ -538,9 +549,9 @@
     }
     static getMartitimePresenceAtLocation(gameData2, location) {
       if (gameData2.locationDataMap[location].topography === "ocean") {
-        return 50;
+        return 0;
       }
-      return 0;
+      return 50;
     }
     static getProximityCostFunction(gameState, gameData2, options) {
       return (from, to, edgeType, throughSeaLocation) => {
@@ -640,7 +651,7 @@
     const totalEnvironmentalCostIncrease = topographyCostIncreasePercentage + vegetationCostIncreasePercentage;
     return totalEnvironmentalCostIncrease;
   };
-  _ProximityComputationHelper.getLandLocationProximityModifiers = (location, locationConstructibleData, gameData2, country, options, roadToDestinationType, goingOutOfHarbor) => {
+  _ProximityComputationHelper.getLandLocationProximityModifiers = (location, locationConstructibleData, gameData2, country, behaviour, options) => {
     if (location.isSea || location.isLake || !location.ownable) {
       return 0;
     }
@@ -648,19 +659,13 @@
     const totalBuildingsCostReduction = buildings.map(
       (b) => b.template.proximityCostReductionPercentage?.[b.level - 1] ?? 0
     ).reduce((a, b) => a + b, 0);
-    const roadProximityCostReduction = roadToDestinationType ? gameData2.proximityComputationRule.roadProximityCostReduction[roadToDestinationType] : 0;
-    logProximityComputation(
-      location.name,
-      options,
-      "Road proximity cost reduction",
-      { roadProximityCostReduction, roadType: roadToDestinationType }
-    );
-    const environmentalProximityCostIncreasePercentage = !goingOutOfHarbor ? _ProximityComputationHelper.getEnvironmentalProximityCostIncreasePercentage(
+    const environmentalProximityCostIncreasePercentage = behaviour.discardVegetationAndTopographyModifiers ? 0 : _ProximityComputationHelper.getEnvironmentalProximityCostIncreasePercentage(
       location,
       gameData2,
-      !!roadToDestinationType,
+      behaviour.discardVegetationModifiers,
+      // road
       options
-    ) : 0;
+    );
     const development = location.development;
     const developmentCostReduction = development * gameData2.proximityComputationRule.developmentImpact;
     const countryLandProximityModifiers = [
@@ -679,14 +684,12 @@
         totalBuildingsCostReduction,
         countryLandProximityReduction,
         developmentCostReduction,
-        environmentalProximityCostIncreasePercentage,
-        roadProximityCostReduction,
-        roadType: roadToDestinationType
+        environmentalProximityCostIncreasePercentage
       }
     );
     const total = (
       // positive proximity (cost reduction)
-      totalBuildingsCostReduction + countryLandProximityReduction + roadProximityCostReduction + developmentCostReduction - // negative proximity (cost increase)
+      totalBuildingsCostReduction + countryLandProximityReduction + developmentCostReduction - // negative proximity (cost increase)
       environmentalProximityCostIncreasePercentage
     );
     return total;
@@ -865,7 +868,7 @@
               {
                 allowUnownedLocations: true,
                 // allow passing over unowned
-                logForLocations: [],
+                logForLocations: ["dover"],
                 logMethod: (message, data) => {
                   sendMessage(self, {
                     data: data ?? null,

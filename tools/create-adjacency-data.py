@@ -471,8 +471,9 @@ def load_river_cache(cache_file):
         'next_river_id': next_river_id
     }
 
-def determine_access_type(loc1, loc2, sea_zones, lakes, 
-                          location_pair_to_rivers):
+def determine_access_type(loc1, loc2, sea_zones, lakes,
+                          location_pair_to_rivers,
+                          port_mappings):
     """Determine the type of access between two locations."""
     
     loc1_is_sea = loc1 in sea_zones
@@ -488,14 +489,32 @@ def determine_access_type(loc1, loc2, sea_zones, lakes,
     if (not loc1_is_sea and loc2_is_lake) or (loc1_is_lake and not loc2_is_sea):
         return 'lake'
     
-    # Land-to-sea adjacency (automatically creates port connection)
+    # Land-to-sea adjacency (port or coastal connection)
     if (loc1_is_sea and not loc2_is_sea and not loc2_is_lake) or \
        (loc2_is_sea and not loc1_is_sea and not loc1_is_lake):
+        # Identify land and sea endpoints
+        if loc1_is_sea:
+            sea_loc, land_loc = loc1, loc2
+        else:
+            sea_loc, land_loc = loc2, loc1
+
         pair_key = (loc1, loc2) if loc1 < loc2 else (loc2, loc1)
+
+        # Ports file defines which land provinces actually have a harbor
+        # connection to which sea zones. Only those pairs should be treated
+        # as real ports; otherwise we fall back to a generic 'coastal' edge.
+        has_port = (land_loc, sea_loc) in port_mappings
+
         if pair_key in location_pair_to_rivers and location_pair_to_rivers[pair_key]:
-            # If there's a river connection, prefer that
-            return 'port-river'
-        return 'port'
+            # If there's a river connection as well, distinguish true river
+            # ports from generic coastal river mouths.
+            # TODO: This really wants 'river' as a boolean attribute on the
+            #       edge rather than being encoded in the edge type. This
+            #       should be refactored later so ports and rivers are
+            #       orthogonal flags instead of combined strings.
+            return 'port-river' if has_port else 'coastal'
+
+        return 'port' if has_port else 'coastal'
     
     # Land-to-land adjacency
     if not loc1_is_sea and not loc1_is_lake and not loc2_is_sea and not loc2_is_lake:
@@ -625,6 +644,24 @@ def main():
     print("Parsing default.map...")
     sea_zones, lakes = parse_default_map(game_files.location_classification)
     print(f"Found {len(sea_zones)} sea zones and {len(lakes)} lakes")
+
+    print("Loading ports file...")
+    port_mappings = set()
+    try:
+        with open(game_files.ports_file, 'r', encoding='utf-8') as f:
+            reader = csv.reader(f, delimiter=';')
+            header = next(reader, None)
+            # Expect columns: LandProvince;SeaZone;...
+            for row in reader:
+                if not row or len(row) < 2:
+                    continue
+                land = row[0].strip()
+                sea = row[1].strip()
+                if not land or not sea:
+                    continue
+                port_mappings.add((land, sea))
+    except FileNotFoundError:
+        print("  ⚠️  Ports file not found; all land–sea edges will be treated as generic 'coastal' (or base port logic)")
     
     print("Parsing location templates...")
     location_data = parse_location_templates(game_files.location_data)
@@ -693,7 +730,8 @@ def main():
         # Determine access type
         access_type = determine_access_type(
             loc1, loc2, sea_zones, lakes,
-            location_pair_to_rivers
+            location_pair_to_rivers,
+            port_mappings
         )
         
         if access_type:

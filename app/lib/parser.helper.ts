@@ -28,6 +28,7 @@ export class ParserHelper {
           "lake",
           "port-river",
           "through-sea",
+          "coastal",
         ].includes(edgeType) === false
       ) {
         throw new Error(

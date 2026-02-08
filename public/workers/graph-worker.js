@@ -78,7 +78,7 @@
     _getNodeString(id) {
       return this.idToNode[id];
     }
-    addEdge(a, b, edgeType) {
+    addEdge(a, b, edgeType, throughSeaLocation) {
       const aId = this._getNodeId(a);
       const bId = this._getNodeId(b);
       if (!(aId in this.adjacency)) {
@@ -87,14 +87,20 @@
       if (!(bId in this.adjacency)) {
         this.adjacency[bId] = [];
       }
-      this.adjacency[aId].push({
+      const edgeAB = {
         neighbor: bId,
         edgeType
-      });
-      this.adjacency[bId].push({
+      };
+      const edgeBA = {
         neighbor: aId,
         edgeType
-      });
+      };
+      if (throughSeaLocation !== void 0) {
+        edgeAB.throughSeaLocation = throughSeaLocation;
+        edgeBA.throughSeaLocation = throughSeaLocation;
+      }
+      this.adjacency[aId].push(edgeAB);
+      this.adjacency[bId].push(edgeBA);
     }
     getEdge(a, b) {
       const aId = this.nodeToId[a];
@@ -139,18 +145,15 @@
         if (cost > distances[node].cost)
           continue;
         const nodeStr = this._getNodeString(node);
-        const neighbors = [];
-        if (node in this.adjacency) {
-          for (const edge of this.adjacency[node]) {
-            neighbors.push({
-              neighbor: edge.neighbor,
-              edgeType: edge.edgeType
-            });
-          }
-        }
-        for (const { neighbor, edgeType } of neighbors) {
+        const edges = this.adjacency[node] ?? [];
+        for (const { neighbor, edgeType, throughSeaLocation } of edges) {
           const neighborStr = this._getNodeString(neighbor);
-          const edgeCost = getCost(nodeStr, neighborStr, edgeType);
+          const edgeCost = getCost(
+            nodeStr,
+            neighborStr,
+            edgeType,
+            throughSeaLocation
+          );
           const newCost = cost + edgeCost.cost;
           if (newCost <= costLimit && (!(neighbor in distances) || newCost < distances[neighbor].cost)) {
             distances[neighbor] = { cost: newCost, through: edgeCost.through };
@@ -211,18 +214,15 @@
         if (cost > distances[node])
           continue;
         const nodeStr = this._getNodeString(node);
-        const neighbors = [];
-        if (node in this.adjacency) {
-          for (const edge of this.adjacency[node]) {
-            neighbors.push({
-              neighbor: edge.neighbor,
-              edgeType: edge.edgeType
-            });
-          }
-        }
-        for (const { neighbor, edgeType } of neighbors) {
+        const edges = this.adjacency[node] ?? [];
+        for (const { neighbor, edgeType, throughSeaLocation } of edges) {
           const neighborStr = this._getNodeString(neighbor);
-          const edgeCost = getCost(nodeStr, neighborStr, edgeType);
+          const edgeCost = getCost(
+            nodeStr,
+            neighborStr,
+            edgeType,
+            throughSeaLocation
+          );
           const newCost = cost + edgeCost.cost;
           if (newCost <= costLimit && (!(neighbor in distances) || newCost < distances[neighbor])) {
             distances[neighbor] = newCost;
@@ -251,24 +251,18 @@
         const { node, cost, edgesUsed, visited } = current;
         if (edgesUsed >= edgeLimit)
           continue;
-        const neighbors = [];
-        if (node in this.adjacency) {
-          for (const edge of this.adjacency[node]) {
-            neighbors.push({
-              neighbor: edge.neighbor,
-              edgeType: edge.edgeType
-            });
-          }
-        }
-        for (const {
-          neighbor,
-          edgeType
-        } of neighbors) {
+        const edges = this.adjacency[node] ?? [];
+        for (const { neighbor, edgeType, throughSeaLocation } of edges) {
           if (visited.has(neighbor))
             continue;
           const neighborStr = this._getNodeString(neighbor);
           const nodeStr = this._getNodeString(node);
-          const edgeCost = getCost(nodeStr, neighborStr, edgeType);
+          const edgeCost = getCost(
+            nodeStr,
+            neighborStr,
+            edgeType,
+            throughSeaLocation
+          );
           const newCost = cost + edgeCost.cost;
           if (!(neighbor in minCost) || newCost < minCost[neighbor].cost) {
             minCost[neighbor] = { cost: newCost, through: edgeCost.through };
@@ -301,6 +295,7 @@
       let portEdges = 0;
       let lakeEdges = 0;
       let portRiverEdges = 0;
+      let throughSeaEdges = 0;
       for (const key in this.adjacency) {
         const neighbors = this.adjacency[key];
         totalEdges += neighbors.length;
@@ -311,6 +306,9 @@
         lakeEdges += neighbors.filter((n) => n.edgeType === "lake").length;
         portRiverEdges += neighbors.filter(
           (n) => n.edgeType === "port-river"
+        ).length;
+        throughSeaEdges += neighbors.filter(
+          (n) => n.edgeType === "through-sea"
         ).length;
       }
       return {
@@ -340,15 +338,26 @@
         const line = lines[i].trim();
         if (!line)
           continue;
-        const [locationA, locationB, edgeType] = line.split(",");
-        if (["river", "land", "sea", "port", "lake", "port-river"].includes(
-          edgeType
-        ) === false) {
+        const [locationA, locationB, edgeType, throughSeaLocation] = line.split(",");
+        if ([
+          "river",
+          "land",
+          "sea",
+          "port",
+          "lake",
+          "port-river",
+          "through-sea"
+        ].includes(edgeType) === false) {
           throw new Error(
             `Invalid edge type "${edgeType}" in adjacency CSV at line ${i + 1}`
           );
         }
-        graph2.addEdge(locationA, locationB, edgeType);
+        graph2.addEdge(
+          locationA,
+          locationB,
+          edgeType,
+          throughSeaLocation || void 0
+        );
       }
       return graph2;
     }
@@ -383,7 +392,9 @@
     if (!options.logMethod || !options.logForLocations)
       return;
     const locationsToCheck = Array.isArray(location) ? location : [location];
-    const shouldLog = locationsToCheck.some((loc) => options.logForLocations.includes(loc));
+    const shouldLog = locationsToCheck.some(
+      (loc) => options.logForLocations.includes(loc)
+    );
     if (shouldLog) {
       const locationData = Array.isArray(location) ? { locations: location } : { location };
       const logMessage = message ? `[ProximityComputationHelper] ${message}` : "[ProximityComputationHelper]";
@@ -414,7 +425,7 @@
     static getFlatProximityCost(edgeType, gameState, rule, maritimePresence, roadToDestination) {
       const baseCost = edgeType.includes("river") ? rule.baseRiverCost : rule.baseCost;
       const isImpactedByRoad = edgeType === "land";
-      const isNaval = edgeType === "sea" || edgeType === "lake";
+      const isNaval = edgeType === "sea" || edgeType === "lake" || edgeType === "through-sea";
       const flatProximityCostReduction = [
         isNaval && gameState.country.landVsNaval > 0 ? rule.valuesImpact.landVsNaval[1].flatModifier * gameState.country.landVsNaval / 100 : 0,
         isImpactedByRoad && roadToDestination ? rule.roadProximityCostReduction[roadToDestination] : 0
@@ -517,21 +528,33 @@
           gameData2.proximityComputationRule
         )
       );
-      logProximityComputation(
-        [from, to],
-        options,
-        "Proximity cost modifiers",
-        { from, to, isNaval, modifiers }
-      );
+      logProximityComputation([from, to], options, "Proximity cost modifiers", {
+        from,
+        to,
+        isNaval,
+        modifiers
+      });
       return modifiers.reduce((a, b) => a + b, 0);
     }
+    static getMartitimePresenceAtLocation(gameData2, location) {
+      if (gameData2.locationDataMap[location].topography === "ocean") {
+        return 50;
+      }
+      return 0;
+    }
     static getProximityCostFunction(gameState, gameData2, options) {
-      return (from, to, edgeType) => {
+      return (from, to, edgeType, throughSeaLocation) => {
         const rule = gameData2.proximityComputationRule;
         const road = gameState.roads[from]?.find(
           ({ to: roadTo }) => roadTo === to
         );
-        const maritimePresence = gameData2.locationDataMap[to].topography === "ocean" ? 0 : 50;
+        if (edgeType === "through-sea" && throughSeaLocation) {
+          from = throughSeaLocation;
+        }
+        const maritimePresence = this.getMartitimePresenceAtLocation(
+          gameData2,
+          from
+        );
         const baseCost = this.getFlatProximityCost(
           edgeType,
           gameState,
@@ -539,17 +562,12 @@
           maritimePresence,
           road?.type ?? null
         );
-        logProximityComputation(
-          [from, to],
-          options,
-          "Base proximity cost",
-          {
-            from,
-            to,
-            through: { edgeType },
-            baseCost
-          }
-        );
+        logProximityComputation([from, to], options, "Base proximity cost", {
+          from,
+          to,
+          through: { edgeType, throughSeaLocation: throughSeaLocation ?? "N/A" },
+          baseCost
+        });
         const toLocationData = gameData2.locationDataMap[to];
         const isToSeaZone = toLocationData.isSea;
         const isToLakeZone = toLocationData.isLake;
@@ -566,18 +584,13 @@
           road?.type ?? null
         );
         const modifiedCost = baseCost * (1 - proximityModifiersSummed / 100);
-        logProximityComputation(
-          [from, to],
-          options,
-          "Final proximity cost",
-          {
-            from,
-            to,
-            edgeType,
-            modifiedCost,
-            proximityModifiersSummed
-          }
-        );
+        logProximityComputation([from, to], options, "Final proximity cost", {
+          from,
+          to,
+          edgeType,
+          modifiedCost,
+          proximityModifiersSummed
+        });
         return {
           cost: modifiedCost,
           through: edgeType
@@ -618,7 +631,11 @@
       location.name,
       options,
       "Environmental proximity cost increase percentage",
-      { topographyCostIncreasePercentage, vegetationCostIncreasePercentage, discardVegetationModifiers }
+      {
+        topographyCostIncreasePercentage,
+        vegetationCostIncreasePercentage,
+        discardVegetationModifiers
+      }
     );
     const totalEnvironmentalCostIncrease = topographyCostIncreasePercentage + vegetationCostIncreasePercentage;
     return totalEnvironmentalCostIncrease;
@@ -658,7 +675,14 @@
       location.name,
       options,
       "Land location proximity modifiers",
-      { totalBuildingsCostReduction, countryLandProximityReduction, developmentCostReduction, environmentalProximityCostIncreasePercentage, roadProximityCostReduction, roadType: roadToDestinationType }
+      {
+        totalBuildingsCostReduction,
+        countryLandProximityReduction,
+        developmentCostReduction,
+        environmentalProximityCostIncreasePercentage,
+        roadProximityCostReduction,
+        roadType: roadToDestinationType
+      }
     );
     const total = (
       // positive proximity (cost reduction)
@@ -683,12 +707,11 @@
       const capacity = b.template.harborCapacity?.[b.level - 1];
       return capacity || 0;
     }).reduce((a, b) => a + b, 0);
-    logProximityComputation(
-      locationData.name,
-      options,
-      "Harbor capacity",
-      { locationConstructibleData, totalBuildingsHarborCapacity, naturalHarborSuitability }
-    );
+    logProximityComputation(locationData.name, options, "Harbor capacity", {
+      locationConstructibleData,
+      totalBuildingsHarborCapacity,
+      naturalHarborSuitability
+    });
     return naturalHarborSuitability + totalBuildingsHarborCapacity;
   };
   _ProximityComputationHelper.getGameStateProximityComputation = (gameState, gameData2, adjacencyGraph, options) => {

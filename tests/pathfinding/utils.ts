@@ -16,7 +16,7 @@ export const readReferenceFile = async (
   const f = await fs.readFileSync(path, "utf-8");
   const lines = f.split("\n");
   const headerLine = lines[0];
-  
+
   // Parse header: location,proximity,<COUNTRY_CODE>,version:<VERSION>,admin_ability:<ADMIN_ABILITY>
   const headerParts = headerLine.split(",");
   const countryCode = headerParts[2];
@@ -24,7 +24,7 @@ export const readReferenceFile = async (
   const version = versionPart.split(":")[1];
   const adminAbilityPart = headerParts[4]; // admin_ability:<value>
   const rulerAdministrativeAbility = Number(adminAbilityPart.split(":")[1]);
-  
+
   const data = lines
     .slice(1) // skip header
     .filter((line) => line.trim().length > 0) // ignore empty lines
@@ -36,7 +36,7 @@ export const readReferenceFile = async (
       },
       {} as Record<ILocationIdentifier, number>,
     );
-  
+
   return {
     countryCode,
     version,
@@ -60,19 +60,18 @@ export const readAdjacencyFile = async (
 export const getAllReferenceFilePaths = (
   referencesFolderPath?: string,
 ): string[] => {
-  const basePath = referencesFolderPath || path.join(
-    process.cwd(),
-    "tests/pathfinding/references",
-  );
-  
+  const basePath =
+    referencesFolderPath ||
+    path.join(process.cwd(), "tests/pathfinding/references");
+
   const csvFiles: string[] = [];
-  
+
   const findCsvFiles = (dir: string): void => {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
-    
+
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
-      
+
       if (entry.isDirectory()) {
         findCsvFiles(fullPath);
       } else if (entry.isFile() && entry.name.endsWith(".csv")) {
@@ -80,11 +79,11 @@ export const getAllReferenceFilePaths = (
       }
     }
   };
-  
+
   if (fs.existsSync(basePath)) {
     findCsvFiles(basePath);
   }
-  
+
   return csvFiles.sort();
 };
 
@@ -100,13 +99,13 @@ export async function generateHtmlReport(
   toleratedDifference: number,
   unrecognisedLocations: ILocationIdentifier[] = [],
 ): Promise<void> {
-  const goodCount = results.filter((r) => Math.abs(r.difference) <= toleratedDifference)
-    .length;
+  const goodCount = results.filter(
+    (r) => Math.abs(r.difference) <= toleratedDifference,
+  ).length;
   const totalCount = results.length;
   const badCount = totalCount - goodCount;
-  const successRate = totalCount > 0
-    ? ((goodCount / totalCount) * 100).toFixed(2)
-    : "0.00";
+  const successRate =
+    totalCount > 0 ? ((goodCount / totalCount) * 100).toFixed(2) : "0.00";
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -337,6 +336,27 @@ export async function generateHtmlReport(
       color: #6b7280;
       font-size: 0.9em;
     }
+
+    th.sortable {
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+    }
+
+    th.sortable::after {
+      content: '▲▼';
+      font-size: 0.7em;
+      opacity: 0.6;
+      margin-left: 6px;
+    }
+
+    th.sortable[data-sort-dir="asc"]::after {
+      content: '▲';
+    }
+
+    th.sortable[data-sort-dir="desc"]::after {
+      content: '▼';
+    }
   </style>
 </head>
 <body>
@@ -363,12 +383,16 @@ export async function generateHtmlReport(
           <div class="stat-value">${successRate}%</div>
           <div class="stat-label">Success Rate</div>
         </div>
-        ${unrecognisedLocations.length > 0 ? `
+        ${
+          unrecognisedLocations.length > 0
+            ? `
         <div class="stat-card">
           <div class="stat-value" style="color: #6b7280;">${unrecognisedLocations.length}</div>
           <div class="stat-label">Unrecognised</div>
         </div>
-        ` : ""}
+        `
+            : ""
+        }
       </div>
     </div>
     
@@ -377,11 +401,11 @@ export async function generateHtmlReport(
         <table>
           <thead>
             <tr>
-              <th>Location</th>
-              <th>Expected</th>
-              <th>Actual</th>
-              <th>Difference (Actual - Expected)</th>
-              <th>Status</th>
+              <th class="sortable" data-sort-type="string">Location</th>
+              <th class="sortable" data-sort-type="number" data-default-sort="desc">Expected</th>
+              <th class="sortable" data-sort-type="number">Actual</th>
+              <th class="sortable" data-sort-type="number">Difference (Actual - Expected)</th>
+              <th class="sortable" data-sort-type="string">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -394,7 +418,7 @@ export async function generateHtmlReport(
                   if (absDiff <= toleratedDifference * 2) return "warning";
                   return "bad";
                 };
-                
+
                 const status = getStatus(absDiff);
                 const statusLabel =
                   status === "perfect"
@@ -404,37 +428,71 @@ export async function generateHtmlReport(
                       : status === "warning"
                         ? "Warning"
                         : "Failed";
-                
-                // Determine if actual is too high or too low
-                const diffClass = result.difference === 0
-                  ? status
-                  : result.difference > 0
-                    ? "too-high"
-                    : "too-low";
-                
-                const diffIndicator = result.difference === 0
-                  ? ""
-                  : result.difference > 0
-                    ? '<span class="difference-indicator">↑</span>'
-                    : '<span class="difference-indicator">↓</span>';
-                
+
+                const diffIndicator =
+                  result.difference === 0
+                    ? ""
+                    : result.difference > 0
+                      ? '<span class="difference-indicator">↑</span>'
+                      : '<span class="difference-indicator">↓</span>';
+
                 const diffSign = result.difference > 0 ? "+" : "";
-                
+
+                // Compute color for difference text based on absolute difference of the error:
+                // 0 .. toleratedDifference     -> green -> yellow
+                // toleratedDifference .. 20    -> yellow -> red
+                // > 20                         -> dark purple
+                const clampedAbsDiff = Math.max(0, absDiff);
+                let redComponent: number;
+                let greenComponent: number;
+                let blueComponent = 0;
+
+                const greenToYellowMax = toleratedDifference;
+                const yellowToRedMax = 20;
+
+                if (clampedAbsDiff <= greenToYellowMax) {
+                  // 0..toleratedDifference: darker green -> darker yellow for better contrast on light backgrounds
+                  const denom = greenToYellowMax > 0 ? greenToYellowMax : 1;
+                  const t = clampedAbsDiff / denom; // 0..1
+                  const baseRed = Math.round(255 * t); // 0 -> 255
+                  const baseGreen = 255; // always 255
+                  const factor = 0.7; // darken
+                  redComponent = Math.round(baseRed * factor);
+                  greenComponent = Math.round(baseGreen * factor);
+                } else if (clampedAbsDiff <= yellowToRedMax) {
+                  // toleratedDifference..20: darker yellow -> darker red
+                  const span = Math.max(1, yellowToRedMax - greenToYellowMax);
+                  const t = (clampedAbsDiff - greenToYellowMax) / span; // 0..1
+                  const baseRed = 255; // always 255
+                  const baseGreen = Math.round(255 * (1 - t)); // 255 -> 0
+                  const factor = 0.7; // darken
+                  redComponent = Math.round(baseRed * factor);
+                  greenComponent = Math.round(baseGreen * factor);
+                } else {
+                  // > 20: dark purple to highlight very bad differences
+                  redComponent = 88;
+                  greenComponent = 0;
+                  blueComponent = 135;
+                }
+
+                const differenceColor = `rgb(${redComponent}, ${greenComponent}, ${blueComponent})`;
+
                 return `
               <tr class="${status}">
                 <td class="location-name">${escapeHtml(result.location)}</td>
-                <td class="value">${result.expected}</td>
-                <td class="value">${result.actual}</td>
-                <td class="difference ${diffClass}">${diffSign}${result.difference.toFixed(2)}${diffIndicator}</td>
+                <td class="value" data-value="${result.expected}">${result.expected}</td>
+                <td class="value" data-value="${result.actual}">${result.actual}</td>
+                <td class="difference" data-value="${absDiff}" style="color: ${differenceColor};">${diffSign}${result.difference.toFixed(2)}${diffIndicator}</td>
                 <td><span class="status-badge ${status}">${statusLabel}</span></td>
               </tr>
             `;
               })
               .join("")}
-            ${unrecognisedLocations.length > 0
-              ? unrecognisedLocations
-                  .map(
-                    (location) => `
+            ${
+              unrecognisedLocations.length > 0
+                ? unrecognisedLocations
+                    .map(
+                      (location) => `
               <tr class="unrecognised">
                 <td class="location-name">${escapeHtml(location)}</td>
                 <td class="value">—</td>
@@ -443,9 +501,10 @@ export async function generateHtmlReport(
                 <td><span class="status-badge unrecognised">Unrecognised</span></td>
               </tr>
             `,
-                  )
-                  .join("")
-              : ""}
+                    )
+                    .join("")
+                : ""
+            }
           </tbody>
         </table>
       </div>
@@ -453,24 +512,88 @@ export async function generateHtmlReport(
     
     <div class="footer">
       Generated on ${new Date().toLocaleString()} | 
-      Results sorted by difference (closest matches first)
-      ${unrecognisedLocations.length > 0
-        ? ` | ${unrecognisedLocations.length} unrecognised location(s) from reference file`
-        : ""}
+      Click any column header to sort. Default view is sorted by expected value (descending).
+      ${
+        unrecognisedLocations.length > 0
+          ? ` | ${unrecognisedLocations.length} unrecognised location(s) from reference file`
+          : ""
+      }
     </div>
   </div>
+  <script>
+    (function () {
+      const table = document.querySelector('table');
+      if (!table) return;
+
+      const getCellValue = (row, index) => {
+        const cell = row.children[index];
+        if (!cell) return '';
+        const dataValue = cell.getAttribute('data-value');
+        if (dataValue !== null) return dataValue;
+        return (cell.textContent || '').trim();
+      };
+
+      const compareValues = (a, b, type, asc) => {
+        if (type === 'number') {
+          const numA = parseFloat(a);
+          const numB = parseFloat(b);
+          const valA = isNaN(numA) ? Number.NEGATIVE_INFINITY : numA;
+          const valB = isNaN(numB) ? Number.NEGATIVE_INFINITY : numB;
+          return asc ? valA - valB : valB - valA;
+        } else {
+          const cmp = a.localeCompare(b, undefined, { sensitivity: 'base' });
+          return asc ? cmp : -cmp;
+        }
+      };
+
+      const tbody = table.tBodies[0];
+      const allRows = Array.from(tbody.querySelectorAll('tr'));
+
+      const getDataRows = () => allRows.filter(r => !r.classList.contains('unrecognised'));
+      const getUnrecognisedRows = () => allRows.filter(r => r.classList.contains('unrecognised'));
+
+      const headers = table.querySelectorAll('thead th.sortable');
+      headers.forEach((th, index) => {
+        th.addEventListener('click', () => {
+          const type = th.getAttribute('data-sort-type') || 'string';
+          const currentDir = th.getAttribute('data-sort-dir');
+          const asc = currentDir !== 'asc';
+
+          headers.forEach(h => h.removeAttribute('data-sort-dir'));
+          th.setAttribute('data-sort-dir', asc ? 'asc' : 'desc');
+
+          const dataRows = getDataRows();
+          const unrecRows = getUnrecognisedRows();
+
+          dataRows.sort((rowA, rowB) => {
+            const aVal = getCellValue(rowA, index);
+            const bVal = getCellValue(rowB, index);
+            return compareValues(aVal, bVal, type, asc);
+          });
+
+          dataRows.forEach(r => tbody.appendChild(r));
+          unrecRows.forEach(r => tbody.appendChild(r));
+        });
+      });
+
+      // Apply default sort by "Expected" column (descending) if specified
+      const defaultHeader = Array.from(headers).find(h => h.getAttribute('data-default-sort'));
+      if (defaultHeader) {
+        const defaultDir = defaultHeader.getAttribute('data-default-sort') || 'desc';
+        defaultHeader.setAttribute('data-sort-dir', defaultDir === 'asc' ? 'desc' : 'asc');
+        defaultHeader.click();
+      }
+    })();
+  </script>
 </body>
 </html>`;
 
-const outputFolder = path.join(
-  process.cwd(),
-  "tests/pathfinding/output/",
-  version.replaceAll('.', '_'),
-);
-  const outputPath = path.join(
-     outputFolder,
-    `${country.toLowerCase()}.html`,
+  const outputFolder = path.join(
+    process.cwd(),
+    "tests/pathfinding/output/",
+    version.replaceAll(".", "_"),
   );
+  const outputPath = path.join(outputFolder, `${country.toLowerCase()}.html`);
   if (!fs.existsSync(outputFolder)) {
     fs.mkdirSync(outputFolder, { recursive: true });
   }
@@ -478,10 +601,7 @@ const outputFolder = path.join(
   console.log(`\n📊 HTML report generated: ${outputPath}`);
 
   // Generate metadata JSON file for index generation
-  const metadataPath = path.join(
-    outputFolder,
-    `${country.toLowerCase()}.json`,
-  );
+  const metadataPath = path.join(outputFolder, `${country.toLowerCase()}.json`);
   const metadata = {
     country,
     version,
@@ -489,13 +609,19 @@ const outputFolder = path.join(
     goodCount,
     badCount,
     successRate: parseFloat(successRate),
-    averageAbsoluteDifference: totalCount > 0
-      ? results.reduce((sum, r) => sum + Math.abs(r.difference), 0) / totalCount
-      : 0,
+    averageAbsoluteDifference:
+      totalCount > 0
+        ? results.reduce((sum, r) => sum + Math.abs(r.difference), 0) /
+          totalCount
+        : 0,
     unrecognisedCount: unrecognisedLocations.length,
     reportPath: `${country.toLowerCase()}.html`,
   };
-  await fsPromises.writeFile(metadataPath, JSON.stringify(metadata, null, 2), "utf-8");
+  await fsPromises.writeFile(
+    metadataPath,
+    JSON.stringify(metadata, null, 2),
+    "utf-8",
+  );
 }
 
 function escapeHtml(text: string): string {
@@ -523,29 +649,36 @@ interface ReportMetadata {
 
 export async function generateIndexFile(): Promise<void> {
   const outputBasePath = path.join(process.cwd(), "tests/pathfinding/output");
-  
+
   if (!fs.existsSync(outputBasePath)) {
-    console.log("No output directory found. Run tests first to generate reports.");
+    console.log(
+      "No output directory found. Run tests first to generate reports.",
+    );
     return;
   }
 
   // Scan all version directories
-  const versionDirs = fs.readdirSync(outputBasePath, { withFileTypes: true })
-    .filter(entry => entry.isDirectory())
-    .map(entry => entry.name);
+  const versionDirs = fs
+    .readdirSync(outputBasePath, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
 
   // Generate an index file for each version folder
   for (const versionDir of versionDirs) {
     const versionPath = path.join(outputBasePath, versionDir);
-    const jsonFiles = fs.readdirSync(versionPath)
-      .filter(file => file.endsWith('.json'));
+    const jsonFiles = fs
+      .readdirSync(versionPath)
+      .filter((file) => file.endsWith(".json"));
 
     const reports: ReportMetadata[] = [];
 
     for (const jsonFile of jsonFiles) {
       const metadataPath = path.join(versionPath, jsonFile);
       try {
-        const metadataContent = await fsPromises.readFile(metadataPath, 'utf-8');
+        const metadataContent = await fsPromises.readFile(
+          metadataPath,
+          "utf-8",
+        );
         const metadata: ReportMetadata = JSON.parse(metadataContent);
         reports.push(metadata);
       } catch (error) {
@@ -738,22 +871,27 @@ export async function generateIndexFile(): Promise<void> {
             ${reports
               .map((report) => {
                 const getScoreClass = (avgDiff: number) => {
-                  if (avgDiff <= 2) return 'excellent';
-                  if (avgDiff <= 5) return 'good';
-                  if (avgDiff <= 10) return 'fair';
-                  return 'poor';
+                  if (avgDiff <= 2) return "excellent";
+                  if (avgDiff <= 5) return "good";
+                  if (avgDiff <= 10) return "fair";
+                  return "poor";
                 };
-                
+
                 const getSuccessBadge = (rate: number) => {
-                  if (rate >= 90) return '<span class="badge success">Excellent</span>';
-                  if (rate >= 70) return '<span class="badge success">Good</span>';
-                  if (rate >= 50) return '<span class="badge warning">Fair</span>';
+                  if (rate >= 90)
+                    return '<span class="badge success">Excellent</span>';
+                  if (rate >= 70)
+                    return '<span class="badge success">Good</span>';
+                  if (rate >= 50)
+                    return '<span class="badge warning">Fair</span>';
                   return '<span class="badge error">Poor</span>';
                 };
-                
+
                 const reportUrl = report.reportPath; // Just the filename since it's in the same directory
-                const scoreClass = getScoreClass(report.averageAbsoluteDifference);
-                
+                const scoreClass = getScoreClass(
+                  report.averageAbsoluteDifference,
+                );
+
                 return `
                   <tr>
                     <td>
@@ -770,7 +908,7 @@ export async function generateIndexFile(): Promise<void> {
                   </tr>
                 `;
               })
-              .join('')}
+              .join("")}
           </tbody>
         </table>
       </div>
@@ -784,8 +922,8 @@ export async function generateIndexFile(): Promise<void> {
 </body>
 </html>`;
 
-      const indexPath = path.join(versionPath, 'index.html');
-      await fsPromises.writeFile(indexPath, indexHtml, 'utf-8');
+      const indexPath = path.join(versionPath, "index.html");
+      await fsPromises.writeFile(indexPath, indexHtml, "utf-8");
       console.log(`\n📑 Index file generated: ${indexPath}`);
     }
   }

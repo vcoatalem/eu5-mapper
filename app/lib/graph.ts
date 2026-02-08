@@ -33,7 +33,12 @@ export class CompactGraph {
     return this.idToNode[id]!;
   }
 
-  addEdge(a: string, b: string, edgeType: EdgeType): void {
+  addEdge(
+    a: string,
+    b: string,
+    edgeType: EdgeType,
+    throughSeaLocation?: string,
+  ): void {
     const aId = this._getNodeId(a);
     const bId = this._getNodeId(b);
 
@@ -44,14 +49,22 @@ export class CompactGraph {
       this.adjacency[bId] = [];
     }
 
-    this.adjacency[aId].push({
+    const edgeAB: Neighbor = {
       neighbor: bId,
       edgeType,
-    });
-    this.adjacency[bId].push({
+    };
+    const edgeBA: Neighbor = {
       neighbor: aId,
       edgeType,
-    });
+    };
+
+    if (throughSeaLocation !== undefined) {
+      edgeAB.throughSeaLocation = throughSeaLocation;
+      edgeBA.throughSeaLocation = throughSeaLocation;
+    }
+
+    this.adjacency[aId].push(edgeAB);
+    this.adjacency[bId].push(edgeBA);
   }
 
   getEdge(a: string, b: string): EdgeInfo {
@@ -111,19 +124,16 @@ export class CompactGraph {
 
       // Get neighbors as IDs for efficiency
       // Edges are stored bidirectionally, so we just need to look in adjacency[node]
-      const neighbors: Array<{ neighbor: number; edgeType: EdgeType }> = [];
-      if (node in this.adjacency) {
-        for (const edge of this.adjacency[node]!) {
-          neighbors.push({
-            neighbor: edge.neighbor,
-            edgeType: edge.edgeType,
-          });
-        }
-      }
+      const edges = this.adjacency[node] ?? [];
 
-      for (const { neighbor, edgeType } of neighbors) {
+      for (const { neighbor, edgeType, throughSeaLocation } of edges) {
         const neighborStr = this._getNodeString(neighbor);
-        const edgeCost = getCost(nodeStr, neighborStr, edgeType);
+        const edgeCost = getCost(
+          nodeStr,
+          neighborStr,
+          edgeType,
+          throughSeaLocation,
+        );
         const newCost = cost + edgeCost.cost;
 
         if (
@@ -155,20 +165,28 @@ export class CompactGraph {
     endNode: string,
     costLimit: number,
     getCost: CostFunction,
-  ): Array<{ from: string; to: string; edgeType: EdgeType; cost: number }> | null {
+  ): Array<{
+    from: string;
+    to: string;
+    edgeType: EdgeType;
+    cost: number;
+  }> | null {
     const startId = this.nodeToId[startNode];
     const endId = this.nodeToId[endNode];
-    
+
     if (startId === undefined || endId === undefined) return null;
     if (startId === endId) return []; // Same node, empty path
 
     // Track distances and predecessors
     const distances: Record<number, number> = {};
-    const predecessors: Record<number, { node: number; edgeType: EdgeType } | null> = {};
+    const predecessors: Record<
+      number,
+      { node: number; edgeType: EdgeType } | null
+    > = {};
     const pq: Array<{ node: number; cost: number }> = [
       { node: startId, cost: 0 },
     ];
-    
+
     distances[startId] = 0;
     predecessors[startId] = null;
 
@@ -179,25 +197,30 @@ export class CompactGraph {
 
       // If we reached the destination, reconstruct and return the path
       if (node === endId) {
-        const path: Array<{ from: string; to: string; edgeType: EdgeType; cost: number }> = [];
+        const path: Array<{
+          from: string;
+          to: string;
+          edgeType: EdgeType;
+          cost: number;
+        }> = [];
         let currentNode = endId;
-        
+
         while (predecessors[currentNode] !== null) {
           const pred = predecessors[currentNode]!;
           const fromStr = this._getNodeString(pred.node);
           const toStr = this._getNodeString(currentNode);
           const edgeCost = getCost(fromStr, toStr, pred.edgeType);
-          
+
           path.unshift({
             from: fromStr,
             to: toStr,
             edgeType: pred.edgeType,
             cost: edgeCost.cost,
           });
-          
+
           currentNode = pred.node;
         }
-        
+
         return path;
       }
 
@@ -207,19 +230,16 @@ export class CompactGraph {
       const nodeStr = this._getNodeString(node);
 
       // Get neighbors
-      const neighbors: Array<{ neighbor: number; edgeType: EdgeType }> = [];
-      if (node in this.adjacency) {
-        for (const edge of this.adjacency[node]!) {
-          neighbors.push({
-            neighbor: edge.neighbor,
-            edgeType: edge.edgeType,
-          });
-        }
-      }
+      const edges = this.adjacency[node] ?? [];
 
-      for (const { neighbor, edgeType } of neighbors) {
+      for (const { neighbor, edgeType, throughSeaLocation } of edges) {
         const neighborStr = this._getNodeString(neighbor);
-        const edgeCost = getCost(nodeStr, neighborStr, edgeType);
+        const edgeCost = getCost(
+          nodeStr,
+          neighborStr,
+          edgeType,
+          throughSeaLocation,
+        );
         const newCost = cost + edgeCost.cost;
 
         if (
@@ -268,24 +288,18 @@ export class CompactGraph {
 
       // Get neighbors as IDs for efficiency
       // Edges are stored bidirectionally, so we just need to look in adjacency[node]
-      const neighbors: Array<{ neighbor: number; edgeType: EdgeType }> = [];
-      if (node in this.adjacency) {
-        for (const edge of this.adjacency[node]!) {
-          neighbors.push({
-            neighbor: edge.neighbor,
-            edgeType: edge.edgeType,
-          });
-        }
-      }
+      const edges = this.adjacency[node] ?? [];
 
-      for (const {
-        neighbor,
-        edgeType,
-      } of neighbors) {
+      for (const { neighbor, edgeType, throughSeaLocation } of edges) {
         if (visited.has(neighbor)) continue; // Prevent cycles
         const neighborStr = this._getNodeString(neighbor);
         const nodeStr = this._getNodeString(node);
-        const edgeCost = getCost(nodeStr, neighborStr, edgeType);
+        const edgeCost = getCost(
+          nodeStr,
+          neighborStr,
+          edgeType,
+          throughSeaLocation,
+        );
         const newCost = cost + edgeCost.cost;
         // Only add if this is the first time or a cheaper path
         if (!(neighbor in minCost) || newCost < minCost[neighbor]!.cost) {
@@ -322,6 +336,7 @@ export class CompactGraph {
     let portEdges = 0;
     let lakeEdges = 0;
     let portRiverEdges = 0;
+    let throughSeaEdges = 0;
 
     for (const key in this.adjacency) {
       const neighbors = this.adjacency[key];
@@ -333,6 +348,9 @@ export class CompactGraph {
       lakeEdges += neighbors.filter((n) => n.edgeType === "lake").length;
       portRiverEdges += neighbors.filter(
         (n) => n.edgeType === "port-river",
+      ).length;
+      throughSeaEdges += neighbors.filter(
+        (n) => n.edgeType === "through-sea",
       ).length;
     }
 

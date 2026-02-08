@@ -17,18 +17,30 @@ export class ParserHelper {
       const line = lines[i].trim();
       if (!line) continue;
 
-      const [locationA, locationB, edgeType] = line.split(",");
+      const [locationA, locationB, edgeType, throughSeaLocation] =
+        line.split(",");
       if (
-        ["river", "land", "sea", "port", "lake", "port-river"].includes(
-          edgeType,
-        ) === false
+        [
+          "river",
+          "land",
+          "sea",
+          "port",
+          "lake",
+          "port-river",
+          "through-sea",
+        ].includes(edgeType) === false
       ) {
         throw new Error(
           `Invalid edge type "${edgeType}" in adjacency CSV at line ${i + 1}`,
         );
       }
 
-      graph.addEdge(locationA, locationB, edgeType as EdgeType);
+      graph.addEdge(
+        locationA,
+        locationB,
+        edgeType as EdgeType,
+        throughSeaLocation || undefined,
+      );
     }
 
     return graph;
@@ -36,7 +48,6 @@ export class ParserHelper {
 
   // jsonContent should be an array of [from, to] pairs
   static parseRoadFile(jsonContent: any): RoadRecord {
-
     const roadRecord: RoadRecord = {};
 
     for (const roadEntry of jsonContent) {

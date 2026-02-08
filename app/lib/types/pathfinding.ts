@@ -8,6 +8,7 @@ export interface EdgeInfo {
 export interface Neighbor {
   neighbor: number;
   edgeType: EdgeType;
+  throughSeaLocation?: string;
 }
 
 export interface NeighborInfo {
@@ -32,7 +33,8 @@ export type EdgeType =
   | "sea"
   | "port"
   | "lake"
-  | "port-river"
+  | "port-river" // river-mouth port
+  | "through-sea" // special hard-coded ajacency. Allows going from location A -> B while applying sea travel cost of location C
   | "unknown";
 
 export type PathfindingResult = Record<
@@ -47,9 +49,11 @@ export type CostFunction = (
   from: string,
   to: string,
   edgeType: EdgeType,
+  throughSeaLocation?: string,
 ) => {
   cost: number;
   through: EdgeType;
+  throughSeaLocation?: string;
 };
 
 export type PathFindingOptions = {

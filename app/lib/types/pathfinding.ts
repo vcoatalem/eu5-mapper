@@ -1,5 +1,10 @@
 import { ILocationIdentifier } from "./general";
 
+// TODO: might need to make edges directional.
+// rivers seem to NOT bi directional (e.g pest -> buda is river, buda -> pest is land)
+
+// TODO: it seems like through-sea edges actually apply land costs ?
+
 export interface EdgeInfo {
   exists: boolean;
   type: EdgeType;

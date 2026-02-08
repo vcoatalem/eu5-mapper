@@ -21,11 +21,13 @@ from game_data_utils import (
     parse_roads_file,
     parse_development_file,
     parse_cities_and_buildings_file,
+    parse_town_setup_file,
     parse_location_templates,
     parse_location_classification,
     parse_location_hierarchy,
     parse_countries_files,
     parse_city_coordinates,
+    parse_location_town_setups,
     load_color_to_name_mapping,
     hex_to_rgb,
     LocationData,
@@ -262,12 +264,15 @@ def generate_game_data_json(version: str = "0.0.11", output_dir: str = None):
     populations = parse_pops_file(files.pops_file)
     roads = parse_roads_file(files.roads_file)
     development_rules = parse_development_file(files.development_file)
-    #print("development rules:", development_rules)
     whitelisted_buildings = {'wharf', 'fishing_village', 'dock', 'bridge_infrastructure', 'bailiff'}
     location_ranks, location_buildings = parse_cities_and_buildings_file(
         files.cities_buildings_file,
         whitelisted_buildings
     )
+
+    town_setup_file_path = files.town_setup_file 
+    town_setups = parse_town_setup_file(town_setup_file_path, whitelisted_buildings)
+    location_town_setups = parse_location_town_setups(files.cities_buildings_file)
     for loc in locations_to_print:
         print(f"rank of {loc}:", location_ranks.get(loc))
         print(f"buildings of {loc}:", location_buildings.get(loc, []))
@@ -416,7 +421,10 @@ def generate_game_data_json(version: str = "0.0.11", output_dir: str = None):
             "population": population,
             "development": development,
             "rank": rank,
-            "buildings": location_buildings.get(location_name, [])
+            "buildings": sorted(list(
+                set(location_buildings.get(location_name, [])) |
+                set(town_setups.get(location_town_setups.get(location_name, ""), []))
+            ))
         }
 
     

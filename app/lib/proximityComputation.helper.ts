@@ -248,8 +248,7 @@ export class ProximityComputationHelper {
       : rule.baseCost;
 
     const isImpactedByRoad = edgeType === "land";
-    const isNaval =
-      edgeType === "sea" || edgeType === "lake" || edgeType === "through-sea";
+    const isNaval = edgeType === "sea" || edgeType === "lake";
 
     const flatProximityCostReduction = [
       isNaval && gameState.country.landVsNaval > 0
@@ -434,7 +433,7 @@ export class ProximityComputationHelper {
     return modifiers.reduce((a, b) => a + b, 0);
   }
 
-  private static getMartitimePresenceAtLocation(
+  private static getMaritimePresenceAtLocation(
     gameData: IGameData,
     location: ILocationIdentifier,
   ): number {
@@ -461,11 +460,7 @@ export class ProximityComputationHelper {
         ({ to: roadTo }) => roadTo === to,
       );
 
-      if (edgeType === "through-sea" && throughSeaLocation) {
-        from = throughSeaLocation;
-      }
-
-      const maritimePresence = this.getMartitimePresenceAtLocation(
+      const maritimePresence = this.getMaritimePresenceAtLocation(
         gameData,
         from,
       );
@@ -509,7 +504,10 @@ export class ProximityComputationHelper {
         road?.type ?? null,
       );
 
-      const modifiedCost = baseCost * (1 - proximityModifiersSummed / 100);
+      const modifiedCost = Math.max(
+        0.1,
+        baseCost * (1 - proximityModifiersSummed / 100),
+      );
 
       logProximityComputation([from, to], options, "Final proximity cost", {
         from,

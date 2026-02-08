@@ -99,13 +99,27 @@ export async function generateHtmlReport(
   toleratedDifference: number,
   unrecognisedLocations: ILocationIdentifier[] = [],
 ): Promise<void> {
+  const totalCount = results.length;
+
   const goodCount = results.filter(
     (r) => Math.abs(r.difference) <= toleratedDifference,
   ).length;
-  const totalCount = results.length;
   const badCount = totalCount - goodCount;
   const successRate =
     totalCount > 0 ? ((goodCount / totalCount) * 100).toFixed(2) : "0.00";
+
+  let signCorrectCount = 0;
+  for (const r of results) {
+    const expectedPositive = r.expected > 0;
+    const actualPositive = r.actual > 0;
+    if (expectedPositive === actualPositive) {
+      signCorrectCount += 1;
+    }
+  }
+  const signAccuracyStr =
+    totalCount > 0
+      ? ((signCorrectCount / totalCount) * 100).toFixed(2)
+      : "0.00";
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -381,7 +395,11 @@ export async function generateHtmlReport(
         </div>
         <div class="stat-card">
           <div class="stat-value">${successRate}%</div>
-          <div class="stat-label">Success Rate</div>
+          <div class="stat-label">Proximity Accuracy</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${signAccuracyStr}%</div>
+          <div class="stat-label">Sign Accuracy</div>
         </div>
         ${
           unrecognisedLocations.length > 0
@@ -614,6 +632,11 @@ export async function generateHtmlReport(
         ? results.reduce((sum, r) => sum + Math.abs(r.difference), 0) /
           totalCount
         : 0,
+    // How often proximity is correct within tolerance
+    proximityCorrectCount: goodCount,
+    // How often sign bucket (zero/unreachable vs > 0) is correct
+    signCorrectCount,
+    signAccuracy: parseFloat(signAccuracyStr),
     unrecognisedCount: unrecognisedLocations.length,
     reportPath: `${country.toLowerCase()}.html`,
   };
@@ -643,6 +666,9 @@ interface ReportMetadata {
   badCount: number;
   successRate: number;
   averageAbsoluteDifference: number;
+  proximityCorrectCount: number;
+  signCorrectCount: number;
+  signAccuracy: number;
   unrecognisedCount: number;
   reportPath: string;
 }
@@ -859,11 +885,12 @@ export async function generateIndexFile(): Promise<void> {
           <thead>
             <tr>
               <th>Country</th>
-              <th>Success Rate</th>
+              <th>Proximity Accuracy</th>
+              <th>Sign Accuracy</th>
               <th>Average Difference</th>
               <th>Total Tests</th>
-              <th>Passed</th>
-              <th>Failed</th>
+              <th>Proximity Correct</th>
+              <th>Sign Correct</th>
               <th>Unrecognised</th>
             </tr>
           </thead>
@@ -887,6 +914,16 @@ export async function generateIndexFile(): Promise<void> {
                   return '<span class="badge error">Poor</span>';
                 };
 
+                const getSignBadge = (rate: number) => {
+                  if (rate >= 95)
+                    return '<span class="badge success">Very Reliable</span>';
+                  if (rate >= 85)
+                    return '<span class="badge success">Reliable</span>';
+                  if (rate >= 70)
+                    return '<span class="badge warning">Mixed</span>';
+                  return '<span class="badge error">Unreliable</span>';
+                };
+
                 const reportUrl = report.reportPath; // Just the filename since it's in the same directory
                 const scoreClass = getScoreClass(
                   report.averageAbsoluteDifference,
@@ -900,10 +937,11 @@ export async function generateIndexFile(): Promise<void> {
                       </a>
                     </td>
                     <td>${getSuccessBadge(report.successRate)} ${report.successRate.toFixed(2)}%</td>
+                    <td>${getSignBadge(report.signAccuracy)} ${report.signAccuracy.toFixed(2)}%</td>
                     <td class="score ${scoreClass}">${report.averageAbsoluteDifference.toFixed(2)}</td>
                     <td>${report.totalCount}</td>
-                    <td style="color: #059669; font-weight: 600;">${report.goodCount}</td>
-                    <td style="color: #dc2626; font-weight: 600;">${report.badCount}</td>
+                    <td style="color: #059669; font-weight: 600;">${report.proximityCorrectCount}</td>
+                    <td style="color: #2563eb; font-weight: 600;">${report.signCorrectCount}</td>
                     <td>${report.unrecognisedCount}</td>
                   </tr>
                 `;
@@ -916,7 +954,7 @@ export async function generateIndexFile(): Promise<void> {
     
     <div class="footer">
       Generated on ${new Date().toLocaleString()} | 
-      Average Difference: Lower is better (measures closeness to expected values)
+      Average Difference: lower is better
     </div>
   </div>
 </body>

@@ -510,8 +510,8 @@ def parse_cities_and_buildings_file(cities_buildings_file: str, whitelisted_buil
     if whitelisted_buildings is None:
         whitelisted_buildings = {'wharf', 'fishing_village', 'dock', 'bridge_infrastructure'}
 
-    location_ranks = {}
-    location_buildings = {}
+    location_ranks: Dict[str, str] = {}
+    location_buildings: Dict[str, List[str]] = {}
     parsed = parse_game_data_file(cities_buildings_file)
 
     # Parse location ranks
@@ -545,6 +545,61 @@ def parse_cities_and_buildings_file(cities_buildings_file: str, whitelisted_buil
                             location_buildings.setdefault(location_name, []).append(building_type)
 
     return location_ranks, location_buildings
+
+
+def parse_town_setup_file(town_setup_file: str, whitelisted_buildings: Optional[Set[str]] = None) -> Dict[str, List[str]]:
+    """Parse town setup file to extract building lists per setup.
+
+    Args:
+        town_setup_file: Path to the town setup definition file.
+        whitelisted_buildings: Set of building names to keep (default: None keeps all).
+
+    Returns:
+        Dict mapping town_setup_name -> [building_names] (deduplicated per setup).
+    """
+    setups: Dict[str, List[str]] = {}
+
+    parsed = parse_game_data_file(town_setup_file)
+
+    for setup_name, data in parsed.items():
+        if not isinstance(data, dict):
+            continue
+
+        buildings: List[str] = []
+        for building_name in data.keys():
+            if whitelisted_buildings is not None and building_name not in whitelisted_buildings:
+                continue
+            if building_name not in buildings:
+                buildings.append(building_name)
+
+        setups[setup_name] = buildings
+
+    return setups
+
+
+def parse_location_town_setups(cities_buildings_file: str) -> Dict[str, str]:
+    """Parse cities and buildings file to map locations to town setups.
+
+    Args:
+        cities_buildings_file: Path to the cities and buildings file.
+
+    Returns:
+        Dict mapping location_name -> town_setup_name.
+    """
+    location_town_setups: Dict[str, str] = {}
+
+    parsed = parse_game_data_file(cities_buildings_file)
+
+    locations = parsed.get('locations', {})
+    if isinstance(locations, dict):
+        for location_name, props in locations.items():
+            if not isinstance(props, dict):
+                continue
+            town_setup = props.get('town_setup')
+            if isinstance(town_setup, str):
+                location_town_setups[location_name] = town_setup
+
+    return location_town_setups
 
 
 def parse_location_classification(classification_file: str) -> Tuple[Set[str], Set[str]]:

@@ -26,7 +26,6 @@ from game_data_utils import (
     parse_location_classification,
     parse_location_hierarchy,
     parse_countries_files,
-    parse_city_coordinates,
     parse_location_town_setups,
     load_color_to_name_mapping,
     hex_to_rgb,
@@ -257,7 +256,9 @@ def generate_game_data_json(version: str = "0.0.11", output_dir: str = None):
     whitelisted_countries = {"SWE", "DAN", "NOR", "ENG", "FRA", "TEU", "BRA", "BOH", "HUN", "POL", "LIT", "MOS", "NOV", "OTT", "RUS", "CAS", "POR", "VEN", "PAP", "ARB", "MOR", "TUN", "DHL", "ARA", "HAB", "KIE", "GEO", "MAM", "OMA", "VIJ", "BYZ", "KOR" }
     countries_data_map = parse_countries_files(files.countries_file, whitelisted_countries)
     
-    city_coordinates = parse_city_coordinates(files.locations_city_coordinates)
+
+    with open(files.location_centers_file, "r", encoding="utf-8") as centers_file:
+        location_centers = json.load(centers_file)
     
     # Load new game_setup files
     print("Parsing game setup files...")
@@ -393,9 +394,9 @@ def generate_game_data_json(version: str = "0.0.11", output_dir: str = None):
             **breakdown
         })
         
-        # Get coordinates
-        coords = city_coordinates.get(location_name)
-        coords_dict = {"x": coords.x, "y": coords.y} if coords else None
+        # Get center coordinates for this location (precomputed by generate_location_centers.py)
+        center = location_centers.get(location_name)
+        center_dict = {"x": center["x"], "y": center["y"]} if center else None
         
         location_data_map[location_name] = {
             "topography": data.topography,
@@ -417,7 +418,7 @@ def generate_game_data_json(version: str = "0.0.11", output_dir: str = None):
                 "area": location_hierarchy.area,
                 "province": location_hierarchy.province
             },
-            "constructibleLocationCoordinate": coords_dict,
+            "centerCoordinates": center_dict,
             "population": population,
             "development": development,
             "rank": rank,

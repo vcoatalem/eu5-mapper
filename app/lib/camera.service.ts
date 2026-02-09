@@ -173,7 +173,9 @@ export class CameraService {
     const currentTop = parseFloat(colorCanvas.style.top);
 
     if (isNaN(currentLeft) || isNaN(currentTop)) {
-      console.warn('[CameraService]: Invalid left or top position when applying zoom level');
+      console.warn(
+        "[CameraService]: Invalid left or top position when applying zoom level",
+      );
     }
 
     // Ensure oldZoom is valid (fallback to 1 if invalid)
@@ -205,16 +207,8 @@ export class CameraService {
   public getNeighborsPanelScreenPosition(
     locationName: ILocationIdentifier,
     locationDataMap: ILocationDataMap,
-    canvasHeight: number,
   ): NeighborsPanelPlacement {
-    const gameCoord =
-      locationDataMap[locationName]?.constructibleLocationCoordinate;
-    if (!gameCoord) return null;
-
-    const canvasCoord = DrawingHelper.gameCoordinatesToCanvasCoordinates(
-      gameCoord,
-      canvasHeight,
-    );
+    const coord = locationDataMap[locationName]?.centerCoordinates;
 
     const colorCanvas = this.colorCanvas.current;
     const container = this.container.current;
@@ -225,10 +219,8 @@ export class CameraService {
     const currentLeft = parseFloat(colorCanvas.style.left) || 0;
     const currentTop = parseFloat(colorCanvas.style.top) || 0;
 
-    const screenX =
-      containerRect.left + currentLeft + canvasCoord.x * zoom;
-    const screenY =
-      containerRect.top + currentTop + canvasCoord.y * zoom;
+    const screenX = containerRect.left + currentLeft + coord.x * zoom;
+    const screenY = containerRect.top + currentTop + coord.y * zoom;
 
     const viewportCenterX = containerRect.left + containerRect.width / 2;
     const side = screenX >= viewportCenterX ? "left" : "right";

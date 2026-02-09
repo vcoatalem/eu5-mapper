@@ -502,12 +502,15 @@ export function WorldMapComponent() {
           cameraServiceRef.current?.getNeighborsPanelScreenPosition(
             locationName,
             gameData.locationDataMap,
-            worldMapConfig.height,
           ) ?? {
             x: 500,
             y: 500,
             side: "right",
           };
+        console.log(
+          "[WorldMapComponent] setting neighbors panel position:",
+          placement,
+        );
         setNeighborsPanelPosition(placement);
       } else {
         setShowNeighborsPanel(null);
@@ -521,11 +524,8 @@ export function WorldMapComponent() {
           gameStateController.selectLocation(location);
         }
         if (location && type === "goto") {
-          const coordinates = DrawingHelper.gameCoordinatesToCanvasCoordinates(
-            gameData.locationDataMap[location]
-              ?.constructibleLocationCoordinate ?? { x: 0, y: 0 },
-            colorCanvasRef.current?.height ?? 0,
-          );
+          const coordinates =
+            gameData.locationDataMap[location]?.centerCoordinates;
           cameraServiceRef.current?.panToCoordinate(coordinates);
         }
       },
@@ -535,11 +535,8 @@ export function WorldMapComponent() {
       ({ locations, type }) => {
         if (locations.length > 0 && type === "search") {
           const location = locations[0];
-          const coordinates = DrawingHelper.gameCoordinatesToCanvasCoordinates(
-            gameData.locationDataMap[location]
-              ?.constructibleLocationCoordinate ?? { x: 0, y: 0 },
-            colorCanvasRef.current?.height ?? 0,
-          );
+          const coordinates =
+            gameData.locationDataMap[location]?.centerCoordinates;
           cameraServiceRef.current?.panToCoordinate(coordinates);
         }
       },

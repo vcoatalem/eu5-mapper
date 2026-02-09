@@ -76,11 +76,8 @@ export class DrawingService {
       startCoordinates: notYetQueried.reduce(
         (acc, loc) => {
           const locData = this.gameData?.locationDataMap[loc];
-          if (locData?.constructibleLocationCoordinate) {
-            acc[loc] = DrawingHelper.gameCoordinatesToCanvasCoordinates(
-              locData.constructibleLocationCoordinate,
-              this.areaDrawingCanvas.height,
-            );
+          if (locData?.centerCoordinates) {
+            acc[loc] = locData.centerCoordinates;
           }
           return acc;
         },
@@ -159,16 +156,19 @@ export class DrawingService {
       if (lastCompletedTask.type === "colorSearch") {
         // Handle failed tasks (data is null on error/timeout)
         if (!lastCompletedTask.success || !lastCompletedTask.data) {
-          console.warn('[DrawingService] colorSearch task failed or data is missing', {
-            success: lastCompletedTask.success,
-            error: lastCompletedTask.error,
-            data: lastCompletedTask.data,
-          });
+          console.warn(
+            "[DrawingService] colorSearch task failed or data is missing",
+            {
+              success: lastCompletedTask.success,
+              error: lastCompletedTask.error,
+              data: lastCompletedTask.data,
+            },
+          );
           return;
         }
         const data = lastCompletedTask.data as IWorkerTaskColorSearchResult;
         if (!data.result) {
-          console.warn('[DrawingService] colorSearch result is missing', data);
+          console.warn("[DrawingService] colorSearch result is missing", data);
           return;
         }
         const coordinates = data.result;
@@ -341,17 +341,11 @@ export class DrawingService {
       allOwnedLocations,
     )) {
       const locationCoordinates =
-        this.gameData?.locationDataMap[locationIdentifier]
-          .constructibleLocationCoordinate;
+        this.gameData?.locationDataMap[locationIdentifier].centerCoordinates;
 
       if (locationCoordinates) {
-        const { x, y } = DrawingHelper.gameCoordinatesToCanvasCoordinates(
-          { x: locationCoordinates.x, y: locationCoordinates.y },
-          this.mapInfos.height,
-        );
-
+        const { x, y } = locationCoordinates;
         const level = constructible.rank;
-
         drawCallbacks.push(() =>
           this.drawLocation(
             this.constructibleDrawingContext,
@@ -383,27 +377,16 @@ export class DrawingService {
     for (const [from, toLocations] of Object.entries(allRoads)) {
       for (const { to, type } of toLocations) {
         const fromCoordinates =
-          this.gameData?.locationDataMap[from].constructibleLocationCoordinate;
+          this.gameData?.locationDataMap[from].centerCoordinates;
         const toCoordinates =
-          this.gameData?.locationDataMap[to].constructibleLocationCoordinate;
+          this.gameData?.locationDataMap[to].centerCoordinates;
 
         if (fromCoordinates && toCoordinates) {
-          const fromCanvasCoords =
-            DrawingHelper.gameCoordinatesToCanvasCoordinates(
-              { x: fromCoordinates.x, y: fromCoordinates.y },
-              this.mapInfos.height,
-            );
-          const toCanvasCoords =
-            DrawingHelper.gameCoordinatesToCanvasCoordinates(
-              { x: toCoordinates.x, y: toCoordinates.y },
-              this.mapInfos.height,
-            );
-
           const roadColor = ColorHelper.getRoadHexColor(type);
           drawCallbacks.push(() =>
             DrawingHelper.drawLine(this.roadDrawingContext, {
-              canvasCoordFrom: fromCanvasCoords,
-              canvasCoordTo: toCanvasCoords,
+              canvasCoordFrom: fromCoordinates,
+              canvasCoordTo: toCoordinates,
               lineWidth: 1,
               color: roadColor,
             }),

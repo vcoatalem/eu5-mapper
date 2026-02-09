@@ -5,7 +5,11 @@ import { IProximityComputationRule } from "./proximityComputationRules";
 export type ILocationIdentifier = string; // location name
 
 export type LocationRank = "rural" | "town" | "city";
-export type RoadType = "gravel_road" | "paved_road" | "modern_road" | "rail_road";
+export type RoadType =
+  | "gravel_road"
+  | "paved_road"
+  | "modern_road"
+  | "rail_road";
 export type BuildingType = "rural" | "urban" | "city" | "common";
 
 // all data in this instances of this interface should be read-only after init.
@@ -13,7 +17,7 @@ export type BuildingType = "rural" | "urban" | "city" | "common";
 export interface ILocationGameData {
   name: string;
   hexColor: string;
-  constructibleLocationCoordinate?: ICoordinate;
+  centerCoordinates: ICoordinate;
   topography:
     | "unknown"
     | "hills"

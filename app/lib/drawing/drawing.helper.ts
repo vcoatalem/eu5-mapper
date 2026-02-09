@@ -1,14 +1,6 @@
 import { ICoordinate } from "../types/general";
-import { greenToRedGradient } from "./greenToRedGradient.const";
 
 export class DrawingHelper {
-  public static gameCoordinatesToCanvasCoordinates(
-    gameCoordinates: ICoordinate,
-    canvasHeight: number,
-  ): ICoordinate {
-    return { x: gameCoordinates.x, y: canvasHeight - gameCoordinates.y };
-  }
-
   public static drawCircle(
     ctx: CanvasRenderingContext2D,
     canvasCoordinate: ICoordinate,

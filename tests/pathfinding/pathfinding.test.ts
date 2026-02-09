@@ -52,7 +52,7 @@ test.each(referenceFiles)(
       gameData,
       {
         allowUnownedLocations: true,
-        /* logForLocations: ['solent', 'seven_sisters'], */
+        /* logForLocations: ["strait_of_dover"], */
         logMethod: (message: string, data?: Record<string, unknown>) => {
           console.log(message, data);
         },

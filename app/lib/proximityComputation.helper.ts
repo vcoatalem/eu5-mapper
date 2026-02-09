@@ -248,23 +248,27 @@ export class ProximityComputationHelper {
       : rule.baseCost;
 
     const isImpactedByRoad = edgeType === "land";
-    const isNaval = edgeType === "sea" || edgeType === "lake";
-
-    const flatProximityCostReduction = [
-      isNaval && gameState.country.landVsNaval > 0
-        ? (rule.valuesImpact.landVsNaval[1].flatModifier *
-            gameState.country.landVsNaval) /
-          100
-        : 0,
-      isImpactedByRoad && roadToDestination
-        ? rule.roadProximityCostReduction[roadToDestination]
-        : 0,
-      // TODO: advances ?
-    ].reduce((a, b) => a + b, 0);
+    const isNaval =
+      edgeType === "sea" ||
+      edgeType === "lake" ||
+      (!rule.throughSeaEdgeCountedAsLandProximity &&
+        edgeType === "through-sea");
 
     if (!isNaval) {
-      return baseCost - flatProximityCostReduction;
+      const landFlatCostReduction = [
+        isImpactedByRoad && roadToDestination
+          ? rule.roadProximityCostReduction[roadToDestination]
+          : 0,
+        // TODO: advances, policies, etc. providing flat reduction to land proximity
+      ].reduce((a, b) => a + b, 0);
+      return baseCost - landFlatCostReduction;
     } else {
+      const navalValueProximityCostReduction =
+        gameState.country.landVsNaval > 0
+          ? (rule.valuesImpact.landVsNaval[1].flatModifier *
+              gameState.country.landVsNaval) /
+            100
+          : 0;
       // Normalize maritimePresence to [0,1]
       let normalizedMaritimePresence =
         edgeType === "lake" ? 1 : maritimePresence / 100;
@@ -274,11 +278,12 @@ export class ProximityComputationHelper {
       );
 
       const flatProximityCostWithoutMaritimePresence = [
-        // ... advances
+        // ... advances, policies, etc. providing flat reduction to naval proximity without maritime presence
       ].reduce((a, b) => a + b, 0);
 
       const flatProximityCostWithMaritimePresence = [
-        // ... advances
+        navalValueProximityCostReduction,
+        // ... advances, policies, etc. providing flat reduction to naval proximity with maritime presence
       ].reduce((a, b) => a + b, 0);
 
       const costWithoutMaritimePresence =
@@ -391,6 +396,7 @@ export class ProximityComputationHelper {
     options: PathFindingOptions,
     roadType: RoadType | null,
   ): number {
+    const rule = gameData.proximityComputationRule;
     const modifiers: number[] = [];
 
     const toLocationData = gameData.locationDataMap[to];
@@ -400,7 +406,9 @@ export class ProximityComputationHelper {
     const transportationMode =
       edgeType === "port" || edgeType === "port-river"
         ? "harbor"
-        : isNaval
+        : isNaval ||
+            (!rule.throughSeaEdgeCountedAsLandProximity &&
+              edgeType === "through-sea")
           ? "naval"
           : edgeType === "coastal"
             ? "coastal"
@@ -459,6 +467,14 @@ export class ProximityComputationHelper {
       const road = gameState.roads[from]?.find(
         ({ to: roadTo }) => roadTo === to,
       );
+
+      if (
+        !rule.throughSeaEdgeCountedAsLandProximity &&
+        throughSeaLocation &&
+        edgeType === "through-sea"
+      ) {
+        from = throughSeaLocation;
+      }
 
       const maritimePresence = this.getMaritimePresenceAtLocation(
         gameData,

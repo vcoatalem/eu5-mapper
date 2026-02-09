@@ -431,25 +431,26 @@
     static getFlatProximityCost(edgeType, gameState, rule, maritimePresence, roadToDestination) {
       const baseCost = edgeType.includes("river") ? rule.baseRiverCost : rule.baseCost;
       const isImpactedByRoad = edgeType === "land";
-      const isNaval = edgeType === "sea" || edgeType === "lake";
-      const flatProximityCostReduction = [
-        isNaval && gameState.country.landVsNaval > 0 ? rule.valuesImpact.landVsNaval[1].flatModifier * gameState.country.landVsNaval / 100 : 0,
-        isImpactedByRoad && roadToDestination ? rule.roadProximityCostReduction[roadToDestination] : 0
-        // TODO: advances ?
-      ].reduce((a, b) => a + b, 0);
+      const isNaval = edgeType === "sea" || edgeType === "lake" || !rule.throughSeaEdgeCountedAsLandProximity && edgeType === "through-sea";
       if (!isNaval) {
-        return baseCost - flatProximityCostReduction;
+        const landFlatCostReduction = [
+          isImpactedByRoad && roadToDestination ? rule.roadProximityCostReduction[roadToDestination] : 0
+          // TODO: advances, policies, etc. providing flat reduction to land proximity
+        ].reduce((a, b) => a + b, 0);
+        return baseCost - landFlatCostReduction;
       } else {
+        const navalValueProximityCostReduction = gameState.country.landVsNaval > 0 ? rule.valuesImpact.landVsNaval[1].flatModifier * gameState.country.landVsNaval / 100 : 0;
         let normalizedMaritimePresence = edgeType === "lake" ? 1 : maritimePresence / 100;
         normalizedMaritimePresence = Math.max(
           0,
           Math.min(1, normalizedMaritimePresence)
         );
         const flatProximityCostWithoutMaritimePresence = [
-          // ... advances
+          // ... advances, policies, etc. providing flat reduction to naval proximity without maritime presence
         ].reduce((a, b) => a + b, 0);
         const flatProximityCostWithMaritimePresence = [
-          // ... advances
+          navalValueProximityCostReduction
+          // ... advances, policies, etc. providing flat reduction to naval proximity with maritime presence
         ].reduce((a, b) => a + b, 0);
         const costWithoutMaritimePresence = rule.baseCostWithoutMaritimePresence - flatProximityCostWithoutMaritimePresence;
         const costWithMaritimePresence = rule.baseCostWithMaritimePresence - flatProximityCostWithMaritimePresence;
@@ -519,10 +520,11 @@
       ].reduce((a, b) => a + b, 0);
     }
     static getPercentageProximityCostModifiers(from, to, edgeType, gameData2, gameState, options, roadType) {
+      const rule = gameData2.proximityComputationRule;
       const modifiers = [];
       const toLocationData = gameData2.locationDataMap[to];
       const isNaval = toLocationData.isSea || toLocationData.isLake;
-      const transportationMode = edgeType === "port" || edgeType === "port-river" ? "harbor" : isNaval ? "naval" : edgeType === "coastal" ? "coastal" : "land";
+      const transportationMode = edgeType === "port" || edgeType === "port-river" ? "harbor" : isNaval || !rule.throughSeaEdgeCountedAsLandProximity && edgeType === "through-sea" ? "naval" : edgeType === "coastal" ? "coastal" : "land";
       modifiers.push(
         this.getTransportationModeProximityCostModifiers(
           from,
@@ -559,6 +561,9 @@
         const road = gameState.roads[from]?.find(
           ({ to: roadTo }) => roadTo === to
         );
+        if (!rule.throughSeaEdgeCountedAsLandProximity && throughSeaLocation && edgeType === "through-sea") {
+          from = throughSeaLocation;
+        }
         const maritimePresence = this.getMaritimePresenceAtLocation(
           gameData2,
           from
@@ -825,7 +830,7 @@
               {
                 allowUnownedLocations: true,
                 // allow passing over unowned
-                logForLocations: [],
+                /* logForLocations: ["strait_of_dover"], */
                 logMethod: (message, data) => {
                   sendMessage(self, {
                     data: data ?? null,
@@ -868,7 +873,7 @@
               {
                 allowUnownedLocations: true,
                 // allow passing over unowned
-                logForLocations: ["dover"],
+                logForLocations: ["strait_of_dover"],
                 logMethod: (message, data) => {
                   sendMessage(self, {
                     data: data ?? null,

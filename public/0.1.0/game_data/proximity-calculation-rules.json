@@ -52,5 +52,6 @@
     "paved_road": 25,
     "modern_road": 30,
     "rail_road": 35
-  }
+  },
+  "throughSeaEdgeCountedAsLandProximity": false
 }

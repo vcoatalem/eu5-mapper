@@ -18,7 +18,11 @@ import { ILocationIdentifier } from "../lib/types/general";
 import { DrawingService } from "@/app/lib/drawing.service";
 import { workerManager } from "@/app/lib/workerManager";
 import { LoadingScreenComponent } from "./loadingScreen.component";
-import { zoomController, zoomLevels } from "@/app/lib/zoomController";
+import {
+  cameraController,
+  zoomLevels,
+  NeighborsPanelPlacement,
+} from "@/app/lib/cameraController";
 import { proximityComputationController } from "@/app/lib/proximityComputation.controller";
 import { ConstructibleMenusComponent } from "./constructibleMenus.component";
 import { GuiElement } from "./guiElement";
@@ -29,7 +33,6 @@ import { NeighborsPanelComponent } from "./neighborsPanel.component";
 import { HeaderComponent } from "./header.component";
 import { CountryOverview } from "./countryOverview.component";
 import { locationSearchController } from "@/app/lib/locationSearchController";
-import { CameraService, NeighborsPanelPlacement } from "../lib/camera.service";
 import { actionEventDispatcher } from "../lib/actionEventDispatcher";
 import { IWorkerTaskInitWithImagePayload } from "@/workers/types/workerTypes";
 import { ObservableCombiner } from "../lib/observableCombiner";
@@ -66,7 +69,6 @@ export function WorldMapComponent() {
   const indicatorCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const drawingServiceRef = useRef<DrawingService>(null);
-  const cameraServiceRef = useRef<CameraService>(null);
   const [, forceUpdate] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [initializationError, setInitializationError] = useState<string | null>(
@@ -289,7 +291,7 @@ export function WorldMapComponent() {
       const containerRect = container.getBoundingClientRect();
       const centerX = containerRect.width / 2;
       const centerY = containerRect.height / 2;
-      const initialZoom = zoomController.getSnapshot().zoomLevel;
+      const initialZoom = cameraController.getSnapshot().zoomLevel;
       const targetX = 7934;
       const targetY = 1991;
 
@@ -413,12 +415,7 @@ export function WorldMapComponent() {
       { width: worldMapConfig.width, height: worldMapConfig.height },
       gameData,
     );
-
-    cameraServiceRef.current = new CameraService(
-      containerRef!,
-      colorCanvasRef!,
-      layers,
-    );
+    cameraController.initCamera(containerRef, colorCanvasRef, layers);
     roadBuilderController.init();
 
     const handleMouseDown = (e: MouseEvent) => {
@@ -475,7 +472,7 @@ export function WorldMapComponent() {
     actionEventDispatcher.registerHoverActionSource(
       topLayerRef.current,
       (e) => {
-        const locationName = cameraServiceRef.current?.getLocationAtPointer(e);
+        const locationName = cameraController.getLocationAtPointer(e);
         return locationName ?? null;
       },
       null,
@@ -485,7 +482,7 @@ export function WorldMapComponent() {
     actionEventDispatcher.registerClickActionSource(
       topLayerRef.current,
       (e) => {
-        const locationName = cameraServiceRef.current?.getLocationAtPointer(e);
+        const locationName = cameraController.getLocationAtPointer(e);
         return locationName ?? null;
       },
       "acquire",
@@ -502,8 +499,9 @@ export function WorldMapComponent() {
 
     const prolongedHoverOutsideBuildingMode =
       prolongedHoverProximityCalculationObservable.subscribe(
-        ({ values: [{ locations }, roadBuilderState] }) => {
+        ({ values: [{ locations, type }, roadBuilderState] }) => {
           if (roadBuilderState.isBuildingModeEnabled) return;
+          if (type === "search") return;
           if (locations.length === 1) {
             // only show neighbors panel if there is exactly one location hovered
             const locationName = locations[0];
@@ -516,17 +514,16 @@ export function WorldMapComponent() {
               " will open up neighbors panel and trigger proximity computation",
             );
             setShowNeighborsPanel(locationName);
-            const placement =
-              cameraServiceRef.current?.getPopoverPanelScreenPosition(
-                locationName,
-                gameData.locationDataMap,
-                12,
-                12,
-              ) ?? {
-                x: 500,
-                y: 500,
-                side: "right",
-              };
+            const placement = cameraController.getPopoverPanelScreenPosition(
+              locationName,
+              gameData.locationDataMap,
+              12,
+              12,
+            ) ?? {
+              x: 500,
+              y: 500,
+              side: "right",
+            };
             console.log(
               "[WorldMapComponent] setting neighbors panel position:",
               placement,
@@ -563,36 +560,22 @@ export function WorldMapComponent() {
             type === "acquire" &&
             !roadBuilderState.isBuildingModeEnabled:
             return gameStateController.selectLocation(location);
-          case location && type === "goto":
-            if (roadBuilderState.isBuildingModeEnabled) {
-              roadBuilderController.selectLocationForBuildingRoad(location);
-              setShowNeighborsPanel(location);
-              neighborsProximityComputationController.launchGetNeighborProximityTask(
-                location,
-              );
-            }
-            const coordinates =
-              gameData.locationDataMap[location]?.centerCoordinates;
-            return cameraServiceRef.current?.panToCoordinate(coordinates);
-          case location &&
-            type === "acquire" &&
-            roadBuilderState.isBuildingModeEnabled:
+          case location && roadBuilderState.isBuildingModeEnabled:
             setShowNeighborsPanel(null);
             roadBuilderController.selectLocationForBuildingRoad(location);
-            cameraServiceRef.current?.panToCoordinate(
+            cameraController.panToCoordinate(
               gameData.locationDataMap[location]?.centerCoordinates,
             );
             neighborsProximityComputationController.launchGetNeighborProximityTask(
               location,
             );
-            setTimeout(() => {
-              const position =
-                cameraServiceRef.current?.getPopoverPanelScreenPosition(
-                  location,
-                  gameData.locationDataMap,
-                  36,
-                  36,
-                );
+            return setTimeout(() => {
+              const position = cameraController.getPopoverPanelScreenPosition(
+                location,
+                gameData.locationDataMap,
+                36,
+                36,
+              );
               if (!position) {
                 console.error(
                   "[WorldMapComponent] could not get screen position for neighbors panel",
@@ -601,7 +584,14 @@ export function WorldMapComponent() {
               }
               setShowNeighborsPanel(location);
               setNeighborsPanelPosition(position);
-            }, 500); // allow time for panning to be done (todo: handle screen panning as a proper observable)
+            }, 800); // allow time for panning to be done (todo: handle screen panning as a proper observable)
+          case location && type === "goto":
+            const coordinates =
+              gameData.locationDataMap[location]?.centerCoordinates;
+            if (coordinates) {
+              cameraController.panToCoordinate(coordinates, 600);
+            }
+            break;
         }
       },
     );
@@ -614,7 +604,7 @@ export function WorldMapComponent() {
             const location = locations[0];
             const coordinates =
               gameData.locationDataMap[location]?.centerCoordinates;
-            cameraServiceRef.current?.panToCoordinate(coordinates);
+            cameraController.panToCoordinate(coordinates);
           }
         },
       );
@@ -628,11 +618,11 @@ export function WorldMapComponent() {
       topLayerRef.current.addEventListener("mouseup", handleMouseUp);
       topLayerRef.current.addEventListener("mouseleave", handleMouseLeave);
 
-      zoomController.setDraggingCheck(() => isDraggingRef.current);
-      zoomController.init(topLayerRef.current);
+      cameraController.setDraggingCheck(() => isDraggingRef.current);
+      cameraController.init(topLayerRef.current);
 
       // Subscribe to zoom changes
-      const zoomUnsubscribe = zoomController.subscribe(
+      const zoomUnsubscribe = cameraController.subscribe(
         ({ zoomLevel, oldZoomLevel }) => {
           if (!borderCanvasRef.current) {
             console.error(
@@ -640,13 +630,7 @@ export function WorldMapComponent() {
             );
             return;
           }
-          if (!cameraServiceRef.current) {
-            console.warn(
-              "[WorldMapComponent] Camera service not ready, skipping zoom",
-            );
-            return;
-          }
-          cameraServiceRef.current.applyZoomLevel(zoomLevel, oldZoomLevel);
+          cameraController.applyZoomLevel(zoomLevel, oldZoomLevel);
 
           if (
             zoomLevel < zoomLevels.normal &&
@@ -719,7 +703,7 @@ export function WorldMapComponent() {
       setInitializationError(null);
 
       // Clean up zoom controller
-      zoomController.cleanup();
+      cameraController.cleanup();
 
       if (topLayerRef.current) {
         console.log("remove mouse event listeners");
@@ -737,12 +721,12 @@ export function WorldMapComponent() {
 
   const handleZoomOut = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
-    zoomController.zoomOut();
+    cameraController.zoomOut();
   };
 
   const handleZoomIn = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
-    zoomController.zoomIn();
+    cameraController.zoomIn();
   };
 
   return (

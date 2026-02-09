@@ -43,7 +43,7 @@ class ZoomController extends Observable<IZoomState> {
   public init(element: HTMLElement): void {
     // Clean up previous initialization if any
     this.cleanup();
-    
+
     this.currentElement = element;
     this.wheelHandler = (e: WheelEvent) => {
       // Prevent zoom while dragging
@@ -56,7 +56,7 @@ class ZoomController extends Observable<IZoomState> {
         zoomController.zoomOut();
       }
     };
-    
+
     element.addEventListener("wheel", this.wheelHandler, { passive: true });
   }
 
@@ -101,6 +101,34 @@ class ZoomController extends Observable<IZoomState> {
     }
 
     this.updateZoomState(currentZoomLevel);
+  }
+
+  public zoomTo(zoomLevel: number): void {
+    if (this.isDraggingCheck && this.isDraggingCheck()) {
+      return;
+    }
+    if (Object.values(zoomLevels).includes(zoomLevel)) {
+      const currentZoomLevel = zoomSteps[this.currentZoomIndex];
+      this.currentZoomIndex = zoomSteps.indexOf(zoomLevel);
+      this.updateZoomState(currentZoomLevel);
+    }
+  }
+
+  /**
+   * Synchronize internal zoom state without notifying listeners.
+   * Useful when the camera has already been animated to the target zoom
+   * and we only need zoomController to reflect the final value.
+   */
+  public syncZoomLevel(zoomLevel: number): void {
+    if (!Object.values(zoomLevels).includes(zoomLevel)) {
+      return;
+    }
+    this.currentZoomIndex = zoomSteps.indexOf(zoomLevel);
+    this.subject = {
+      zoomIndex: this.currentZoomIndex,
+      zoomLevel: zoomLevel,
+      oldZoomLevel: zoomLevel,
+    };
   }
 }
 

@@ -19,9 +19,9 @@ import {
 } from "@/workers/types/workerTypes";
 import {
   IZoomState,
-  zoomController,
+  cameraController,
   zoomLevels,
-} from "@/app/lib/zoomController";
+} from "@/app/lib/cameraController";
 import {
   capitalColor,
   ColorHelper,
@@ -192,7 +192,7 @@ export class DrawingService {
         this.reDraw.emit(new Date());
       });
 
-    new ObservableCombiner([gameStateController, zoomController])
+    new ObservableCombiner([gameStateController, cameraController])
       .debounce(10)
       .subscribe(({ values: [gameState, zoom] }) => {
         this.drawingCallbackBuffer["constructibles"] = () =>

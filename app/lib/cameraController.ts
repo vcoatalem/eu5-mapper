@@ -1,19 +1,46 @@
 import { RefObject } from "react";
+import { Observable } from "./observable";
 import { gameStateController } from "./gameState.controller";
 import { DrawingHelper } from "./drawing/drawing.helper";
 import { ICoordinate, ILocationIdentifier } from "./types/general";
 import type { ILocationDataMap } from "./types/general";
-import { zoomController } from "@/app/lib/zoomController";
+
+export const zoomLevels = {
+  maxedOut: 0.1,
+  strongOut: 0.3,
+  lightOut: 0.7,
+  normal: 1,
+  lightIn: 1.5,
+  strongIn: 3,
+  maxedIn: 5,
+};
+
+const zoomSteps = Object.values(zoomLevels).sort((a, b) => a - b);
+
+export interface IZoomState {
+  oldZoomLevel: number;
+  zoomLevel: number;
+  zoomIndex: number;
+}
+
+export type ZoomListener = (zoom: IZoomState) => void;
 
 export type NeighborsPanelPlacement =
   | { x: number; y: number; side: "left" }
   | { x: number; y: number; side: "right" }
   | null;
 
-export class CameraService {
-  private container: RefObject<HTMLDivElement>;
-  private colorCanvas: RefObject<HTMLCanvasElement>;
-  private colorCanvasContext: CanvasRenderingContext2D | null;
+export class CameraController extends Observable<IZoomState> {
+  // Zoom state
+  private currentZoomIndex: number;
+  private isDraggingCheck: (() => boolean) | null = null;
+  private wheelHandler: ((e: WheelEvent) => void) | null = null;
+  private currentElement: HTMLElement | null = null;
+
+  // Camera state
+  private container: RefObject<HTMLDivElement> | null = null;
+  private colorCanvas: RefObject<HTMLCanvasElement> | null = null;
+  private colorCanvasContext: CanvasRenderingContext2D | null = null;
   private layers: Array<{ ref: RefObject<HTMLCanvasElement> }> = [];
 
   private panAnimationState: {
@@ -27,11 +54,24 @@ export class CameraService {
     rafId: number | null;
   } | null = null;
 
-  constructor(
+  constructor() {
+    super();
+    this.currentZoomIndex = zoomSteps.indexOf(1);
+    this.subject = {
+      oldZoomLevel: zoomSteps[this.currentZoomIndex],
+      zoomLevel: zoomSteps[this.currentZoomIndex],
+      zoomIndex: this.currentZoomIndex,
+    };
+  }
+
+  /**
+   * Initialize camera-related refs and contexts.
+   */
+  public initCamera(
     container: RefObject<HTMLDivElement | null>,
     colorCanvasRef: RefObject<HTMLCanvasElement | null>,
     layers: Array<{ ref: RefObject<HTMLCanvasElement | null> }>,
-  ) {
+  ): void {
     if (
       !container.current ||
       !colorCanvasRef.current ||
@@ -41,6 +81,7 @@ export class CameraService {
         "[CameraService]: Cannot initialize CameraService, missing some input refs",
       );
     }
+
     this.container = container as RefObject<HTMLDivElement>;
     this.colorCanvas = colorCanvasRef as RefObject<HTMLCanvasElement>;
     this.layers = layers as Array<{ ref: RefObject<HTMLCanvasElement> }>;
@@ -56,14 +97,113 @@ export class CameraService {
     }
   }
 
+  public setDraggingCheck(checkFn: () => boolean): void {
+    this.isDraggingCheck = checkFn;
+  }
+
+  /**
+   * Initialize zoom controller on the given element.
+   */
+  public init(element: HTMLElement): void {
+    // Clean up previous initialization if any
+    this.cleanup();
+
+    this.currentElement = element;
+    this.wheelHandler = (e: WheelEvent) => {
+      // Prevent zoom while dragging
+      if (this.isDraggingCheck && this.isDraggingCheck()) {
+        return;
+      }
+      if (e.deltaY < 0) {
+        this.zoomIn();
+      } else {
+        this.zoomOut();
+      }
+    };
+
+    element.addEventListener("wheel", this.wheelHandler, { passive: true });
+  }
+
+  public cleanup(): void {
+    if (this.currentElement && this.wheelHandler) {
+      this.currentElement.removeEventListener("wheel", this.wheelHandler);
+      this.currentElement = null;
+      this.wheelHandler = null;
+    }
+  }
+
+  private updateZoomState(oldZoomLevel: number): void {
+    this.subject = {
+      zoomIndex: this.currentZoomIndex,
+      oldZoomLevel: oldZoomLevel,
+      zoomLevel: zoomSteps[this.currentZoomIndex],
+    };
+    this.notifyListeners();
+  }
+
+  public zoomIn(): void {
+    // Prevent zoom while dragging
+    if (this.isDraggingCheck && this.isDraggingCheck()) {
+      return;
+    }
+    const currentZoomLevel = zoomSteps[this.currentZoomIndex];
+    if (this.currentZoomIndex < zoomSteps.length - 1) {
+      this.currentZoomIndex++;
+    }
+
+    this.updateZoomState(currentZoomLevel);
+  }
+
+  public zoomOut(): void {
+    // Prevent zoom while dragging
+    if (this.isDraggingCheck && this.isDraggingCheck()) {
+      return;
+    }
+    const currentZoomLevel = zoomSteps[this.currentZoomIndex];
+    if (this.currentZoomIndex > 0) {
+      this.currentZoomIndex--;
+    }
+
+    this.updateZoomState(currentZoomLevel);
+  }
+
+  public zoomTo(zoomLevel: number): void {
+    if (this.isDraggingCheck && this.isDraggingCheck()) {
+      return;
+    }
+    if (Object.values(zoomLevels).includes(zoomLevel)) {
+      const currentZoomLevel = zoomSteps[this.currentZoomIndex];
+      this.currentZoomIndex = zoomSteps.indexOf(zoomLevel);
+      this.updateZoomState(currentZoomLevel);
+    }
+  }
+
+  /**
+   * Synchronize internal zoom state without notifying listeners.
+   * Useful when the camera has already been animated to the target zoom
+   * and we only need zoom state to reflect the final value.
+   */
+  public syncZoomLevel(zoomLevel: number): void {
+    if (!Object.values(zoomLevels).includes(zoomLevel)) {
+      return;
+    }
+    this.currentZoomIndex = zoomSteps.indexOf(zoomLevel);
+    this.subject = {
+      zoomIndex: this.currentZoomIndex,
+      zoomLevel: zoomLevel,
+      oldZoomLevel: zoomLevel,
+    };
+  }
+
   public getLocationAtPointer(event: MouseEvent): ILocationIdentifier | null {
+    if (!this.colorCanvas) return null;
     const rect = this.colorCanvas.current?.getBoundingClientRect();
 
     const relX = event.clientX - (rect?.left ?? 0);
     const relY = event.clientY - (rect?.top ?? 0);
 
-    const imageX = relX / zoomController.getSnapshot().zoomLevel;
-    const imageY = relY / zoomController.getSnapshot().zoomLevel;
+    const imageX = relX / this.getSnapshot().zoomLevel;
+    const imageY = relY / this.getSnapshot().zoomLevel;
 
     const imageData = this.colorCanvasContext?.getImageData(
       imageX,
@@ -101,13 +241,14 @@ export class CameraService {
    * @param duration Animation duration in ms (default 600)
    */
   public panToCoordinate = (coordinate: ICoordinate, duration = 600) => {
+    if (!this.colorCanvas || !this.container) return;
     const colorCanvas = this.colorCanvas.current;
     const container = this.container.current;
     if (!colorCanvas || !container) return;
     const containerRect = container.getBoundingClientRect();
     const centerX = containerRect.width / 2;
     const centerY = containerRect.height / 2;
-    const zoom = zoomController.getSnapshot().zoomLevel;
+    const zoom = this.getSnapshot().zoomLevel;
     const targetLeft = centerX - coordinate.x * zoom;
     const targetTop = centerY - coordinate.y * zoom;
     // Use current left/top from style
@@ -157,10 +298,9 @@ export class CameraService {
   };
 
   public applyZoomLevel = (newZoom: number, oldZoom: number) => {
+    if (!this.colorCanvas || !this.container) return;
     const colorCanvas = this.colorCanvas.current;
     const container = this.container.current;
-
-    if (!colorCanvas || !container) return;
 
     const containerRect = container.getBoundingClientRect();
 
@@ -212,12 +352,13 @@ export class CameraService {
   ): NeighborsPanelPlacement {
     const coord = locationDataMap[locationName]?.centerCoordinates;
 
+    if (!this.colorCanvas || !this.container) return null;
     const colorCanvas = this.colorCanvas.current;
     const container = this.container.current;
     if (!colorCanvas || !container) return null;
 
     const containerRect = container.getBoundingClientRect();
-    const zoom = zoomController.getSnapshot().zoomLevel;
+    const zoom = this.getSnapshot().zoomLevel;
     const currentLeft = parseFloat(colorCanvas.style.left) || 0;
     const currentTop = parseFloat(colorCanvas.style.top) || 0;
 
@@ -227,11 +368,13 @@ export class CameraService {
     const viewportCenterX = containerRect.left + containerRect.width / 2;
     const side = baseX >= viewportCenterX ? "left" : "right";
 
-    // Apply configurable margins so the popover does not sit directly
-    // on top of the anchor point.
+    // Apply margins in screen pixels so distance from the anchor
+    // remains visually consistent regardless of zoom level.
     const x = side === "right" ? baseX + marginX : baseX - marginX;
     const y = baseY + marginY;
 
     return { x, y, side };
   }
 }
+
+export const cameraController = new CameraController();

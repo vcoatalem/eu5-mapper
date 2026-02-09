@@ -169,7 +169,18 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
 
   return (
     <div className="max-h-96 overflow-y-auto bg-black/70 backdrop-blur-sm border border-stone-700 rounded p-3">
-      <div className="font-semibold mb-2 text-stone-300">{locationName}</div>
+      <div className="w-full flex flex-row items-center">
+        <div className="font-semibold mb-2 text-stone-300">{locationName}</div>
+
+        {roadBuilderState.isBuildingModeEnabled && (
+          <button
+            className="bg-yellow-400 hover:bg-yellow-500 mx-6 rounded-lg ml-auto px-2 py-1 text-black"
+            onClick={() => roadBuilderController.toggleBuildingMode()}
+          >
+            Done
+          </button>
+        )}
+      </div>
       {neighborLocationResult?.status === "completed" && (
         <div className="flex flex-col gap-1 text-xs">
           <span>adjacent regions proximity</span>

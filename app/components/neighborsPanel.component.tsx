@@ -9,7 +9,6 @@ interface NeighborsPanelProps {
 }
 
 export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
-  /* console.log("Rendering NeighborsPanelComponent for", { locationName }); */
   const { computationResults } = useSyncExternalStore(
     neighborsProximityComputationController.subscribe.bind(
       neighborsProximityComputationController,
@@ -25,12 +24,6 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
       return gameStateController.getSnapshot();
     },
   );
-
-  useEffect(() => {
-    neighborsProximityComputationController.launchGetNeighborProximityTask(
-      locationName,
-    );
-  }, [locationName]);
 
   const neighborLocationResult = computationResults?.[locationName];
   if (!neighborLocationResult) {

@@ -22,6 +22,7 @@ import { ProximityComputationHelper } from "../lib/proximityComputation.helper";
 import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
 import { FoldableMenu } from "./foldableMenu.component";
 import { ExpandablePanel } from "./expandablePanel.component";
+import { roadBuilderController } from "../lib/roadBuilderController";
 
 const capitalPicker = (
   location: ILocationIdentifier,
@@ -343,6 +344,10 @@ export function ConstructibleMenusComponent() {
     ),
     () => proximityComputationController.getSnapshot(),
   );
+  const buildingRoadState = useSyncExternalStore(
+    roadBuilderController.subscribe.bind(roadBuilderController),
+    () => roadBuilderController.getSnapshot(),
+  );
   const { gameData } = useContext(AppContext);
 
   const [search, setSearch] = useState("");
@@ -466,9 +471,21 @@ export function ConstructibleMenusComponent() {
                   isExpanded={roadsExpanded}
                   onToggle={() => setRoadsExpanded(!roadsExpanded)}
                 >
-                  {isExpanded && (
-                    <div className="grid grid-cols-8 gap-4 w-[600px] items-center py-1 h-10">
-                      <span className="col-span-4" aria-hidden />
+                  <div className="grid grid-cols-8 gap-4 w-[600px]">
+                    <button
+                      className={
+                        " text-black rounded-lg px-3 py-2 " +
+                        (buildingRoadState.isBuildingModeEnabled
+                          ? " bg-yellow-600 hover:bg-yellow-500 "
+                          : " bg-blue-600 hover:bg-blue-500 ") +
+                        (isExpanded ? " col-span-4 " : " col-span-2 ")
+                      }
+                      onClick={() => roadBuilderController.toggleBuildingMode()}
+                    >
+                      Build new roads
+                    </button>
+
+                    {isExpanded && (
                       <div className="col-span-3 flex flex-row items-center gap-2">
                         {(
                           [
@@ -495,8 +512,15 @@ export function ConstructibleMenusComponent() {
                           />
                         ))}
                       </div>
+                    )}
+                  </div>
+
+                  {buildingRoadState.isBuildingModeEnabled && (
+                    <div className="text-sm text-yellow-400 italic mb-2 mr-3">
+                      Click on a location to start building a new road
                     </div>
                   )}
+
                   {filteredRoadsEntries &&
                     Object.entries(filteredRoadsEntries)
                       .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))

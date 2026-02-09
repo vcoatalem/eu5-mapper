@@ -25,6 +25,7 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
     },
   );
 
+  // TODO: allow to load panel with no results (road construction, among other things)
   const neighborLocationResult = computationResults?.[locationName];
   if (!neighborLocationResult) {
     return <></>;

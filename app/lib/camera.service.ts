@@ -204,7 +204,7 @@ export class CameraService {
    * Returns viewport (screen) coordinates and placement side for the neighbors panel
    * so it appears next to the given location (left or right of it depending on location position).
    */
-  public getNeighborsPanelScreenPosition(
+  public getPopoverPanelScreenPosition(
     locationName: ILocationIdentifier,
     locationDataMap: ILocationDataMap,
   ): NeighborsPanelPlacement {

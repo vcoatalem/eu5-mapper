@@ -32,6 +32,8 @@ import { locationSearchController } from "@/app/lib/locationSearchController";
 import { CameraService, NeighborsPanelPlacement } from "../lib/camera.service";
 import { actionEventDispatcher } from "../lib/actionEventDispatcher";
 import { IWorkerTaskInitWithImagePayload } from "@/workers/types/workerTypes";
+import { ObservableCombiner } from "../lib/observableCombiner";
+import { roadBuilderController } from "@/app/lib/roadBuilderController";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
@@ -417,11 +419,7 @@ export function WorldMapComponent() {
       colorCanvasRef!,
       layers,
     );
-
-    gameStateController.init(gameData);
-    proximityComputationController.init();
-    neighborsProximityComputationController.init();
-    locationSearchController.init(gameData);
+    roadBuilderController.init();
 
     const handleMouseDown = (e: MouseEvent) => {
       isDraggingRef.current = true;
@@ -493,9 +491,19 @@ export function WorldMapComponent() {
       "acquire",
     );
 
-    const prolongedHoverUnsubscribe =
-      actionEventDispatcher.prolongedHoverLocation.subscribe(
-        ({ locations }) => {
+    const prolongedHoverProximityCalculationObservable = new ObservableCombiner(
+      [actionEventDispatcher.prolongedHoverLocation, roadBuilderController],
+    );
+    subscriptionsRef.current.push(
+      prolongedHoverProximityCalculationObservable.dispose.bind(
+        prolongedHoverProximityCalculationObservable,
+      ),
+    );
+
+    const prolongedHoverOutsideBuildingMode =
+      prolongedHoverProximityCalculationObservable.subscribe(
+        ({ values: [{ locations }, roadBuilderState] }) => {
+          if (roadBuilderState.isBuildingModeEnabled) return;
           if (locations.length === 1) {
             // only show neighbors panel if there is exactly one location hovered
             const locationName = locations[0];
@@ -509,7 +517,7 @@ export function WorldMapComponent() {
             );
             setShowNeighborsPanel(locationName);
             const placement =
-              cameraServiceRef.current?.getNeighborsPanelScreenPosition(
+              cameraServiceRef.current?.getPopoverPanelScreenPosition(
                 locationName,
                 gameData.locationDataMap,
               ) ?? {
@@ -531,21 +539,57 @@ export function WorldMapComponent() {
           }
         },
       );
-    subscriptionsRef.current.push(prolongedHoverUnsubscribe);
+    subscriptionsRef.current.push(prolongedHoverOutsideBuildingMode);
 
-    const clickedLocationUnsubscribe =
-      actionEventDispatcher.clickedLocationSource.subscribe(
-        ({ location, type }) => {
-          if (location && type === "acquire") {
-            gameStateController.selectLocation(location);
-          }
-          if (location && type === "goto") {
+    const clickObserver = new ObservableCombiner([
+      actionEventDispatcher.clickedLocationSource,
+      roadBuilderController,
+    ]);
+    subscriptionsRef.current.push(clickObserver.dispose.bind(clickObserver));
+
+    const clickedLocationUnsubscribe = clickObserver.subscribe(
+      ({ values: [{ location, type }, roadBuilderState], changedIndex }) => {
+        if (changedIndex !== 0) {
+          // only react to changes in clicked location
+          return;
+        }
+        console.log({
+          clickObserverCombiner: { location, type, roadBuilderState },
+        });
+        switch (true) {
+          case location &&
+            type === "acquire" &&
+            !roadBuilderState.isBuildingModeEnabled:
+            return gameStateController.selectLocation(location);
+          case location && type === "goto":
             const coordinates =
               gameData.locationDataMap[location]?.centerCoordinates;
-            cameraServiceRef.current?.panToCoordinate(coordinates);
-          }
-        },
-      );
+            return cameraServiceRef.current?.panToCoordinate(coordinates);
+          case location &&
+            type === "acquire" &&
+            roadBuilderState.isBuildingModeEnabled:
+            cameraServiceRef.current?.panToCoordinate(
+              gameData.locationDataMap[location]?.centerCoordinates,
+            );
+            setShowNeighborsPanel(location);
+            const position =
+              cameraServiceRef.current?.getPopoverPanelScreenPosition(
+                location,
+                gameData.locationDataMap,
+              );
+            if (!position) {
+              console.error(
+                "[WorldMapComponent] could not get screen position for neighbors panel",
+              );
+              return;
+            }
+            setNeighborsPanelPosition(position);
+            return roadBuilderController.selectLocationForBuildingRoad(
+              location,
+            );
+        }
+      },
+    );
     subscriptionsRef.current.push(clickedLocationUnsubscribe);
 
     const prolongedHoverSearchUnsubscribe =
@@ -604,6 +648,13 @@ export function WorldMapComponent() {
       );
       subscriptionsRef.current.push(zoomUnsubscribe);
     }
+
+    // init all controllers (after subscriptions to trigger first subscriptions)
+    gameStateController.init(gameData);
+    proximityComputationController.init();
+    neighborsProximityComputationController.init();
+    locationSearchController.init(gameData);
+    roadBuilderController.init();
 
     // Mark as initialized only after waitForInitialization completes
     waitForInitialization(layers.length)

@@ -2,11 +2,7 @@
 
 import { GameDataLoaderHelper } from "@/app/lib/gameDataLoader.helper";
 import { useParams } from "next/navigation";
-import {
-  createContext,
-  useEffect,
-  useState,
-} from "react";
+import { createContext, useEffect, useState } from "react";
 import { IndexedDBWriter } from "./lib/indexeddb/indexeddb-writer";
 import {
   dbAdjacencyDataStoreName,
@@ -16,12 +12,8 @@ import {
   dbStoreNames,
   dbVersion,
 } from "./lib/indexeddb/indexeddb.const";
-import {
-  IGameData
-} from "./lib/types/general";
-import {
-  GameDataFileType
-} from "./lib/types/versionsManifest";
+import { IGameData } from "./lib/types/general";
+import { GameDataFileType } from "./lib/types/versionsManifest";
 import { VersionResolver } from "./lib/versionResolver";
 
 interface IImagePaths {
@@ -34,7 +26,7 @@ interface IAppContext {
   gameData: IGameData | null;
   imagePaths: IImagePaths | null;
   isLoading: boolean;
-  error: string | null
+  error: string | null;
 }
 
 const emptyContext = {} as IAppContext;
@@ -54,6 +46,7 @@ export const AppContextProvider = ({
   const [imagePaths, setImagePaths] = useState<IImagePaths | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isBuildingRoad, setIsBuildingRoad] = useState(false);
 
   useEffect(() => {
     const loadGameData = async () => {
@@ -70,19 +63,22 @@ export const AppContextProvider = ({
         // Resolve and preload map images with version resolution
         const resolveAndPreloadImages = async (): Promise<IImagePaths> => {
           const imageFileTypes: GameDataFileType[] = [
-            'locationsImage',
-            'borderLayer',
-            'terrainLayer',
+            "locationsImage",
+            "borderLayer",
+            "terrainLayer",
           ];
 
           const imagePathsEntries = await Promise.all(
             imageFileTypes.map(async (fileType) => {
               const resolvedVersion = await versionResolver.resolveFileVersion(
                 fileType,
-                version
+                version,
               );
-              const imagePath = versionResolver.getFilePath(fileType, resolvedVersion);
-              
+              const imagePath = versionResolver.getFilePath(
+                fileType,
+                resolvedVersion,
+              );
+
               // Preload the image
               await new Promise<void>((resolve, reject) => {
                 const img = new Image();
@@ -91,7 +87,9 @@ export const AppContextProvider = ({
                   resolve();
                 };
                 img.onerror = (e) => {
-                  const error = new Error(`Failed to preload image: ${imagePath}`);
+                  const error = new Error(
+                    `Failed to preload image: ${imagePath}`,
+                  );
                   console.error(`[AppContext] ${error.message}`, e);
                   reject(error);
                 };
@@ -99,28 +97,34 @@ export const AppContextProvider = ({
               });
 
               return [fileType, imagePath] as const;
-            })
+            }),
           );
 
           // Build IImagePaths object with proper typing
           const imagePaths: IImagePaths = {
-            locationsImage: '',
-            borderLayer: '',
-            terrainLayer: '',
+            locationsImage: "",
+            borderLayer: "",
+            terrainLayer: "",
           };
-          
+
           for (const [fileType, path] of imagePathsEntries) {
-            if (fileType === 'locationsImage' || fileType === 'borderLayer' || fileType === 'terrainLayer') {
+            if (
+              fileType === "locationsImage" ||
+              fileType === "borderLayer" ||
+              fileType === "terrainLayer"
+            ) {
               imagePaths[fileType] = path;
             }
           }
-          
+
           return imagePaths;
         };
 
-
         const [gameDataFiles, resolvedImagePaths] = await Promise.all([
-          GameDataLoaderHelper.loadGameDataFilesForVersion(version, versionResolver),
+          GameDataLoaderHelper.loadGameDataFilesForVersion(
+            version,
+            versionResolver,
+          ),
           resolveAndPreloadImages(),
         ]);
 
@@ -142,7 +146,7 @@ export const AppContextProvider = ({
           buildingsTemplateMap: {},
           proximityComputationRule,
           countriesDataMap: {},
-          roads
+          roads,
         };
         const indexedDBWriter = new IndexedDBWriter(
           dbName,

@@ -4,4 +4,14 @@
   .guiElement {
     @apply z-30 rounded-sm bg-black/60 border border-white text-white px-2 py-1;
   }
+
+  .roadBuildingStripes {
+    background-image: repeating-linear-gradient(
+      45deg,
+      #000000 0,
+      #000000 6px,
+      #facc15 6px,
+      #facc15 12px
+    );
+  }
 }

@@ -505,6 +505,14 @@ export function WorldMapComponent() {
           if (locations.length === 1) {
             // only show neighbors panel if there is exactly one location hovered
             const locationName = locations[0];
+            if (
+              !gameData.locationDataMap[locationName]?.ownable &&
+              !gameData.locationDataMap[locationName]?.isSea
+            ) {
+              // filter out unpassage terrain
+              return;
+            }
+
             neighborsProximityComputationController.launchGetNeighborProximityTask(
               locationName,
             );

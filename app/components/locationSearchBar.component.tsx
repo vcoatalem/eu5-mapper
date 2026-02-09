@@ -6,21 +6,18 @@ import React, {
   useSyncExternalStore,
 } from "react";
 import { AppContext } from "../appContextProvider";
-import { locationSearchController } from "@/app/lib/locationSearchController";
+import {
+  ILocationSearchResult,
+  locationSearchController,
+} from "@/app/lib/locationSearchController";
 import { GuiElement } from "./guiElement";
 import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
-import { ILocationIdentifier } from "../lib/types/general";
 import Image from "next/image";
 
 const LocationSearchResultItem = React.memo(function LocationSearchResultItem({
-  loc,
+  locationSearchResult,
 }: {
-  loc: {
-    name: ILocationIdentifier;
-    hierarchy: {
-      area: string;
-    };
-  };
+  locationSearchResult: ILocationSearchResult["locations"][0];
 }) {
   const divRef = useRef<HTMLDivElement>(null);
 
@@ -29,12 +26,12 @@ const LocationSearchResultItem = React.memo(function LocationSearchResultItem({
     if (el) {
       actionEventDispatcher.registerHoverActionSource(
         el,
-        () => loc.name,
+        () => locationSearchResult.locationsInHierarchy,
         "search",
       );
       actionEventDispatcher.registerClickActionSource(
         el,
-        () => loc.name,
+        () => locationSearchResult.name,
         "goto",
       );
     }
@@ -43,21 +40,24 @@ const LocationSearchResultItem = React.memo(function LocationSearchResultItem({
         actionEventDispatcher.clearEventListenersForElement(el);
       }
     };
-  }, [loc.name]);
+  }, [locationSearchResult]);
 
   return (
     <div
       ref={divRef}
-      id={loc.name}
+      id={locationSearchResult.name}
       className="hover:bg-stone-700 cursor-pointer px-1"
     >
-      <span>{loc.name}</span>
-      <span className="text-stone-500 italic"> ({loc.hierarchy.area})</span>
+      <span>{locationSearchResult.name}</span>
+      <span className="text-stone-500 italic">
+        {" "}
+        ({locationSearchResult.hierarchyType})
+      </span>
     </div>
   );
 });
 
-export function LocationSearchBar(props: { className?: string}) {
+export function LocationSearchBar(props: { className?: string }) {
   const { gameData } = useContext(AppContext);
   const locationSearchResult = useSyncExternalStore(
     locationSearchController.subscribe.bind(locationSearchController),
@@ -95,18 +95,29 @@ export function LocationSearchBar(props: { className?: string}) {
   };
 
   return (
-    <div 
-      className={props.className + " px-2 max-w-62 h-full flex items-center relative "} 
+    <div
+      className={
+        props.className + " px-2 max-w-62 h-full flex items-center relative "
+      }
       onMouseLeave={handleMouseLeave}
     >
-      <Image src={"/icons/magnifyingGlass.svg"} className="invert" alt="magnifying glass" width={24} height={24}></Image>
+      <Image
+        src={"/icons/magnifyingGlass.svg"}
+        className="invert"
+        alt="magnifying glass"
+        width={24}
+        height={24}
+      ></Image>
       <input
         ref={inputRef}
         type="text"
         placeholder="Search location..."
         className="w-full px-2 h-full"
         style={{ outline: "none" }}
-        onChange={(e) => {locationSearchController.search(e.target.value); setIsFocused(true)}}
+        onChange={(e) => {
+          locationSearchController.search(e.target.value);
+          setIsFocused(true);
+        }}
         onFocus={() => setIsFocused(true)}
         onBlur={handleBlur}
       />
@@ -118,13 +129,16 @@ export function LocationSearchBar(props: { className?: string}) {
             : "invisible")
         }
       >
-        <div 
-          ref={dropdownRef} 
+        <div
+          ref={dropdownRef}
           className="max-h-96 overflow-y-auto overflow-x-hidden w-full bg-black/90"
           onMouseDown={handleDropdownMouseDown}
         >
-          {locationSearchResult.locations.map((loc) => (
-            <LocationSearchResultItem key={loc.name} loc={loc} />
+          {locationSearchResult.locations.map((locationSearchResult) => (
+            <LocationSearchResultItem
+              key={locationSearchResult.name}
+              locationSearchResult={locationSearchResult}
+            />
           ))}
         </div>
       </GuiElement>

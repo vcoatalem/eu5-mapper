@@ -228,33 +228,37 @@ const ConstructibleLocationItem = React.memo(
             proximityComputation.result[location]?.cost,
           ) ?? 0}
         </span>
-        {
-          expanded && (
-            <div className="col-span-2 flex flex-row items-center space-x-2">
-              {capitalPicker(location, gameState.capitalLocation === location)}
-              {locationRankPicker(location, constructible)}
-            </div>
-          )
-        }
-        {
-          expanded && (
-            <div className="col-span-1">
-              {buildingList(
-                location,
-                gameData,
-                gameState.ownedLocations,
-                constructible,
-              )}
-            </div>
-          )
-        }
+        {expanded && (
+          <div className="col-span-2 flex flex-row items-center space-x-2">
+            {capitalPicker(location, gameState.capitalLocation === location)}
+            {locationRankPicker(location, constructible)}
+          </div>
+        )}
+        {expanded && (
+          <div className="col-span-1">
+            {buildingList(
+              location,
+              gameData,
+              gameState.ownedLocations,
+              constructible,
+            )}
+          </div>
+        )}
       </div>
     );
   },
 );
 
-const RoadItem = React.memo(function RoadItem({ roadKey, type, expanded }: { roadKey: `${string}-${string}`; type: RoadType; expanded: boolean }) {
-  const [from, to] = roadKey.split('-');
+const RoadItem = React.memo(function RoadItem({
+  roadKey,
+  type,
+  expanded,
+}: {
+  roadKey: `${string}-${string}`;
+  type: RoadType;
+  expanded: boolean;
+}) {
+  const [from, to] = roadKey.split("-");
   const roadKeyElementRef = React.useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -266,9 +270,7 @@ const RoadItem = React.memo(function RoadItem({ roadKey, type, expanded }: { roa
     }
     return () => {
       if (el) {
-        console.log(
-          "[RoadItem] unregistering action sources",
-        );
+        console.log("[RoadItem] unregistering action sources");
         actionEventDispatcher.clearEventListenersForElement(el);
       }
     };
@@ -280,37 +282,52 @@ const RoadItem = React.memo(function RoadItem({ roadKey, type, expanded }: { roa
     return <></>;
   }
   return (
-    <div key={roadKey} className="py-1 h-10 grid grid-cols-8 items-center whitespace-nowrap gap-4 w-[600px]">
-      <span ref={roadKeyElementRef} className={"  min-w-0 cursor-pointer truncate ... " + (expanded ? 'col-span-4' : 'col-span-2')}>
+    <div
+      key={roadKey}
+      className="py-1 h-10 grid grid-cols-8 items-center whitespace-nowrap gap-4 w-[600px]"
+    >
+      <span
+        ref={roadKeyElementRef}
+        className={
+          "  min-w-0 cursor-pointer truncate ... " +
+          (expanded ? "col-span-4" : "col-span-2")
+        }
+      >
         {from} - {to}
       </span>
 
-      {
-        !expanded && (
-          <span className="col-span-1">
-            <img src={getGuiImage(type)} alt={type} width={24} height={24} />
-          </span>
-        )
-      }
-      {
-        expanded && (
-          <div className="col-span-3 flex flex-row items-center gap-2">
-            {
-              (["gravel_road", "paved_road", "modern_road", "rail_road"] satisfies RoadType[]).map((possibleRoadType) => (
-                <button key={possibleRoadType}
-                  onClick={() => {
-                    gameStateController.changeRoadType(roadKey, possibleRoadType);
-                  }}
-                  className={`${type === possibleRoadType ? "bg-yellow-300" : "bg-black hover:bg-yellow-400"}`}
-                >
-                  <img src={getGuiImage(possibleRoadType)} alt={possibleRoadType} width={24} height={24} />
-                </button>
-              ))
-            }
-          </div>
-        )
-      }
-
+      {!expanded && (
+        <span className="col-span-1">
+          <img src={getGuiImage(type)} alt={type} width={24} height={24} />
+        </span>
+      )}
+      {expanded && (
+        <div className="col-span-3 flex flex-row items-center gap-2">
+          {(
+            [
+              "gravel_road",
+              "paved_road",
+              "modern_road",
+              "rail_road",
+            ] satisfies RoadType[]
+          ).map((possibleRoadType) => (
+            <button
+              key={possibleRoadType}
+              onClick={() => {
+                gameStateController.changeRoadType(roadKey, possibleRoadType);
+              }}
+              className={`${type === possibleRoadType ? "bg-yellow-300" : "bg-black hover:bg-yellow-400"}`}
+            >
+              <img
+                src={getGuiImage(possibleRoadType)}
+                alt={possibleRoadType}
+                width={24}
+                height={24}
+              />
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 });
@@ -329,34 +346,34 @@ export function ConstructibleMenusComponent() {
   const { gameData } = useContext(AppContext);
 
   const [search, setSearch] = useState("");
-  const [ownedLocationsExpanded, setOwnedLocationsExpanded] = useState<boolean>(false);
+  const [ownedLocationsExpanded, setOwnedLocationsExpanded] =
+    useState<boolean>(false);
   const [roadsExpanded, setRoadsExpanded] = useState<boolean>(false);
 
   const ownedLocationKeys = Object.keys(gameState?.ownedLocations ?? {});
-  const filteredLocationEntries = useMemo(
-    () => {
-      const entries = Object.entries(gameState?.ownedLocations ?? {});
-      if (!search) {
-        return entries;
-      }
-      const searchLower = search.toLowerCase();
-      return entries.filter(([locationName]) =>
-        locationName.toLowerCase().includes(searchLower)
-      );
-    },
-    [search, gameState.ownedLocations, ownedLocationKeys.length],
-  );
+  const filteredLocationEntries = useMemo(() => {
+    const entries = Object.entries(gameState?.ownedLocations ?? {});
+    if (!search) {
+      return entries;
+    }
+    const searchLower = search.toLowerCase();
+    return entries.filter(([locationName]) =>
+      locationName.toLowerCase().includes(searchLower),
+    );
+  }, [search, gameState.ownedLocations, ownedLocationKeys.length]);
 
   const filteredRoadsEntries = useMemo(() => {
-    const entries = ConstructibleHelper.getOwnedRoads(gameState?.ownedLocations ?? {}, gameState?.roads ?? {});
+    const entries = ConstructibleHelper.getOwnedRoads(
+      gameState?.ownedLocations ?? {},
+      gameState?.roads ?? {},
+    );
     if (!search) {
       return entries;
     }
     const searchLower = search.toLowerCase();
 
-
     for (const [key] of Object.entries(entries)) {
-      const [from, to] = key.split('-');
+      const [from, to] = key.split("-");
       const fromContains = from.toLowerCase().includes(searchLower);
       const toContains = to.toLowerCase().includes(searchLower);
       const fromScore = fromContains ? searchLower.length / from.length : 0;
@@ -373,7 +390,12 @@ export function ConstructibleMenusComponent() {
       }
     }
     return entries;
-  }, [search, gameState.ownedLocations, gameState.roads, ownedLocationKeys.length])
+  }, [
+    search,
+    gameState.ownedLocations,
+    gameState.roads,
+    ownedLocationKeys.length,
+  ]);
 
   // Auto-expand when search has results
   // This is a legitimate side effect: syncing UI state (expansion) with user input (search)
@@ -395,7 +417,13 @@ export function ConstructibleMenusComponent() {
     <ExpandablePanel>
       {(isExpanded) => (
         <>
-          {!(gameState?.ownedLocations) || Object.keys(gameState.ownedLocations).length === 0 ? <div className="text-stone-400 text-italic">No locations selected - either select a country above, or create your own country from scratch by selecting a location</div> : (
+          {!gameState?.ownedLocations ||
+          Object.keys(gameState.ownedLocations).length === 0 ? (
+            <div className="text-stone-400 text-italic">
+              No locations selected - either select a country above, or create
+              your own country from scratch by selecting a location
+            </div>
+          ) : (
             <>
               <div className="flex-shrink-0">
                 <input
@@ -407,11 +435,13 @@ export function ConstructibleMenusComponent() {
                 />
                 <hr className="w-full"></hr>
               </div>
-              <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable]">
+              <div className="flex-1 min-h-0 overflow-x-hidden [scrollbar-gutter:stable]">
                 <FoldableMenu
                   title={`Owned Locations (${Object.keys(gameState.ownedLocations).length})`}
                   isExpanded={ownedLocationsExpanded}
-                  onToggle={() => setOwnedLocationsExpanded(!ownedLocationsExpanded)}
+                  onToggle={() =>
+                    setOwnedLocationsExpanded(!ownedLocationsExpanded)
+                  }
                 >
                   {filteredLocationEntries
                     .sort(
@@ -437,11 +467,17 @@ export function ConstructibleMenusComponent() {
                   onToggle={() => setRoadsExpanded(!roadsExpanded)}
                 >
                   {isExpanded && (
-                  <div className="grid grid-cols-8 gap-4 w-[600px] items-center py-1 h-10">
-                    <span className="col-span-4" aria-hidden />
-                    <div className="col-span-3 flex flex-row items-center gap-2">
-                      {
-                        (["gravel_road", "paved_road", "modern_road", "rail_road"] satisfies RoadType[]).map((possibleRoadType) => (
+                    <div className="grid grid-cols-8 gap-4 w-[600px] items-center py-1 h-10">
+                      <span className="col-span-4" aria-hidden />
+                      <div className="col-span-3 flex flex-row items-center gap-2">
+                        {(
+                          [
+                            "gravel_road",
+                            "paved_road",
+                            "modern_road",
+                            "rail_road",
+                          ] satisfies RoadType[]
+                        ).map((possibleRoadType) => (
                           <input
                             key={possibleRoadType}
                             type="checkbox"
@@ -451,18 +487,27 @@ export function ConstructibleMenusComponent() {
                               gameState.roads,
                               possibleRoadType,
                             )}
-                            onChange={() => gameStateController.changeAllOwnedRoadsToType(possibleRoadType)}
+                            onChange={() =>
+                              gameStateController.changeAllOwnedRoadsToType(
+                                possibleRoadType,
+                              )
+                            }
                           />
-                        ))
-                      }
+                        ))}
+                      </div>
                     </div>
-                  </div>
                   )}
-                  {filteredRoadsEntries && Object.entries(filteredRoadsEntries)
-                    .sort(([keyA,], [keyB,]) => keyA.localeCompare(keyB))
-                    .map(([key, type]) => (
-                      <RoadItem key={key} roadKey={key as `${string}-${string}`} type={type} expanded={isExpanded} />
-                    ))}
+                  {filteredRoadsEntries &&
+                    Object.entries(filteredRoadsEntries)
+                      .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+                      .map(([key, type]) => (
+                        <RoadItem
+                          key={key}
+                          roadKey={key as `${string}-${string}`}
+                          type={type}
+                          expanded={isExpanded}
+                        />
+                      ))}
                 </FoldableMenu>
               </div>
             </>

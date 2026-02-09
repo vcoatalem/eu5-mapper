@@ -14,29 +14,20 @@ export function FoldableMenu({
   children,
 }: FoldableMenuProps) {
   return (
-    <>
-      <div
-        className={`flex-shrink-0 z-10 backdrop-blur-lg ${isExpanded ? "sticky top-0" : ""}`}
+    <div className="shrink-0 z-10 backdrop-blur-lg">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full text-left font-bold hover:bg-stone-600 rounded-md py-1 cursor-pointer flex items-center gap-2 truncate sticky top-0 z-10 bg-black/80"
       >
         <span
-          onClick={onToggle}
-          className="font-bold hover:bg-stone-600 rounded-md py-1 cursor-pointer flex items-center gap-2 truncate ... ellipsis block"
+          className={`inline-block transition-transform duration-300 ease-in-out ${isExpanded ? "rotate-180" : ""}`}
         >
-          <span
-            className={`inline-block transition-transform duration-300 ease-in-out ${isExpanded ? "rotate-180" : ""}`}
-          >
-            ▼
-          </span>
-          {title}
+          ▼
         </span>
-      </div>
-      <div
-        className={`grow-0 min-h-0 transition-all duration-300 overflow-y-hidden ease-in-out ${
-          isExpanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
-        }`}
-      >
-        {children}
-      </div>
-    </>
+        {title}
+      </button>
+      {isExpanded && <div className="mt-1">{children}</div>}
+    </div>
   );
 }

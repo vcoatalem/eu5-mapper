@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Custom scrollbar styles - white bar on black background */
+/* Default scrollbar styles - white bar on black background */
 /* Firefox */
 * {
   scrollbar-width: thin;

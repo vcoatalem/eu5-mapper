@@ -46,7 +46,7 @@ export function ExpandablePanel({
   return (
     <div
       ref={containerRef}
-      className={`max-h-96 ${isExpanded ? expandedWidth : collapsedWidth} overflow-x-hidden max-h-[50vh] transition-[width] duration-300 ease-in-out flex flex-col`}
+      className={`max-h-96 ${isExpanded ? expandedWidth : collapsedWidth} overflow-y-auto overflow-x-hidden max-h-[50vh] transition-[width] duration-300 ease-in-out flex flex-col`}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >

@@ -29,11 +29,9 @@ import { NeighborsPanelComponent } from "./neighborsPanel.component";
 import { HeaderComponent } from "./header.component";
 import { CountryOverview } from "./countryOverview.component";
 import { locationSearchController } from "@/app/lib/locationSearchController";
-import { DrawingHelper } from "../lib/drawing/drawing.helper";
 import { CameraService, NeighborsPanelPlacement } from "../lib/camera.service";
 import { actionEventDispatcher } from "../lib/actionEventDispatcher";
 import { IWorkerTaskInitWithImagePayload } from "@/workers/types/workerTypes";
-import { ObservableCombiner } from "@/app/lib/observableCombiner";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
@@ -504,6 +502,11 @@ export function WorldMapComponent() {
             neighborsProximityComputationController.launchGetNeighborProximityTask(
               locationName,
             );
+            console.log(
+              "[WorldMapComponent] prolonged hover on location:",
+              locationName,
+              " will open up neighbors panel and trigger proximity computation",
+            );
             setShowNeighborsPanel(locationName);
             const placement =
               cameraServiceRef.current?.getNeighborsPanelScreenPosition(
@@ -520,6 +523,9 @@ export function WorldMapComponent() {
             );
             setNeighborsPanelPosition(placement);
           } else {
+            console.log(
+              "[WorldMapComponent] prolonged hover emitted either null or multiple locations, hiding neighbors panel",
+            );
             setShowNeighborsPanel(null);
             setNeighborsPanelPosition(null);
           }

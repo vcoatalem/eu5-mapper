@@ -31,10 +31,8 @@ export function FoldableMenu({
         </span>
       </div>
       <div
-        className={`grow-0 min-h-0 transition-all duration-300 ease-in-out ${
-          isExpanded
-            ? "max-h-[1000px] opacity-100"
-            : "max-h-0 opacity-0 overflow-hidden"
+        className={`grow-0 min-h-0 transition-all duration-300 overflow-y-hidden ease-in-out ${
+          isExpanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
         }`}
       >
         {children}

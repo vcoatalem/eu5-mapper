@@ -568,25 +568,29 @@ export function WorldMapComponent() {
           case location &&
             type === "acquire" &&
             roadBuilderState.isBuildingModeEnabled:
+            setShowNeighborsPanel(null);
+            roadBuilderController.selectLocationForBuildingRoad(location);
             cameraServiceRef.current?.panToCoordinate(
               gameData.locationDataMap[location]?.centerCoordinates,
             );
-            setShowNeighborsPanel(location);
-            const position =
-              cameraServiceRef.current?.getPopoverPanelScreenPosition(
-                location,
-                gameData.locationDataMap,
-              );
-            if (!position) {
-              console.error(
-                "[WorldMapComponent] could not get screen position for neighbors panel",
-              );
-              return;
-            }
-            setNeighborsPanelPosition(position);
-            return roadBuilderController.selectLocationForBuildingRoad(
+            neighborsProximityComputationController.launchGetNeighborProximityTask(
               location,
             );
+            setTimeout(() => {
+              const position =
+                cameraServiceRef.current?.getPopoverPanelScreenPosition(
+                  location,
+                  gameData.locationDataMap,
+                );
+              if (!position) {
+                console.error(
+                  "[WorldMapComponent] could not get screen position for neighbors panel",
+                );
+                return;
+              }
+              setShowNeighborsPanel(location);
+              setNeighborsPanelPosition(position);
+            }, 500); // allow time for panning to be done (todo: handle screen panning as a proper observable)
         }
       },
     );

@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import { ILocationIdentifier } from "../lib/types/general";
 import { neighborsProximityComputationController } from "../lib/neighborsProximityComputation.controller";
 import { gameStateController } from "../lib/gameState.controller";
@@ -27,19 +27,15 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
 
   // TODO: allow to load panel with no results (road construction, among other things)
   const neighborLocationResult = computationResults?.[locationName];
-  if (!neighborLocationResult) {
-    return <></>;
-  }
 
   // TODO: this might actually be the place to add road building.
 
   return (
     <div className="max-h-96 overflow-y-auto bg-black/90 backdrop-blur-sm border border-stone-700 rounded p-3">
-      <div className="font-semibold mb-2 text-stone-300">
-        Proximity costs for {locationName}
-      </div>
+      <div className="font-semibold mb-2 text-stone-300">{locationName}</div>
       {neighborLocationResult?.status === "completed" && (
         <div className="flex flex-col gap-1 text-xs">
+          <span>adjacent regions proximity</span>
           {Object.entries(neighborLocationResult.neighbors)
             .filter(([neighborName]) => neighborName !== locationName)
             .map(([neighborName, { cost, through }]) => (

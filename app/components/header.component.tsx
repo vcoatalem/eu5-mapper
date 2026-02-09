@@ -1,4 +1,4 @@
-import { useContext, useSyncExternalStore } from "react";
+import React, { useContext, useEffect, useSyncExternalStore } from "react";
 import { AppContext } from "../appContextProvider";
 import { WorkerStatusComponent } from "./workerStatus.component";
 import { LocationSearchBar } from "./locationSearchBar.component";
@@ -31,7 +31,7 @@ export function HeaderComponent() {
             road
           </div>
           <button
-            className="text-black bg-yellow-500 hover:bg-yellow-600 rounded-xl px-4 my-1"
+            className="text-black bg-yellow-500 hover:bg-yellow-600 rounded-lg px-4 my-1"
             onClick={() => roadBuilderController.toggleBuildingMode()}
           >
             Done

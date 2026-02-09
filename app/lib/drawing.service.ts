@@ -28,7 +28,8 @@ import {
   defaultAreaColor,
 } from "./drawing/color.helper";
 import { Subject } from "./subject";
-import { actionEventDispatcher } from "./actionEventDispatcher";
+import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
+import { roadBuilderController } from "@/app/lib/roadBuilderController";
 
 export class DrawingService {
   private areaDrawingCanvas: HTMLCanvasElement;
@@ -202,15 +203,23 @@ export class DrawingService {
     new ObservableCombiner([
       actionEventDispatcher.prolongedHoverLocation,
       actionEventDispatcher.hoveredLocation,
-    ]).subscribe(({ values: [prolongedHoverLocation, hoveredLocation] }) => {
-      const toHighlight = [
-        ...(hoveredLocation?.locations ?? []),
-        ...(prolongedHoverLocation?.locations ?? []),
-      ].filter((loc) => !!loc);
-      this.drawingCallbackBuffer["indicators"] = () =>
-        this.drawHighlighted(toHighlight);
-      this.reDraw.emit(new Date());
-    });
+      roadBuilderController,
+    ]).subscribe(
+      ({
+        values: [prolongedHoverLocation, hoveredLocation, roadBuilderState],
+      }) => {
+        const toHighlight = [
+          ...(hoveredLocation?.locations ?? []),
+          ...(prolongedHoverLocation?.locations ?? []),
+          ...(roadBuilderState?.isBuildingAtLocation
+            ? [roadBuilderState.isBuildingAtLocation]
+            : []),
+        ].filter((loc) => !!loc);
+        this.drawingCallbackBuffer["indicators"] = () =>
+          this.drawHighlighted(toHighlight);
+        this.reDraw.emit(new Date());
+      },
+    );
 
     this.reDraw.debounce(5).subscribe(() => {
       // TODO: type drawingCallbackBuffer better to avoid all the casts

@@ -18,7 +18,7 @@ export class RoadBuilderController extends Observable<IRoadBuilderState> {
 
   public toggleBuildingMode(): void {
     this.subject = {
-      ...this.subject,
+      isBuildingAtLocation: null,
       isBuildingModeEnabled: !this.subject.isBuildingModeEnabled,
     };
     this.notifyListeners();

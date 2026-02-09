@@ -166,12 +166,17 @@ export class ConstructibleHelper {
   public static getOwnedRoads(
     ownedLocations: IGameState["ownedLocations"],
     roads: RoadRecord,
-  ): Record<string, RoadType> { // key is `${ILocationIdentifierFrom}-${ILocationIdentifierTo}`
+  ): Record<string, RoadType> {
+    // key is `${ILocationIdentifierFrom}-${ILocationIdentifierTo}`
     const ownedRoads: Record<ILocationIdentifier, RoadType> = {};
-    for (const [fromLocation,] of Object.entries(ownedLocations)) {
-      if (!(fromLocation in roads)) continue;
-      for (const {to: toLocation, type} of roads[fromLocation]) {
-        const key = fromLocation < toLocation ? `${fromLocation}-${toLocation}` : `${toLocation}-${fromLocation}`;
+    for (const [fromLocation] of Object.entries(ownedLocations)) {
+      const fromRoads = roads[fromLocation];
+      if (!fromRoads || fromRoads.length === 0) continue;
+      for (const { to: toLocation, type } of fromRoads) {
+        const key =
+          fromLocation < toLocation
+            ? `${fromLocation}-${toLocation}`
+            : `${toLocation}-${fromLocation}`;
         ownedRoads[key] = type;
       }
     }
@@ -192,19 +197,41 @@ export class ConstructibleHelper {
   public static applyRoadTypeChange(
     roads: RoadRecord,
     key: string,
-    type: RoadType,
+    type: RoadType | null,
   ): void {
-    const [locationA, locationB] = key.split('-');
+    const [locationA, locationB] = key.split("-");
     if (!locationA || !locationB) {
       throw new Error(`Invalid road key: ${key}`);
     }
-    roads[locationA] = [
-      ...(roads[locationA] ?? []).filter((road) => road.to !== locationB),
-      { to: locationB, type, createdByUser: true },
-    ];
-    roads[locationB] = [
-      ...(roads[locationB] ?? []).filter((road) => road.to !== locationA),
-      { to: locationA, type, createdByUser: true },
-    ];
+    if (!type) {
+      const filteredA = (roads[locationA] ?? []).filter(
+        (road) => road.to !== locationB,
+      );
+      const filteredB = (roads[locationB] ?? []).filter(
+        (road) => road.to !== locationA,
+      );
+
+      if (filteredA.length > 0) {
+        roads[locationA] = filteredA;
+      } else {
+        delete roads[locationA];
+      }
+
+      if (filteredB.length > 0) {
+        roads[locationB] = filteredB;
+      } else {
+        delete roads[locationB];
+      }
+      return;
+    } else {
+      roads[locationA] = [
+        ...(roads[locationA] ?? []).filter((road) => road.to !== locationB),
+        { to: locationB, type, createdByUser: true },
+      ];
+      roads[locationB] = [
+        ...(roads[locationB] ?? []).filter((road) => road.to !== locationA),
+        { to: locationA, type, createdByUser: true },
+      ];
+    }
   }
 }

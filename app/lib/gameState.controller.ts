@@ -295,7 +295,7 @@ export class GameStateController extends Observable<IGameState> {
     this.notifyListeners();
   }
 
-  public changeRoadType(key: string, type: RoadType): void {
+  public changeRoadType(key: string, type: RoadType | null): void {
     const roadsCopy: IGameState["roads"] = {};
     for (const loc of Object.keys(this.subject.roads)) {
       roadsCopy[loc] = [...this.subject.roads[loc]];
@@ -306,7 +306,7 @@ export class GameStateController extends Observable<IGameState> {
   }
 
   public changeRoadTypeBulk(
-    changes: Array<{ key: string; type: RoadType }>,
+    changes: Array<{ key: string; type: RoadType | null }>,
   ): void {
     const roads: IGameState["roads"] = {};
     for (const loc of Object.keys(this.subject.roads)) {

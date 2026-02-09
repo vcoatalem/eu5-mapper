@@ -520,6 +520,8 @@ export function WorldMapComponent() {
               cameraServiceRef.current?.getPopoverPanelScreenPosition(
                 locationName,
                 gameData.locationDataMap,
+                12,
+                12,
               ) ?? {
                 x: 500,
                 y: 500,
@@ -562,6 +564,13 @@ export function WorldMapComponent() {
             !roadBuilderState.isBuildingModeEnabled:
             return gameStateController.selectLocation(location);
           case location && type === "goto":
+            if (roadBuilderState.isBuildingModeEnabled) {
+              roadBuilderController.selectLocationForBuildingRoad(location);
+              setShowNeighborsPanel(location);
+              neighborsProximityComputationController.launchGetNeighborProximityTask(
+                location,
+              );
+            }
             const coordinates =
               gameData.locationDataMap[location]?.centerCoordinates;
             return cameraServiceRef.current?.panToCoordinate(coordinates);
@@ -581,6 +590,8 @@ export function WorldMapComponent() {
                 cameraServiceRef.current?.getPopoverPanelScreenPosition(
                   location,
                   gameData.locationDataMap,
+                  36,
+                  36,
                 );
               if (!position) {
                 console.error(
@@ -822,12 +833,12 @@ export function WorldMapComponent() {
               neighborsPanelPosition
                 ? neighborsPanelPosition.side === "right"
                   ? {
-                      left: neighborsPanelPosition.x + 12,
+                      left: neighborsPanelPosition.x,
                       top: neighborsPanelPosition.y,
                       transform: "translate(0, 0)",
                     }
                   : {
-                      left: neighborsPanelPosition.x - 12,
+                      left: neighborsPanelPosition.x,
                       top: neighborsPanelPosition.y,
                       transform: "translate(-100%, 0)",
                     }

@@ -207,6 +207,8 @@ export class CameraService {
   public getPopoverPanelScreenPosition(
     locationName: ILocationIdentifier,
     locationDataMap: ILocationDataMap,
+    marginX: number = 0,
+    marginY: number = 0,
   ): NeighborsPanelPlacement {
     const coord = locationDataMap[locationName]?.centerCoordinates;
 
@@ -219,12 +221,17 @@ export class CameraService {
     const currentLeft = parseFloat(colorCanvas.style.left) || 0;
     const currentTop = parseFloat(colorCanvas.style.top) || 0;
 
-    const screenX = containerRect.left + currentLeft + coord.x * zoom;
-    const screenY = containerRect.top + currentTop + coord.y * zoom;
+    const baseX = containerRect.left + currentLeft + coord.x * zoom;
+    const baseY = containerRect.top + currentTop + coord.y * zoom;
 
     const viewportCenterX = containerRect.left + containerRect.width / 2;
-    const side = screenX >= viewportCenterX ? "left" : "right";
+    const side = baseX >= viewportCenterX ? "left" : "right";
 
-    return { x: screenX, y: screenY, side };
+    // Apply configurable margins so the popover does not sit directly
+    // on top of the anchor point.
+    const x = side === "right" ? baseX + marginX : baseX - marginX;
+    const y = baseY + marginY;
+
+    return { x, y, side };
   }
 }

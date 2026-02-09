@@ -85,7 +85,7 @@ export function WorldMapComponent() {
   const imageLoadHandlersRef = useRef<
     Array<{ img: HTMLImageElement; layer: string }>
   >([]);
-  const zoomUnsubscribeRef = useRef<(() => void) | null>(null);
+  const subscriptionsRef = useRef<Array<() => void>>([]);
 
   const waitForInitialization = React.useCallback(
     async (expectedLayerCount: number) => {
@@ -225,6 +225,9 @@ export function WorldMapComponent() {
   // initialization effect
   useEffect(() => {
     console.log("enter useEffect for setup worldmap component");
+
+    // Reset subscription collection for this initialization run
+    subscriptionsRef.current = [];
 
     if (!gameData) {
       console.log("game data not yet loaded");
@@ -492,58 +495,65 @@ export function WorldMapComponent() {
       "acquire",
     );
 
-    new ObservableCombiner([actionEventDispatcher.prolongedHoverLocation]);
-    actionEventDispatcher.prolongedHoverLocation.subscribe(({ locations }) => {
-      if (locations.length === 1) {
-        // only show neighbors panel if there is exactly one location hovered
-        const locationName = locations[0];
-        neighborsProximityComputationController.launchGetNeighborProximityTask(
-          locationName,
-        );
-        setShowNeighborsPanel(locationName);
-        const placement =
-          cameraServiceRef.current?.getNeighborsPanelScreenPosition(
-            locationName,
-            gameData.locationDataMap,
-          ) ?? {
-            x: 500,
-            y: 500,
-            side: "right",
-          };
-        console.log(
-          "[WorldMapComponent] setting neighbors panel position:",
-          placement,
-        );
-        setNeighborsPanelPosition(placement);
-      } else {
-        setShowNeighborsPanel(null);
-        setNeighborsPanelPosition(null);
-      }
-    });
+    const prolongedHoverUnsubscribe =
+      actionEventDispatcher.prolongedHoverLocation.subscribe(
+        ({ locations }) => {
+          if (locations.length === 1) {
+            // only show neighbors panel if there is exactly one location hovered
+            const locationName = locations[0];
+            neighborsProximityComputationController.launchGetNeighborProximityTask(
+              locationName,
+            );
+            setShowNeighborsPanel(locationName);
+            const placement =
+              cameraServiceRef.current?.getNeighborsPanelScreenPosition(
+                locationName,
+                gameData.locationDataMap,
+              ) ?? {
+                x: 500,
+                y: 500,
+                side: "right",
+              };
+            console.log(
+              "[WorldMapComponent] setting neighbors panel position:",
+              placement,
+            );
+            setNeighborsPanelPosition(placement);
+          } else {
+            setShowNeighborsPanel(null);
+            setNeighborsPanelPosition(null);
+          }
+        },
+      );
+    subscriptionsRef.current.push(prolongedHoverUnsubscribe);
 
-    actionEventDispatcher.clickedLocationSource.subscribe(
-      ({ location, type }) => {
-        if (location && type === "acquire") {
-          gameStateController.selectLocation(location);
-        }
-        if (location && type === "goto") {
-          const coordinates =
-            gameData.locationDataMap[location]?.centerCoordinates;
-          cameraServiceRef.current?.panToCoordinate(coordinates);
-        }
-      },
-    );
+    const clickedLocationUnsubscribe =
+      actionEventDispatcher.clickedLocationSource.subscribe(
+        ({ location, type }) => {
+          if (location && type === "acquire") {
+            gameStateController.selectLocation(location);
+          }
+          if (location && type === "goto") {
+            const coordinates =
+              gameData.locationDataMap[location]?.centerCoordinates;
+            cameraServiceRef.current?.panToCoordinate(coordinates);
+          }
+        },
+      );
+    subscriptionsRef.current.push(clickedLocationUnsubscribe);
 
-    actionEventDispatcher.prolongedHoverLocation.subscribe(
-      ({ locations, type }) => {
-        if (locations.length > 0 && type === "search") {
-          const location = locations[0];
-          const coordinates =
-            gameData.locationDataMap[location]?.centerCoordinates;
-          cameraServiceRef.current?.panToCoordinate(coordinates);
-        }
-      },
-    );
+    const prolongedHoverSearchUnsubscribe =
+      actionEventDispatcher.prolongedHoverLocation.subscribe(
+        ({ locations, type }) => {
+          if (locations.length > 0 && type === "search") {
+            const location = locations[0];
+            const coordinates =
+              gameData.locationDataMap[location]?.centerCoordinates;
+            cameraServiceRef.current?.panToCoordinate(coordinates);
+          }
+        },
+      );
+    subscriptionsRef.current.push(prolongedHoverSearchUnsubscribe);
 
     if (topLayerRef.current) {
       // TODO: fix weird dragging behavior with right click + left click, drag + zoom, etc.
@@ -553,16 +563,11 @@ export function WorldMapComponent() {
       topLayerRef.current.addEventListener("mouseup", handleMouseUp);
       topLayerRef.current.addEventListener("mouseleave", handleMouseLeave);
 
-      if (zoomUnsubscribeRef.current) {
-        zoomUnsubscribeRef.current();
-        zoomUnsubscribeRef.current = null;
-      }
-
       zoomController.setDraggingCheck(() => isDraggingRef.current);
       zoomController.init(topLayerRef.current);
 
       // Subscribe to zoom changes
-      zoomUnsubscribeRef.current = zoomController.subscribe(
+      const zoomUnsubscribe = zoomController.subscribe(
         ({ zoomLevel, oldZoomLevel }) => {
           if (!borderCanvasRef.current) {
             console.error(
@@ -591,6 +596,7 @@ export function WorldMapComponent() {
           }
         },
       );
+      subscriptionsRef.current.push(zoomUnsubscribe);
     }
 
     // Mark as initialized only after waitForInitialization completes
@@ -615,6 +621,19 @@ export function WorldMapComponent() {
         "enter cleanup for worldmap component -- async processed must be terminated, event listeners must be removed, and all subscriptions must be closed",
       );
 
+      // Unsubscribe from all collected subscriptions
+      subscriptionsRef.current.forEach((unsubscribe) => {
+        try {
+          unsubscribe();
+        } catch (error) {
+          console.error(
+            "[WorldMapComponent] Error during subscription cleanup:",
+            error,
+          );
+        }
+      });
+      subscriptionsRef.current = [];
+
       // Cancel any pending image loads
       imageLoadHandlersRef.current.forEach(({ img }) => {
         img.onload = null;
@@ -628,10 +647,6 @@ export function WorldMapComponent() {
       setInitializationError(null);
 
       // Clean up zoom controller
-      if (zoomUnsubscribeRef.current) {
-        zoomUnsubscribeRef.current();
-        zoomUnsubscribeRef.current = null;
-      }
       zoomController.cleanup();
 
       if (topLayerRef.current) {

@@ -296,7 +296,12 @@ export class GameStateController extends Observable<IGameState> {
   }
 
   public changeRoadType(key: string, type: RoadType): void {
-    ConstructibleHelper.applyRoadTypeChange(this.subject.roads, key, type);
+    const roadsCopy: IGameState["roads"] = {};
+    for (const loc of Object.keys(this.subject.roads)) {
+      roadsCopy[loc] = [...this.subject.roads[loc]];
+    }
+    ConstructibleHelper.applyRoadTypeChange(roadsCopy, key, type);
+    this.subject.roads = roadsCopy;
     this.notifyListeners();
   }
 
@@ -315,8 +320,13 @@ export class GameStateController extends Observable<IGameState> {
   }
 
   public changeAllOwnedRoadsToType(type: RoadType): void {
-    const roads = ConstructibleHelper.getOwnedRoads(this.subject.ownedLocations, this.subject.roads);
-    this.changeRoadTypeBulk(Object.entries(roads).map(([key,]) => ({ key, type })));
+    const roads = ConstructibleHelper.getOwnedRoads(
+      this.subject.ownedLocations,
+      this.subject.roads,
+    );
+    this.changeRoadTypeBulk(
+      Object.entries(roads).map(([key]) => ({ key, type })),
+    );
   }
 }
 export const gameStateController = new GameStateController();

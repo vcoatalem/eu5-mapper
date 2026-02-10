@@ -108,8 +108,8 @@ let canvasHeight: number;
 
 self.onmessage = function (e: MessageEvent<IWorkerTask>) {
   sendMessage(self, {
-    data: null,
-    message: `Received task: ${JSON.stringify(e.data).substring(0, 100)}...`,
+    data: e.data.payload,
+    message: `Received task of type ${e.data.type}: ${e.data.id}`,
     level: "log",
     task: e.data,
   });

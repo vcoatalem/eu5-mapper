@@ -31,7 +31,7 @@ const LocationSearchResultItem = React.memo(function LocationSearchResultItem({
       );
       actionEventDispatcher.registerClickActionSource(
         el,
-        () => locationSearchResult.name,
+        () => locationSearchResult.locationsInHierarchy[0],
         "goto",
       );
     }
@@ -136,7 +136,7 @@ export function LocationSearchBar(props: { className?: string }) {
         >
           {locationSearchResult.locations.map((locationSearchResult) => (
             <LocationSearchResultItem
-              key={locationSearchResult.name}
+              key={`${locationSearchResult.name}-${locationSearchResult.hierarchyType}`}
               locationSearchResult={locationSearchResult}
             />
           ))}

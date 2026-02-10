@@ -6,18 +6,25 @@ import React, {
   useSyncExternalStore,
 } from "react";
 import { ILocationIdentifier, RoadType } from "../lib/types/general";
-import { neighborsProximityComputationController } from "@/app/lib/neighborsProximityComputation.controller";
+import {
+  debouncedNeighborsProximityComputationController,
+  neighborsProximityComputationController,
+} from "@/app/lib/neighborsProximityComputation.controller";
 import { gameStateController } from "@/app/lib/gameState.controller";
 import { ColorHelper } from "../lib/drawing/color.helper";
 import { roadBuilderController } from "@/app/lib/roadBuilderController";
 import { actionEventDispatcher } from "../lib/actionEventDispatcher";
 import { EdgeType } from "../lib/types/pathfinding";
 import { getGuiImage } from "../lib/drawing/namedGuiImagesMap.const";
+import { Loader } from "./loader.component";
+import { debouncedProximityComputationController } from "../lib/proximityComputation.controller";
+import { ProximityComputationHelper } from "../lib/proximityComputation.helper";
 
 const NeighborPanelListItem = memo(function NeighborPanelListItem({
   baseLocation,
   neighborLocation,
   cost,
+  computationStatus,
   through,
   road,
   owned,
@@ -26,28 +33,44 @@ const NeighborPanelListItem = memo(function NeighborPanelListItem({
   baseLocation: ILocationIdentifier;
   neighborLocation: ILocationIdentifier;
   cost: number;
+  computationStatus: "pending" | "completed" | "error" | "needs_update";
   through: EdgeType;
   road: RoadType | null;
   owned: boolean;
   isRoadBuildingMode: boolean;
 }) {
   const divRef = useRef<HTMLDivElement>(null);
+  const locationNameRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const el = divRef.current;
-    if (el) {
+    console.log(
+      "[NeighborPanelListItem] registering hover and click action sources for",
+      neighborLocation,
+    );
+    const mainDiv = divRef.current;
+    if (mainDiv) {
       actionEventDispatcher.registerHoverActionSource(
-        el,
+        mainDiv,
         () => neighborLocation,
       );
+    }
+    const locationNameDiv = locationNameRef.current;
+    if (locationNameDiv) {
       actionEventDispatcher.registerClickActionSource(
-        el,
+        locationNameDiv,
         () => neighborLocation,
         "goto",
       );
     }
     return () => {
-      if (el) {
-        actionEventDispatcher.clearEventListenersForElement(el);
+      console.log(
+        "[NeighborPanelListItem] unregistering hover and click action sources for",
+        neighborLocation,
+      );
+      if (mainDiv) {
+        actionEventDispatcher.clearEventListenersForElement(mainDiv);
+      }
+      if (locationNameDiv) {
+        actionEventDispatcher.clearEventListenersForElement(locationNameDiv);
       }
     };
   }, [neighborLocation]);
@@ -64,7 +87,7 @@ const NeighborPanelListItem = memo(function NeighborPanelListItem({
         "gravel_road",
       );
     }
-    neighborsProximityComputationController.launchGetNeighborProximityTask(
+    neighborsProximityComputationController.launchGetNeighborsProximity(
       baseLocation,
     );
   }, [road, baseLocation, neighborLocation]);
@@ -73,16 +96,16 @@ const NeighborPanelListItem = memo(function NeighborPanelListItem({
     <div
       key={neighborLocation}
       className={
-        " grid grid-cols-6 items-center justify-between py-1 px-2 hover:bg-stone-800/50 rounded " +
-        (isRoadBuildingMode ? " w-[400px] " : " w-[280px] ")
+        " grid grid-cols-6 items-center justify-between py-1 px-2 hover:bg-stone-800/50 rounded "
       }
+      ref={divRef}
     >
       <span
+        ref={locationNameRef}
         className={
           " truncate col-span-3 cursor-pointer " +
           (!owned ? "text-stone-500 italic" : "")
         }
-        ref={divRef}
       >
         {neighborLocation}
         {!owned && <span> (unowned)</span>}
@@ -96,7 +119,9 @@ const NeighborPanelListItem = memo(function NeighborPanelListItem({
           height={32}
           className={
             " col-span-1 p-1 " +
-            (road ? " bg-yellow-400 " : "bg-black hover:bg-yellow-400")
+            (road
+              ? " bg-yellow-400 hover:bg-red-500 "
+              : "bg-black hover:bg-stone-400")
           }
           onClick={() => handleRoadChange()}
         />
@@ -108,7 +133,10 @@ const NeighborPanelListItem = memo(function NeighborPanelListItem({
           color: ColorHelper.rgbToHex(...ColorHelper.getEvaluationColor(cost)),
         }}
       >
-        {cost.toFixed(2)}
+        {computationStatus === "pending" && <Loader></Loader>}
+        {computationStatus === "error" && "error"}
+        {computationStatus === "needs_update" && "needs update"}
+        {computationStatus === "completed" && <>{cost.toFixed(2)}</>}
       </span>
       <span className="col-span-1"> ({through})</span>
     </div>
@@ -121,12 +149,10 @@ interface NeighborsPanelProps {
 
 export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
   const { computationResults } = useSyncExternalStore(
-    neighborsProximityComputationController.subscribe.bind(
-      neighborsProximityComputationController,
+    debouncedNeighborsProximityComputationController.subscribe.bind(
+      debouncedNeighborsProximityComputationController,
     ),
-    () => {
-      return neighborsProximityComputationController.getSnapshot();
-    },
+    () => debouncedNeighborsProximityComputationController.getSnapshot(),
   );
 
   const gameState = useSyncExternalStore(
@@ -143,8 +169,15 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
     },
   );
 
-  // TODO: allow to load panel with no results (road construction, among other things)
+  const globalProximityResult = useSyncExternalStore(
+    debouncedProximityComputationController.subscribe.bind(
+      debouncedProximityComputationController,
+    ),
+    () => debouncedProximityComputationController.getSnapshot(),
+  );
+
   const neighborLocationResult = computationResults?.[locationName];
+  const computationStatus = computationResults?.[locationName]?.status;
 
   const adjacentLocations = Object.entries(
     neighborLocationResult?.neighbors ?? {},
@@ -168,37 +201,62 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
     }));
 
   return (
-    <div className="max-h-96 overflow-y-auto bg-black/70 backdrop-blur-sm border border-stone-700 rounded p-3">
-      <div className="w-full flex flex-row items-center">
-        <div className="font-semibold mb-2 text-stone-300">{locationName}</div>
+    <div
+      className={
+        "max-h-96 overflow-y-auto bg-black/70 backdrop-blur-sm border border-stone-700 rounded p-3" +
+        (roadBuilderState.isBuildingModeEnabled ? " w-[400px] " : " w-[280px] ")
+      }
+    >
+      <div className="w-full flex flex-row items-center mb-2">
+        <div className="font-semibold text-stone-300">{locationName}</div>
+        <span
+          style={{
+            color: ColorHelper.rgbToHex(
+              ...ColorHelper.getEvaluationColor(
+                globalProximityResult.result[locationName]?.cost ?? 0,
+              ),
+            ),
+          }}
+          className="ml-4"
+        >
+          {(globalProximityResult.status === "pending" ||
+            globalProximityResult.status === "updating") && <Loader></Loader>}
+          {globalProximityResult.status === "completed" &&
+            ProximityComputationHelper.evaluationToProximity(
+              globalProximityResult.result[locationName]?.cost,
+            )}
+        </span>
 
         {roadBuilderState.isBuildingModeEnabled && (
           <button
-            className="bg-yellow-400 hover:bg-yellow-500 mx-6 rounded-lg ml-auto px-2 py-1 text-black"
+            className="bg-yellow-400 hover:bg-yellow-500 rounded-lg ml-auto px-2 py-1 text-black"
             onClick={() => roadBuilderController.toggleBuildingMode()}
           >
             Done
           </button>
         )}
       </div>
-      {neighborLocationResult?.status === "completed" && (
-        <div className="flex flex-col gap-1 text-xs">
-          <span>adjacent regions proximity</span>
-
-          {adjacentLocations.map(({ location, cost, through, road, owned }) => (
-            <NeighborPanelListItem
-              key={location}
-              baseLocation={locationName}
-              neighborLocation={location}
-              cost={cost}
-              through={through}
-              road={road}
-              owned={owned}
-              isRoadBuildingMode={roadBuilderState.isBuildingModeEnabled}
-            ></NeighborPanelListItem>
-          ))}
-        </div>
-      )}
+      <div className="flex flex-col gap-1 text-xs">
+        <span>adjacent regions proximity</span>
+        {adjacentLocations.length === 0 && computationStatus === "pending" && (
+          <div className="w-full h-10">
+            <Loader></Loader>
+          </div>
+        )}
+        {adjacentLocations.map(({ location, cost, through, road, owned }) => (
+          <NeighborPanelListItem
+            key={location}
+            baseLocation={locationName}
+            neighborLocation={location}
+            cost={cost}
+            computationStatus={computationStatus}
+            through={through}
+            road={road}
+            owned={owned}
+            isRoadBuildingMode={roadBuilderState.isBuildingModeEnabled}
+          ></NeighborPanelListItem>
+        ))}
+      </div>
     </div>
   );
 }

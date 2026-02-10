@@ -513,13 +513,8 @@ export function WorldMapComponent() {
               return;
             }
 
-            neighborsProximityComputationController.launchGetNeighborProximityTask(
+            neighborsProximityComputationController.launchGetNeighborsProximity(
               locationName,
-            );
-            console.log(
-              "[WorldMapComponent] prolonged hover on location:",
-              locationName,
-              " will open up neighbors panel and trigger proximity computation",
             );
             setShowNeighborsPanel(locationName);
             const placement = cameraController.getPopoverPanelScreenPosition(
@@ -532,15 +527,8 @@ export function WorldMapComponent() {
               y: 500,
               side: "right",
             };
-            console.log(
-              "[WorldMapComponent] setting neighbors panel position:",
-              placement,
-            );
             setNeighborsPanelPosition(placement);
           } else {
-            console.log(
-              "[WorldMapComponent] prolonged hover emitted either null or multiple locations, hiding neighbors panel",
-            );
             setShowNeighborsPanel(null);
             setNeighborsPanelPosition(null);
           }
@@ -574,7 +562,7 @@ export function WorldMapComponent() {
             cameraController.panToCoordinate(
               gameData.locationDataMap[location]?.centerCoordinates,
             );
-            neighborsProximityComputationController.launchGetNeighborProximityTask(
+            neighborsProximityComputationController.launchGetNeighborsProximity(
               location,
             );
             return setTimeout(() => {

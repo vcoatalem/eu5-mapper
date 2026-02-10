@@ -37,4 +37,5 @@ export interface IProximityComputationRule {
   };
   rulerAdministrativeAbilityImpact: number;
   roadProximityCostReduction: Record<RoadType, number>;
+  throughSeaEdgeCountedAsLandProximity: boolean;
 }

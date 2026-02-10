@@ -1,12 +1,12 @@
 import { gameStateController } from "@/app/lib/gameState.controller";
 import { IWorkerTaskComputeProximityResult } from "@/workers/types/workerTypes";
 import { Observable } from "./observable";
-import { ILocationIdentifier } from "./types/general";
 import { GraphStats, PathfindingResult } from "./types/pathfinding";
 import { workerManager } from "./workerManager";
 
 export interface IProximityComputationResults {
   result: PathfindingResult;
+  status: "pending" | "completed" | "error" | "updating";
 }
 
 export class ProximityComputationController extends Observable<IProximityComputationResults> {
@@ -18,6 +18,7 @@ export class ProximityComputationController extends Observable<IProximityComputa
     console.log("[proximityComputationController] init");
     this.subject = {
       result: {},
+      status: "pending",
     };
     this.notifyListeners();
     workerManager.subscribe((workerManagerStatus) => {
@@ -48,6 +49,7 @@ export class ProximityComputationController extends Observable<IProximityComputa
         const data = workerManagerStatus.lastCompletedTask
           .data as IWorkerTaskComputeProximityResult;
         this.subject.result = data.result;
+        this.subject.status = "completed";
         console.log(
           "[ProximityComputationController] Proximity computation completed",
           { newState: this.subject },
@@ -56,6 +58,8 @@ export class ProximityComputationController extends Observable<IProximityComputa
       }
     });
     gameStateController.debounce(10).subscribe((gameState) => {
+      this.subject.status = "updating";
+      this.notifyListeners();
       workerManager.queueTask({
         id: `computeProximity-${Date.now()}`,
         type: "computeProximity",
@@ -69,3 +73,6 @@ export class ProximityComputationController extends Observable<IProximityComputa
 
 export const proximityComputationController =
   new ProximityComputationController();
+
+export const debouncedProximityComputationController =
+  proximityComputationController.debounce(100);

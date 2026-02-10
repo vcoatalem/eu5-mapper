@@ -1,5 +1,6 @@
 "use client";
 
+import { cameraController } from "./cameraController";
 import { ConstructibleHelper } from "./constructible.helper";
 import { Observable } from "./observable";
 import {
@@ -260,9 +261,14 @@ export class GameStateController extends Observable<IGameState> {
           rulerAdministrativeAbility: 50,
         };
       }
+
+      const capitalCoordinates =
+        this.gameData?.locationDataMap[country.capital].centerCoordinates;
+      if (capitalCoordinates) {
+        cameraController.panToCoordinate(capitalCoordinates, 0); // TODO: do this in a subscription to gameState instead
+      }
     }
 
-    /* console.log("[GameStateController] Reseted game state to:", this.subject); */
     this.notifyListeners();
   }
 

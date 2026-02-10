@@ -37,13 +37,39 @@ class NeighborProximityComputationController extends Observable<NeighborsProximi
 
       this.notifyListeners();
     });
+
+    gameStateController.subscribe(() => {
+      // invalidate all results
+      this.subject = {
+        computationResults: Object.entries(
+          this.subject.computationResults,
+        ).reduce(
+          (acc, [locationName, result]) => {
+            acc[locationName] = {
+              neighbors: result.neighbors,
+              status: "needs_update",
+            };
+            return acc;
+          },
+          {} as Record<
+            ILocationIdentifier,
+            { neighbors: PathfindingResult; status: "needs_update" }
+          >,
+        ),
+      };
+      this.notifyListeners();
+    });
   }
 
-  public launchGetNeighborProximityTask(
-    locationName: ILocationIdentifier,
-  ): void {
+  public launchGetNeighborsProximity(locationName: ILocationIdentifier): void {
+    if (this.subject.computationResults[locationName]?.status === "completed") {
+      this.subject = { ...this.subject };
+      this.notifyListeners();
+      return;
+    }
+
     this.subject.computationResults[locationName] = {
-      neighbors: {},
+      neighbors: this.subject.computationResults[locationName]?.neighbors ?? {},
       status: "pending",
     };
     this.notifyListeners();
@@ -52,7 +78,7 @@ class NeighborProximityComputationController extends Observable<NeighborsProximi
       type: "computeNeighbors",
       payload: {
         locationName,
-        gameState: gameStateController.getSnapshot(), //TODO:find better than this
+        gameState: gameStateController.getSnapshot(), //TODO: find better than this
       },
     });
   }
@@ -60,3 +86,6 @@ class NeighborProximityComputationController extends Observable<NeighborsProximi
 
 export const neighborsProximityComputationController =
   new NeighborProximityComputationController();
+
+export const debouncedNeighborsProximityComputationController =
+  neighborsProximityComputationController.debounce(100);

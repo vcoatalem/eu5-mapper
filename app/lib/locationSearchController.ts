@@ -69,7 +69,7 @@ export class LocationSearchController extends Observable<ILocationSearchResult> 
       for (const hierarchyType of Object.keys(hierarchy) as Array<
         keyof ILocationGameData["hierarchy"]
       >) {
-        const value = hierarchy[hierarchyType];
+        const value = this.formatName(hierarchy[hierarchyType]);
         if (!value) continue;
 
         let typeMap = groups[hierarchyType];
@@ -86,7 +86,7 @@ export class LocationSearchController extends Observable<ILocationSearchResult> 
           };
           typeMap.set(value, entry);
         }
-        entry.locations.push(locationName as ILocationIdentifier);
+        entry.locations.push(this.formatName(locationName) as ILocationIdentifier);
       }
     }
 
@@ -117,7 +117,7 @@ export class LocationSearchController extends Observable<ILocationSearchResult> 
         nonProvinceHierarchyMatches.push({
           locations: [
             {
-              name: this.formatName(value),
+              name: value,
               hierarchyType,
               hierarchy,
               locationsInHierarchy: locations,
@@ -154,18 +154,14 @@ export class LocationSearchController extends Observable<ILocationSearchResult> 
     const locations: ILocationSearchResult["locations"] = Object.entries(
       this.gameData.locationDataMap,
     )
-      .filter(([name, data]) => {
-        return (
-          name.toLowerCase().includes(query.toLowerCase()) && !!data.ownable
-        );
-      })
-      .slice(0, this.maxResults)
       .map(([name, data]) => ({
         name: this.formatName(name),
-        hierarchyType: "location",
+        hierarchyType: "location" as const,
         hierarchy: data.hierarchy,
         locationsInHierarchy: [name],
-      }));
+      }))
+      .filter(({ name }) => name.toLowerCase().includes(query.toLowerCase()))
+      .slice(0, this.maxResults)
 
     if (locations.length < 3) {
       // add other hierarchy matches

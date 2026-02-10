@@ -10,7 +10,7 @@ import {
 export interface ILocationSearchResult {
   locations: Array<{
     name: string;
-    hierarchyType: keyof ILocationGameData["hierarchy"];
+    hierarchyType: keyof ILocationGameData["hierarchy"] | "location";
     hierarchy: ILocationGameData["hierarchy"];
     locationsInHierarchy: ILocationIdentifier[];
   }>;
@@ -18,6 +18,7 @@ export interface ILocationSearchResult {
 
 export class LocationSearchController extends Observable<ILocationSearchResult> {
   private gameData: IGameData | null = null;
+  private maxResults: number = 10;
 
   constructor() {
     super();
@@ -116,7 +117,7 @@ export class LocationSearchController extends Observable<ILocationSearchResult> 
         nonProvinceHierarchyMatches.push({
           locations: [
             {
-              name: value,
+              name: this.formatName(value),
               hierarchyType,
               hierarchy,
               locationsInHierarchy: locations,
@@ -131,6 +132,14 @@ export class LocationSearchController extends Observable<ILocationSearchResult> 
     }
 
     return nonProvinceHierarchyMatches;
+  }
+
+  private formatName(name: string): string {
+    return name
+      .replaceAll("_province", "")
+      .replaceAll("_area", "")
+      .replaceAll("_region", "")
+      .replaceAll("_", " ")
   }
 
   public search(query: string): void {
@@ -150,10 +159,10 @@ export class LocationSearchController extends Observable<ILocationSearchResult> 
           name.toLowerCase().includes(query.toLowerCase()) && !!data.ownable
         );
       })
-      .slice(0, 25)
+      .slice(0, this.maxResults)
       .map(([name, data]) => ({
-        name,
-        hierarchyType: "province",
+        name: this.formatName(name),
+        hierarchyType: "location",
         hierarchy: data.hierarchy,
         locationsInHierarchy: [name],
       }));

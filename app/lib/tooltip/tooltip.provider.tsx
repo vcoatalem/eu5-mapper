@@ -7,7 +7,6 @@ export interface ITooltipConfig {
   preferredVertical: "top" | "bottom";
   openDelay: number;
   closeDelay: number;
-  interactive: boolean;
 }
 
 const defaultTooltipConfig: ITooltipConfig = {
@@ -16,7 +15,6 @@ const defaultTooltipConfig: ITooltipConfig = {
   preferredVertical: "top",
   openDelay: 500,
   closeDelay: 300,
-  interactive: false,
 };
 
 interface ITooltipProviderContext {

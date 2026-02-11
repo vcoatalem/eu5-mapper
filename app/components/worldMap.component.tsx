@@ -780,10 +780,7 @@ export function WorldMapComponent() {
         <GuiElement className="fixed left-5 right-5 bottom-1">
           <InfoBoxComponent />
         </GuiElement>
-        <Tooltip
-          forceOpen={!!showNeighborsPanel}
-          config={{ interactive: !!roadBuilderState.isBuildingModeEnabled }}
-        >
+        <Tooltip forceOpen={!!showNeighborsPanel}>
           <TooltipContent
             anchor={{
               type: "coordinate",

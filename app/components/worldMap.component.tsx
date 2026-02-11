@@ -35,6 +35,7 @@ import { ObservableCombiner } from "../lib/observableCombiner";
 import { roadBuilderController } from "@/app/lib/roadBuilderController";
 import { Tooltip } from "../lib/tooltip/tooltip.component";
 import { TooltipContent } from "../lib/tooltip/tooltipContent.component";
+import { shortestPathController } from "../lib/shortestPath.controller";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
@@ -410,7 +411,7 @@ export function WorldMapComponent() {
       gameData,
     );
     cameraController.initCamera(containerRef, colorCanvasRef, layers);
-    roadBuilderController.init();
+    /* roadBuilderController.init(); */
 
     const handleMouseDown = (e: MouseEvent) => {
       isDraggingRef.current = true;
@@ -627,6 +628,7 @@ export function WorldMapComponent() {
     neighborsProximityComputationController.init();
     locationSearchController.init(gameData);
     roadBuilderController.init();
+    shortestPathController.init();
 
     // Mark as initialized only after waitForInitialization completes
     waitForInitialization(layers.length)
@@ -786,6 +788,7 @@ export function WorldMapComponent() {
         <Tooltip
           forceOpen={!!selectedLocation}
           mouseCoordinates={lastKnownMouseCoordinate || undefined}
+          config={{ offset: { x: 50, y: 50 } }}
         >
           <TooltipContent
             anchor={{

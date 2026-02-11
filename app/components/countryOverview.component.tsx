@@ -15,6 +15,7 @@ import { NumbersHelper } from "../lib/utils/numbers.helper";
 import { ExpandablePanel } from "@/app/components/expandablePanel.component";
 import { CountrySelector } from "@/app/components/countrySelector.component";
 import { FoldableMenu } from "@/app/components/foldableMenu.component";
+import { FormatedProximity } from "./formatedProximity.component";
 
 const updateValue = (numericValue: number, key: keyof ICountryValues) => {
   gameStateController.changeCountryValues({
@@ -47,7 +48,7 @@ const getCountryStats = (
   const meanProximity = Math.max(
     0,
     Object.values(proximityByLocations).reduce((a, b) => a + b, 0) /
-    Object.values(proximityByLocations).length,
+      Object.values(proximityByLocations).length,
   );
   const totalPopulation = Object.values(populationByLocation).reduce(
     (a, b) => a + b,
@@ -66,16 +67,10 @@ const getCountryStats = (
   return (
     <div className="grid grid-cols-4 gap-x-3">
       <div className="col-span-2 text-right">Mean Proximity:</div>
-      <span
+      <FormatedProximity
         className="col-span-1"
-        style={{
-          color: ColorHelper.rgbToHex(
-            ...ColorHelper.getProximityColor(meanProximity),
-          ),
-        }}
-      >
-        {meanProximity.toFixed(2)}
-      </span>
+        proximity={meanProximity}
+      ></FormatedProximity>
       <div className="col-span-2 text-right">Total Population:</div>
       <span className="col-span-1">
         {NumbersHelper.addDecimalThousandSeparators(totalPopulation)}
@@ -92,7 +87,23 @@ const getCountryStats = (
   );
 };
 
-function CountryValueSlider({ expanded, value, rangeMin, rangeMax, minValueLabel, maxValueLabel, onChange }: { expanded: boolean, value: number, rangeMin: number, rangeMax: number, minValueLabel: string, maxValueLabel: string, onChange: (value: number) => void }) {
+function CountryValueSlider({
+  expanded,
+  value,
+  rangeMin,
+  rangeMax,
+  minValueLabel,
+  maxValueLabel,
+  onChange,
+}: {
+  expanded: boolean;
+  value: number;
+  rangeMin: number;
+  rangeMax: number;
+  minValueLabel: string;
+  maxValueLabel: string;
+  onChange: (value: number) => void;
+}) {
   const collapsedLabel = value > 0 ? maxValueLabel : minValueLabel;
   return expanded ? (
     <div className="grid grid-cols-3 gap-2">
@@ -107,8 +118,10 @@ function CountryValueSlider({ expanded, value, rangeMin, rangeMax, minValueLabel
       <span className="text-left">{maxValueLabel}</span>
     </div>
   ) : (
-    <p><span className="text-sm font-bold">{collapsedLabel}</span>: {value}</p>
-  )
+    <p>
+      <span className="text-sm font-bold">{collapsedLabel}</span>: {value}
+    </p>
+  );
 }
 
 export function CountryOverview() {
@@ -138,64 +151,73 @@ export function CountryOverview() {
   return (
     <ExpandablePanel>
       {(isExpanded) => (
-          <>
-            <CountrySelector ></CountrySelector>
-            <hr></hr>
-            <FoldableMenu title="Country Values" isExpanded={countryMenuExpanded} onToggle={() => setCountryMenuExpanded(!countryMenuExpanded)}>
-              <div className="flex flex-col gap-1">
-                <CountryValueSlider
-                  expanded={isExpanded}
-                  value={gameState.country.landVsNaval}
-                  rangeMin={-100}
-                  rangeMax={100}
-                  minValueLabel="Land"
-                  maxValueLabel="Naval"
-                  onChange={(value) => updateValue(value, "landVsNaval")}
-                ></CountryValueSlider>
+        <>
+          <CountrySelector></CountrySelector>
+          <hr></hr>
+          <FoldableMenu
+            title="Country Values"
+            isExpanded={countryMenuExpanded}
+            onToggle={() => setCountryMenuExpanded(!countryMenuExpanded)}
+          >
+            <div className="flex flex-col gap-1">
+              <CountryValueSlider
+                expanded={isExpanded}
+                value={gameState.country.landVsNaval}
+                rangeMin={-100}
+                rangeMax={100}
+                minValueLabel="Land"
+                maxValueLabel="Naval"
+                onChange={(value) => updateValue(value, "landVsNaval")}
+              ></CountryValueSlider>
 
-                <CountryValueSlider
-                  expanded={isExpanded}
-                  value={gameState.country.centralizationVsDecentralization}
-                  rangeMin={-100}
-                  rangeMax={100}
-                  minValueLabel="Centralization"
-                  maxValueLabel="Decentralization"
-                  onChange={(value) => updateValue(value, "centralizationVsDecentralization")}
-                ></CountryValueSlider>
+              <CountryValueSlider
+                expanded={isExpanded}
+                value={gameState.country.centralizationVsDecentralization}
+                rangeMin={-100}
+                rangeMax={100}
+                minValueLabel="Centralization"
+                maxValueLabel="Decentralization"
+                onChange={(value) =>
+                  updateValue(value, "centralizationVsDecentralization")
+                }
+              ></CountryValueSlider>
 
-                <CountryValueSlider
-                  expanded={isExpanded}
-                  value={gameState.country.rulerAdministrativeAbility}
-                  rangeMin={0}
-                  rangeMax={100}
-                  minValueLabel="Administrative Ability"
-                  maxValueLabel="Administrative Ability"
-                  onChange={(value) => updateValue(value, "rulerAdministrativeAbility")}
-                ></CountryValueSlider>
+              <CountryValueSlider
+                expanded={isExpanded}
+                value={gameState.country.rulerAdministrativeAbility}
+                rangeMin={0}
+                rangeMax={100}
+                minValueLabel="Administrative Ability"
+                maxValueLabel="Administrative Ability"
+                onChange={(value) =>
+                  updateValue(value, "rulerAdministrativeAbility")
+                }
+              ></CountryValueSlider>
+            </div>
+          </FoldableMenu>
+
+          <FoldableMenu
+            title="Country Statistics"
+            isExpanded={countryStatsExpanded}
+            onToggle={() => setCountryStatsExpanded(!countryStatsExpanded)}
+          >
+            {(Object.keys(gameState?.ownedLocations ?? []).length > 0 && (
+              <>
+                {getCountryStats(
+                  gameState.ownedLocations,
+                  gameData.locationDataMap,
+                  proximityComputation.result,
+                )}
+              </>
+            )) || (
+              <div className="text-stone-400 text-italic">
+                No owned locations - either select a country above, or create
+                your own country from scratch by selecting a location
               </div>
-
-
-            </FoldableMenu>
-
-
-            <FoldableMenu
-              title="Country Statistics"
-              isExpanded={countryStatsExpanded}
-              onToggle={() => setCountryStatsExpanded(!countryStatsExpanded)}
-            >
-              {Object.keys(gameState?.ownedLocations ?? []).length > 0 && (
-                <>
-                  {getCountryStats(
-                    gameState.ownedLocations,
-                    gameData.locationDataMap,
-                    proximityComputation.result,
-                  )}
-                </>
-              ) || <div className="text-stone-400 text-italic">No owned locations - either select a country above, or create your own country from scratch by selecting a location</div>}
-            </FoldableMenu>
-
-          </>
-        )}
+            )}
+          </FoldableMenu>
+        </>
+      )}
     </ExpandablePanel>
   );
 }

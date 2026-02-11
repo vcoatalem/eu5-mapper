@@ -18,6 +18,8 @@ import { getGuiImage } from "../lib/drawing/namedGuiImagesMap.const";
 import { Loader } from "./loader.component";
 import { debouncedProximityComputationController } from "../lib/proximityComputation.controller";
 import { ProximityComputationHelper } from "../lib/proximityComputation.helper";
+import { FormatedProximityCost } from "./formatedProximityCost.component";
+import { FormatedProximity } from "./formatedProximity.component";
 
 const NeighborPanelListItem = memo(function NeighborPanelListItem({
   baseLocation,
@@ -94,18 +96,13 @@ const NeighborPanelListItem = memo(function NeighborPanelListItem({
           />
         )}
 
-        <span
-          className="ml-2 col-span-1"
-          style={{
-            color: ColorHelper.rgbToHex(
-              ...ColorHelper.getEvaluationColor(cost),
-            ),
-          }}
-        >
+        <span className="ml-2 col-span-1">
           {computationStatus === "pending" && <Loader></Loader>}
           {computationStatus === "error" && "error"}
           {computationStatus === "needs_update" && "needs update"}
-          {computationStatus === "completed" && <>{cost.toFixed(2)}</>}
+          {computationStatus === "completed" && (
+            <FormatedProximityCost proximityCost={cost}></FormatedProximityCost>
+          )}
         </span>
         <span className="col-span-1"> ({through})</span>
       </div>
@@ -192,22 +189,16 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
         <div className="font-semibold text-stone-300">{locationName}</div>
 
         {locationName in globalProximityResult.result && (
-          <span
-            style={{
-              color: ColorHelper.rgbToHex(
-                ...ColorHelper.getEvaluationColor(
-                  globalProximityResult.result[locationName]?.cost ?? 0,
-                ),
-              ),
-            }}
-            className="ml-4"
-          >
+          <span className="ml-4">
             {globalProximityResult.status === "pending" && <></>}
             {globalProximityResult.status === "updating" && <Loader></Loader>}
-            {globalProximityResult.status === "completed" &&
-              ProximityComputationHelper.evaluationToProximity(
-                globalProximityResult.result[locationName]?.cost,
-              )}
+            {globalProximityResult.status === "completed" && (
+              <FormatedProximity
+                proximity={ProximityComputationHelper.evaluationToProximity(
+                  globalProximityResult.result[locationName]?.cost ?? 100,
+                )}
+              ></FormatedProximity>
+            )}
           </span>
         )}
 

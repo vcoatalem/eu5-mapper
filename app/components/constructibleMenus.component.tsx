@@ -2,6 +2,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -17,12 +18,16 @@ import { ConstructibleHelper } from "../lib/constructible.helper";
 import { AppContext } from "../appContextProvider";
 import { getGuiImage } from "../lib/drawing/namedGuiImagesMap.const";
 import { proximityComputationController } from "../lib/proximityComputation.controller";
-import { ColorHelper } from "../lib/drawing/color.helper";
 import { ProximityComputationHelper } from "../lib/proximityComputation.helper";
 import { ActionSource } from "@/app/lib/actionSource.component";
 import { FoldableMenu } from "./foldableMenu.component";
 import { ExpandablePanel } from "./expandablePanel.component";
 import { roadBuilderController } from "../lib/roadBuilderController";
+import { Tooltip } from "../lib/tooltip/tooltip.component";
+import { TooltipTrigger } from "../lib/tooltip/tooltipTrigger.component";
+import { TooltipContent } from "../lib/tooltip/tooltipContent.component";
+import { ShortestPathComponent } from "./shortestPath.component";
+import { FormatedProximity } from "./formatedProximity.component";
 
 const capitalPicker = (
   location: ILocationIdentifier,
@@ -179,6 +184,7 @@ const ConstructibleLocationItem = React.memo(
     >;
     expanded: boolean;
   }) {
+    const proximitySpanRef = useRef<HTMLDivElement>(null);
     return (
       <div
         key={location}
@@ -193,20 +199,30 @@ const ConstructibleLocationItem = React.memo(
             <span className="text-lg ">{location}</span>
           </div>
         </ActionSource>
-        <span
-          className="col-span-1"
-          style={{
-            color: ColorHelper.rgbToHex(
-              ...ColorHelper.getEvaluationColor(
-                proximityComputation.result[location]?.cost ?? 100,
-              ),
-            ),
-          }}
-        >
-          {ProximityComputationHelper.evaluationToProximity(
-            proximityComputation.result[location]?.cost,
-          ) ?? 0}
-        </span>
+        <div ref={proximitySpanRef} className="col-span-1">
+          <Tooltip>
+            <TooltipTrigger>
+              <FormatedProximity
+                proximity={ProximityComputationHelper.evaluationToProximity(
+                  proximityComputation.result[location]?.cost ?? 100,
+                )}
+                className="cursor-pointer"
+              ></FormatedProximity>
+            </TooltipTrigger>
+            <TooltipContent
+              anchor={{
+                type: "dom",
+                ref: proximitySpanRef as React.RefObject<HTMLElement>,
+              }}
+            >
+              <ShortestPathComponent
+                location={location}
+                className="bg-black"
+              ></ShortestPathComponent>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+
         {expanded && (
           <div className="col-span-2 flex flex-row items-center space-x-2">
             {capitalPicker(location, gameState.capitalLocation === location)}

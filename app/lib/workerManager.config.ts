@@ -13,5 +13,6 @@ export const workerManagerConfig: WorkerManagerConfig = {
     initGraphWorker: "graph-worker",
     computeProximity: "graph-worker",
     computeNeighbors: "graph-worker",
+    computeShortestPathFromProximitySource: "graph-worker",
   },
 };

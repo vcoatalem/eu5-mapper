@@ -540,6 +540,64 @@ export class ProximityComputationHelper {
     };
   }
 
+  public static getPathFromClosestProximitySource(
+    target: ILocationIdentifier,
+    gameState: IGameState,
+    gameData: IGameData,
+    adjacencyGraph: CompactGraph,
+    pathfindingOptions: PathFindingOptions,
+  ): {
+    sourceLocation: ILocationIdentifier;
+    proximity: number;
+    path: NonNullable<ReturnType<typeof adjacencyGraph.getShortestPath>>;
+  } | null {
+    const proximitySourceLocations =
+      ProximityComputationHelper.getLocalProximitySourceLocations(gameState);
+
+    const shortestPaths: Array<{
+      sourceLocation: ILocationIdentifier;
+      path: NonNullable<ReturnType<typeof adjacencyGraph.getShortestPath>>;
+      proximity: number;
+    }> = [];
+
+    for (const [
+      proximitySourceLocationName,
+      proximitySourceAmount,
+    ] of Object.entries(proximitySourceLocations)) {
+      const shortestPath = adjacencyGraph.getShortestPath(
+        proximitySourceLocationName,
+        target,
+        proximitySourceAmount,
+        ProximityComputationHelper.getProximityCostFunction(
+          gameState,
+          gameData,
+          pathfindingOptions,
+        ),
+      );
+      if (shortestPath) {
+        shortestPaths.push({
+          sourceLocation: proximitySourceLocationName as ILocationIdentifier,
+          proximity: proximitySourceAmount,
+          path: shortestPath,
+        });
+      }
+    }
+
+    if (shortestPaths.length === 0) {
+      return null;
+    }
+
+    shortestPaths.sort((a, b) => {
+      const totalCostA = a.path.reduce((acc, step) => acc + step.cost, 0);
+      const totalCostB = b.path.reduce((acc, step) => acc + step.cost, 0);
+      const scoreA = a.proximity - totalCostA;
+      const scoreB = b.proximity - totalCostB;
+      return scoreB - scoreA;
+    });
+
+    return shortestPaths[0];
+  }
+
   public static getGameStateProximityComputation = (
     gameState: IGameState,
     gameData: IGameData,

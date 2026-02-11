@@ -1,9 +1,10 @@
 import {
   ICoordinate,
+  IGameData,
   IGameState,
   ILocationIdentifier,
 } from "@/app/lib/types/general"; // TODO: try to remove this import of domain logic into worker types
-import { PathfindingResult } from "@/app/lib/types/pathfinding";
+import { EdgeType, PathfindingResult } from "@/app/lib/types/pathfinding";
 
 export type WorkerManagerConfig = {
   workers: Array<{
@@ -19,7 +20,8 @@ export type TaskType =
   | "initWithImage"
   | "initGraphWorker"
   | "computeProximity"
-  | "computeNeighbors";
+  | "computeNeighbors"
+  | "computeShortestPathFromProximitySource";
 
 export interface IWorkerManagerStatus {
   activeTasks: number;
@@ -85,4 +87,23 @@ export interface IWorkerTaskComputeNeighborsPayload {
 export interface IWorkerTaskComputeNeighborsResult {
   locationName: ILocationIdentifier;
   neighbors: PathfindingResult;
+}
+
+export interface IWorkerTaskcomputeShortestPathFromProximitySourcePayload {
+  gameState: IGameState;
+  targetLocationName: ILocationIdentifier;
+}
+
+export interface IWorkerTaskcomputeShortestPathFromProximitySourceResult {
+  location: ILocationIdentifier;
+  shortestPath: {
+    sourceLocation: ILocationIdentifier;
+    proximity: number;
+    path: Array<{
+      from: ILocationIdentifier;
+      to: ILocationIdentifier;
+      edgeType: EdgeType;
+      cost: number;
+    }>;
+  } | null;
 }

@@ -11,17 +11,15 @@ export function PathfindingInfosComponent({
 }: {
   className?: string;
 }) {
-  /*   const [isFocused, setIdFocused] = useState(false); */
   const containerRef = useRef<HTMLDivElement>(null);
-
   const version = useParams().version as string;
   const versionUnderscored = version.replaceAll(".", "_");
   const gitHash = useMemo(() => HashHelper.getGitHash(), []);
-  const s3url = `https://eu5-mapapp.s3.eu-west-1.amazonaws.com/test-results/${gitHash}/${versionUnderscored}/index.html`;
-
-  /*   const handleMouseLeave = () => {
-    setIdFocused(false);
-  }; */
+  const s3url = useMemo(
+    () =>
+      `https://eu5-mapapp.s3.eu-west-1.amazonaws.com/test-results/${gitHash}/${versionUnderscored}/index.html`,
+    [],
+  );
 
   return (
     <div ref={containerRef} className={className + " relative"}>

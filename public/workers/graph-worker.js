@@ -613,6 +613,43 @@
         };
       };
     }
+    static getPathFromClosestProximitySource(target, gameState, gameData2, adjacencyGraph, pathfindingOptions) {
+      const proximitySourceLocations = _ProximityComputationHelper.getLocalProximitySourceLocations(gameState);
+      const shortestPaths = [];
+      for (const [
+        proximitySourceLocationName,
+        proximitySourceAmount
+      ] of Object.entries(proximitySourceLocations)) {
+        const shortestPath = adjacencyGraph.getShortestPath(
+          proximitySourceLocationName,
+          target,
+          proximitySourceAmount,
+          _ProximityComputationHelper.getProximityCostFunction(
+            gameState,
+            gameData2,
+            pathfindingOptions
+          )
+        );
+        if (shortestPath) {
+          shortestPaths.push({
+            sourceLocation: proximitySourceLocationName,
+            proximity: proximitySourceAmount,
+            path: shortestPath
+          });
+        }
+      }
+      if (shortestPaths.length === 0) {
+        return null;
+      }
+      shortestPaths.sort((a, b) => {
+        const totalCostA = a.path.reduce((acc, step) => acc + step.cost, 0);
+        const totalCostB = b.path.reduce((acc, step) => acc + step.cost, 0);
+        const scoreA = a.proximity - totalCostA;
+        const scoreB = b.proximity - totalCostB;
+        return scoreB - scoreA;
+      });
+      return shortestPaths[0];
+    }
     /**
      * converts pathfinding evaluation to "proximity" value as displayed in-game
      */
@@ -894,6 +931,52 @@
         } catch (err) {
           sendMessage(self, {
             message: `Error during neighbors computation: ${err.message}`,
+            level: "error",
+            task: e.data
+          });
+        }
+        break;
+      case "computeShortestPathFromProximitySource":
+        try {
+          if (!gameData || !graph) {
+            throw new Error("Graph Worker not initialized.");
+          }
+          const taskPayload = e.data.payload;
+          const { gameState, targetLocationName } = taskPayload;
+          const shortestPathResult = ProximityComputationHelper.getPathFromClosestProximitySource(
+            targetLocationName,
+            gameState,
+            gameData,
+            graph,
+            {
+              allowUnownedLocations: true,
+              logMethod: (message, data) => {
+                sendMessage(self, {
+                  data: data ?? null,
+                  message,
+                  level: "log",
+                  task: e.data
+                });
+              }
+            }
+          );
+          const resultPayload = {
+            location: targetLocationName,
+            shortestPath: shortestPathResult === null ? null : {
+              sourceLocation: shortestPathResult.sourceLocation,
+              proximity: shortestPathResult.proximity,
+              path: shortestPathResult.path
+            }
+          };
+          sendMessage(self, {
+            data: resultPayload,
+            message: "Shortest path to proximity source computation completed",
+            level: "result",
+            task: e.data
+          });
+        } catch (err) {
+          sendMessage(self, {
+            message: `Error during shortest path to proximity source computation: ${err.message}`,
             level: "error",
             task: e.data
           });

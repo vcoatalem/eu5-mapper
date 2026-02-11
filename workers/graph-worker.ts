@@ -5,6 +5,8 @@ import {
   IWorkerTaskComputeNeighborsResult,
   IWorkerTaskComputeProximityPayload,
   IWorkerTaskComputeProximityResult,
+  IWorkerTaskcomputeShortestPathFromProximitySourcePayload,
+  IWorkerTaskcomputeShortestPathFromProximitySourceResult,
 } from "./types/workerTypes";
 import { IndexedDBReader } from "../app/lib/indexeddb/indexeddb-reader";
 import {
@@ -156,6 +158,62 @@ self.onmessage = async function (e: MessageEvent<IWorkerTask>) {
       } catch (err) {
         sendMessage(self, {
           message: `Error during neighbors computation: ${(err as any).message}`,
+          level: "error",
+          task: e.data,
+        });
+      }
+      break;
+    case "computeShortestPathFromProximitySource":
+      try {
+        if (!gameData || !graph) {
+          throw new Error("Graph Worker not initialized.");
+        }
+
+        const taskPayload = e.data
+          .payload as IWorkerTaskcomputeShortestPathFromProximitySourcePayload;
+        const { gameState, targetLocationName } = taskPayload;
+
+        const shortestPathResult =
+          ProximityComputationHelper.getPathFromClosestProximitySource(
+            targetLocationName,
+            gameState,
+            gameData,
+            graph,
+            {
+              allowUnownedLocations: true,
+              logMethod: (message: string, data?: Record<string, unknown>) => {
+                sendMessage(self, {
+                  data: data ?? null,
+                  message: message,
+                  level: "log",
+                  task: e.data,
+                });
+              },
+            },
+          );
+
+        const resultPayload: IWorkerTaskcomputeShortestPathFromProximitySourceResult =
+          {
+            location: targetLocationName,
+            shortestPath:
+              shortestPathResult === null
+                ? null
+                : {
+                    sourceLocation: shortestPathResult.sourceLocation,
+                    proximity: shortestPathResult.proximity,
+                    path: shortestPathResult.path,
+                  },
+          };
+
+        sendMessage(self, {
+          data: resultPayload,
+          message: "Shortest path to proximity source computation completed",
+          level: "result",
+          task: e.data,
+        });
+      } catch (err) {
+        sendMessage(self, {
+          message: `Error during shortest path to proximity source computation: ${(err as any).message}`,
           level: "error",
           task: e.data,
         });

@@ -1,0 +1,11 @@
+@reference "tailwindcss";
+
+@layer components {
+  .backdrop {
+    @apply fixed inset-0 bg-black/60 flex items-center justify-center z-80;
+  }
+
+  .container {
+    @apply relative bg-black/80 border-white border text-white rounded-lg shadow-xl p-4 max-h-[90vh] max-w-[90vw] overflow-auto;
+  }
+}

@@ -337,6 +337,10 @@ export function ConstructibleMenusComponent() {
   const [roadsExpanded, setRoadsExpanded] = useState<boolean>(false);
 
   const ownedLocationKeys = Object.keys(gameState?.ownedLocations ?? {});
+  const noOwnedLoactions = useMemo(
+    () => ownedLocationKeys.length === 0,
+    [ownedLocationKeys.length],
+  );
   const filteredLocationEntries = useMemo(() => {
     const entries = Object.entries(gameState?.ownedLocations ?? {});
     if (!search) {
@@ -403,8 +407,7 @@ export function ConstructibleMenusComponent() {
     <ExpandablePanel>
       {(isExpanded) => (
         <>
-          {!gameState?.ownedLocations ||
-          Object.keys(gameState.ownedLocations).length === 0 ? (
+          {noOwnedLoactions ? (
             <div className="text-stone-400 text-italic">
               No locations selected - either select a country above, or create
               your own country from scratch by selecting a location

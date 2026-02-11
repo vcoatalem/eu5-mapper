@@ -788,7 +788,7 @@ export function WorldMapComponent() {
         <Tooltip
           forceOpen={!!selectedLocation}
           mouseCoordinates={lastKnownMouseCoordinate || undefined}
-          config={{ offset: { x: 50, y: 50 } }}
+          config={{ openDelay: 0, offset: { x: 50, y: 50 } }}
         >
           <TooltipContent
             anchor={{

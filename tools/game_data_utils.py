@@ -56,6 +56,7 @@ class CountryData:
     centralizationVsDecentralization: float # -100 to 100, -100 is full land, 100 is full naval
     landVsNaval: float # -100 to 100. -100 is full land, 100 is full naval
     capital: str
+    name: Optional[str] = None
 
 def parse_game_data_file(filepath: str) -> dict:
     """
@@ -722,17 +723,57 @@ def parse_city_coordinates(coordinates_file: str) -> Dict[str, LocationCoordinat
     return location_coordinates
 
 
-def parse_countries_files(country_file: str, whitelisted_countries: set[str]) -> Dict[str, CountryData]:
+def parse_country_english_localization_file(filepath: str) -> Dict[str, str]:
+    """Parse Paradox-style YAML country localization file to a mapping of tag -> English name.
+
+    The file uses a simple structure like:
+
+    l_english:
+      FRA: "France"
+      FRA_ADJ: "French"
+    """
+    names: Dict[str, str] = {}
+    with open(filepath, "r", encoding="utf-8-sig") as f:
+        in_block = False
+        for line in f:
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            if stripped.startswith("l_english"):
+                in_block = True
+                continue
+            if not in_block:
+                continue
+            # Expect lines like: TAG: "Name"
+            match = re.match(r"^([A-Z0-9_]+):\s*\"(.*)\"", stripped)
+            if not match:
+                continue
+            key, value = match.group(1), match.group(2)
+            names[key] = value
+    return names
+
+
+def parse_countries_files(
+    country_file: str,
+    country_english_localization_file: Optional[str] = None,
+    whitelisted_countries: Optional[set[str]] = None,
+) -> Dict[str, CountryData]:
     parsed = parse_game_data_file(country_file)
-    countriesDict = {}
+    countriesDict: Dict[str, CountryData] = {}
 
     # Drill down to countries['countries']
     countries_data = parsed.get("countries", {}).get("countries", {})
 
-    for code in whitelisted_countries:
-        country = countries_data.get(code)
+    english_names: Dict[str, str] = {}
+    if country_english_localization_file is not None:
+        english_names = parse_country_english_localization_file(country_english_localization_file)
+
+    for code, country in countries_data.items():
+        if whitelisted_countries is not None and code not in whitelisted_countries:
+            continue
         if not country or not isinstance(country, dict):
             continue
+
         locations = list(sorted(set([
             loc
             for key in ["own_control_core", "own_control_integrated", "own_control_conquered"]
@@ -747,10 +788,12 @@ def parse_countries_files(country_file: str, whitelisted_countries: set[str]) ->
             centralization = 0.0
             land_naval = 0.0
         capital = country.get("capital", "")
+        name = english_names.get(code)
         countriesDict[code] = CountryData(
             locations=locations,
             centralizationVsDecentralization=centralization,
             landVsNaval=land_naval,
-            capital=capital
+            capital=capital,
+            name=name,
         )
     return countriesDict

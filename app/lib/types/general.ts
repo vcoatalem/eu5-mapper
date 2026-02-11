@@ -129,6 +129,7 @@ export interface ICountryData {
   locations: ILocationIdentifier[];
   centralizationVsDecentralization: number; // from -100 (fully centralized) to 100 (fully decentralized)
   landVsNaval: number; // from -100 (fully land) to 100 (fully naval)
+  name: string;
 }
 
 export interface ICountryValues {

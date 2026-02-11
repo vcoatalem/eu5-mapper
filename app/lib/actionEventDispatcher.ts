@@ -4,13 +4,13 @@ import { ICoordinate, ILocationIdentifier } from "./types/general";
 type HoverEventPayload = {
   locations: ILocationIdentifier[];
   type: "search" | null;
-  coordinate: ICoordinate | null;
+  mouseCoordinate: ICoordinate | null;
 };
 
 type ClickEventPayload = {
   location: ILocationIdentifier | null;
   type: "acquire" | "goto" | null; // add more types as needed
-  coordinate: ICoordinate | null;
+  mouseCoordinate: ICoordinate | null;
 };
 
 export type HoverActionType = HoverEventPayload["type"];
@@ -83,20 +83,20 @@ export class ActionEventDispatcher {
         this.prolongedHoverLocation.emit({
           locations: [],
           type: null,
-          coordinate: null,
+          mouseCoordinate: null,
         });
       }
 
       this.hoveredLocation.emit({
         locations: locationNames,
         type,
-        coordinate,
+        mouseCoordinate: coordinate,
       });
       this.hoverTimer = setTimeout(() => {
         this.prolongedHoverLocation.emit({
           locations: locationNames,
           type,
-          coordinate,
+          mouseCoordinate: coordinate,
         });
       }, prolongedHoverDelay);
     };
@@ -123,7 +123,7 @@ export class ActionEventDispatcher {
         this.hoveredLocation.emit({
           locations: [],
           type: null,
-          coordinate: null,
+          mouseCoordinate: null,
         });
         const prolongedLocations =
           this.prolongedHoverLocation.getSnapshot()?.locations ?? [];
@@ -136,7 +136,7 @@ export class ActionEventDispatcher {
           this.prolongedHoverLocation.emit({
             locations: [],
             type: null,
-            coordinate: null,
+            mouseCoordinate: null,
           });
         }
       }
@@ -185,7 +185,7 @@ export class ActionEventDispatcher {
         this.clickedLocationSource.emit({
           location: locationName ?? null,
           type,
-          coordinate: { x: e.clientX, y: e.clientY },
+          mouseCoordinate: { x: e.clientX, y: e.clientY },
         });
       }
       this.clickedMouseDownLocation = { location: null, coordinate: null };

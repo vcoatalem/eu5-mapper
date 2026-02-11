@@ -190,23 +190,26 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
     >
       <div className="w-full flex flex-row items-center mb-2">
         <div className="font-semibold text-stone-300">{locationName}</div>
-        <span
-          style={{
-            color: ColorHelper.rgbToHex(
-              ...ColorHelper.getEvaluationColor(
-                globalProximityResult.result[locationName]?.cost ?? 0,
+
+        {locationName in globalProximityResult.result && (
+          <span
+            style={{
+              color: ColorHelper.rgbToHex(
+                ...ColorHelper.getEvaluationColor(
+                  globalProximityResult.result[locationName]?.cost ?? 0,
+                ),
               ),
-            ),
-          }}
-          className="ml-4"
-        >
-          {globalProximityResult.status === "pending" && <></>}
-          {globalProximityResult.status === "updating" && <Loader></Loader>}
-          {globalProximityResult.status === "completed" &&
-            ProximityComputationHelper.evaluationToProximity(
-              globalProximityResult.result[locationName]?.cost,
-            )}
-        </span>
+            }}
+            className="ml-4"
+          >
+            {globalProximityResult.status === "pending" && <></>}
+            {globalProximityResult.status === "updating" && <Loader></Loader>}
+            {globalProximityResult.status === "completed" &&
+              ProximityComputationHelper.evaluationToProximity(
+                globalProximityResult.result[locationName]?.cost,
+              )}
+          </span>
+        )}
 
         {roadBuilderState.isBuildingModeEnabled && (
           <button

@@ -368,6 +368,8 @@ export class CameraController extends Observable<IZoomState> {
     });
   };
 
+  baseScreenOffset = { left: 180, top: 40, bottom: 5, right: 0 };
+
   /**
    * Core tooltip placement algorithm operating in screen-space.
    *
@@ -380,12 +382,19 @@ export class CameraController extends Observable<IZoomState> {
     baseY: number,
     containerRect: DOMRect,
     offset: ICoordinate = { x: 0, y: 0 },
-    tooltipSize?: ICoordinate,
+    tooltipSize: ICoordinate = { x: 200, y: 200 },
+    screenOffset = this.baseScreenOffset,
+    mouseCoordinate: ICoordinate = { x: 0, y: 0 },
   ): ICoordinate | null {
-    const viewportLeft = containerRect.left;
-    const viewportRight = containerRect.right;
-    const viewportTop = containerRect.top;
-    const viewportBottom = containerRect.bottom;
+    const rawLeft = containerRect.left;
+    const rawRight = containerRect.right;
+    const rawTop = containerRect.top;
+    const rawBottom = containerRect.bottom;
+
+    const viewportLeft = rawLeft + (screenOffset.left ?? 0);
+    const viewportRight = rawRight - (screenOffset.right ?? 0);
+    const viewportTop = rawTop + (screenOffset.top ?? 0);
+    const viewportBottom = rawBottom - (screenOffset.bottom ?? 0);
 
     const marginX = offset.x;
     const marginY = offset.y;
@@ -396,14 +405,6 @@ export class CameraController extends Observable<IZoomState> {
     if (tooltipWidth <= 0 || tooltipHeight <= 0) {
       const x = baseX + marginX;
       const y = baseY + marginY;
-      console.log("[CameraController] computeTooltipScreenPosition (no size)", {
-        baseX,
-        baseY,
-        offset,
-        tooltipSize,
-        finalX: x,
-        finalY: y,
-      });
       return { x, y };
     }
 
@@ -453,8 +454,19 @@ export class CameraController extends Observable<IZoomState> {
       );
     };
 
-    let chosen = candidates.find((c) =>
-      fitsInViewport(c.panelLeft, c.panelTop),
+    const overlapsMouse = (left: number, top: number): boolean => {
+      if (!mouseCoordinate) return false;
+      const right = left + tooltipWidth;
+      const bottom = top + tooltipHeight;
+      const mx = mouseCoordinate.x;
+      const my = mouseCoordinate.y;
+      return mx >= left && mx <= right && my >= top && my <= bottom;
+    };
+
+    let chosen = candidates.find(
+      (c) =>
+        fitsInViewport(c.panelLeft, c.panelTop) &&
+        !overlapsMouse(c.panelLeft, c.panelTop),
     );
 
     let panelLeft: number;
@@ -466,8 +478,11 @@ export class CameraController extends Observable<IZoomState> {
       panelTop = chosen.panelTop;
       usedPlacement = chosen.name;
     } else {
-      // If none of the quadrants can contain the tooltip fully, fall back to
-      // bottom-right and clamp it inside the viewport as best effort.
+      // If none of the quadrants can contain the tooltip fully while also
+      // respecting the mouse constraint, fall back to bottom-right and clamp
+      // it inside the viewport as best effort. If even that ends up covering
+      // the mouse pointer (and we know the mouse coordinate), we give up and
+      // return null so the tooltip is not shown under the cursor.
       const primary = candidates[0]; // bottom-right
       const viewportWidth = viewportRight - viewportLeft;
       const viewportHeight = viewportBottom - viewportTop;
@@ -488,21 +503,15 @@ export class CameraController extends Observable<IZoomState> {
         panelTop = viewportTop;
       }
 
+      if (mouseCoordinate && overlapsMouse(panelLeft, panelTop)) {
+        return null;
+      }
+
       usedPlacement = "clamped";
     }
 
     const x = panelLeft;
     const y = panelTop;
-
-    console.log("[CameraController] computeTooltipScreenPosition: ", {
-      baseX,
-      baseY,
-      offset,
-      tooltipSize,
-      placement: usedPlacement,
-      finalX: x,
-      finalY: y,
-    });
 
     return { x, y };
   }
@@ -514,7 +523,8 @@ export class CameraController extends Observable<IZoomState> {
   public getTooltipScreenPositionForLocation(
     anchorCoordinate: ICoordinate,
     offset: ICoordinate = { x: 0, y: 0 },
-    tooltipSize?: ICoordinate,
+    tooltipSize: ICoordinate,
+    mouseCoordinate?: ICoordinate,
   ): ICoordinate | null {
     if (!this.colorCanvas || !this.container) return null;
     const colorCanvas = this.colorCanvas.current;
@@ -535,6 +545,8 @@ export class CameraController extends Observable<IZoomState> {
       containerRect,
       offset,
       tooltipSize,
+      this.baseScreenOffset,
+      mouseCoordinate,
     );
   }
 
@@ -545,7 +557,8 @@ export class CameraController extends Observable<IZoomState> {
   public getTooltipScreenPositionForScreenCoordinate(
     anchorCoordinate: ICoordinate,
     offset: ICoordinate = { x: 0, y: 0 },
-    tooltipSize?: ICoordinate,
+    tooltipSize: ICoordinate,
+    mouseCoordinate: ICoordinate,
   ): ICoordinate | null {
     if (!this.container) return null;
     const container = this.container.current;
@@ -561,6 +574,8 @@ export class CameraController extends Observable<IZoomState> {
       containerRect,
       offset,
       tooltipSize,
+      this.baseScreenOffset,
+      mouseCoordinate,
     );
   }
 }

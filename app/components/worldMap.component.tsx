@@ -14,7 +14,7 @@ import React, {
 import { InfoBoxComponent } from "./infoBox.component";
 import { AppContext } from "../appContextProvider";
 import { gameStateController } from "@/app/lib/gameState.controller";
-import { ILocationIdentifier } from "../lib/types/general";
+import { ICoordinate, ILocationIdentifier } from "../lib/types/general";
 import { DrawingService } from "@/app/lib/drawing.service";
 import { workerManager } from "@/app/lib/workerManager";
 import { LoadingScreenComponent } from "./loadingScreen.component";
@@ -44,16 +44,9 @@ export function WorldMapComponent() {
     isLoading: gameDataIsLoading,
     error: gameDataLoadingError,
   } = context;
-
-  /*  console.log("render worldmap component", { gameDataIsLoading, gameDataLoadingError }); */
-
   const gameState = useSyncExternalStore(
     gameStateController.subscribe.bind(gameStateController),
     () => gameStateController.getSnapshot(),
-  );
-  const roadBuilderState = useSyncExternalStore(
-    roadBuilderController.subscribe.bind(roadBuilderController),
-    () => roadBuilderController.getSnapshot(),
   );
   const hasOwnedLocations = gameState?.ownedLocations
     ? !!Object.keys(gameState?.ownedLocations)?.length
@@ -75,8 +68,10 @@ export function WorldMapComponent() {
   const [initializationError, setInitializationError] = useState<string | null>(
     null,
   );
-  const [showNeighborsPanel, setShowNeighborsPanel] =
+  const [selectedLocation, setSelectedLocation] =
     useState<ILocationIdentifier | null>(null);
+  const [lastKnownMouseCoordinate, setLastKnownMouseCoordinate] =
+    useState<ICoordinate | null>(null);
   // Using ref instead of state: we use forceUpdate() (triggerRender) to trigger render
   // after applying the drag state, so we don't need useState's automatic re-renders.
   // The cursor style can read from ref.current during render, and the zoom controller
@@ -462,8 +457,6 @@ export function WorldMapComponent() {
       }
     };
 
-    // Set initial position - will be set again after initialization completes
-    // to ensure positions are correct before zoom controller is initialized
     setInitialPosition();
 
     console.log({ topLayerRefForCreate: topLayerRef });
@@ -500,7 +493,9 @@ export function WorldMapComponent() {
 
     const prolongedHoverOutsideBuildingMode =
       prolongedHoverProximityCalculationObservable.subscribe(
-        ({ values: [{ locations, type }, roadBuilderState] }) => {
+        ({
+          values: [{ locations, type, mouseCoordinate }, roadBuilderState],
+        }) => {
           if (roadBuilderState.isBuildingModeEnabled) return;
           if (type === "search") return;
           if (locations.length === 1) {
@@ -513,10 +508,10 @@ export function WorldMapComponent() {
               // filter out unpassage terrain
               return;
             }
-
-            setShowNeighborsPanel(locationName);
+            setSelectedLocation(locationName);
+            setLastKnownMouseCoordinate(mouseCoordinate);
           } else {
-            setShowNeighborsPanel(null);
+            setSelectedLocation(null);
           }
         },
       );
@@ -529,14 +524,23 @@ export function WorldMapComponent() {
     subscriptionsRef.current.push(clickObserver.dispose.bind(clickObserver));
 
     const clickedLocationUnsubscribe = clickObserver.subscribe(
-      ({ values: [{ location, type }, roadBuilderState], changedIndex }) => {
+      ({
+        values: [{ location, type, mouseCoordinate }, roadBuilderState],
+        changedIndex,
+      }) => {
         if (changedIndex !== 0) {
           // only react to changes in clicked location
           return;
         }
         console.log({
-          clickObserverCombiner: { location, type, roadBuilderState },
+          clickObserverCombiner: {
+            location,
+            type,
+            mouseCoordinate,
+            roadBuilderState,
+          },
         });
+        setLastKnownMouseCoordinate(mouseCoordinate);
         switch (true) {
           case location &&
             type === "acquire" &&
@@ -544,7 +548,7 @@ export function WorldMapComponent() {
             return gameStateController.selectLocation(location);
           case location && roadBuilderState.isBuildingModeEnabled:
             const locationData = gameData.locationDataMap[location];
-            setShowNeighborsPanel(null);
+            setSelectedLocation(null);
             roadBuilderController.selectLocationForBuildingRoad(location);
             cameraController
               .panToCoordinate(locationData?.centerCoordinates, 300, {
@@ -552,7 +556,7 @@ export function WorldMapComponent() {
                 y: 25,
               })
               .then(() => {
-                setShowNeighborsPanel(location);
+                setSelectedLocation(location);
               });
             break;
           case location && type === "goto":
@@ -581,7 +585,6 @@ export function WorldMapComponent() {
     subscriptionsRef.current.push(prolongedHoverSearchUnsubscribe);
 
     if (topLayerRef.current) {
-      // TODO: fix weird dragging behavior with right click + left click, drag + zoom, etc.
       console.log("add drag mouse event listeners");
       topLayerRef.current.addEventListener("mousedown", handleMouseDown);
       topLayerRef.current.addEventListener("mousemove", handleMouseMove);
@@ -780,16 +783,19 @@ export function WorldMapComponent() {
         <GuiElement className="fixed left-5 right-5 bottom-1">
           <InfoBoxComponent />
         </GuiElement>
-        <Tooltip forceOpen={!!showNeighborsPanel}>
+        <Tooltip
+          forceOpen={!!selectedLocation}
+          mouseCoordinates={lastKnownMouseCoordinate || undefined}
+        >
           <TooltipContent
             anchor={{
               type: "coordinate",
-              coordinate: gameData?.locationDataMap[showNeighborsPanel!]
+              coordinate: gameData?.locationDataMap[selectedLocation!]
                 ?.centerCoordinates ?? { x: 0, y: 0 },
             }}
           >
             <div className="pointer-events-auto">
-              <NeighborsPanelComponent locationName={showNeighborsPanel!} />
+              <NeighborsPanelComponent locationName={selectedLocation!} />
             </div>
           </TooltipContent>
         </Tooltip>

@@ -24,11 +24,11 @@ export function TooltipTrigger({ children }: ITooltipTriggerProps) {
       ref: triggerRef,
       onMouseEnter: (e: React.MouseEvent) => {
         children.props.onMouseEnter?.(e);
-        open();
+        open(e);
       },
       onMouseLeave: (e: React.MouseEvent) => {
         children.props.onMouseLeave?.(e);
-        close();
+        close(e);
       },
     },
   );

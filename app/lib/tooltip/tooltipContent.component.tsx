@@ -44,9 +44,7 @@ export function TooltipContent(props: ITooltipContentProps) {
     const contentWidth = contentRect.width;
     const contentHeight = contentRect.height;
 
-    let placement: ReturnType<
-      typeof cameraController.getTooltipScreenPositionForLocation
-    > | null = null;
+    let placement: ICoordinate | null = null;
 
     if (props.anchor.type === "dom") {
       const anchorRect = props.anchor.ref.current?.getBoundingClientRect();
@@ -66,6 +64,7 @@ export function TooltipContent(props: ITooltipContentProps) {
         anchorCoordinate,
         tooltipInstanceContext.config.offset,
         { x: contentWidth, y: contentHeight },
+        tooltipInstanceContext.mouseCoordinates,
       );
     } else {
       // props.anchor.type === "coordinate" (game/map coordinates)
@@ -73,6 +72,7 @@ export function TooltipContent(props: ITooltipContentProps) {
         props.anchor.coordinate,
         tooltipInstanceContext.config.offset,
         { x: contentWidth, y: contentHeight },
+        tooltipInstanceContext.mouseCoordinates,
       );
     }
 

@@ -1,0 +1,7 @@
+@reference "tailwindcss";
+
+@layer components {
+  .tooltip {
+    @apply shadow-md fixed z-100 bg-black/80 text-white text-sm rounded px-2 py-1 pointer-events-none;
+  }
+}

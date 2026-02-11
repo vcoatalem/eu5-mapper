@@ -5,9 +5,5 @@ export default function VersionLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return (
-    <AppContextProvider>
-      {children}
-    </AppContextProvider>
-  );
+  return <AppContextProvider>{children}</AppContextProvider>;
 }

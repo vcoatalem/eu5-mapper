@@ -18,11 +18,7 @@ import { ILocationIdentifier } from "../lib/types/general";
 import { DrawingService } from "@/app/lib/drawing.service";
 import { workerManager } from "@/app/lib/workerManager";
 import { LoadingScreenComponent } from "./loadingScreen.component";
-import {
-  cameraController,
-  zoomLevels,
-  NeighborsPanelPlacement,
-} from "@/app/lib/cameraController";
+import { cameraController, zoomLevels } from "@/app/lib/cameraController";
 import { proximityComputationController } from "@/app/lib/proximityComputation.controller";
 import { ConstructibleMenusComponent } from "./constructibleMenus.component";
 import { GuiElement } from "./guiElement";
@@ -37,6 +33,8 @@ import { actionEventDispatcher } from "../lib/actionEventDispatcher";
 import { IWorkerTaskInitWithImagePayload } from "@/workers/types/workerTypes";
 import { ObservableCombiner } from "../lib/observableCombiner";
 import { roadBuilderController } from "@/app/lib/roadBuilderController";
+import { Tooltip } from "../lib/tooltip/tooltip.component";
+import { TooltipContent } from "../lib/tooltip/tooltipContent.component";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
@@ -52,7 +50,10 @@ export function WorldMapComponent() {
   const gameState = useSyncExternalStore(
     gameStateController.subscribe.bind(gameStateController),
     () => gameStateController.getSnapshot(),
-    () => gameStateController.getSnapshot(), // getServerSnapshot for SSR
+  );
+  const roadBuilderState = useSyncExternalStore(
+    roadBuilderController.subscribe.bind(roadBuilderController),
+    () => roadBuilderController.getSnapshot(),
   );
   const hasOwnedLocations = gameState?.ownedLocations
     ? !!Object.keys(gameState?.ownedLocations)?.length
@@ -76,8 +77,6 @@ export function WorldMapComponent() {
   );
   const [showNeighborsPanel, setShowNeighborsPanel] =
     useState<ILocationIdentifier | null>(null);
-  const [neighborsPanelPosition, setNeighborsPanelPosition] =
-    useState<NeighborsPanelPlacement>(null);
   // Using ref instead of state: we use forceUpdate() (triggerRender) to trigger render
   // after applying the drag state, so we don't need useState's automatic re-renders.
   // The cursor style can read from ref.current during render, and the zoom controller
@@ -516,21 +515,8 @@ export function WorldMapComponent() {
             }
 
             setShowNeighborsPanel(locationName);
-            const placement = cameraController.getPopoverPanelScreenPosition(
-              locationName,
-              gameData.locationDataMap,
-              12,
-              12,
-            ) ?? {
-              x: 500,
-              y: 500,
-              horizontal: "right",
-              vertical: "bottom",
-            };
-            setNeighborsPanelPosition(placement);
           } else {
             setShowNeighborsPanel(null);
-            setNeighborsPanelPosition(null);
           }
         },
       );
@@ -557,33 +543,16 @@ export function WorldMapComponent() {
             !roadBuilderState.isBuildingModeEnabled:
             return gameStateController.selectLocation(location);
           case location && roadBuilderState.isBuildingModeEnabled:
+            const locationData = gameData.locationDataMap[location];
             setShowNeighborsPanel(null);
             roadBuilderController.selectLocationForBuildingRoad(location);
             cameraController
-              .panToCoordinate(
-                gameData.locationDataMap[location]?.centerCoordinates,
-                300,
-                { x: -25, y: 25 },
-              )
+              .panToCoordinate(locationData?.centerCoordinates, 300, {
+                x: -25,
+                y: 25,
+              })
               .then(() => {
-                const position = cameraController.getPopoverPanelScreenPosition(
-                  location,
-                  gameData.locationDataMap,
-                  36,
-                  36,
-                  {
-                    preferredHorizontal: "right",
-                    preferredVertical: "bottom",
-                  },
-                );
-                if (!position) {
-                  console.error(
-                    "[WorldMapComponent] could not get screen position for neighbors panel",
-                  );
-                  return;
-                }
                 setShowNeighborsPanel(location);
-                setNeighborsPanelPosition(position);
               });
             break;
           case location && type === "goto":
@@ -811,25 +780,22 @@ export function WorldMapComponent() {
         <GuiElement className="fixed left-5 right-5 bottom-1">
           <InfoBoxComponent />
         </GuiElement>
-        {showNeighborsPanel && (
-          <GuiElement
-            className="fixed pointer-events-none"
-            style={
-              neighborsPanelPosition
-                ? {
-                    left: neighborsPanelPosition.x,
-                    top: neighborsPanelPosition.y,
-                    transform: `translate(${neighborsPanelPosition.horizontal === "right" ? "0" : "-100%"}, ${neighborsPanelPosition.vertical === "bottom" ? "0" : "-100%"})`,
-                  }
-                : { left: 20, top: 80 }
-            }
+        <Tooltip
+          forceOpen={!!showNeighborsPanel}
+          config={{ interactive: !!roadBuilderState.isBuildingModeEnabled }}
+        >
+          <TooltipContent
+            anchor={{
+              type: "coordinate",
+              coordinate: gameData?.locationDataMap[showNeighborsPanel!]
+                ?.centerCoordinates ?? { x: 0, y: 0 },
+            }}
           >
             <div className="pointer-events-auto">
-              <NeighborsPanelComponent locationName={showNeighborsPanel} />
+              <NeighborsPanelComponent locationName={showNeighborsPanel!} />
             </div>
-          </GuiElement>
-        )}
-
+          </TooltipContent>
+        </Tooltip>
         <GuiElement className="fixed right-20 bottom-15">
           <button onClick={handleZoomOut} className="w-8 px-2 py-1">
             -

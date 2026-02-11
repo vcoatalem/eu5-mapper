@@ -25,18 +25,6 @@ export interface IZoomState {
 
 export type ZoomListener = (zoom: IZoomState) => void;
 
-export type NeighborsPanelPlacement = {
-  x: number;
-  y: number;
-  horizontal: "left" | "right";
-  vertical: "top" | "bottom";
-} | null;
-
-export interface PopoverPlacementPreferences {
-  preferredHorizontal?: "left" | "right";
-  preferredVertical?: "top" | "bottom";
-}
-
 export class CameraController extends Observable<IZoomState> {
   // Zoom state
   private currentZoomIndex: number;
@@ -381,18 +369,153 @@ export class CameraController extends Observable<IZoomState> {
   };
 
   /**
-   * Returns viewport (screen) coordinates and placement side for the neighbors panel
-   * so it appears next to the given location (left or right of it depending on location position).
+   * Core tooltip placement algorithm operating in screen-space.
+   *
+   * @param baseX Screen-space x coordinate of the anchor point (in pixels).
+   * @param baseY Screen-space y coordinate of the anchor point (in pixels).
+   * @param containerRect Bounding rect of the camera container (used as viewport).
    */
-  public getPopoverPanelScreenPosition(
-    locationName: ILocationIdentifier,
-    locationDataMap: ILocationDataMap,
-    marginX: number = 0,
-    marginY: number = 0,
-    preferences: PopoverPlacementPreferences = {},
-  ): NeighborsPanelPlacement {
-    const coord = locationDataMap[locationName]?.centerCoordinates;
+  private computeTooltipScreenPosition(
+    baseX: number,
+    baseY: number,
+    containerRect: DOMRect,
+    offset: ICoordinate = { x: 0, y: 0 },
+    tooltipSize?: ICoordinate,
+  ): ICoordinate | null {
+    const viewportLeft = containerRect.left;
+    const viewportRight = containerRect.right;
+    const viewportTop = containerRect.top;
+    const viewportBottom = containerRect.bottom;
 
+    const marginX = offset.x;
+    const marginY = offset.y;
+    const tooltipWidth = tooltipSize?.x ?? 0;
+    const tooltipHeight = tooltipSize?.y ?? 0;
+    // If we don't know the tooltip size, fall back to a simple
+    // bottom-right offset from the anchor.
+    if (tooltipWidth <= 0 || tooltipHeight <= 0) {
+      const x = baseX + marginX;
+      const y = baseY + marginY;
+      console.log("[CameraController] computeTooltipScreenPosition (no size)", {
+        baseX,
+        baseY,
+        offset,
+        tooltipSize,
+        finalX: x,
+        finalY: y,
+      });
+      return { x, y };
+    }
+
+    // Try to place the tooltip fully within the viewport in this order:
+    // 1) bottom-right, 2) top-right, 3) top-left, 4) bottom-left of the anchor.
+    type PlacementName =
+      | "bottom-right"
+      | "top-right"
+      | "top-left"
+      | "bottom-left";
+
+    const candidates: Array<{
+      name: PlacementName;
+      panelLeft: number;
+      panelTop: number;
+    }> = [
+      {
+        name: "bottom-right",
+        panelLeft: baseX + marginX,
+        panelTop: baseY + marginY,
+      },
+      {
+        name: "top-right",
+        panelLeft: baseX + marginX,
+        panelTop: baseY - marginY - tooltipHeight,
+      },
+      {
+        name: "top-left",
+        panelLeft: baseX - marginX - tooltipWidth,
+        panelTop: baseY - marginY - tooltipHeight,
+      },
+      {
+        name: "bottom-left",
+        panelLeft: baseX - marginX - tooltipWidth,
+        panelTop: baseY + marginY,
+      },
+    ];
+
+    const fitsInViewport = (left: number, top: number): boolean => {
+      const right = left + tooltipWidth;
+      const bottom = top + tooltipHeight;
+      return (
+        left >= viewportLeft &&
+        right <= viewportRight &&
+        top >= viewportTop &&
+        bottom <= viewportBottom
+      );
+    };
+
+    let chosen = candidates.find((c) =>
+      fitsInViewport(c.panelLeft, c.panelTop),
+    );
+
+    let panelLeft: number;
+    let panelTop: number;
+    let usedPlacement: PlacementName | "clamped";
+
+    if (chosen) {
+      panelLeft = chosen.panelLeft;
+      panelTop = chosen.panelTop;
+      usedPlacement = chosen.name;
+    } else {
+      // If none of the quadrants can contain the tooltip fully, fall back to
+      // bottom-right and clamp it inside the viewport as best effort.
+      const primary = candidates[0]; // bottom-right
+      const viewportWidth = viewportRight - viewportLeft;
+      const viewportHeight = viewportBottom - viewportTop;
+
+      if (tooltipWidth <= viewportWidth) {
+        const maxLeft = viewportRight - tooltipWidth;
+        const minLeft = viewportLeft;
+        panelLeft = Math.min(Math.max(primary.panelLeft, minLeft), maxLeft);
+      } else {
+        panelLeft = viewportLeft;
+      }
+
+      if (tooltipHeight <= viewportHeight) {
+        const maxTop = viewportBottom - tooltipHeight;
+        const minTop = viewportTop;
+        panelTop = Math.min(Math.max(primary.panelTop, minTop), maxTop);
+      } else {
+        panelTop = viewportTop;
+      }
+
+      usedPlacement = "clamped";
+    }
+
+    const x = panelLeft;
+    const y = panelTop;
+
+    console.log("[CameraController] computeTooltipScreenPosition: ", {
+      baseX,
+      baseY,
+      offset,
+      tooltipSize,
+      placement: usedPlacement,
+      finalX: x,
+      finalY: y,
+    });
+
+    return { x, y };
+  }
+
+  /**
+   * Tooltip placement when the anchor is expressed in game/map coordinates
+   * (affected by camera zoom and pan).
+   */
+  public getTooltipScreenPositionForLocation(
+    anchorCoordinate: ICoordinate,
+    offset: ICoordinate = { x: 0, y: 0 },
+    tooltipSize?: ICoordinate,
+  ): ICoordinate | null {
     if (!this.colorCanvas || !this.container) return null;
     const colorCanvas = this.colorCanvas.current;
     const container = this.container.current;
@@ -403,69 +526,42 @@ export class CameraController extends Observable<IZoomState> {
     const currentLeft = parseFloat(colorCanvas.style.left) || 0;
     const currentTop = parseFloat(colorCanvas.style.top) || 0;
 
-    const baseX = containerRect.left + currentLeft + coord.x * zoom;
-    const baseY = containerRect.top + currentTop + coord.y * zoom;
+    const baseX = containerRect.left + currentLeft + anchorCoordinate.x * zoom;
+    const baseY = containerRect.top + currentTop + anchorCoordinate.y * zoom;
 
-    const viewportLeft = containerRect.left;
-    const viewportRight = containerRect.right;
-    const viewportTop = containerRect.top;
-    const viewportBottom = containerRect.bottom;
+    return this.computeTooltipScreenPosition(
+      baseX,
+      baseY,
+      containerRect,
+      offset,
+      tooltipSize,
+    );
+  }
 
-    const viewportCenterX = viewportLeft + containerRect.width / 2;
-    const viewportCenterY = viewportTop + containerRect.height / 2;
+  /**
+   * Tooltip placement when the anchor is already expressed in screen-space
+   * DOM coordinates (e.g. clientX / clientY from a DOM element or event).
+   */
+  public getTooltipScreenPositionForScreenCoordinate(
+    anchorCoordinate: ICoordinate,
+    offset: ICoordinate = { x: 0, y: 0 },
+    tooltipSize?: ICoordinate,
+  ): ICoordinate | null {
+    if (!this.container) return null;
+    const container = this.container.current;
+    if (!container) return null;
 
-    const preferredHorizontal =
-      preferences.preferredHorizontal ??
-      (baseX >= viewportCenterX ? "left" : "right");
-    const preferredVertical =
-      preferences.preferredVertical ??
-      (baseY >= viewportCenterY ? "top" : "bottom");
+    const containerRect = container.getBoundingClientRect();
+    const baseX = anchorCoordinate.x;
+    const baseY = anchorCoordinate.y;
 
-    const chooseHorizontal = (): "left" | "right" => {
-      const primary = preferredHorizontal;
-      const fallback = primary === "left" ? "right" : "left";
-
-      const primaryX = primary === "right" ? baseX + marginX : baseX - marginX;
-      if (primaryX >= viewportLeft && primaryX <= viewportRight) {
-        return primary;
-      }
-
-      const fallbackX =
-        fallback === "right" ? baseX + marginX : baseX - marginX;
-      if (fallbackX >= viewportLeft && fallbackX <= viewportRight) {
-        return fallback;
-      }
-
-      return primary;
-    };
-
-    const chooseVertical = (): "top" | "bottom" => {
-      const primary = preferredVertical;
-      const fallback = primary === "top" ? "bottom" : "top";
-
-      const primaryY = primary === "bottom" ? baseY + marginY : baseY - marginY;
-      if (primaryY >= viewportTop && primaryY <= viewportBottom) {
-        return primary;
-      }
-
-      const fallbackY =
-        fallback === "bottom" ? baseY + marginY : baseY - marginY;
-      if (fallbackY >= viewportTop && fallbackY <= viewportBottom) {
-        return fallback;
-      }
-
-      return primary;
-    };
-
-    const horizontal = chooseHorizontal();
-    const vertical = chooseVertical();
-
-    // Apply margins in screen pixels so distance from the anchor
-    // remains visually consistent regardless of zoom level.
-    const x = horizontal === "right" ? baseX + marginX : baseX - marginX;
-    const y = vertical === "bottom" ? baseY + marginY : baseY - marginY;
-
-    return { x, y, horizontal, vertical };
+    return this.computeTooltipScreenPosition(
+      baseX,
+      baseY,
+      containerRect,
+      offset,
+      tooltipSize,
+    );
   }
 }
 

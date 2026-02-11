@@ -184,7 +184,7 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
   return (
     <div
       className={
-        "max-h-96 overflow-y-auto bg-black/70 backdrop-blur-sm border border-stone-700 rounded p-3" +
+        "max-h-96 min-h-52 overflow-y-auto backdrop-blur-sm p-3" +
         (roadBuilderState.isBuildingModeEnabled ? " w-[400px] " : " w-[280px] ")
       }
     >

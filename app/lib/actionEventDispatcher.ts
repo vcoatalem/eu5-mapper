@@ -1,30 +1,30 @@
 import { Subject } from "./subject";
 import { ICoordinate, ILocationIdentifier } from "./types/general";
 
+type HoverEventPayload = {
+  locations: ILocationIdentifier[];
+  type: "search" | null;
+  coordinate: ICoordinate | null;
+};
+
+type ClickEventPayload = {
+  location: ILocationIdentifier | null;
+  type: "acquire" | "goto" | null; // add more types as needed
+  coordinate: ICoordinate | null;
+};
+
+export type HoverActionType = HoverEventPayload["type"];
+export type ClickActionType = ClickEventPayload["type"];
+
 export class ActionEventDispatcher {
-  public hoveredLocation: Subject<{
-    locations: ILocationIdentifier[];
-    type: "search" | null;
-  }> = new Subject<{
-    locations: ILocationIdentifier[];
-    type: "search" | null;
-  }>();
+  public hoveredLocation: Subject<HoverEventPayload> =
+    new Subject<HoverEventPayload>();
 
-  public prolongedHoverLocation: Subject<{
-    locations: ILocationIdentifier[];
-    type: "search" | null;
-  }> = new Subject<{
-    locations: ILocationIdentifier[];
-    type: "search" | null;
-  }>();
+  public prolongedHoverLocation: Subject<HoverEventPayload> =
+    new Subject<HoverEventPayload>();
 
-  public clickedLocationSource: Subject<{
-    location: ILocationIdentifier | null;
-    type: "acquire" | "goto" | null; // add more types as needed
-  }> = new Subject<{
-    location: ILocationIdentifier | null;
-    type: "acquire" | "goto" | null;
-  }>();
+  public clickedLocationSource: Subject<ClickEventPayload> =
+    new Subject<ClickEventPayload>();
 
   private clickedMouseDownLocation: {
     location: ILocationIdentifier | null;
@@ -39,25 +39,29 @@ export class ActionEventDispatcher {
   > = new Map();
   public registerHoverActionSource(
     element: HTMLElement,
-    locationNameFn: (e: MouseEvent) => ILocationIdentifier | ILocationIdentifier[] | null,
+    locationNameFn: (
+      e: MouseEvent,
+    ) => ILocationIdentifier | ILocationIdentifier[] | null,
     type: "search" | null = null,
     prolongedHoverDelay: number = 1500,
   ) {
     const mouseMoveHandler = (e: MouseEvent) => {
+      const coordinate: ICoordinate = { x: e.clientX, y: e.clientY };
       const locationResult = locationNameFn(e);
-      const locationNames = Array.isArray(locationResult) 
-        ? locationResult 
-        : locationResult !== null 
-          ? [locationResult] 
+      const locationNames = Array.isArray(locationResult)
+        ? locationResult
+        : locationResult !== null
+          ? [locationResult]
           : [];
-      
-      const currentLocations = this.hoveredLocation.getSnapshot()?.locations ?? [];
+
+      const currentLocations =
+        this.hoveredLocation.getSnapshot()?.locations ?? [];
       // Check if locations are the same (order-independent comparison)
-      const locationsEqual = 
+      const locationsEqual =
         locationNames.length === currentLocations.length &&
-        locationNames.every(loc => currentLocations.includes(loc)) &&
-        currentLocations.every(loc => locationNames.includes(loc));
-      
+        locationNames.every((loc) => currentLocations.includes(loc)) &&
+        currentLocations.every((loc) => locationNames.includes(loc));
+
       if (locationsEqual) {
         return;
       } else {
@@ -66,24 +70,33 @@ export class ActionEventDispatcher {
           this.hoverTimer = null;
         }
       }
-      
+
       const prolongedHoverLocations =
         this.prolongedHoverLocation.getSnapshot()?.locations ?? [];
       // Clear prolonged hover if it doesn't match current hover
-      const prolongedMatches = 
+      const prolongedMatches =
         prolongedHoverLocations.length === locationNames.length &&
-        prolongedHoverLocations.every(loc => locationNames.includes(loc)) &&
-        locationNames.every(loc => prolongedHoverLocations.includes(loc));
-      
+        prolongedHoverLocations.every((loc) => locationNames.includes(loc)) &&
+        locationNames.every((loc) => prolongedHoverLocations.includes(loc));
+
       if (prolongedHoverLocations.length > 0 && !prolongedMatches) {
-        this.prolongedHoverLocation.emit({ locations: [], type: null });
+        this.prolongedHoverLocation.emit({
+          locations: [],
+          type: null,
+          coordinate: null,
+        });
       }
-      
-      this.hoveredLocation.emit({ locations: locationNames, type });
+
+      this.hoveredLocation.emit({
+        locations: locationNames,
+        type,
+        coordinate,
+      });
       this.hoverTimer = setTimeout(() => {
         this.prolongedHoverLocation.emit({
           locations: locationNames,
           type,
+          coordinate,
         });
       }, prolongedHoverDelay);
     };
@@ -93,28 +106,38 @@ export class ActionEventDispatcher {
         this.hoverTimer = null;
       }
       const locationResult = locationNameFn(e);
-      const locationNames = Array.isArray(locationResult) 
-        ? locationResult 
-        : locationResult !== null 
-          ? [locationResult] 
+      const locationNames = Array.isArray(locationResult)
+        ? locationResult
+        : locationResult !== null
+          ? [locationResult]
           : [];
-      
-      const currentLocations = this.hoveredLocation.getSnapshot()?.locations ?? [];
-      const locationsEqual = 
+
+      const currentLocations =
+        this.hoveredLocation.getSnapshot()?.locations ?? [];
+      const locationsEqual =
         locationNames.length === currentLocations.length &&
-        locationNames.every(loc => currentLocations.includes(loc)) &&
-        currentLocations.every(loc => locationNames.includes(loc));
-      
+        locationNames.every((loc) => currentLocations.includes(loc)) &&
+        currentLocations.every((loc) => locationNames.includes(loc));
+
       if (locationsEqual) {
-        this.hoveredLocation.emit({ locations: [], type: null });
-        const prolongedLocations = this.prolongedHoverLocation.getSnapshot()?.locations ?? [];
-        const prolongedMatches = 
+        this.hoveredLocation.emit({
+          locations: [],
+          type: null,
+          coordinate: null,
+        });
+        const prolongedLocations =
+          this.prolongedHoverLocation.getSnapshot()?.locations ?? [];
+        const prolongedMatches =
           prolongedLocations.length === locationNames.length &&
-          prolongedLocations.every(loc => locationNames.includes(loc)) &&
-          locationNames.every(loc => prolongedLocations.includes(loc));
-        
+          prolongedLocations.every((loc) => locationNames.includes(loc)) &&
+          locationNames.every((loc) => prolongedLocations.includes(loc));
+
         if (prolongedMatches) {
-          this.prolongedHoverLocation.emit({ locations: [], type: null });
+          this.prolongedHoverLocation.emit({
+            locations: [],
+            type: null,
+            coordinate: null,
+          });
         }
       }
     };
@@ -162,6 +185,7 @@ export class ActionEventDispatcher {
         this.clickedLocationSource.emit({
           location: locationName ?? null,
           type,
+          coordinate: { x: e.clientX, y: e.clientY },
         });
       }
       this.clickedMouseDownLocation = { location: null, coordinate: null };

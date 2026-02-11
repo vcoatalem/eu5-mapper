@@ -19,7 +19,7 @@ import { getGuiImage } from "../lib/drawing/namedGuiImagesMap.const";
 import { proximityComputationController } from "../lib/proximityComputation.controller";
 import { ColorHelper } from "../lib/drawing/color.helper";
 import { ProximityComputationHelper } from "../lib/proximityComputation.helper";
-import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
+import { ActionSource } from "@/app/lib/actionSource.component";
 import { FoldableMenu } from "./foldableMenu.component";
 import { ExpandablePanel } from "./expandablePanel.component";
 import { roadBuilderController } from "../lib/roadBuilderController";
@@ -179,42 +179,20 @@ const ConstructibleLocationItem = React.memo(
     >;
     expanded: boolean;
   }) {
-    const locationNameDivRef = React.useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-      const el = locationNameDivRef.current;
-      if (el) {
-        console.log("[ConstructibleLocationItem] registering action sources");
-        actionEventDispatcher.registerHoverActionSource(el, () => location);
-        actionEventDispatcher.registerClickActionSource(
-          el,
-          () => location,
-          "goto",
-        );
-      }
-      return () => {
-        if (el) {
-          console.log(
-            "[ConstructibleLocationItem] unregistering action sources",
-          );
-          actionEventDispatcher.clearEventListenersForElement(el);
-        }
-      };
-      // Note: expanded is intentionally NOT in the dependency array
-      // to prevent re-registering actions when menu expands/collapses
-    }, [location]);
-
     return (
       <div
         key={location}
         className="py-1 h-10 grid grid-cols-9 items-center whitespace-nowrap gap-2 w-[600px]"
       >
-        <div
-          className="font-bold col-span-2 truncate ... flex-none cursor-pointer"
-          ref={locationNameDivRef}
+        <ActionSource
+          locations={(e) => location}
+          hover={{}}
+          click={{ type: "goto" }}
         >
-          <span className="text-lg ">{location}</span>
-        </div>
+          <div className="font-bold col-span-2 truncate ... flex-none cursor-pointer">
+            <span className="text-lg ">{location}</span>
+          </div>
+        </ActionSource>
         <span
           className="col-span-1"
           style={{
@@ -260,24 +238,6 @@ const RoadItem = React.memo(function RoadItem({
   expanded: boolean;
 }) {
   const [from, to] = roadKey.split("-");
-  const roadKeyElementRef = React.useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    const el = roadKeyElementRef.current;
-    if (el) {
-      console.log("[RoadItem] registering action sources");
-      actionEventDispatcher.registerHoverActionSource(el, () => [from, to]);
-      actionEventDispatcher.registerClickActionSource(el, () => from, "goto");
-    }
-    return () => {
-      if (el) {
-        console.log("[RoadItem] unregistering action sources");
-        actionEventDispatcher.clearEventListenersForElement(el);
-      }
-    };
-    // Note: expanded is intentionally NOT in the dependency array
-    // to prevent re-registering actions when menu expands/collapses
-  }, [roadKey]);
 
   if (!from || !to) {
     return <></>;
@@ -287,15 +247,20 @@ const RoadItem = React.memo(function RoadItem({
       key={roadKey}
       className="py-1 h-10 grid grid-cols-8 items-center whitespace-nowrap gap-4 w-[600px]"
     >
-      <span
-        ref={roadKeyElementRef}
-        className={
-          "  min-w-0 cursor-pointer truncate ... " +
-          (expanded ? "col-span-4" : "col-span-2")
-        }
+      <ActionSource
+        locations={(e) => [from, to] as [string, string]}
+        hover={{}}
+        click={{ type: "goto" }}
       >
-        {from} - {to}
-      </span>
+        <span
+          className={
+            "  min-w-0 cursor-pointer truncate ... " +
+            (expanded ? "col-span-4" : "col-span-2")
+          }
+        >
+          {from} - {to}
+        </span>
+      </ActionSource>
 
       {!expanded && (
         <span className="col-span-1">

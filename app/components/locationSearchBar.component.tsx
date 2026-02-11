@@ -1,6 +1,5 @@
 import React, {
   useContext,
-  useEffect,
   useRef,
   useState,
   useSyncExternalStore,
@@ -11,7 +10,7 @@ import {
   locationSearchController,
 } from "@/app/lib/locationSearchController";
 import { GuiElement } from "./guiElement";
-import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
+import { ActionSource } from "@/app/lib/actionSource.component";
 import Image from "next/image";
 
 const LocationSearchResultItem = React.memo(function LocationSearchResultItem({
@@ -19,41 +18,23 @@ const LocationSearchResultItem = React.memo(function LocationSearchResultItem({
 }: {
   locationSearchResult: ILocationSearchResult["locations"][0];
 }) {
-  const divRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = divRef.current;
-    if (el) {
-      actionEventDispatcher.registerHoverActionSource(
-        el,
-        () => locationSearchResult.locationsInHierarchy,
-        "search",
-      );
-      actionEventDispatcher.registerClickActionSource(
-        el,
-        () => locationSearchResult.locationsInHierarchy[0],
-        "goto",
-      );
-    }
-    return () => {
-      if (el) {
-        actionEventDispatcher.clearEventListenersForElement(el);
-      }
-    };
-  }, [locationSearchResult]);
-
   return (
-    <div
-      ref={divRef}
-      id={locationSearchResult.name}
-      className="hover:bg-stone-700 cursor-pointer px-1"
+    <ActionSource
+      locations={() => locationSearchResult.locationsInHierarchy}
+      hover={{ type: "search" }}
+      click={{ type: "goto" }}
     >
-      <span>{locationSearchResult.name}</span>
-      <span className="text-stone-500 italic">
-        {" "}
-        ({locationSearchResult.hierarchyType})
-      </span>
-    </div>
+      <div
+        id={locationSearchResult.name}
+        className="hover:bg-stone-700 cursor-pointer px-1"
+      >
+        <span>{locationSearchResult.name}</span>
+        <span className="text-stone-500 italic">
+          {" "}
+          ({locationSearchResult.hierarchyType})
+        </span>
+      </div>
+    </ActionSource>
   );
 });
 

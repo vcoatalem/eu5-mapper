@@ -2,7 +2,6 @@ import React, {
   memo,
   useCallback,
   useEffect,
-  useRef,
   useSyncExternalStore,
 } from "react";
 import { ILocationIdentifier, RoadType } from "../lib/types/general";
@@ -13,7 +12,7 @@ import {
 import { gameStateController } from "@/app/lib/gameState.controller";
 import { ColorHelper } from "../lib/drawing/color.helper";
 import { roadBuilderController } from "@/app/lib/roadBuilderController";
-import { actionEventDispatcher } from "../lib/actionEventDispatcher";
+import { ActionSource } from "../lib/actionSource.component";
 import { EdgeType } from "../lib/types/pathfinding";
 import { getGuiImage } from "../lib/drawing/namedGuiImagesMap.const";
 import { Loader } from "./loader.component";
@@ -39,42 +38,6 @@ const NeighborPanelListItem = memo(function NeighborPanelListItem({
   owned: boolean;
   isRoadBuildingMode: boolean;
 }) {
-  const divRef = useRef<HTMLDivElement>(null);
-  const locationNameRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    console.log(
-      "[NeighborPanelListItem] registering hover and click action sources for",
-      neighborLocation,
-    );
-    const mainDiv = divRef.current;
-    if (mainDiv) {
-      actionEventDispatcher.registerHoverActionSource(
-        mainDiv,
-        () => neighborLocation,
-      );
-    }
-    const locationNameDiv = locationNameRef.current;
-    if (locationNameDiv) {
-      actionEventDispatcher.registerClickActionSource(
-        locationNameDiv,
-        () => neighborLocation,
-        "goto",
-      );
-    }
-    return () => {
-      console.log(
-        "[NeighborPanelListItem] unregistering hover and click action sources for",
-        neighborLocation,
-      );
-      if (mainDiv) {
-        actionEventDispatcher.clearEventListenersForElement(mainDiv);
-      }
-      if (locationNameDiv) {
-        actionEventDispatcher.clearEventListenersForElement(locationNameDiv);
-      }
-    };
-  }, [neighborLocation]);
-
   const handleRoadChange = useCallback(() => {
     if (road) {
       gameStateController.changeRoadType(
@@ -93,53 +56,60 @@ const NeighborPanelListItem = memo(function NeighborPanelListItem({
   }, [road, baseLocation, neighborLocation]);
 
   return (
-    <div
-      key={neighborLocation}
-      className={
-        " grid grid-cols-6 items-center justify-between py-1 px-2 hover:bg-stone-800/50 rounded "
-      }
-      ref={divRef}
-    >
-      <span
-        ref={locationNameRef}
+    <ActionSource locations={() => neighborLocation} hover={{}}>
+      <div
+        key={neighborLocation}
         className={
-          " truncate col-span-3 cursor-pointer " +
-          (!owned ? "text-stone-500 italic" : "")
+          " grid grid-cols-6 items-center justify-between py-1 px-2 hover:bg-stone-800/50 rounded "
         }
       >
-        {neighborLocation}
-        {!owned && <span> (unowned)</span>}
-      </span>
+        <ActionSource
+          locations={() => neighborLocation}
+          click={{ type: "goto" }}
+        >
+          <span
+            className={
+              " truncate col-span-3 cursor-pointer " +
+              (!owned ? "text-stone-500 italic" : "")
+            }
+          >
+            {neighborLocation}
+            {!owned && <span> (unowned)</span>}
+          </span>
+        </ActionSource>
 
-      {isRoadBuildingMode && (
-        <img
-          src={getGuiImage("gravel_road") ?? ""}
-          alt="road"
-          width={32}
-          height={32}
-          className={
-            " col-span-1 p-1 " +
-            (road
-              ? " bg-yellow-400 hover:bg-red-500 "
-              : "bg-black hover:bg-stone-400")
-          }
-          onClick={() => handleRoadChange()}
-        />
-      )}
+        {isRoadBuildingMode && (
+          <img
+            src={getGuiImage("gravel_road") ?? ""}
+            alt="road"
+            width={32}
+            height={32}
+            className={
+              " col-span-1 p-1 " +
+              (road
+                ? " bg-yellow-400 hover:bg-red-500 "
+                : "bg-black hover:bg-stone-400")
+            }
+            onClick={() => handleRoadChange()}
+          />
+        )}
 
-      <span
-        className="ml-2 col-span-1"
-        style={{
-          color: ColorHelper.rgbToHex(...ColorHelper.getEvaluationColor(cost)),
-        }}
-      >
-        {computationStatus === "pending" && <Loader></Loader>}
-        {computationStatus === "error" && "error"}
-        {computationStatus === "needs_update" && "needs update"}
-        {computationStatus === "completed" && <>{cost.toFixed(2)}</>}
-      </span>
-      <span className="col-span-1"> ({through})</span>
-    </div>
+        <span
+          className="ml-2 col-span-1"
+          style={{
+            color: ColorHelper.rgbToHex(
+              ...ColorHelper.getEvaluationColor(cost),
+            ),
+          }}
+        >
+          {computationStatus === "pending" && <Loader></Loader>}
+          {computationStatus === "error" && "error"}
+          {computationStatus === "needs_update" && "needs update"}
+          {computationStatus === "completed" && <>{cost.toFixed(2)}</>}
+        </span>
+        <span className="col-span-1"> ({through})</span>
+      </div>
+    </ActionSource>
   );
 });
 

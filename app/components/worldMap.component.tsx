@@ -469,24 +469,26 @@ export function WorldMapComponent() {
 
     console.log({ topLayerRefForCreate: topLayerRef });
 
-    actionEventDispatcher.registerHoverActionSource(
-      topLayerRef.current,
-      (e) => {
-        const locationName = cameraController.getLocationAtPointer(e);
-        return locationName ?? null;
-      },
-      null,
-      800,
-    );
+    if (topLayerRef.current) {
+      actionEventDispatcher.registerHoverActionSource(
+        topLayerRef.current,
+        (e) => {
+          const locationName = cameraController.getLocationAtPointer(e);
+          return locationName ?? null;
+        },
+        null,
+        800,
+      );
 
-    actionEventDispatcher.registerClickActionSource(
-      topLayerRef.current,
-      (e) => {
-        const locationName = cameraController.getLocationAtPointer(e);
-        return locationName ?? null;
-      },
-      "acquire",
-    );
+      actionEventDispatcher.registerClickActionSource(
+        topLayerRef.current,
+        (e) => {
+          const locationName = cameraController.getLocationAtPointer(e);
+          return locationName ?? null;
+        },
+        "acquire",
+      );
+    }
 
     const prolongedHoverProximityCalculationObservable = new ObservableCombiner(
       [actionEventDispatcher.prolongedHoverLocation, roadBuilderController],

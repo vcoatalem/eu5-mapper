@@ -179,6 +179,17 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
   const neighborLocationResult = computationResults?.[locationName];
   const computationStatus = computationResults?.[locationName]?.status;
 
+  useEffect(() => {
+    if (
+      !neighborLocationResult ||
+      neighborLocationResult.status === "needs_update"
+    ) {
+      neighborsProximityComputationController.launchGetNeighborsProximity(
+        locationName,
+      );
+    }
+  }, [neighborLocationResult]);
+
   const adjacentLocations = Object.entries(
     neighborLocationResult?.neighbors ?? {},
   )
@@ -219,8 +230,8 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
           }}
           className="ml-4"
         >
-          {(globalProximityResult.status === "pending" ||
-            globalProximityResult.status === "updating") && <Loader></Loader>}
+          {globalProximityResult.status === "pending" && <></>}
+          {globalProximityResult.status === "updating" && <Loader></Loader>}
           {globalProximityResult.status === "completed" &&
             ProximityComputationHelper.evaluationToProximity(
               globalProximityResult.result[locationName]?.cost,

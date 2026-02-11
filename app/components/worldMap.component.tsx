@@ -513,9 +513,6 @@ export function WorldMapComponent() {
               return;
             }
 
-            neighborsProximityComputationController.launchGetNeighborsProximity(
-              locationName,
-            );
             setShowNeighborsPanel(locationName);
             const placement = cameraController.getPopoverPanelScreenPosition(
               locationName,
@@ -525,7 +522,8 @@ export function WorldMapComponent() {
             ) ?? {
               x: 500,
               y: 500,
-              side: "right",
+              horizontal: "right",
+              vertical: "bottom",
             };
             setNeighborsPanelPosition(placement);
           } else {
@@ -559,28 +557,33 @@ export function WorldMapComponent() {
           case location && roadBuilderState.isBuildingModeEnabled:
             setShowNeighborsPanel(null);
             roadBuilderController.selectLocationForBuildingRoad(location);
-            cameraController.panToCoordinate(
-              gameData.locationDataMap[location]?.centerCoordinates,
-            );
-            neighborsProximityComputationController.launchGetNeighborsProximity(
-              location,
-            );
-            return setTimeout(() => {
-              const position = cameraController.getPopoverPanelScreenPosition(
-                location,
-                gameData.locationDataMap,
-                36,
-                36,
-              );
-              if (!position) {
-                console.error(
-                  "[WorldMapComponent] could not get screen position for neighbors panel",
+            cameraController
+              .panToCoordinate(
+                gameData.locationDataMap[location]?.centerCoordinates,
+                300,
+                { x: -25, y: 25 },
+              )
+              .then(() => {
+                const position = cameraController.getPopoverPanelScreenPosition(
+                  location,
+                  gameData.locationDataMap,
+                  36,
+                  36,
+                  {
+                    preferredHorizontal: "right",
+                    preferredVertical: "bottom",
+                  },
                 );
-                return;
-              }
-              setShowNeighborsPanel(location);
-              setNeighborsPanelPosition(position);
-            }, 800); // allow time for panning to be done (todo: handle screen panning as a proper observable)
+                if (!position) {
+                  console.error(
+                    "[WorldMapComponent] could not get screen position for neighbors panel",
+                  );
+                  return;
+                }
+                setShowNeighborsPanel(location);
+                setNeighborsPanelPosition(position);
+              });
+            break;
           case location && type === "goto":
             const coordinates =
               gameData.locationDataMap[location]?.centerCoordinates;
@@ -811,17 +814,11 @@ export function WorldMapComponent() {
             className="fixed pointer-events-none"
             style={
               neighborsPanelPosition
-                ? neighborsPanelPosition.side === "right"
-                  ? {
-                      left: neighborsPanelPosition.x,
-                      top: neighborsPanelPosition.y,
-                      transform: "translate(0, 0)",
-                    }
-                  : {
-                      left: neighborsPanelPosition.x,
-                      top: neighborsPanelPosition.y,
-                      transform: "translate(-100%, 0)",
-                    }
+                ? {
+                    left: neighborsPanelPosition.x,
+                    top: neighborsPanelPosition.y,
+                    transform: `translate(${neighborsPanelPosition.horizontal === "right" ? "0" : "-100%"}, ${neighborsPanelPosition.vertical === "bottom" ? "0" : "-100%"})`,
+                  }
                 : { left: 20, top: 80 }
             }
           >

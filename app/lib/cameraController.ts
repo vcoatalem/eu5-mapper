@@ -25,10 +25,17 @@ export interface IZoomState {
 
 export type ZoomListener = (zoom: IZoomState) => void;
 
-export type NeighborsPanelPlacement =
-  | { x: number; y: number; side: "left" }
-  | { x: number; y: number; side: "right" }
-  | null;
+export type NeighborsPanelPlacement = {
+  x: number;
+  y: number;
+  horizontal: "left" | "right";
+  vertical: "top" | "bottom";
+} | null;
+
+export interface PopoverPlacementPreferences {
+  preferredHorizontal?: "left" | "right";
+  preferredVertical?: "top" | "bottom";
+}
 
 export class CameraController extends Observable<IZoomState> {
   // Zoom state
@@ -52,6 +59,7 @@ export class CameraController extends Observable<IZoomState> {
     startTime: number;
     duration: number;
     rafId: number | null;
+    resolve?: () => void;
   } | null = null;
 
   constructor() {
@@ -240,61 +248,93 @@ export class CameraController extends Observable<IZoomState> {
    * @param y Target map y coordinate
    * @param duration Animation duration in ms (default 600)
    */
-  public panToCoordinate = (coordinate: ICoordinate, duration = 600) => {
-    if (!this.colorCanvas || !this.container) return;
+  public panToCoordinate = (
+    coordinate: ICoordinate,
+    duration = 600,
+    offset?: ICoordinate,
+  ): Promise<void> => {
+    if (!this.colorCanvas || !this.container) {
+      return Promise.resolve();
+    }
     const colorCanvas = this.colorCanvas.current;
     const container = this.container.current;
-    if (!colorCanvas || !container) return;
+    if (!colorCanvas || !container) {
+      return Promise.resolve();
+    }
     const containerRect = container.getBoundingClientRect();
     const centerX = containerRect.width / 2;
     const centerY = containerRect.height / 2;
     const zoom = this.getSnapshot().zoomLevel;
-    const targetLeft = centerX - coordinate.x * zoom;
-    const targetTop = centerY - coordinate.y * zoom;
+
+    // If an offset is provided, shift the logical target point by that offset
+    // so that the camera centers on (coordinate + offset).
+    const effectiveX = coordinate.x + (offset?.x ?? 0);
+    const effectiveY = coordinate.y + (offset?.y ?? 0);
+
+    const targetLeft = centerX - effectiveX * zoom;
+    const targetTop = centerY - effectiveY * zoom;
     // Use current left/top from style
     const startLeft = parseFloat(colorCanvas.style.left) || 0;
     const startTop = parseFloat(colorCanvas.style.top) || 0;
+
+    // If there is an ongoing animation, cancel it and resolve its promise
     if (this.panAnimationState && this.panAnimationState.rafId) {
       cancelAnimationFrame(this.panAnimationState.rafId);
-    }
-    this.panAnimationState = {
-      animating: true,
-      startLeft,
-      startTop,
-      targetLeft,
-      targetTop,
-      startTime: performance.now(),
-      duration,
-      rafId: null,
-    };
-    const animate = (now: number) => {
-      if (!this.panAnimationState) return;
-      const elapsed = now - this.panAnimationState.startTime;
-      const t = Math.min(1, elapsed / this.panAnimationState.duration);
-      // Ease in-out cubic
-      const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-      const left =
-        this.panAnimationState.startLeft +
-        (this.panAnimationState.targetLeft - this.panAnimationState.startLeft) *
-          ease;
-      const top =
-        this.panAnimationState.startTop +
-        (this.panAnimationState.targetTop - this.panAnimationState.startTop) *
-          ease;
-      this.layers.forEach((layer) => {
-        const canvas = layer.ref.current;
-        if (canvas) {
-          canvas.style.left = left + "px";
-          canvas.style.top = top + "px";
-        }
-      });
-      if (t < 1) {
-        this.panAnimationState.rafId = requestAnimationFrame(animate);
-      } else {
-        this.panAnimationState = null;
+      if (this.panAnimationState.resolve) {
+        this.panAnimationState.resolve();
       }
-    };
-    this.panAnimationState.rafId = requestAnimationFrame(animate);
+    }
+
+    return new Promise<void>((resolve) => {
+      this.panAnimationState = {
+        animating: true,
+        startLeft,
+        startTop,
+        targetLeft,
+        targetTop,
+        startTime: performance.now(),
+        duration,
+        rafId: null,
+        resolve,
+      };
+
+      const animate = (now: number) => {
+        if (!this.panAnimationState) return;
+        const elapsed = now - this.panAnimationState.startTime;
+        const t = Math.min(1, elapsed / this.panAnimationState.duration);
+        // Ease in-out cubic
+        const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        const left =
+          this.panAnimationState.startLeft +
+          (this.panAnimationState.targetLeft -
+            this.panAnimationState.startLeft) *
+            ease;
+        const top =
+          this.panAnimationState.startTop +
+          (this.panAnimationState.targetTop - this.panAnimationState.startTop) *
+            ease;
+
+        this.layers.forEach((layer) => {
+          const canvas = layer.ref.current;
+          if (canvas) {
+            canvas.style.left = left + "px";
+            canvas.style.top = top + "px";
+          }
+        });
+
+        if (t < 1) {
+          this.panAnimationState.rafId = requestAnimationFrame(animate);
+        } else {
+          const state = this.panAnimationState;
+          this.panAnimationState = null;
+          if (state && state.resolve) {
+            state.resolve();
+          }
+        }
+      };
+
+      this.panAnimationState.rafId = requestAnimationFrame(animate);
+    });
   };
 
   public applyZoomLevel = (newZoom: number, oldZoom: number) => {
@@ -349,6 +389,7 @@ export class CameraController extends Observable<IZoomState> {
     locationDataMap: ILocationDataMap,
     marginX: number = 0,
     marginY: number = 0,
+    preferences: PopoverPlacementPreferences = {},
   ): NeighborsPanelPlacement {
     const coord = locationDataMap[locationName]?.centerCoordinates;
 
@@ -365,15 +406,66 @@ export class CameraController extends Observable<IZoomState> {
     const baseX = containerRect.left + currentLeft + coord.x * zoom;
     const baseY = containerRect.top + currentTop + coord.y * zoom;
 
-    const viewportCenterX = containerRect.left + containerRect.width / 2;
-    const side = baseX >= viewportCenterX ? "left" : "right";
+    const viewportLeft = containerRect.left;
+    const viewportRight = containerRect.right;
+    const viewportTop = containerRect.top;
+    const viewportBottom = containerRect.bottom;
+
+    const viewportCenterX = viewportLeft + containerRect.width / 2;
+    const viewportCenterY = viewportTop + containerRect.height / 2;
+
+    const preferredHorizontal =
+      preferences.preferredHorizontal ??
+      (baseX >= viewportCenterX ? "left" : "right");
+    const preferredVertical =
+      preferences.preferredVertical ??
+      (baseY >= viewportCenterY ? "top" : "bottom");
+
+    const chooseHorizontal = (): "left" | "right" => {
+      const primary = preferredHorizontal;
+      const fallback = primary === "left" ? "right" : "left";
+
+      const primaryX = primary === "right" ? baseX + marginX : baseX - marginX;
+      if (primaryX >= viewportLeft && primaryX <= viewportRight) {
+        return primary;
+      }
+
+      const fallbackX =
+        fallback === "right" ? baseX + marginX : baseX - marginX;
+      if (fallbackX >= viewportLeft && fallbackX <= viewportRight) {
+        return fallback;
+      }
+
+      return primary;
+    };
+
+    const chooseVertical = (): "top" | "bottom" => {
+      const primary = preferredVertical;
+      const fallback = primary === "top" ? "bottom" : "top";
+
+      const primaryY = primary === "bottom" ? baseY + marginY : baseY - marginY;
+      if (primaryY >= viewportTop && primaryY <= viewportBottom) {
+        return primary;
+      }
+
+      const fallbackY =
+        fallback === "bottom" ? baseY + marginY : baseY - marginY;
+      if (fallbackY >= viewportTop && fallbackY <= viewportBottom) {
+        return fallback;
+      }
+
+      return primary;
+    };
+
+    const horizontal = chooseHorizontal();
+    const vertical = chooseVertical();
 
     // Apply margins in screen pixels so distance from the anchor
     // remains visually consistent regardless of zoom level.
-    const x = side === "right" ? baseX + marginX : baseX - marginX;
-    const y = baseY + marginY;
+    const x = horizontal === "right" ? baseX + marginX : baseX - marginX;
+    const y = vertical === "bottom" ? baseY + marginY : baseY - marginY;
 
-    return { x, y, side };
+    return { x, y, horizontal, vertical };
   }
 }
 

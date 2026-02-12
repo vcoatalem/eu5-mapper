@@ -152,8 +152,6 @@ export function CountryOverview() {
     <ExpandablePanel>
       {(isExpanded) => (
         <>
-          <CountrySelector></CountrySelector>
-          <hr></hr>
           <FoldableMenu
             title="Country Values"
             isExpanded={countryMenuExpanded}

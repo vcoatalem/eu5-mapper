@@ -43,7 +43,7 @@ export function Modal(props: IModalProps) {
     onClose();
   };
 
-  const portalTarget = document.body;
+  const portalTarget = document.body; // todo: target a precise root instead ?
 
   return createPortal(
     <div className={styles.backdrop} onClick={handleBackdropClick}>

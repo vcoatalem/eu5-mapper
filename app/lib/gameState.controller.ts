@@ -1,5 +1,6 @@
 "use client";
 
+import { CountriesHelper } from "@/app/lib/countries.helper";
 import { cameraController } from "./cameraController";
 import { ConstructibleHelper } from "./constructible.helper";
 import { Observable } from "./observable";
@@ -249,11 +250,11 @@ export class GameStateController extends Observable<IGameState> {
       if (!country) {
         throw new Error(`Unknown country code: ${countryCode}`);
       }
+      const capitalLocation = CountriesHelper.getCountryBaseCapitalLocation(countryCode, this.gameData?.countriesDataMap!);
       const locationsToAcquire = country.locations;
       if (locationsToAcquire) {
         this.acquireLocations(locationsToAcquire, false);
         this.subject.countryCode = countryCode;
-        this.subject.capitalLocation = country.capital;
         this.subject.country = {
           centralizationVsDecentralization:
             country.centralizationVsDecentralization,
@@ -263,7 +264,7 @@ export class GameStateController extends Observable<IGameState> {
       }
 
       const capitalCoordinates =
-        this.gameData?.locationDataMap[country.capital].centerCoordinates;
+        this.gameData?.locationDataMap[capitalLocation].centerCoordinates;
       if (capitalCoordinates) {
         cameraController.panToCoordinate(capitalCoordinates, 0); // TODO: do this in a subscription to gameState instead
       }

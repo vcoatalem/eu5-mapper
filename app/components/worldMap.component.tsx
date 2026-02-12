@@ -768,19 +768,18 @@ export function WorldMapComponent() {
           <HeaderComponent />
         </GuiElement>
         <div className="fixed left-5 top-16 flex flex-col gap-2 z-50 max-h-[85vh] min-h-0 overflow-y-auto">
-          <GuiElement className="w-fit min-h-0 shrink overflow-hidden">
-            <CountryOverview />
-          </GuiElement>
-          <GuiElement className="w-fit min-h-0 shrink overflow-hidden">
-            {hasOwnedLocations ? (
-              <ConstructibleMenusComponent />
-            ) : (
-              <div className="max-w-52 text-stone-400 text-italic">
-                No locations selected - either select a country above, or create
-                your own country from scratch by selecting a location
-              </div>
-            )}
-          </GuiElement>
+
+          {hasOwnedLocations && (
+            <>
+              <GuiElement className="w-fit min-h-0 shrink overflow-hidden">
+                <CountryOverview />
+              </GuiElement>
+              <GuiElement className="w-fit min-h-0 shrink overflow-hidden">
+                <ConstructibleMenusComponent />
+              </GuiElement>
+            </>
+          )}
+
         </div>
         <GuiElement className="fixed left-5 right-5 bottom-1">
           <InfoBoxComponent />

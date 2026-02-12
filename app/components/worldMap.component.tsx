@@ -35,7 +35,7 @@ import { ObservableCombiner } from "../lib/observableCombiner";
 import { roadBuilderController } from "@/app/lib/roadBuilderController";
 import { Tooltip } from "../lib/tooltip/tooltip.component";
 import { TooltipContent } from "../lib/tooltip/tooltipContent.component";
-import { shortestPathController } from "../lib/shortestPath.controller";
+import { colorSearchController } from "@/app/lib/colorSeach.controller";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
@@ -627,8 +627,9 @@ export function WorldMapComponent() {
     proximityComputationController.init();
     neighborsProximityComputationController.init();
     locationSearchController.init(gameData);
+    colorSearchController.init(worldMapConfig, gameData);
     roadBuilderController.init();
-    shortestPathController.init();
+    actionEventDispatcher.init();
 
     // Mark as initialized only after waitForInitialization completes
     waitForInitialization(layers.length)

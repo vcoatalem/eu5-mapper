@@ -57,6 +57,7 @@ class CountryData:
     landVsNaval: float # -100 to 100. -100 is full land, 100 is full naval
     capital: str
     name: Optional[str] = None
+    flagUrl: Optional[str] = None
 
 def parse_game_data_file(filepath: str) -> dict:
     """
@@ -795,5 +796,6 @@ def parse_countries_files(
             landVsNaval=land_naval,
             capital=capital,
             name=name,
+            flagUrl=None,  # Filled by fetch_country_flags.py via MediaWiki API
         )
     return countriesDict

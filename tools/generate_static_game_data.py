@@ -31,7 +31,6 @@ from game_data_utils import (
     hex_to_rgb,
     LocationData,
     LocationHierarchy,
-    LocationCoordinates,
     DevelopmentRules
 )
 
@@ -259,7 +258,6 @@ def generate_game_data_json(version: str = "0.0.11", output_dir: str = None):
         country_english_localization_file=files.country_english_localization_file,
         whitelisted_countries=None,
     )
-    
 
     with open(files.location_centers_file, "r", encoding="utf-8") as centers_file:
         location_centers = json.load(centers_file)

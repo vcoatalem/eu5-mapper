@@ -130,6 +130,7 @@ export interface ICountryData {
   centralizationVsDecentralization: number; // from -100 (fully centralized) to 100 (fully decentralized)
   landVsNaval: number; // from -100 (fully land) to 100 (fully naval)
   name: string;
+  flagUrl: string | null;
 }
 
 export interface ICountryValues {

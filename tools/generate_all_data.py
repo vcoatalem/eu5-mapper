@@ -9,6 +9,7 @@ This script runs all data generation scripts in the correct order:
 4. compare-adjacency-data.py - Compare with existing adjacency data
 5. generate_location_centers.py - Compute and cache center coordinates for all locations
 6. generate_static_game_data.py - Generate final static game data JSON
+7. fetch_country_flags.py - Add flag URLs to countries-data-map.json from Paradox wiki
 
 All outputs are stored in tools/output/{version}/ (plus cached center coordinates in tools/tmp/)
 """
@@ -99,7 +100,7 @@ def main():
     if not run_script(
         'create-border-layer.py',
         [version] + extra_args,
-        'Step 1/6: Generate border layer'
+        'Step 1/7: Generate border layer'
     ):
         print("\n❌ Pipeline failed at step 1")
         sys.exit(1)
@@ -108,7 +109,7 @@ def main():
     if not run_script(
         'create-terrain-layer.py',
         [version] + extra_args,
-        'Step 2/6: Generate terrain layer'
+        'Step 2/7: Generate terrain layer'
     ):
         print("\n❌ Pipeline failed at step 2")
         sys.exit(1)
@@ -117,7 +118,7 @@ def main():
     if not run_script(
         'create-adjacency-data.py',
         [version] + extra_args,
-        'Step 3/6: Generate adjacency data and river colors'
+        'Step 3/7: Generate adjacency data and river colors'
     ):
         print("\n❌ Pipeline failed at step 3")
         sys.exit(1)
@@ -129,7 +130,7 @@ def main():
         
         # Run comparison and redirect output to file
         print(f"\n{'='*80}")
-        print(f"🔄 Step 4/6: Compare adjacency data with reference")
+        print(f"🔄 Step 4/7: Compare adjacency data with reference")
         print(f"{'='*80}")
         print(f"Reference: {game_data_adjacency}")
         print(f"Generated: {generated_adjacency}")
@@ -164,7 +165,7 @@ def main():
             print(f"⚠️  Warning: Comparison failed: {e}")
             print("Continuing with pipeline...")
     else:
-        print(f"\n⚠️  Step 4/6: Skipping comparison - reference file not found:")
+        print(f"\n⚠️  Step 4/7: Skipping comparison - reference file not found:")
         print(f"  {game_data_adjacency}")
 
     # Step 5: Generate and cache location center coordinates
@@ -173,7 +174,7 @@ def main():
     if not run_script(
         'generate_location_centers.py',
         [version],
-        'Step 5/6: Generate location center coordinates (cached)'
+        'Step 5/7: Generate location center coordinates (cached)'
     ):
         print("\n❌ Pipeline failed at step 5")
         sys.exit(1)
@@ -182,9 +183,18 @@ def main():
     if not run_script(
         'generate_static_game_data.py',
         [version] + extra_args,
-        'Step 6/6: Generate static game data JSON'
+        'Step 6/7: Generate static game data JSON'
     ):
         print("\n❌ Pipeline failed at step 6")
+        sys.exit(1)
+
+    # Step 7: Fetch country flag URLs and update countries-data-map.json
+    if not run_script(
+        'fetch_country_flags.py',
+        [version] + extra_args,
+        'Step 7/7: Fetch country flag URLs from Paradox wiki'
+    ):
+        print("\n❌ Pipeline failed at step 7")
         sys.exit(1)
     
     # Success!

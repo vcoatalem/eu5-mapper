@@ -251,6 +251,7 @@ export class GameStateController extends Observable<IGameState> {
         throw new Error(`Unknown country code: ${countryCode}`);
       }
       const capitalLocation = CountriesHelper.getCountryBaseCapitalLocation(countryCode, this.gameData?.countriesDataMap!);
+      this.subject.capitalLocation = capitalLocation;
       const locationsToAcquire = country.locations;
       if (locationsToAcquire) {
         this.acquireLocations(locationsToAcquire, false);

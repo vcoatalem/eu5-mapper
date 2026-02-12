@@ -26,6 +26,14 @@ export class ActionEventDispatcher {
   public clickedLocationSource: Subject<ClickEventPayload> =
     new Subject<ClickEventPayload>();
 
+
+  public init() {
+    this.hoveredLocation.emit({ locations: [], type: null, mouseCoordinate: null });
+    this.prolongedHoverLocation.emit({ locations: [], type: null, mouseCoordinate: null });
+    this.clickedLocationSource.emit({ location: null, type: null, mouseCoordinate: null });
+  }
+
+
   private clickedMouseDownLocation: {
     location: ILocationIdentifier | null;
     coordinate: ICoordinate | null;

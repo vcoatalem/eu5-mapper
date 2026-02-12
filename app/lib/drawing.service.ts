@@ -10,13 +10,8 @@ import {
   IGameState,
   ILocationIdentifier,
 } from "./types/general";
-import { workerManager } from "./workerManager";
 import { ObservableCombiner } from "./observableCombiner";
 import { DrawingHelper } from "./drawing/drawing.helper";
-import {
-  IWorkerTaskColorSearchPayload,
-  IWorkerTaskColorSearchResult,
-} from "@/workers/types/workerTypes";
 import {
   IZoomState,
   cameraController,
@@ -30,6 +25,7 @@ import {
 import { Subject } from "./subject";
 import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
 import { roadBuilderController } from "@/app/lib/roadBuilderController";
+import { colorSearchController } from "@/app/lib/colorSeach.controller";
 
 export class DrawingService {
   private areaDrawingCanvas: HTMLCanvasElement;
@@ -41,59 +37,11 @@ export class DrawingService {
   private indicatorDrawingCanvas: HTMLCanvasElement;
   private indicatorDrawingContext: CanvasRenderingContext2D;
   private mapInfos: { width: number; height: number };
-  private coordinateMap: Record<ILocationIdentifier, Array<ICoordinate>> = {};
   private gameData: IGameData | null = null;
   private drawingCallbackBuffer: Partial<
     Record<"areas" | "constructibles" | "roads" | "indicators", () => unknown>
   > = {};
   private reDraw: Subject<Date> = new Subject<Date>();
-  private queriedLocationsColor: Set<ILocationIdentifier> = new Set();
-
-  public addCoordinate(
-    name: ILocationIdentifier,
-    coordinates: ICoordinate[],
-  ): void {
-    if (!this.coordinateMap[name]) {
-      this.coordinateMap[name] = coordinates;
-    }
-  }
-
-  private requestColorSearch(missingLocations: ILocationIdentifier[]): void {
-    /*  console.log(
-      "[DrawingService] requestColorSearch",
-      missingLocations,
-      this.queriedLocationsColor.entries(),
-    ); */
-    const notYetQueried = missingLocations.filter(
-      (loc) => !this.queriedLocationsColor.has(loc),
-    );
-    if (notYetQueried.length === 0) {
-      return;
-    }
-    const taskId = `colorSearch-${Date.now()}`;
-    const taskPayload: IWorkerTaskColorSearchPayload & {} = {
-      canvasWidth: this.areaDrawingCanvas.width,
-      canvasHeight: this.areaDrawingCanvas.height,
-      startCoordinates: notYetQueried.reduce(
-        (acc, loc) => {
-          const locData = this.gameData?.locationDataMap[loc];
-          if (locData?.centerCoordinates) {
-            acc[loc] = locData.centerCoordinates;
-          }
-          return acc;
-        },
-        {} as Record<ILocationIdentifier, { x: number; y: number }>,
-      ),
-    };
-    for (const missingLocation of notYetQueried) {
-      this.queriedLocationsColor.add(missingLocation);
-    }
-    workerManager.queueTask({
-      id: taskId,
-      type: "colorSearch",
-      payload: taskPayload,
-    });
-  }
 
   constructor(
     areaDrawingCanvas: HTMLCanvasElement,
@@ -150,34 +98,9 @@ export class DrawingService {
     }
     this.indicatorDrawingContext = indicatorDrawingContext;
 
-    workerManager.subscribe(({ lastCompletedTask }) => {
-      if (!lastCompletedTask) {
-        return;
-      }
-      if (lastCompletedTask.type === "colorSearch") {
-        // Handle failed tasks (data is null on error/timeout)
-        if (!lastCompletedTask.success || !lastCompletedTask.data) {
-          console.warn(
-            "[DrawingService] colorSearch task failed or data is missing",
-            {
-              success: lastCompletedTask.success,
-              error: lastCompletedTask.error,
-              data: lastCompletedTask.data,
-            },
-          );
-          return;
-        }
-        const data = lastCompletedTask.data as IWorkerTaskColorSearchResult;
-        if (!data.result) {
-          console.warn("[DrawingService] colorSearch result is missing", data);
-          return;
-        }
-        const coordinates = data.result;
-        for (const [locationName, coords] of Object.entries(coordinates)) {
-          this.addCoordinate(locationName, coords);
-        }
-        this.reDraw.emit(new Date());
-      }
+
+    colorSearchController.subscribe(() => {
+      this.reDraw.emit(new Date());
     });
 
     new ObservableCombiner([
@@ -254,10 +177,6 @@ export class DrawingService {
       }
     });
 
-    actionEventDispatcher.prolongedHoverLocation.emit({
-      locations: [],
-      type: null,
-    }); // don't like this, but need a way to set first emition for now
     this.reDraw.emit(new Date()); // this has to be after subscriptions are set up
   }
 
@@ -274,7 +193,7 @@ export class DrawingService {
 
     const missingCoordinates: ILocationIdentifier[] = [];
     for (const location of Object.keys(gameState.ownedLocations)) {
-      const coordinates = this.coordinateMap[location];
+      const coordinates =  colorSearchController.getSnapshot().result[location]?.coordinates;
       if (!coordinates) {
         missingCoordinates.push(location);
         continue;
@@ -296,7 +215,7 @@ export class DrawingService {
     }
 
     if (missingCoordinates.length > 0) {
-      this.requestColorSearch(missingCoordinates);
+      colorSearchController.requestColorSearch(missingCoordinates);
     }
 
     // Draw once
@@ -412,16 +331,18 @@ export class DrawingService {
     const toHighlight: Record<ILocationIdentifier, ICoordinate[]> = {};
     const missingCoordinates: ILocationIdentifier[] = [];
 
+
+    const colorSearchResult = colorSearchController.getSnapshot().result;
     for (const location of locations) {
-      if (!(location in this.coordinateMap)) {
+      if (!(location in colorSearchResult)) {
         missingCoordinates.push(location);
       } else {
-        toHighlight[location] = this.coordinateMap[location];
+        toHighlight[location] = colorSearchResult[location].coordinates;
       }
     }
 
     if (missingCoordinates.length > 0) {
-      this.requestColorSearch(missingCoordinates);
+      colorSearchController.requestColorSearch(missingCoordinates);
     }
 
     /* console.log("[DrawingService] will draw highlighted:", toHighlight); */

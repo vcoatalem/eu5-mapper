@@ -1,13 +1,14 @@
-import React, { useContext, useEffect, useSyncExternalStore } from "react";
+import React, { useContext, useSyncExternalStore } from "react";
 import { AppContext } from "../appContextProvider";
 import { WorkerStatusComponent } from "./workerStatus.component";
 import { LocationSearchBar } from "./locationSearchBar.component";
-import { PathfindingInfosComponent } from "@/app/components/pathfindingInfos.component";
+import { MethodologyInfos } from "@/app/components/methodologyInfos.component";
 import { roadBuilderController } from "@/app/lib/roadBuilderController";
 import styles from "../styles/Gui.module.css";
 import { gameStateController } from "../lib/gameState.controller";
 import { Modal } from "../lib/modal/modal.component";
-import { CountrySelectionList } from "./countrySelectionList.component";
+import { CountrySelectionModal } from "@/app/components/countrySelectionModal.component";
+import { GameVersionSelector } from "@/app/components/gameVersionSelector.component";
 
 export function HeaderComponent() {
   const { gameData } = useContext(AppContext);
@@ -31,7 +32,7 @@ export function HeaderComponent() {
   return (
     <div
       className={
-        "w-full h-10 flex flex-row items-center " +
+        "w-full h-10 flex flex-row items-center relative " +
         (buildingRoadState.isBuildingModeEnabled
           ? styles.roadBuildingStripes
           : "")
@@ -52,22 +53,21 @@ export function HeaderComponent() {
         </div>
       ) : (
         <>
-          <PathfindingInfosComponent />
+          <GameVersionSelector />
+          <MethodologyInfos />
           <button
-            className="absolute mx-auto w-full"
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hover:bg-stone-600 px-4 py-2 rounded-md"
             onClick={() => setChooseCountryModalOpen(true)}
           >
-            <span className="hover:bg-stone-600 px-4   py-2 rounded-md">
-              {(gameState.country &&
-                gameData.countriesDataMap[gameState.countryCode ?? ""]?.name) ||
-                "Choose a Country"}
-            </span>
+            {(gameState.country &&
+              gameData.countriesDataMap[gameState.countryCode ?? ""]?.name) ||
+              "Choose a Country"}
           </button>
           <Modal
             isOpen={chooseCountryModalOpen}
             onClose={() => setChooseCountryModalOpen(false)}
           >
-            <CountrySelectionList></CountrySelectionList>
+            <CountrySelectionModal></CountrySelectionModal>
           </Modal>
           <div className="ml-auto flex flex-row items-center">
             <LocationSearchBar className="w-52" />

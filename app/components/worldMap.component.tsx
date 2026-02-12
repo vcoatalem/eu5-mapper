@@ -763,7 +763,7 @@ export function WorldMapComponent() {
       ))}
 
       <div className={`${isLoading ? "hidden" : "visible"}`}>
-        <GuiElement className="fixed top-2 left-5 right-5 z-50">
+        <GuiElement className="fixed top-2 max-h-12 left-5 right-5 z-50">
           {/* z-50 here is so that dropdowns from header show above of other guiElement */}
           <HeaderComponent />
         </GuiElement>

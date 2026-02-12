@@ -2,16 +2,17 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { ModalProviderContext } from "./modal.provider";
 import styles from "./modal.module.css";
 
 interface IModalContext {
   close: () => void;
 }
 
-const ModalContext = createContext<IModalContext | null>(null);
+export const ModalInstanceContext = createContext<IModalContext | null>(null);
 
 export function useModal() {
-  const ctx = useContext(ModalContext);
+  const ctx = useContext(ModalInstanceContext);
   if (!ctx) {
     throw new Error("useModal must be used within a Modal");
   }
@@ -28,6 +29,7 @@ interface IModalProps {
 export function Modal(props: IModalProps) {
   const { isOpen, onClose, preventClose, children } = props;
   const [mounted, setMounted] = useState(false);
+  const modalProvider = useContext(ModalProviderContext);
 
   useEffect(() => {
     setMounted(true); // ssr guard to avoid using portal on server render (not relevant in world map component that has disabled SSR, but playing it safe)
@@ -43,7 +45,8 @@ export function Modal(props: IModalProps) {
     onClose();
   };
 
-  const portalTarget = document.body; // todo: target a precise root instead ?
+  const portalTarget =
+    modalProvider?.modalRoot ?? document.body;
 
   return createPortal(
     <div className={styles.backdrop} onClick={handleBackdropClick}>
@@ -55,9 +58,9 @@ export function Modal(props: IModalProps) {
         role="dialog"
         aria-modal="true"
       >
-        <ModalContext.Provider value={{ close: onClose }}>
+        <ModalInstanceContext.Provider value={{ close: onClose }}>
           {children}
-        </ModalContext.Provider>
+        </ModalInstanceContext.Provider>
       </div>
     </div>,
     portalTarget,

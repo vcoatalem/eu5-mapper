@@ -1,4 +1,4 @@
-import { gameStateController } from "@/app/lib/gameState.controller";
+import { debouncedGameStateController } from "@/app/lib/gameState.controller";
 import { IWorkerTaskComputeProximityResult } from "@/workers/types/workerTypes";
 import { Observable } from "./observable";
 import { GraphStats, PathfindingResult } from "./types/pathfinding";
@@ -57,7 +57,7 @@ export class ProximityComputationController extends Observable<IProximityComputa
         this.notifyListeners();
       }
     });
-    gameStateController.debounce(10).subscribe((gameState) => {
+    debouncedGameStateController.subscribe((gameState) => {
       this.subject.status = "updating";
       this.notifyListeners();
       workerManager.queueTask({

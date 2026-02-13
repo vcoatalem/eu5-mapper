@@ -14,8 +14,10 @@ import {
 } from "./types/general";
 
 const baseCountryValues: IGameState["country"] = {
-  centralizationVsDecentralization: 0,
-  landVsNaval: 0,
+  values: {
+    centralizationVsDecentralization: 0,
+    landVsNaval: 0,
+  },
   rulerAdministrativeAbility: 50,
 };
 
@@ -250,16 +252,21 @@ export class GameStateController extends Observable<IGameState> {
       if (!country) {
         throw new Error(`Unknown country code: ${countryCode}`);
       }
-      const capitalLocation = CountriesHelper.getCountryBaseCapitalLocation(countryCode, this.gameData?.countriesDataMap!);
+      const capitalLocation = CountriesHelper.getCountryBaseCapitalLocation(
+        countryCode,
+        this.gameData?.countriesDataMap!,
+      );
       this.subject.capitalLocation = capitalLocation;
       const locationsToAcquire = country.locations;
       if (locationsToAcquire) {
         this.acquireLocations(locationsToAcquire, false);
         this.subject.countryCode = countryCode;
         this.subject.country = {
-          centralizationVsDecentralization:
-            country.centralizationVsDecentralization,
-          landVsNaval: country.landVsNaval,
+          values: {
+            centralizationVsDecentralization:
+              country.centralizationVsDecentralization,
+            landVsNaval: country.landVsNaval,
+          },
           rulerAdministrativeAbility: 50,
         };
       }
@@ -275,31 +282,33 @@ export class GameStateController extends Observable<IGameState> {
   }
 
   public changeCountryValues(value: Partial<ICountryValues>): void {
+    if (!this.subject.country?.values) {
+      return;
+    }
     if (
-      value.centralizationVsDecentralization &&
+      typeof value.centralizationVsDecentralization === "number" &&
       value.centralizationVsDecentralization <= 100 &&
       value.centralizationVsDecentralization >= -100
     ) {
-      this.subject.country.centralizationVsDecentralization =
+      this.subject.country.values.centralizationVsDecentralization =
         value.centralizationVsDecentralization;
     }
 
     if (
-      value.landVsNaval &&
+      typeof value.landVsNaval === "number" &&
       value.landVsNaval <= 100 &&
       value.landVsNaval >= -100
     ) {
-      this.subject.country.landVsNaval = value.landVsNaval;
+      this.subject.country.values.landVsNaval = value.landVsNaval;
     }
+    this.notifyListeners();
+  }
 
-    if (
-      value.rulerAdministrativeAbility &&
-      value.rulerAdministrativeAbility <= 100 &&
-      value.rulerAdministrativeAbility >= 0
-    ) {
-      this.subject.country.rulerAdministrativeAbility =
-        value.rulerAdministrativeAbility;
+  public changeCountryRulerAdministrativeAbility(value: number): void {
+    if (!this.subject.country) {
+      return;
     }
+    this.subject.country.rulerAdministrativeAbility = value;
     this.notifyListeners();
   }
 
@@ -338,3 +347,5 @@ export class GameStateController extends Observable<IGameState> {
   }
 }
 export const gameStateController = new GameStateController();
+
+export const debouncedGameStateController = gameStateController.debounce(50);

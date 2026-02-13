@@ -21,6 +21,7 @@ import { IGameData } from "@/app/lib/types/general";
 import { CompactGraph } from "@/app/lib/graph";
 import { ParserHelper } from "@/app/lib/parser.helper";
 import { ProximityComputationHelper } from "@/app/lib/proximityComputation.helper";
+import { ProximityBuffsRecord } from "@/app/lib/classes/countryProximityBuffs";
 
 const connection = new IndexedDBReader(dbName, dbVersion, dbStoreNames);
 
@@ -82,6 +83,39 @@ self.onmessage = async function (e: MessageEvent<IWorkerTask>) {
         const taskPayload = e.data
           .payload as IWorkerTaskComputeProximityPayload;
         const { gameState } = taskPayload;
+        if (!gameState.capitalLocation) {
+          sendMessage(self, {
+            message:
+              "No capital location defined for the country - skipping computation",
+            level: "result",
+            task: {
+              id: e.data.id,
+              type: e.data.type,
+              payload: e.data,
+            },
+            data: { result: {} },
+          });
+          return;
+        }
+
+        // debug log of proximity modifiers
+        const proximityBuffs = new ProximityBuffsRecord(
+          gameData.proximityComputationRule,
+          gameState.country,
+        );
+
+        const landProximityBuffs =
+          proximityBuffs.getBuffsOfType("landModifier");
+        const seaProximityBuffs = proximityBuffs.getBuffsOfType(
+          "seaWithMaritimeFlatCostReduction",
+        );
+        sendMessage(self, {
+          data: { proximityBuffs, landProximityBuffs, seaProximityBuffs },
+          message: "Proximity buffs computed",
+          level: "log",
+          task: e.data,
+        });
+
         const resultPayload: IWorkerTaskComputeProximityResult = {
           result: ProximityComputationHelper.getGameStateProximityComputation(
             gameState,
@@ -89,7 +123,7 @@ self.onmessage = async function (e: MessageEvent<IWorkerTask>) {
             graph,
             {
               allowUnownedLocations: true, // allow passing over unowned
-              /* logForLocations: ["strait_of_dover"], */
+              logForLocations: ["strait_of_dover", "windsor"],
               logMethod: (message: string, data?: Record<string, unknown>) => {
                 sendMessage(self, {
                   data: data ?? null,

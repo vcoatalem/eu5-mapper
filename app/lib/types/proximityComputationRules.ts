@@ -1,8 +1,15 @@
-import { RoadType } from "./general";
+import { ILocationGameData, RoadType } from "./general";
 
-interface IValueImpact {
-  percentageModifier: 10;
-  flatModifier: 0;
+export interface IProximityBuffs {
+  genericModifier?: number;
+  landModifier?: number;
+  genericFlatModifier?: number;
+  seaWithMaritimeFlatCostReduction?: number;
+  seaWithoutMaritimeFlatCostReduction?: number;
+  portFlatCostReduction?: number;
+  topographyMultipliers?: Partial<
+    Record<ILocationGameData["topography"], number>
+  >;
 }
 
 export interface IProximityComputationRule {
@@ -32,8 +39,8 @@ export interface IProximityComputationRule {
   developmentImpact: number;
   harborCapacityImpact: number;
   valuesImpact: {
-    landVsNaval: [IValueImpact, IValueImpact];
-    centralizationVsDecentralization: [IValueImpact, IValueImpact];
+    landVsNaval: [IProximityBuffs, IProximityBuffs];
+    centralizationVsDecentralization: [IProximityBuffs, IProximityBuffs];
   };
   rulerAdministrativeAbilityImpact: number;
   roadProximityCostReduction: Record<RoadType, number>;

@@ -12,13 +12,7 @@ export type RoadType =
   | "rail_road";
 export type BuildingType = "rural" | "urban" | "city" | "common";
 
-// all data in this instances of this interface should be read-only after init.
-// they represent the static game data that is loaded into the game at the start of a new game
-export interface ILocationGameData {
-  name: string;
-  hexColor: string;
-  centerCoordinates: ICoordinate;
-  topography:
+export type Topography =
   | "unknown"
   | "hills"
   | "wetlands"
@@ -33,7 +27,8 @@ export interface ILocationGameData {
   | "ocean_wasteland"
   | "mountain_wasteland"
   | "high_lakes";
-  vegetation:
+
+export type Vegetation =
   | null
   | "farmland"
   | "forest"
@@ -42,6 +37,15 @@ export interface ILocationGameData {
   | "sparse"
   | "jungle"
   | "desert";
+
+// all data in this instances of this interface should be read-only after init.
+// they represent the static game data that is loaded into the game at the start of a new game
+export interface ILocationGameData {
+  name: string;
+  hexColor: string;
+  centerCoordinates: ICoordinate;
+  topography: Topography;
+  vegetation: Vegetation;
   isSea?: boolean;
   isLake?: boolean;
   ownable?: boolean;
@@ -61,7 +65,6 @@ export interface ILocationGameData {
   development: number; // can me modified , in other interface (ILocationTemporaryData ?)
   population: number; // can me modified , in other interface (ILocationTemporaryData ?)
 }
-
 
 export type PlacementRestrictions =
   | "is_coastal"
@@ -109,7 +112,7 @@ export type RoadRecord = Record<
 
 export interface IGameState {
   countryCode: string | null;
-  country: ICountryValues;
+  country: ICountryInstance | null;
   roads: RoadRecord;
   ownedLocations: Record<ILocationIdentifier, IConstructibleLocation>;
   capitalLocation?: ILocationIdentifier;
@@ -139,10 +142,14 @@ export interface ICountryData {
   flagUrl: string | null;
 }
 
+export interface ICountryInstance {
+  values: ICountryValues;
+  rulerAdministrativeAbility: number; // from 0 to 100, higher means more impact of proximity on the country
+}
+
 export interface ICountryValues {
-  centralizationVsDecentralization: ICountryData["centralizationVsDecentralization"];
-  landVsNaval: ICountryData["landVsNaval"];
-  rulerAdministrativeAbility: number; // from 0 to 100
+  centralizationVsDecentralization: number;
+  landVsNaval: number;
 }
 
 export interface IGameData {

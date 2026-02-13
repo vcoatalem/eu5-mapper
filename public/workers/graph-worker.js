@@ -393,6 +393,111 @@
     }
   };
 
+  // app/lib/classes/countryProximityBuffs.ts
+  var ProximityBuffsRecord = class {
+    constructor(rule, country) {
+      this.rule = rule;
+      this.country = country;
+      this.countryProximityBuffs = {};
+      const navalVsLand = this.computeCountryValuesBuff("landVsNaval");
+      const centralizationVsDecentralization = this.computeCountryValuesBuff(
+        "centralizationVsDecentralization"
+      );
+      const rulerAdministrativeAbility = {
+        genericModifier: (country?.rulerAdministrativeAbility ?? 0) * rule.rulerAdministrativeAbilityImpact
+      };
+      this.countryProximityBuffs = {
+        navalVsLand,
+        centralizationVsDecentralization,
+        rulerAdministrativeAbility
+      };
+    }
+    computeCountryValuesBuff(valueKey) {
+      const value = this.country?.values[valueKey];
+      if (typeof value !== "number" || value === 0) {
+        return {};
+      }
+      const buffToApply = value > 0 ? this.rule.valuesImpact[valueKey][1] : this.rule.valuesImpact[valueKey][0];
+      if (!buffToApply || typeof buffToApply !== "object") {
+        console.error(
+          "[ProximityBuffsRecord] Invalid buff definition for",
+          valueKey,
+          buffToApply
+        );
+        return {};
+      }
+      const impactFactor = Math.abs(value) / 100;
+      const res = {};
+      const allowedKeys = [
+        "genericModifier",
+        "landModifier",
+        "genericFlatModifier",
+        "seaWithMaritimeFlatCostReduction",
+        "seaWithoutMaritimeFlatCostReduction",
+        "portFlatCostReduction",
+        "topographyMultipliers"
+      ];
+      for (const key of Object.keys(buffToApply)) {
+        if (!allowedKeys.includes(key)) {
+          console.error(
+            "[ProximityBuffsRecord] Unknown buff key for",
+            valueKey,
+            "key:",
+            key,
+            "buff:",
+            buffToApply
+          );
+          continue;
+        }
+        if (key === "topographyMultipliers") {
+          const source = buffToApply.topographyMultipliers;
+          if (!source) {
+            continue;
+          }
+          const topographyBuffs = {};
+          for (const topographyKey of Object.keys(source)) {
+            const topographyValue = source[topographyKey];
+            if (typeof topographyValue === "number") {
+              topographyBuffs[topographyKey] = topographyValue * impactFactor;
+            }
+          }
+          if (Object.keys(topographyBuffs).length > 0) {
+            res.topographyMultipliers = topographyBuffs;
+          }
+        } else {
+          const numericKey = key;
+          const buffToApplyValue = buffToApply[numericKey];
+          if (typeof buffToApplyValue === "number") {
+            res[numericKey] = buffToApplyValue * impactFactor;
+          }
+        }
+      }
+      return res;
+    }
+    getBuffsOfType(type, topography) {
+      const buffRecord = Object.fromEntries(
+        Object.entries(this.countryProximityBuffs).map(
+          ([buffName, buffEffects]) => {
+            const buffEffect = buffEffects[type];
+            switch (typeof buffEffect) {
+              case "number":
+                return [buffName, buffEffect];
+              case "object":
+                const topographyBuff = buffEffect[topography ?? "unknown"] ?? 0;
+                return [buffName, topographyBuff];
+              default:
+                return [buffName, 0];
+            }
+          }
+        )
+      );
+      return {
+        buffRecord,
+        sum: Object.values(buffRecord).reduce((a, b) => a + b, 0)
+      };
+    }
+  };
+
   // app/lib/proximityComputation.helper.ts
   var logProximityComputation = (location, options, message, data) => {
     if (!options.logMethod || !options.logForLocations)
@@ -428,36 +533,29 @@
       }
       return proximitySourceLocations;
     }
-    static getFlatProximityCost(edgeType, gameState, rule, maritimePresence, roadToDestination) {
+    static getFlatProximityCost(edgeType, rule, maritimePresence, roadToDestination, proximityBuffs) {
       const baseCost = edgeType.includes("river") ? rule.baseRiverCost : rule.baseCost;
       const isImpactedByRoad = edgeType === "land";
       const isNaval = edgeType === "sea" || edgeType === "lake" || !rule.throughSeaEdgeCountedAsLandProximity && edgeType === "through-sea";
+      if (edgeType === "port") {
+        const portFlatCostReduction = proximityBuffs.getBuffsOfType("portFlatCostReduction").sum ?? 0;
+        return baseCost - portFlatCostReduction;
+      }
       if (!isNaval) {
-        const landFlatCostReduction = [
-          isImpactedByRoad && roadToDestination ? rule.roadProximityCostReduction[roadToDestination] : 0
-          // TODO: advances, policies, etc. providing flat reduction to land proximity
-        ].reduce((a, b) => a + b, 0);
-        return baseCost - landFlatCostReduction;
+        const roadFlatCostReduction = isImpactedByRoad && roadToDestination ? rule.roadProximityCostReduction[roadToDestination] : 0;
+        return baseCost - roadFlatCostReduction;
       } else {
-        const navalValueProximityCostReduction = gameState.country.landVsNaval > 0 ? rule.valuesImpact.landVsNaval[1].flatModifier * gameState.country.landVsNaval / 100 : 0;
         let normalizedMaritimePresence = edgeType === "lake" ? 1 : maritimePresence / 100;
         normalizedMaritimePresence = Math.max(
           0,
           Math.min(1, normalizedMaritimePresence)
         );
-        const flatProximityCostWithoutMaritimePresence = [
-          // ... advances, policies, etc. providing flat reduction to naval proximity without maritime presence
-        ].reduce((a, b) => a + b, 0);
-        const flatProximityCostWithMaritimePresence = [
-          navalValueProximityCostReduction
-          // ... advances, policies, etc. providing flat reduction to naval proximity with maritime presence
-        ].reduce((a, b) => a + b, 0);
-        const costWithoutMaritimePresence = rule.baseCostWithoutMaritimePresence - flatProximityCostWithoutMaritimePresence;
-        const costWithMaritimePresence = rule.baseCostWithMaritimePresence - flatProximityCostWithMaritimePresence;
+        const costWithoutMaritimePresence = rule.baseCostWithoutMaritimePresence - (proximityBuffs.getBuffsOfType("seaWithoutMaritimeFlatCostReduction").sum ?? 0);
+        const costWithMaritimePresence = rule.baseCostWithMaritimePresence - (proximityBuffs.getBuffsOfType("seaWithMaritimeFlatCostReduction").sum ?? 0);
         return costWithoutMaritimePresence * (1 - normalizedMaritimePresence) + costWithMaritimePresence * normalizedMaritimePresence;
       }
     }
-    static getTransportationModeProximityCostModifiers(from, to, transportationMode, gameData2, gameState, roadType, options) {
+    static getTransportationModeProximityCostModifiers(from, to, transportationMode, gameData2, gameState, roadType, proximityBuffs, options) {
       switch (transportationMode) {
         case "land":
           if (from in gameState.ownedLocations || options.allowUnownedLocations) {
@@ -465,11 +563,11 @@
               gameData2.locationDataMap[from],
               gameState.ownedLocations[from],
               gameData2,
-              gameState.country,
               {
                 discardVegetationModifiers: !!roadType,
                 discardVegetationAndTopographyModifiers: false
               },
+              proximityBuffs,
               options
             );
           } else {
@@ -493,11 +591,11 @@
               gameData2.locationDataMap[locationWithHarbor],
               gameState.ownedLocations[locationWithHarbor],
               gameData2,
-              gameState.country,
               {
                 discardVegetationAndTopographyModifiers: true,
                 discardVegetationModifiers: true
               },
+              proximityBuffs,
               options
             );
             logProximityComputation(
@@ -513,19 +611,27 @@
           return 0;
       }
     }
-    static getGenericCountryProximityCostModifiers(country, rule) {
+    /*   private static getGenericCountryProximityCostModifiers(
+      country: ICountryValues,
+      rule: IProximityComputationRule,
+    ): number {
       return [
-        country.centralizationVsDecentralization < 0 ? Math.abs(country.centralizationVsDecentralization) * rule.valuesImpact.centralizationVsDecentralization[0].percentageModifier / 100 : 0,
-        country.rulerAdministrativeAbility * rule.rulerAdministrativeAbilityImpact
+        country.centralizationVsDecentralization < 0
+          ? (Math.abs(country.centralizationVsDecentralization) *
+              rule.valuesImpact.centralizationVsDecentralization[0]
+                .percentageModifier) /
+            100
+          : 0,
+        country.rulerAdministrativeAbility *
+          rule.rulerAdministrativeAbilityImpact,
       ].reduce((a, b) => a + b, 0);
-    }
-    static getPercentageProximityCostModifiers(from, to, edgeType, gameData2, gameState, options, roadType) {
+    } */
+    static getPercentageProximityCostModifiers(from, to, edgeType, gameData2, gameState, proximityBuffs, options, roadType) {
       const rule = gameData2.proximityComputationRule;
-      const modifiers = [];
       const toLocationData = gameData2.locationDataMap[to];
       const isNaval = toLocationData.isSea || toLocationData.isLake;
       const transportationMode = edgeType === "port" || edgeType === "port-river" ? "harbor" : isNaval || !rule.throughSeaEdgeCountedAsLandProximity && edgeType === "through-sea" ? "naval" : edgeType === "coastal" ? "coastal" : "land";
-      modifiers.push(
+      const modifiers = [
         this.getTransportationModeProximityCostModifiers(
           from,
           to,
@@ -533,14 +639,11 @@
           gameData2,
           gameState,
           roadType,
+          proximityBuffs,
           options
         ),
-        // generic proximity modifiers go here
-        this.getGenericCountryProximityCostModifiers(
-          gameState.country,
-          gameData2.proximityComputationRule
-        )
-      );
+        proximityBuffs.getBuffsOfType("genericModifier").sum ?? 0
+      ];
       logProximityComputation([from, to], options, "Proximity cost modifiers", {
         from,
         to,
@@ -561,6 +664,10 @@
         const road = gameState.roads[from]?.find(
           ({ to: roadTo }) => roadTo === to
         );
+        const countryProximityBuffs = new ProximityBuffsRecord(
+          rule,
+          gameState.country
+        );
         if (!rule.throughSeaEdgeCountedAsLandProximity && throughSeaLocation && edgeType === "through-sea") {
           from = throughSeaLocation;
         }
@@ -570,10 +677,10 @@
         );
         const baseCost = this.getFlatProximityCost(
           edgeType,
-          gameState,
           rule,
           maritimePresence,
-          road?.type ?? null
+          road?.type ?? null,
+          countryProximityBuffs
         );
         logProximityComputation([from, to], options, "Base proximity cost", {
           from,
@@ -593,6 +700,7 @@
           edgeType,
           gameData2,
           gameState,
+          countryProximityBuffs,
           options,
           road?.type ?? null
         );
@@ -693,7 +801,7 @@
     const totalEnvironmentalCostIncrease = topographyCostIncreasePercentage + vegetationCostIncreasePercentage;
     return totalEnvironmentalCostIncrease;
   };
-  _ProximityComputationHelper.getLandLocationProximityModifiers = (location, locationConstructibleData, gameData2, country, behaviour, options) => {
+  _ProximityComputationHelper.getLandLocationProximityModifiers = (location, locationConstructibleData, gameData2, behaviour, proximityBuffs, options) => {
     if (location.isSea || location.isLake || !location.ownable) {
       return 0;
     }
@@ -710,28 +818,21 @@
     );
     const development = location.development;
     const developmentCostReduction = development * gameData2.proximityComputationRule.developmentImpact;
-    const countryLandProximityModifiers = [
-      country.landVsNaval < 0 ? Math.abs(country.landVsNaval) * gameData2.proximityComputationRule.valuesImpact.landVsNaval[0].percentageModifier / 100 : 0
-      // advances, estate privileges, etc.
-    ];
-    const countryLandProximityReduction = countryLandProximityModifiers.reduce(
-      (a, b) => a + b,
-      0
-    );
+    const landModifierFromBuffs = proximityBuffs.getBuffsOfType("landModifier");
     logProximityComputation(
       location.name,
       options,
       "Land location proximity modifiers",
       {
         totalBuildingsCostReduction,
-        countryLandProximityReduction,
+        landModifierFromBuffs,
         developmentCostReduction,
         environmentalProximityCostIncreasePercentage
       }
     );
     const total = (
       // positive proximity (cost reduction)
-      totalBuildingsCostReduction + countryLandProximityReduction + developmentCostReduction - // negative proximity (cost increase)
+      totalBuildingsCostReduction + landModifierFromBuffs.sum + developmentCostReduction - // negative proximity (cost increase)
       environmentalProximityCostIncreasePercentage
     );
     return total;
@@ -859,6 +960,33 @@
           }
           const taskPayload = e.data.payload;
           const { gameState } = taskPayload;
+          if (!gameState.capitalLocation) {
+            sendMessage(self, {
+              message: "No capital location defined for the country - skipping computation",
+              level: "result",
+              task: {
+                id: e.data.id,
+                type: e.data.type,
+                payload: e.data
+              },
+              data: { result: {} }
+            });
+            return;
+          }
+          const proximityBuffs = new ProximityBuffsRecord(
+            gameData.proximityComputationRule,
+            gameState.country
+          );
+          const landProximityBuffs = proximityBuffs.getBuffsOfType("landModifier");
+          const seaProximityBuffs = proximityBuffs.getBuffsOfType(
+            "seaWithMaritimeFlatCostReduction"
+          );
+          sendMessage(self, {
+            data: { proximityBuffs, landProximityBuffs, seaProximityBuffs },
+            message: "Proximity buffs computed",
+            level: "log",
+            task: e.data
+          });
           const resultPayload = {
             result: ProximityComputationHelper.getGameStateProximityComputation(
               gameState,
@@ -867,7 +995,7 @@
               {
                 allowUnownedLocations: true,
                 // allow passing over unowned
-                /* logForLocations: ["strait_of_dover"], */
+                logForLocations: ["strait_of_dover", "windsor"],
                 logMethod: (message, data) => {
                   sendMessage(self, {
                     data: data ?? null,

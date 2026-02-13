@@ -167,6 +167,12 @@ def compare_outputs(
                     write_location_data_map_diff(app_path, game_path, diff_path)
                     diffs.append(f"{filename}: detailed diff (see {diff_path})")
                     continue
+                if filename == "buildings-template.json":
+                    os.makedirs(diff_dir, exist_ok=True)
+                    diff_path = os.path.join(diff_dir, "buildings-template.json.diff.txt")
+                    write_buildings_template_diff(app_path, game_path, diff_path)
+                    diffs.append(f"{filename}: detailed diff (see {diff_path})")
+                    continue
                 summary = summarize_json_diff(app_json, game_json)
                 diffs.append(f"{filename}: {summary}")
         elif filename.lower().endswith(".png"):
@@ -308,6 +314,74 @@ def main() -> None:
     print(f"\nReport written to: {report_path}")
     print(f"Outputs written to: {output_base}")
 
+
+
+# --- New function for buildings-template.json diff ---
+def write_buildings_template_diff(app_path: str, game_path: str, diff_path: str) -> None:
+    app_json = load_json(app_path)
+    game_json = load_json(game_path)
+
+    if not isinstance(app_json, dict) or not isinstance(game_json, dict):
+        return
+
+    app_keys = set(app_json.keys())
+    game_keys = set(game_json.keys())
+    only_app = sorted(app_keys - game_keys)
+    only_game = sorted(game_keys - app_keys)
+    common_keys = sorted(app_keys & game_keys)
+
+    lines: list[str] = []
+    lines.append(f"File: buildings-template.json")
+    lines.append(f"App: {app_path}")
+    lines.append(f"Game: {game_path}")
+    lines.append("")
+    lines.append(f"Only app: {len(only_app)}")
+    if only_app:
+        lines.append(", ".join(only_app))
+    lines.append("")
+    lines.append(f"Only game: {len(only_game)}")
+    if only_game:
+        lines.append(", ".join(only_game))
+
+    lines.append("")
+    lines.append("Differences by building:")
+    for key in common_keys:
+        app_val = app_json.get(key)
+        game_val = game_json.get(key)
+        if not (isinstance(app_val, dict) and isinstance(game_val, dict)):
+            if app_val != game_val:
+                lines.append("")
+                lines.append(f"building: {key}")
+                lines.append(f"  app: {app_val}")
+                lines.append(f"  game: {game_val}")
+            continue
+
+        # Compare all fields except 'buildable'
+        app_fields = set(app_val.keys())
+        game_fields = set(game_val.keys())
+        all_fields = sorted(app_fields | game_fields)
+        field_diff_found = False
+        for field in all_fields:
+            if field == "buildable":
+                continue  # Ignore this field in diff
+            a_field = app_val.get(field)
+            g_field = game_val.get(field)
+            if a_field != g_field:
+                if not field_diff_found:
+                    lines.append("")
+                    lines.append(f"building: {key}")
+                    field_diff_found = True
+                if field == "modifiers":
+                    lines.append(f"  >>> modifiers differ <<<")
+                    lines.append(f"    app: {a_field}")
+                    lines.append(f"    game: {g_field}")
+                else:
+                    lines.append(f"  {field} app: {a_field}")
+                    lines.append(f"  {field} game: {g_field}")
+
+    os.makedirs(os.path.dirname(diff_path), exist_ok=True)
+    with open(diff_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
 
 if __name__ == "__main__":
     main()

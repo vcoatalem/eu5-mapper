@@ -19,29 +19,29 @@ export interface ILocationGameData {
   hexColor: string;
   centerCoordinates: ICoordinate;
   topography:
-    | "unknown"
-    | "hills"
-    | "wetlands"
-    | "mountains"
-    | "flatlands"
-    | "lakes"
-    | "plateau"
-    | "ocean"
-    | "coastal_ocean"
-    | "narrows"
-    | "inland_sea"
-    | "ocean_wasteland"
-    | "mountain_wasteland"
-    | "high_lakes";
+  | "unknown"
+  | "hills"
+  | "wetlands"
+  | "mountains"
+  | "flatlands"
+  | "lakes"
+  | "plateau"
+  | "ocean"
+  | "coastal_ocean"
+  | "narrows"
+  | "inland_sea"
+  | "ocean_wasteland"
+  | "mountain_wasteland"
+  | "high_lakes";
   vegetation:
-    | null
-    | "farmland"
-    | "forest"
-    | "woods"
-    | "grasslands"
-    | "sparse"
-    | "jungle"
-    | "desert";
+  | null
+  | "farmland"
+  | "forest"
+  | "woods"
+  | "grasslands"
+  | "sparse"
+  | "jungle"
+  | "desert";
   isSea?: boolean;
   isLake?: boolean;
   ownable?: boolean;
@@ -62,15 +62,21 @@ export interface ILocationGameData {
   population: number; // can me modified , in other interface (ILocationTemporaryData ?)
 }
 
+
 export type PlacementRestrictions =
   | "is_coastal"
-  | "is_on_river"
-  | "is_on_lake"
-  | "has_road";
+  | "has_river"
+  | "is_adjacent_to_lake"
+  | "has_road"
+  | "is_capital";
 
-interface IPlacementRestrictionConfig {
-  mode: "all" | "any"; // 'all' = every condition must be met, 'any' = at least one condition must be met
-  conditions: PlacementRestrictions[];
+export type PlacementRestrictionCondition =
+  | PlacementRestrictions
+  | IPlacementRestrictionConfig;
+
+export interface IPlacementRestrictionConfig {
+  mode: "AND" | "OR";
+  conditions: PlacementRestrictionCondition[];
 }
 
 export interface IBuildingTemplate {

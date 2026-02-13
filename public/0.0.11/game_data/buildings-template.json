@@ -1,0 +1,233 @@
+{
+    "bridge_infrastructure": {
+        "name": "bridge_infrastructure",
+        "type": "common",
+        "upgrade": null,
+        "downgrade": null,
+        "cap": 1.0,
+        "modifiers": {
+            "localProximityCostModifier": -0.05
+        },
+        "buildable": true
+    },
+    "pound_lock_canal_infrastructure": {
+        "name": "pound_lock_canal_infrastructure",
+        "type": "city",
+        "upgrade": null,
+        "downgrade": null,
+        "cap": 1.0,
+        "modifiers": {
+            "localProximityCostModifier": -0.05
+        },
+        "buildable": true
+    },
+    "dock": {
+        "name": "dock",
+        "type": "urban",
+        "upgrade": "dry_dock",
+        "downgrade": null,
+        "cap": 1.0,
+        "modifiers": {
+            "harborSuitability": 0.1
+        },
+        "buildable": true
+    },
+    "dry_dock": {
+        "name": "dry_dock",
+        "type": "urban",
+        "upgrade": "shipyard",
+        "downgrade": "dock",
+        "cap": 1.0,
+        "modifiers": {
+            "harborSuitability": 0.15
+        },
+        "buildable": true
+    },
+    "shipyard": {
+        "name": "shipyard",
+        "type": "urban",
+        "upgrade": "grand_shipyard",
+        "downgrade": "dry_dock",
+        "cap": 1.0,
+        "modifiers": {
+            "harborSuitability": 0.2
+        },
+        "buildable": true
+    },
+    "grand_shipyard": {
+        "name": "grand_shipyard",
+        "type": "urban",
+        "upgrade": "naval_base",
+        "downgrade": "shipyard",
+        "cap": 1.0,
+        "modifiers": {
+            "harborSuitability": 0.25
+        },
+        "buildable": true
+    },
+    "naval_base": {
+        "name": "naval_base",
+        "type": "urban",
+        "upgrade": null,
+        "downgrade": "grand_shipyard",
+        "cap": 1.0,
+        "modifiers": {
+            "harborSuitability": 0.3
+        },
+        "buildable": true
+    },
+    "protected_harbor": {
+        "name": "protected_harbor",
+        "type": "urban",
+        "upgrade": null,
+        "downgrade": null,
+        "cap": 1.0,
+        "modifiers": {
+            "harborSuitability": 0.1
+        },
+        "buildable": true
+    },
+    "bailiff": {
+        "name": "bailiff",
+        "type": "rural",
+        "upgrade": null,
+        "downgrade": null,
+        "cap": 1.0,
+        "modifiers": {
+            "localProximitySource": 20.0
+        },
+        "buildable": true
+    },
+    "fishing_village": {
+        "name": "fishing_village",
+        "type": "rural",
+        "upgrade": null,
+        "downgrade": null,
+        "cap": null,
+        "modifiers": {
+            "harborSuitability": 0.02
+        },
+        "buildable": true
+    },
+    "kilwan_shipwrights": {
+        "name": "kilwan_shipwrights",
+        "type": "rural",
+        "upgrade": null,
+        "downgrade": null,
+        "cap": 1.0,
+        "modifiers": {
+            "harborSuitability": 0.05
+        },
+        "buildable": true
+    },
+    "wharf": {
+        "name": "wharf",
+        "type": "urban",
+        "upgrade": null,
+        "downgrade": null,
+        "cap": 1.0,
+        "modifiers": {
+            "harborSuitability": 0.1
+        },
+        "buildable": true
+    },
+    "hanseatic_shipwright_guild": {
+        "name": "hanseatic_shipwright_guild",
+        "type": "urban",
+        "upgrade": null,
+        "downgrade": null,
+        "cap": null,
+        "modifiers": {
+            "harborSuitability": 0.1
+        },
+        "buildable": true
+    },
+    "venetian_arsenal": {
+        "name": "venetian_arsenal",
+        "type": "urban",
+        "upgrade": null,
+        "downgrade": null,
+        "cap": 1.0,
+        "modifiers": {
+            "harborSuitability": 0.2
+        },
+        "buildable": true
+    },
+    "copenhagen_dockyard": {
+        "name": "copenhagen_dockyard",
+        "type": "urban",
+        "upgrade": null,
+        "downgrade": null,
+        "cap": 1.0,
+        "modifiers": {
+            "harborSuitability": 0.2
+        },
+        "buildable": true
+    },
+    "lieutenancy": {
+        "name": "lieutenancy",
+        "type": "urban",
+        "upgrade": "viceroyalty",
+        "downgrade": null,
+        "cap": 1.0,
+        "modifiers": {
+            "localProximitySource": 25.0
+        },
+        "buildable": true
+    },
+    "viceroyalty": {
+        "name": "viceroyalty",
+        "type": "urban",
+        "upgrade": null,
+        "downgrade": "lieutenancy",
+        "cap": 1.0,
+        "modifiers": {
+            "localProximitySource": 30.0
+        },
+        "buildable": true
+    },
+    "barcelona_royal_shipyard": {
+        "name": "barcelona_royal_shipyard",
+        "type": "urban",
+        "upgrade": null,
+        "downgrade": null,
+        "cap": 1.0,
+        "modifiers": {
+            "harborSuitability": 0.2
+        },
+        "buildable": true
+    },
+    "ostrog": {
+        "name": "ostrog",
+        "type": "rural",
+        "upgrade": null,
+        "downgrade": null,
+        "cap": 1.0,
+        "modifiers": {
+            "localProximityCostModifier": -0.1
+        },
+        "buildable": true
+    },
+    "kings_manor": {
+        "name": "kings_manor",
+        "type": "urban",
+        "upgrade": null,
+        "downgrade": null,
+        "cap": 1.0,
+        "modifiers": {
+            "localProximitySource": 50.0
+        },
+        "buildable": true
+    },
+    "seljuk_mint": {
+        "name": "seljuk_mint",
+        "type": "urban",
+        "upgrade": null,
+        "downgrade": null,
+        "cap": 4.0,
+        "modifiers": {
+            "localProximityCostModifier": -0.25
+        },
+        "buildable": true
+    }
+}

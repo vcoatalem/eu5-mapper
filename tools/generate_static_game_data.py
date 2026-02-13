@@ -33,6 +33,7 @@ from game_data_utils import (
     LocationHierarchy,
     DevelopmentRules
 )
+from generate_buildings_template import generate_buildings_template
 
 
 def calculate_river_size_coefficient(river_hex_colors: List[str]) -> float:
@@ -462,11 +463,18 @@ def generate_game_data_json(
     # Write output files
     # Convert CountryData objects to dicts for JSON serialization
     countries_data_map_serializable = {k: asdict(v) for k, v in countries_data_map.items()}
+    buildings_template_map = generate_buildings_template(
+        version,
+        None,
+        source=source,
+        game_root_path=game_root_path
+    )
     output_files = {
         "location-data-map.json": location_data_map,
         "color-to-name-map.json": color_to_name,
         "countries-data-map.json": countries_data_map_serializable,
-        "roads.json": roads
+        "roads.json": roads,
+        "buildings-template.json": buildings_template_map
     }
     
     total_size = 0

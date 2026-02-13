@@ -12,36 +12,40 @@ export type RoadType =
   | "rail_road";
 export type BuildingType = "rural" | "urban" | "city" | "common";
 
+export type Topography =
+  | "unknown"
+  | "hills"
+  | "wetlands"
+  | "mountains"
+  | "flatlands"
+  | "lakes"
+  | "plateau"
+  | "ocean"
+  | "coastal_ocean"
+  | "narrows"
+  | "inland_sea"
+  | "ocean_wasteland"
+  | "mountain_wasteland"
+  | "high_lakes";
+
+export type Vegetation =
+  | null
+  | "farmland"
+  | "forest"
+  | "woods"
+  | "grasslands"
+  | "sparse"
+  | "jungle"
+  | "desert";
+
 // all data in this instances of this interface should be read-only after init.
 // they represent the static game data that is loaded into the game at the start of a new game
 export interface ILocationGameData {
   name: string;
   hexColor: string;
   centerCoordinates: ICoordinate;
-  topography:
-    | "unknown"
-    | "hills"
-    | "wetlands"
-    | "mountains"
-    | "flatlands"
-    | "lakes"
-    | "plateau"
-    | "ocean"
-    | "coastal_ocean"
-    | "narrows"
-    | "inland_sea"
-    | "ocean_wasteland"
-    | "mountain_wasteland"
-    | "high_lakes";
-  vegetation:
-    | null
-    | "farmland"
-    | "forest"
-    | "woods"
-    | "grasslands"
-    | "sparse"
-    | "jungle"
-    | "desert";
+  topography: Topography;
+  vegetation: Vegetation;
   isSea?: boolean;
   isLake?: boolean;
   ownable?: boolean;
@@ -103,7 +107,7 @@ export type RoadRecord = Record<
 
 export interface IGameState {
   countryCode: string | null;
-  country: ICountryValues;
+  country: ICountryInstance | null;
   roads: RoadRecord;
   ownedLocations: Record<ILocationIdentifier, IConstructibleLocation>;
   capitalLocation?: ILocationIdentifier;
@@ -133,10 +137,14 @@ export interface ICountryData {
   flagUrl: string | null;
 }
 
+export interface ICountryInstance {
+  values: ICountryValues;
+  rulerAdministrativeAbility: number; // from 0 to 100, higher means more impact of proximity on the country
+}
+
 export interface ICountryValues {
-  centralizationVsDecentralization: ICountryData["centralizationVsDecentralization"];
-  landVsNaval: ICountryData["landVsNaval"];
-  rulerAdministrativeAbility: number; // from 0 to 100
+  centralizationVsDecentralization: number;
+  landVsNaval: number;
 }
 
 export interface IGameData {

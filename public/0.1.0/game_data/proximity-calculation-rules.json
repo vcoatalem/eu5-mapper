@@ -27,23 +27,17 @@
   "valuesImpact": {
     "landVsNaval": [
       {
-        "percentageModifier": 10,
-        "flatModifier": 0
+        "landModifier": 10
       },
       {
-        "percentageModifier": 0,
-        "flatModifier": 1
+        "seaWithMaritimeFlatCostReduction": 1
       }
     ],
     "centralizationVsDecentralization": [
       {
-        "percentageModifier": 10,
-        "flatModifier": 0
+        "genericModifier": 10
       },
-      {
-        "percentageModifier": 0,
-        "flatModifier": 0
-      }
+      {}
     ]
   },
   "rulerAdministrativeAbilityImpact": 0.1,

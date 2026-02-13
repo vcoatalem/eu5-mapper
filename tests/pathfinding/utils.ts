@@ -4,6 +4,7 @@ import { ILocationIdentifier } from "@/app/lib/types/general";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
+import crypto from "crypto";
 
 export const readReferenceFile = async (
   path: string,
@@ -715,9 +716,35 @@ export async function generateIndexFile(): Promise<void> {
     // Sort by country
     reports.sort((a, b) => a.country.localeCompare(b.country));
 
-    // Generate index HTML for this version
+    // Generate index HTML and deterministic hash for this version
     if (reports.length > 0) {
       const version = reports[0].version; // All reports in a version folder should have the same version
+
+      // Compute deterministic SHA-256 hash over all report metadata for this version
+      const hashPayload = reports.map((report) => ({
+        country: report.country,
+        version: report.version,
+        totalCount: report.totalCount,
+        goodCount: report.goodCount,
+        badCount: report.badCount,
+        successRate: report.successRate,
+        averageAbsoluteDifference: report.averageAbsoluteDifference,
+        proximityCorrectCount: report.proximityCorrectCount,
+        signCorrectCount: report.signCorrectCount,
+        signAccuracy: report.signAccuracy,
+        unrecognisedCount: report.unrecognisedCount,
+      }));
+
+      const hash = crypto
+        .createHash("sha256")
+        .update(JSON.stringify(hashPayload))
+        .digest("hex");
+
+      const hashFilePath = path.join(versionPath, "pathfinding.sha256");
+      await fsPromises.writeFile(hashFilePath, hash + "\n", "utf-8");
+      console.log(
+        `\n🔐 Pathfinding hash for version ${version}: ${hash} (saved to ${hashFilePath})`,
+      );
 
       const indexHtml = `<!DOCTYPE html>
 <html lang="en">
@@ -954,7 +981,8 @@ export async function generateIndexFile(): Promise<void> {
     
     <div class="footer">
       Generated on ${new Date().toLocaleString()} | 
-      Average Difference: lower is better
+      Average Difference: lower is better | 
+      run SHA: ${hash}
     </div>
   </div>
 </body>

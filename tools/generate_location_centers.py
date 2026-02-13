@@ -11,7 +11,7 @@ It combines two sources:
 
 Results are cached per version in tools/tmp/location_centers_<version>.json so
 subsequent runs can reuse the cached data, and also written as a proper
-output artifact in tools/output/{version}/location_centers_<version>.json.
+output artifact in game_data/computed_location_centers/{version}/location-centers.json.
 
 Usage:
     python3 generate_location_centers.py <version> [--no-cache]
@@ -179,12 +179,13 @@ def main() -> None:
     tmp_dir = os.path.join(script_dir, "tmp")
     os.makedirs(tmp_dir, exist_ok=True)
 
-    # Also write a versioned output file alongside other generated data
-    output_dir = os.path.join(script_dir, "output", version)
+    # Also write a versioned output file under game_data
+    project_root = os.path.dirname(script_dir)
+    output_dir = os.path.join(project_root, "game_data", "computed_location_centers", version)
     os.makedirs(output_dir, exist_ok=True)
 
     cache_path = os.path.join(tmp_dir, f"location_centers_{version}.json")
-    output_path = os.path.join(output_dir, f"location-centers.json")
+    output_path = os.path.join(output_dir, "location-centers.json")
 
     # If a cache already exists and --no-cache is NOT set, reuse the cached
     # centers instead of recomputing them, but still write the output file.

@@ -211,13 +211,20 @@ def compute_location_development(
     return float("{:.2f}".format(development)), breakdown
 
 
-def generate_game_data_json(version: str = "0.0.11", output_dir: str = None):
+def generate_game_data_json(
+    version: str = "0.0.11",
+    output_dir: str = None,
+    source: str = "app",
+    game_root_path: Optional[str] = None
+):
     """
     Generate static JSON files from game data.
     
     Args:
         version: Game version to load
         output_dir: Output directory (defaults to ../public/{version}/game_data/)
+        source: "app" (default) or "game"
+        game_root_path: Root path to the installed game (required for source="game")
     """
 
     # specific values to print
@@ -235,7 +242,7 @@ def generate_game_data_json(version: str = "0.0.11", output_dir: str = None):
     print(f"Loading game data for version {version}...")
     
     # Load all game data files
-    loader = GameDataLoader()
+    loader = GameDataLoader(source=source, game_root_path=game_root_path)
     files = loader.get_game_files_for_version(version)
     
     print("Parsing data files...")

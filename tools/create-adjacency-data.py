@@ -851,13 +851,16 @@ def main():
     results.sort()
 
 
-    # Create output directory
+    # Create output directories under game_data
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    output_dir = os.path.join(script_dir, 'output', version)
-    os.makedirs(output_dir, exist_ok=True)
+    project_root = os.path.dirname(script_dir)
+    adjacency_dir = os.path.join(project_root, 'game_data', 'computed_adjacency_data', version)
+    river_colors_dir = os.path.join(project_root, 'game_data', 'computed_river_colors', version)
+    os.makedirs(adjacency_dir, exist_ok=True)
+    os.makedirs(river_colors_dir, exist_ok=True)
     
     # Write output CSV
-    output_file = os.path.join(output_dir, 'adjacency-data.csv')
+    output_file = os.path.join(adjacency_dir, 'adjacency-data.csv')
     print(f"\nWriting to {output_file}...")
     with open(output_file, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
@@ -867,7 +870,7 @@ def main():
     
     # Write location-to-river-colors mapping
     # Derive from location_pair_to_rivers (aggregate all colors for each location)
-    river_colors_output = os.path.join(output_dir, 'location-river-colors.json')
+    river_colors_output = os.path.join(river_colors_dir, 'location-river-colors.json')
     print(f"\nWriting location-river-colors mapping to {river_colors_output}...")
     
     # Derive location_to_river_colors from location_pair_to_rivers
@@ -885,7 +888,7 @@ def main():
     print(f"✓ Wrote {len(river_colors_data)} locations with river data")
 
     # Write river classification application log
-    log_file = os.path.join(output_dir, 'apply_river_classification_logs.txt')
+    log_file = os.path.join(adjacency_dir, 'apply_river_classification_logs.txt')
     print(f"\nWriting river classification log to {log_file}...")
 
     # Helper to get per-location adjacency snapshot

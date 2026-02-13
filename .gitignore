@@ -47,7 +47,7 @@ tools/tmp/
 next-env.d.ts
 
 # python
-
+__pycache__/
 *.cpython-314.pyc
 
 workers/dist/*
@@ -58,3 +58,4 @@ tools/**/*.png
 
 tools/scrapping/classification_logs
 tools/scrapping/ocr_logs
+tools/output_compare/*

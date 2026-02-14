@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -14,6 +15,7 @@ interface ITooltipProps {
   forceOpen?: boolean; // override base behavior
   children: React.ReactNode;
   mouseCoordinates?: ICoordinate; // allow manually setting mouse coordinates for tooltip positioning when forceOpen is true
+  triggerRef?: React.RefObject<HTMLElement | null>; // optional ref to specify the trigger element, if not provided, Tooltip will create its own ref and expect it to be passed to TooltipTrigger
 }
 
 interface ITooltipInstanceContext {
@@ -34,18 +36,21 @@ export function Tooltip(props: ITooltipProps) {
     throw new Error("Tooltip must be used within a TooltipProvider");
   }
   const { defaultConfig } = tooltipProviderContext;
-  const mergedConfig: ITooltipConfig = {
-    ...defaultConfig,
-    ...props.config,
-  };
+  const mergedConfig = useMemo(() => {
+    return {
+      ...defaultConfig,
+      ...props.config,
+    };
+  }, [defaultConfig, props.config]);
   const [isOpen, setIsOpen] = useState(false);
   const [mouseCoordinates, setMouseCoordinates] = useState<ICoordinate | null>(
     null,
   );
-  const triggerRef = useRef<HTMLElement | null>(null);
+  const internalTriggerRef = useRef<HTMLElement | null>(null);
+  const triggerRef = props.triggerRef ?? internalTriggerRef;
   const openTimeout = useRef<number | null>(null);
   const closeTimeout = useRef<number | null>(null);
-  const open = (e: React.MouseEvent) => {
+  const open = useCallback((e: React.MouseEvent) => {
     if (props.forceOpen) return;
     if (closeTimeout.current) window.clearTimeout(closeTimeout.current);
     setMouseCoordinates({ x: e.clientX, y: e.clientY });
@@ -53,9 +58,9 @@ export function Tooltip(props: ITooltipProps) {
       () => setIsOpen(true),
       mergedConfig.openDelay,
     );
-  };
+  }, [props.forceOpen, mergedConfig.openDelay]);
 
-  const close = (e: React.MouseEvent) => {
+  const close = useCallback((e: React.MouseEvent) => {
     if (props.forceOpen) return;
     if (openTimeout.current) window.clearTimeout(openTimeout.current);
     setMouseCoordinates({ x: e.clientX, y: e.clientY });
@@ -63,7 +68,7 @@ export function Tooltip(props: ITooltipProps) {
       () => setIsOpen(false),
       mergedConfig.closeDelay,
     );
-  };
+  }, [props.forceOpen, mergedConfig.closeDelay]);
 
   useEffect(() => {
     if (props.forceOpen) {
@@ -88,7 +93,7 @@ export function Tooltip(props: ITooltipProps) {
       config: mergedConfig,
       mouseCoordinates: mouseCoordinates ?? { x: 0, y: 0 },
     }),
-    [isOpen, mergedConfig, mouseCoordinates],
+    [isOpen, mergedConfig, mouseCoordinates, triggerRef, open, close],
   );
 
   return (

@@ -11,7 +11,8 @@ import {
 } from "@/app/lib/locationSearchController";
 import { GuiElement } from "./guiElement";
 import { ActionSource } from "@/app/lib/actionSource.component";
-import Image from "next/image";
+import { StringHelper } from "@/app/lib/utils/string.helper";
+import { IoSearch } from "react-icons/io5";
 
 const LocationSearchResultItem = React.memo(function LocationSearchResultItem({
   locationSearchResult,
@@ -28,7 +29,9 @@ const LocationSearchResultItem = React.memo(function LocationSearchResultItem({
         id={locationSearchResult.name}
         className="hover:bg-stone-700 cursor-pointer px-1"
       >
-        <span>{locationSearchResult.name}</span>
+        <span>
+          {StringHelper.formatLocationName(locationSearchResult.name)}
+        </span>
         <span className="text-stone-500 italic">
           {" "}
           ({locationSearchResult.hierarchyType})
@@ -82,13 +85,7 @@ export function LocationSearchBar(props: { className?: string }) {
       }
       onMouseLeave={handleMouseLeave}
     >
-      <Image
-        src={"/icons/magnifyingGlass.svg"}
-        className="invert"
-        alt="magnifying glass"
-        width={24}
-        height={24}
-      ></Image>
+      <IoSearch color="white" size={24}></IoSearch>
       <input
         ref={inputRef}
         type="text"

@@ -6,9 +6,8 @@ import {
 } from "@/app/lib/shortestPath.controller";
 import { ILocationIdentifier } from "@/app/lib/types/general";
 import { Loader } from "./loader.component";
-import { DrawingHelper } from "../lib/drawing/drawing.helper";
-import { ColorHelper } from "../lib/drawing/color.helper";
 import { FormatedProximityCost } from "./formatedProximityCost.component";
+import { FormatedProximity } from "@/app/components/formatedProximity.component";
 
 interface IShortestPathComponentProps {
   location: ILocationIdentifier;
@@ -24,9 +23,11 @@ function ShortestPathDisplay(props: {
   return (
     <div>
       <span>
-        Closest proximity source: {proximityResult.sourceLocation} (
-        <span>{proximityResult.proximity}</span>){" "}
-        {/*TODO: helper to put proximity cost in a span with proper color applied (use in neighbors panel too)*/}
+        Closest proximity source: {proximityResult.sourceLocation}(
+        <FormatedProximity
+          proximity={proximityResult.proximity}
+        ></FormatedProximity>
+        )
       </span>
       <div className="flex flex-col gap-2">
         {proximityResult.path.map((step, index) => (
@@ -54,8 +55,13 @@ export function ShortestPathComponent(props: IShortestPathComponentProps) {
 
   const locationResult = result?.[props.location];
 
+  console.log({ locationResult });
+
   useEffect(() => {
-    if (!locationResult || locationResult.status === "needs_update") {
+    if (
+      props.location &&
+      (!locationResult || locationResult.status === "needs_update")
+    ) {
       shortestPathController.launchComputeShortestPathFromProximitySourceTask(
         props.location,
       );
@@ -74,6 +80,11 @@ export function ShortestPathComponent(props: IShortestPathComponentProps) {
           <ShortestPathDisplay
             proximityResult={locationResult.proximityResult}
           />
+        )}
+      {locationResult &&
+        locationResult.status === "completed" &&
+        !locationResult.proximityResult && (
+          <span>No path found to any proximity source</span>
         )}
     </div>
   );

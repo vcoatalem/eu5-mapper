@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { ModalProviderContext } from "./modal.provider";
 import styles from "./modal.module.css";
@@ -28,14 +28,20 @@ interface IModalProps {
 
 export function Modal(props: IModalProps) {
   const { isOpen, onClose, preventClose, children } = props;
-  const [mounted, setMounted] = useState(false);
   const modalProvider = useContext(ModalProviderContext);
 
   useEffect(() => {
-    setMounted(true); // ssr guard to avoid using portal on server render (not relevant in world map component that has disabled SSR, but playing it safe)
-  }, []);
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !preventClose) {
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, preventClose, onClose]);
 
-  if (!isOpen || !mounted) {
+  if (!isOpen) {
     return null;
   }
 
@@ -45,8 +51,7 @@ export function Modal(props: IModalProps) {
     onClose();
   };
 
-  const portalTarget =
-    modalProvider?.modalRoot ?? document.body;
+  const portalTarget = modalProvider?.modalRoot ?? document.body;
 
   return createPortal(
     <div className={styles.backdrop} onClick={handleBackdropClick}>

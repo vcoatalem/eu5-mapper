@@ -1,6 +1,12 @@
 "use client";
 
 import { CountriesHelper } from "@/app/lib/countries.helper";
+import { EligibleBuildingService } from "@/app/lib/eligibleBuilding.service";
+import {
+  ConstructibleAction,
+  IBuildingInstance,
+  INewBuildingTemplate,
+} from "@/app/lib/types/building";
 import { cameraController } from "./cameraController";
 import { ConstructibleHelper } from "./constructible.helper";
 import { Observable } from "./observable";
@@ -10,10 +16,12 @@ import {
   IGameData,
   IGameState,
   ILocationIdentifier,
+  ITemporaryLocationData,
   RoadType,
 } from "./types/general";
 
 const baseCountryValues: IGameState["country"] = {
+  templateData: null,
   values: {
     centralizationVsDecentralization: 0,
     landVsNaval: 0,
@@ -36,6 +44,7 @@ export class GameStateController extends Observable<IGameState> {
       country: baseCountryValues,
       roads: gameData.roads,
       ownedLocations: {},
+      temporaryLocationData: {},
     };
     this.notifyListeners();
   }
@@ -71,23 +80,20 @@ export class GameStateController extends Observable<IGameState> {
       if (!locationData?.ownable) {
         continue;
       }
-      const baseLocationRank = this.gameData?.locationDataMap[location].rank;
+      const baseLocationRank = locationData?.rank;
       const baseBuildings =
         this.gameData?.locationDataMap[location].buildings ?? [];
-      const initialLocationBuildings = baseBuildings.map((buildingName) => {
-        const buildingTemplate =
-          this.gameData?.buildingsTemplateMap[buildingName];
-        if (!buildingTemplate) {
-          throw new Error(
-            `Unknown building template: ${buildingName} for location: ${location}`,
-          );
-        }
-        return {
-          template: buildingTemplate,
-          level: 1,
-          createdByUser: false,
-        };
-      });
+      const initialLocationBuildings = baseBuildings.reduce(
+        (acc, buildingName) => {
+          const newSet = { ...acc };
+          newSet[buildingName] = {
+            template: this.gameData!.buildingsTemplate[buildingName],
+            level: 1,
+          };
+          return newSet;
+        },
+        {} as Record<INewBuildingTemplate["name"], IBuildingInstance>,
+      );
       const newLocation: IConstructibleLocation = {
         rank: baseLocationRank ?? "rural",
         buildings: initialLocationBuildings,
@@ -130,6 +136,9 @@ export class GameStateController extends Observable<IGameState> {
     locationName: string,
     newRank: IConstructibleLocation["rank"],
   ): void {
+    if (!this.gameData) {
+      throw new Error("Game data is not initialized");
+    }
     const location = this.subject.ownedLocations[locationName];
     if (!location) {
       throw new Error(
@@ -138,106 +147,93 @@ export class GameStateController extends Observable<IGameState> {
     }
     location.rank = newRank;
 
-    const buildingToKeep: string[] = [];
-    for (const building of location.buildings) {
-      const { reason } = ConstructibleHelper.getBuildability(
-        building.template,
-        locationName,
-        this.gameData!,
-        this.subject.ownedLocations,
-        this.gameData!.roads,
-      );
-      if (reason !== "restriction") {
-        buildingToKeep.push(building.template.name);
-      }
-    }
-    this.subject.ownedLocations[locationName].buildings =
-      location.buildings.filter((b) =>
-        buildingToKeep.includes(b.template.name),
-      );
+    const eligibleBuildingService = new EligibleBuildingService(this.gameData);
+    const eligibleBuildings = eligibleBuildingService.getEligibleBuildingTemplates(locationName, this.subject);
+    const buildingsToRemove = new Set(
+      Object.entries(location.buildings)
+        .filter(([buildingName, buildingInstance]) => {
+          if (buildingName in eligibleBuildings) {
+            return true;
+          }
+          return buildingInstance.template.buildable; // for now, we don't want to allow destroy un buildable buildings (usually special buildings) as we don't handle their buildability yet)
+        })
+        .map(([name]) => name),
+    );
+
+    this.removeAllBuildingsFromLocation(locationName, buildingsToRemove);
     this.notifyListeners();
   }
 
-  public addBuildingToLocation(
-    locationName: string,
-    buildingName: string,
+  public handleBuildingAction(
+    location: ILocationIdentifier,
+    action: ConstructibleAction,
   ): void {
-    {
-      const location = this.subject.ownedLocations[locationName];
-      if (!location) {
-        throw new Error(
-          `Cannot add building to unowned location: ${locationName}`,
-        );
-      }
-      const buildingTemplate =
-        this.gameData?.buildingsTemplateMap[buildingName];
-      if (!buildingTemplate) {
-        throw new Error(`Unknown building template: ${buildingName}`);
-      }
-
-      const { canBuild, reason } = ConstructibleHelper.getBuildability(
-        buildingTemplate,
-        locationName,
-        this.gameData!,
-        this.subject.ownedLocations,
-        this.gameData!.roads,
-      );
-
-      if (!canBuild) {
-        throw new Error(
-          `Cannot build ${buildingName} at location: ${locationName} (${reason})`,
-        );
-      }
-
-      const buildingToUpgrade = location.buildings.filter(
-        (b) => b.template.name === buildingName,
-      );
-      const buildingToUpgradeIdx = location.buildings.indexOf(
-        buildingToUpgrade[0],
-      );
-      if (buildingToUpgradeIdx !== -1) {
-        this.subject.ownedLocations[locationName].buildings[
-          buildingToUpgradeIdx
-        ].level += 1;
-      } else {
-        const buildingToCreate = {
-          template: buildingTemplate,
+    console.log("[GameStateController] handling building action", location, action);
+    switch (action.type) {
+      case "build":
+        const locationConstructibleData = this.subject.ownedLocations[location];
+        if (!locationConstructibleData) {
+          throw new Error(
+            `Cannot perform constructible action on unowned location: ${location}`,
+          );
+        }
+        if (action.building in locationConstructibleData.buildings) {
+          locationConstructibleData.buildings[action.building].level += 1;
+        } else {
+          locationConstructibleData.buildings[action.building] = {
+            template: this.gameData!.buildingsTemplate[action.building],
+            level: 1,
+          };
+        }
+        break;
+      case "upgrade":
+        delete this.subject.ownedLocations[location].buildings[action.building];
+        this.subject.ownedLocations[location].buildings[action.to.name] = {
+          template: action.to,
           level: 1,
-          createdByUser: true,
         };
-        this.subject.ownedLocations[locationName].buildings.push(
-          buildingToCreate,
-        );
-      }
-      this.notifyListeners();
+        break;
+      case "downgrade":
+        delete this.subject.ownedLocations[location].buildings[action.building];
+        this.subject.ownedLocations[location].buildings[action.to.name] = {
+          template: action.to,
+          level: 1,
+        };
+        break;
+      case "demolish":
+        if (
+          this.subject.ownedLocations[location].buildings[action.building]
+            .level > 1
+        ) {
+          this.subject.ownedLocations[location].buildings[
+            action.building
+          ].level -= 1;
+        } else {
+          delete this.subject.ownedLocations[location].buildings[
+            action.building
+          ];
+        }
+        break;
+      default:
+        throw new Error(`Unknown constructible action ${action}`);
     }
+    this.notifyListeners();
   }
 
-  public removeBuildingFromLocation(
+  public removeAllBuildingsFromLocation(
     locationName: string,
-    buildingName: string,
+    buildings: Set<string>,
   ): void {
     const location = this.subject.ownedLocations[locationName];
-    const building = location.buildings.find(
-      (b) => b.template.name === buildingName,
-    );
-    if (!building) {
+    if (!location) {
       throw new Error(
-        `Cannot remove non-existing building ${buildingName} at location: ${locationName}`,
+        `Cannot remove building from unowned location: ${locationName}`,
       );
     }
-    const buildingIdx = location.buildings.indexOf(building);
-    if (building.level > 1) {
-      this.subject.ownedLocations[locationName].buildings[buildingIdx].level -=
-        1;
-      this.notifyListeners();
-    } else {
-      this.subject.ownedLocations[locationName].buildings.splice(
-        buildingIdx,
-        1,
-      );
-      this.notifyListeners();
+    for (const buildingName of buildings) {
+      delete this.subject.ownedLocations[locationName].buildings[buildingName];
     }
+    this.notifyListeners();
   }
 
   public reset(countryCode?: string): void {
@@ -246,26 +242,31 @@ export class GameStateController extends Observable<IGameState> {
       country: baseCountryValues,
       roads: this.gameData?.roads || {},
       ownedLocations: {},
+      temporaryLocationData: {},
     };
+    if (!this.gameData) {
+      throw new Error("Game data is not initialized");
+    }
     if (countryCode) {
-      const country = this.gameData?.countriesDataMap[countryCode];
-      if (!country) {
+      const countryTemplate = this.gameData?.countriesDataMap[countryCode];
+      if (!countryTemplate) {
         throw new Error(`Unknown country code: ${countryCode}`);
       }
       const capitalLocation = CountriesHelper.getCountryBaseCapitalLocation(
         countryCode,
-        this.gameData?.countriesDataMap!,
+        this.gameData.countriesDataMap,
       );
       this.subject.capitalLocation = capitalLocation;
-      const locationsToAcquire = country.locations;
+      const locationsToAcquire = countryTemplate.locations;
       if (locationsToAcquire) {
         this.acquireLocations(locationsToAcquire, false);
         this.subject.countryCode = countryCode;
         this.subject.country = {
+          templateData: countryTemplate,
           values: {
             centralizationVsDecentralization:
-              country.centralizationVsDecentralization,
-            landVsNaval: country.landVsNaval,
+              countryTemplate.centralizationVsDecentralization,
+            landVsNaval: countryTemplate.landVsNaval,
           },
           rulerAdministrativeAbility: 50,
         };
@@ -344,6 +345,83 @@ export class GameStateController extends Observable<IGameState> {
     this.changeRoadTypeBulk(
       Object.entries(roads).map(([key]) => ({ key, type })),
     );
+  }
+
+  public changeTemporaryLocationData(
+    location: ILocationIdentifier,
+    data: Partial<ITemporaryLocationData>,
+  ): void {
+    let existingData = this.subject.temporaryLocationData[location];
+    if (!existingData) {
+      this.subject.temporaryLocationData[location] = {};
+      existingData = this.subject.temporaryLocationData[location];
+    }
+
+    this.subject.temporaryLocationData[location] = {
+      ...existingData,
+      ...data,
+    };
+    this.notifyListeners();
+  }
+
+  public resetTemporaryLocationData(
+    location: ILocationIdentifier,
+    key: keyof ITemporaryLocationData,
+  ): void {
+    if (this.subject.temporaryLocationData[location]) {
+      delete this.subject.temporaryLocationData[location][key];
+      if (
+        Object.keys(this.subject.temporaryLocationData[location]).length === 0
+      ) {
+        delete this.subject.temporaryLocationData[location];
+      }
+      this.notifyListeners();
+    }
+  }
+
+  public loadFile(fileContent: string, expectedVersion: string): void {
+    const parsedState = JSON.parse(fileContent) as IGameState & {
+      version: string;
+    };
+    if (
+      !parsedState ||
+      typeof parsedState !== "object" ||
+      !parsedState.version
+    ) {
+      throw new Error("Invalid file format: missing version");
+    }
+    if (parsedState.version !== expectedVersion) {
+      throw new Error(
+        'File version is of version "' +
+        parsedState.version +
+        '", but expected version is "' +
+        expectedVersion +
+        '". Version migration is not supported yet, but you can try migrating the file manually.',
+      );
+    }
+    this.subject = parsedState;
+    this.notifyListeners();
+    const capitalCoordinates =
+      this.gameData?.locationDataMap[this.subject.capitalLocation ?? ""]
+        ?.centerCoordinates;
+    if (capitalCoordinates) {
+      cameraController.panToCoordinate(capitalCoordinates, 0);
+    }
+  }
+
+  public download(version: string): void {
+    const filename = `${this.subject.countryCode ?? "unknown_country"}-${version.replaceAll(".", "_")}-${new Date().toISOString()}.json`;
+    const fileContent = JSON.stringify({ version, ...this.subject });
+    const blob = new Blob([fileContent], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 }
 export const gameStateController = new GameStateController();

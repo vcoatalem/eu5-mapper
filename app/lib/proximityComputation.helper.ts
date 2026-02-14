@@ -1,12 +1,13 @@
+import { LocationsHelper } from "@/app/lib/locations.helper";
 import { ProximityBuffsRecord } from "./classes/countryProximityBuffs";
 import { CompactGraph } from "./graph";
 import {
   IConstructibleLocation,
-  ICountryValues,
   IGameData,
   IGameState,
   ILocationGameData,
   ILocationIdentifier,
+  ITemporaryLocationData,
   RoadType,
 } from "./types/general";
 import {
@@ -113,6 +114,7 @@ export class ProximityComputationHelper {
   public static getLandLocationProximityModifiers = (
     location: ILocationGameData,
     locationConstructibleData: IConstructibleLocation,
+    locationTemporaryData: ITemporaryLocationData | null,
     gameData: IGameData,
     behaviour: {
       discardVegetationModifiers: boolean;
@@ -125,9 +127,12 @@ export class ProximityComputationHelper {
       return 0;
     }
     const buildings = locationConstructibleData?.buildings ?? []; // for unowned location, consider an empty array
-    const totalBuildingsCostReduction = buildings
+    const totalBuildingsCostReduction = Object.values(buildings)
       .map(
-        (b) => b.template.proximityCostReductionPercentage?.[b.level - 1] ?? 0,
+        (b) =>
+          Math.abs(b.template.modifiers.localProximityCostModifier ?? 0) *
+          100 * // O.0.11 effects are negative floats, 0.1.0 positive - we might need to change this formula if there are buildings giving negative local prox in the future
+          b.level,
       )
       .reduce((a, b) => a + b, 0);
 
@@ -141,24 +146,10 @@ export class ProximityComputationHelper {
             options,
           );
 
-    const development = location.development;
+    const development = locationTemporaryData?.development ?? location.development;
     const developmentCostReduction =
       development * gameData.proximityComputationRule.developmentImpact;
-
     const landModifierFromBuffs = proximityBuffs.getBuffsOfType("landModifier");
-    /*  const countryLandProximityModifiers = [
-      country.landVsNaval < 0
-        ? (Math.abs(country.landVsNaval) *
-            gameData.proximityComputationRule.valuesImpact.landVsNaval[0]
-              .percentageModifier) /
-          100
-        : 0, */
-    // advances, estate privileges, etc.
-    /*  ]; */
-    /*  const countryLandProximityReduction = countryLandProximityModifiers.reduce(
-      (a, b) => a + b,
-      0,
-    ); */
 
     logProximityComputation(
       location.name,
@@ -181,40 +172,6 @@ export class ProximityComputationHelper {
     return total;
   };
 
-  public static getLocationHarborCapacity = (
-    locationData: ILocationGameData,
-    locationConstructibleData: IConstructibleLocation,
-    options: PathFindingOptions,
-  ): number => {
-    logProximityComputation(
-      locationData.name,
-      options,
-      "Enter location harbor capacity calculation",
-      { locationConstructibleData },
-    );
-    const naturalHarborSuitability = locationData.naturalHarborSuitability ?? 0;
-
-    if (!locationConstructibleData) {
-      // unowned location
-      return naturalHarborSuitability;
-    }
-
-    const buildings = locationConstructibleData.buildings ?? [];
-    const totalBuildingsHarborCapacity = buildings
-      .map((b) => {
-        const capacity = b.template.harborCapacity?.[b.level - 1];
-        return capacity || 0;
-      })
-      .reduce((a, b) => a + b, 0);
-
-    logProximityComputation(locationData.name, options, "Harbor capacity", {
-      locationConstructibleData,
-      totalBuildingsHarborCapacity,
-      naturalHarborSuitability,
-    });
-    return naturalHarborSuitability + totalBuildingsHarborCapacity;
-  };
-
   public static getLocalProximitySourceLocations(
     gameState: IGameState,
   ): Record<ILocationIdentifier, number> {
@@ -223,11 +180,12 @@ export class ProximityComputationHelper {
       if (gameState.capitalLocation === locationName) {
         proximitySourceLocations[locationName] = 100;
       } else {
-        const locationBuildings =
-          gameState.ownedLocations[locationName].buildings;
+        const locationBuildings = Object.values(
+          gameState.ownedLocations[locationName].buildings,
+        );
         const highestProximitySource = Math.max(
           ...locationBuildings.map(
-            (b) => b.template.localProximitySource?.[b.level - 1] || 0,
+            (b) => b.template.modifiers.localProximitySource ?? 0,
           ),
         );
         if (highestProximitySource > 0) {
@@ -268,12 +226,6 @@ export class ProximityComputationHelper {
           : 0;
       return baseCost - roadFlatCostReduction;
     } else {
-      /*  const navalValueProximityCostReduction =
-        gameState.country.landVsNaval > 0
-          ? (rule.valuesImpact.landVsNaval[1].flatModifier *
-              gameState.country.landVsNaval) /
-            100
-          : 0; */
       // Normalize maritimePresence to [0,1]
       let normalizedMaritimePresence =
         edgeType === "lake" ? 1 : maritimePresence / 100;
@@ -281,18 +233,6 @@ export class ProximityComputationHelper {
         0,
         Math.min(1, normalizedMaritimePresence),
       );
-
-      /*       const flatProximityCostWithoutMaritimePresence = [
-        // ... advances, policies, etc. providing flat reduction to naval proximity without maritime presence
-        relevantProximityBuffs.seaWithoutMaritimeFlatCostReduction ?? 0,
-      ].reduce((a, b) => a + b, 0);
-
-      const flatProximityCostWithMaritimePresence = [
-        navalValueProximityCostReduction,
-        // ... advances, policies, etc. providing flat reduction to naval proximity with maritime presence
-      ].reduce((a, b) => a + b, 0);
- */
-
       const costWithoutMaritimePresence =
         rule.baseCostWithoutMaritimePresence -
         (proximityBuffs.getBuffsOfType("seaWithoutMaritimeFlatCostReduction")
@@ -324,6 +264,7 @@ export class ProximityComputationHelper {
           return ProximityComputationHelper.getLandLocationProximityModifiers(
             gameData.locationDataMap[from],
             gameState.ownedLocations[from],
+            gameState.temporaryLocationData[from] ?? null,
             gameData,
             {
               discardVegetationModifiers: !!roadType,
@@ -340,10 +281,9 @@ export class ProximityComputationHelper {
         const fromLocation = gameData.locationDataMap[from];
         const locationWithHarbor = toLocation.isSea ? from : to;
         const harborCapacity =
-          ProximityComputationHelper.getLocationHarborCapacity(
+          LocationsHelper.getLocationHarborSuitability(
             gameData.locationDataMap[locationWithHarbor],
             gameState.ownedLocations[locationWithHarbor],
-            options,
           );
         const harborImpact =
           gameData.proximityComputationRule.harborCapacityImpact;
@@ -359,6 +299,7 @@ export class ProximityComputationHelper {
             ProximityComputationHelper.getLandLocationProximityModifiers(
               gameData.locationDataMap[locationWithHarbor],
               gameState.ownedLocations[locationWithHarbor],
+              gameState.temporaryLocationData[locationWithHarbor] ?? null,
               gameData,
               {
                 discardVegetationAndTopographyModifiers: true,
@@ -380,22 +321,6 @@ export class ProximityComputationHelper {
         return 0;
     }
   }
-
-  /*   private static getGenericCountryProximityCostModifiers(
-    country: ICountryValues,
-    rule: IProximityComputationRule,
-  ): number {
-    return [
-      country.centralizationVsDecentralization < 0
-        ? (Math.abs(country.centralizationVsDecentralization) *
-            rule.valuesImpact.centralizationVsDecentralization[0]
-              .percentageModifier) /
-          100
-        : 0,
-      country.rulerAdministrativeAbility *
-        rule.rulerAdministrativeAbilityImpact,
-    ].reduce((a, b) => a + b, 0);
-  } */
 
   private static getPercentageProximityCostModifiers(
     from: ILocationIdentifier,
@@ -437,13 +362,6 @@ export class ProximityComputationHelper {
       ),
       proximityBuffs.getBuffsOfType("genericModifier").sum ?? 0,
     ];
-
-    // generic proximity modifiers go here
-    /*   this.getGenericCountryProximityCostModifiers(
-        gameState.country,
-        gameData.proximityComputationRule,
-      ), */
-    /*   ); */
 
     logProximityComputation([from, to], options, "Proximity cost modifiers", {
       from,

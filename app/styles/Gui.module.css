@@ -1,17 +1,68 @@
 @reference "tailwindcss";
 
+:root {
+  --gui-stripe-road-building: #eab308;
+  --gui-stripe-change-capital: #eab308;
+  --gui-stripe-maritime-presence: #3b82f6;
+}
+
 @layer components {
   .guiElement {
     @apply z-30 rounded-sm bg-black/60 border border-white text-white px-2 py-1;
   }
 
+  .infoBoxContainer {
+    position: relative;
+  }
+
+  .infoBoxContainer::before {
+    content: "";
+    position: absolute;
+    inset: 4px;
+    pointer-events: none;
+    background: rgba(0, 0, 0, 1);
+    z-index: 0;
+  }
+
+  .infoBoxContainer > * {
+    position: relative;
+    z-index: 1;
+  }
+
   .roadBuildingStripes {
+    position: relative;
     background-image: repeating-linear-gradient(
       45deg,
       #000000 0,
       #000000 6px,
-      #facc15 6px,
-      #facc15 12px
+      var(--gui-stripe-road-building) 6px,
+      var(--gui-stripe-road-building) 12px
     );
+  }
+
+  .changeCapitalStripes {
+    position: relative;
+    background-image: repeating-linear-gradient(
+      45deg,
+      #000000 0,
+      #000000 6px,
+      var(--gui-stripe-change-capital) 6px,
+      var(--gui-stripe-change-capital) 12px
+    );
+  }
+
+  .editMaritimePresenceStripes {
+    position: relative;
+    background-image: repeating-linear-gradient(
+      45deg,
+      #000000 0,
+      #000000 6px,
+      var(--gui-stripe-maritime-presence) 6px,
+      var(--gui-stripe-maritime-presence) 12px
+    );
+  }
+
+  .header {
+    @apply w-full h-10 flex flex-row items-center relative;
   }
 }

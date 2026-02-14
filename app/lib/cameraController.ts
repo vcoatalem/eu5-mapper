@@ -368,7 +368,7 @@ export class CameraController extends Observable<IZoomState> {
     });
   };
 
-  baseScreenOffset = { left: 180, top: 40, bottom: 5, right: 0 };
+  baseScreenOffset = { left: 60, top: 40, bottom: 5, right: 0 };
 
   /**
    * Core tooltip placement algorithm operating in screen-space.

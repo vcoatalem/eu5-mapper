@@ -1,5 +1,6 @@
 // do not import other files in this file
 
+import { IBuildingInstance, INewBuildingTemplate } from "./building";
 import { IProximityComputationRule } from "./proximityComputationRules";
 
 export type ILocationIdentifier = string; // location name
@@ -10,7 +11,6 @@ export type RoadType =
   | "paved_road"
   | "modern_road"
   | "rail_road";
-export type BuildingType = "rural" | "urban" | "city" | "common";
 
 export type Topography =
   | "unknown"
@@ -65,44 +65,25 @@ export interface ILocationGameData {
   development: number; // can me modified , in other interface (ILocationTemporaryData ?)
   population: number; // can me modified , in other interface (ILocationTemporaryData ?)
 }
-
-export type PlacementRestrictions =
-  | "is_coastal"
-  | "is_on_river"
-  | "is_on_lake"
-  | "has_road";
-
-interface IPlacementRestrictionConfig {
-  mode: "all" | "any"; // 'all' = every condition must be met, 'any' = at least one condition must be met
-  conditions: PlacementRestrictions[];
-}
-
-export interface IBuildingTemplate {
-  name: string;
-  levels: number;
-  type: BuildingType;
-  harborCapacity: number[]; // harbor capacity increment per level
-  proximityCostReductionPercentage: number[]; // percentage reduction per level
-  localProximitySource?: number[]; // proximity cost reduction source per level
-  placementRestriction?: IPlacementRestrictionConfig;
-  locationRestriction?: Array<ILocationIdentifier>;
-  countryRestriction?: Array<string>;
-}
-
-interface IBuildingInstance {
-  template: IBuildingTemplate;
-  level: number;
-  createdByUser: boolean; // can be destroyed if false ? should check
-}
-
 export interface IConstructibleLocation {
   rank: LocationRank;
-  buildings: IBuildingInstance[];
+  buildings: Record<INewBuildingTemplate["name"], IBuildingInstance>;
 }
 
 export type RoadRecord = Record<
   ILocationIdentifier,
   Array<{ to: ILocationIdentifier; type: RoadType; createdByUser: boolean }>
+>;
+
+export interface ITemporaryLocationData {
+  development?: number;
+  population?: number;
+  maritimePresence?: number;
+}
+
+export type TemporaryLocationDataRecord = Record<
+  ILocationIdentifier,
+  ITemporaryLocationData
 >;
 
 export interface IGameState {
@@ -111,6 +92,7 @@ export interface IGameState {
   roads: RoadRecord;
   ownedLocations: Record<ILocationIdentifier, IConstructibleLocation>;
   capitalLocation?: ILocationIdentifier;
+  temporaryLocationData: TemporaryLocationDataRecord;
 }
 
 export type ILocationDataMap<LocationName extends string = string> = Record<
@@ -138,6 +120,7 @@ export interface ICountryData {
 }
 
 export interface ICountryInstance {
+  templateData: ICountryData | null;
   values: ICountryValues;
   rulerAdministrativeAbility: number; // from 0 to 100, higher means more impact of proximity on the country
 }
@@ -150,7 +133,7 @@ export interface ICountryValues {
 export interface IGameData {
   locationDataMap: ILocationDataMap;
   colorToNameMap: ILocationIdentifierMap;
-  buildingsTemplateMap: Record<string, IBuildingTemplate>;
+  buildingsTemplate: Record<string, INewBuildingTemplate>;
   proximityComputationRule: IProximityComputationRule;
   countriesDataMap: Record<string, ICountryData>;
   roads: RoadRecord; // base roads initialized at the start of the game

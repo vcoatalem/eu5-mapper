@@ -393,6 +393,19 @@
     }
   };
 
+  // app/lib/locations.helper.ts
+  var LocationsHelper = class {
+    static locationHasRoad(location, roads) {
+      return !!roads[location] && roads[location].length > 0;
+    }
+    static getLocationHarborSuitability(locationData, locationConstructibleData) {
+      if (!locationData.isCoastal) {
+        return -1;
+      }
+      return locationData.naturalHarborSuitability + (Object.values(locationConstructibleData?.buildings ?? {}).reduce((acc, building) => acc + (building?.template?.modifiers?.harborSuitability ?? 0), 0) ?? 0);
+    }
+  };
+
   // app/lib/classes/countryProximityBuffs.ts
   var ProximityBuffsRecord = class {
     constructor(rule, country) {
@@ -520,10 +533,12 @@
         if (gameState.capitalLocation === locationName) {
           proximitySourceLocations[locationName] = 100;
         } else {
-          const locationBuildings = gameState.ownedLocations[locationName].buildings;
+          const locationBuildings = Object.values(
+            gameState.ownedLocations[locationName].buildings
+          );
           const highestProximitySource = Math.max(
             ...locationBuildings.map(
-              (b) => b.template.localProximitySource?.[b.level - 1] || 0
+              (b) => b.template.modifiers.localProximitySource ?? 0
             )
           );
           if (highestProximitySource > 0) {
@@ -562,6 +577,7 @@
             return _ProximityComputationHelper.getLandLocationProximityModifiers(
               gameData2.locationDataMap[from],
               gameState.ownedLocations[from],
+              gameState.temporaryLocationData[from] ?? null,
               gameData2,
               {
                 discardVegetationModifiers: !!roadType,
@@ -577,10 +593,9 @@
           const toLocation = gameData2.locationDataMap[to];
           const fromLocation = gameData2.locationDataMap[from];
           const locationWithHarbor = toLocation.isSea ? from : to;
-          const harborCapacity = _ProximityComputationHelper.getLocationHarborCapacity(
+          const harborCapacity = LocationsHelper.getLocationHarborSuitability(
             gameData2.locationDataMap[locationWithHarbor],
-            gameState.ownedLocations[locationWithHarbor],
-            options
+            gameState.ownedLocations[locationWithHarbor]
           );
           const harborImpact = gameData2.proximityComputationRule.harborCapacityImpact;
           const harborCapacityModifier = harborCapacity * harborImpact * 100;
@@ -590,6 +605,7 @@
             const harborLocationProximityModifiers = _ProximityComputationHelper.getLandLocationProximityModifiers(
               gameData2.locationDataMap[locationWithHarbor],
               gameState.ownedLocations[locationWithHarbor],
+              gameState.temporaryLocationData[locationWithHarbor] ?? null,
               gameData2,
               {
                 discardVegetationAndTopographyModifiers: true,
@@ -611,21 +627,6 @@
           return 0;
       }
     }
-    /*   private static getGenericCountryProximityCostModifiers(
-      country: ICountryValues,
-      rule: IProximityComputationRule,
-    ): number {
-      return [
-        country.centralizationVsDecentralization < 0
-          ? (Math.abs(country.centralizationVsDecentralization) *
-              rule.valuesImpact.centralizationVsDecentralization[0]
-                .percentageModifier) /
-            100
-          : 0,
-        country.rulerAdministrativeAbility *
-          rule.rulerAdministrativeAbilityImpact,
-      ].reduce((a, b) => a + b, 0);
-    } */
     static getPercentageProximityCostModifiers(from, to, edgeType, gameData2, gameState, proximityBuffs, options, roadType) {
       const rule = gameData2.proximityComputationRule;
       const toLocationData = gameData2.locationDataMap[to];
@@ -801,13 +802,14 @@
     const totalEnvironmentalCostIncrease = topographyCostIncreasePercentage + vegetationCostIncreasePercentage;
     return totalEnvironmentalCostIncrease;
   };
-  _ProximityComputationHelper.getLandLocationProximityModifiers = (location, locationConstructibleData, gameData2, behaviour, proximityBuffs, options) => {
+  _ProximityComputationHelper.getLandLocationProximityModifiers = (location, locationConstructibleData, locationTemporaryData, gameData2, behaviour, proximityBuffs, options) => {
     if (location.isSea || location.isLake || !location.ownable) {
       return 0;
     }
     const buildings = locationConstructibleData?.buildings ?? [];
-    const totalBuildingsCostReduction = buildings.map(
-      (b) => b.template.proximityCostReductionPercentage?.[b.level - 1] ?? 0
+    const totalBuildingsCostReduction = Object.values(buildings).map(
+      (b) => Math.abs(b.template.modifiers.localProximityCostModifier ?? 0) * 100 * // O.0.11 effects are negative floats, 0.1.0 positive - we might need to change this formula if there are buildings giving negative local prox in the future
+      b.level
     ).reduce((a, b) => a + b, 0);
     const environmentalProximityCostIncreasePercentage = behaviour.discardVegetationAndTopographyModifiers ? 0 : _ProximityComputationHelper.getEnvironmentalProximityCostIncreasePercentage(
       location,
@@ -816,7 +818,7 @@
       // road
       options
     );
-    const development = location.development;
+    const development = locationTemporaryData?.development ?? location.development;
     const developmentCostReduction = development * gameData2.proximityComputationRule.developmentImpact;
     const landModifierFromBuffs = proximityBuffs.getBuffsOfType("landModifier");
     logProximityComputation(
@@ -836,29 +838,6 @@
       environmentalProximityCostIncreasePercentage
     );
     return total;
-  };
-  _ProximityComputationHelper.getLocationHarborCapacity = (locationData, locationConstructibleData, options) => {
-    logProximityComputation(
-      locationData.name,
-      options,
-      "Enter location harbor capacity calculation",
-      { locationConstructibleData }
-    );
-    const naturalHarborSuitability = locationData.naturalHarborSuitability ?? 0;
-    if (!locationConstructibleData) {
-      return naturalHarborSuitability;
-    }
-    const buildings = locationConstructibleData.buildings ?? [];
-    const totalBuildingsHarborCapacity = buildings.map((b) => {
-      const capacity = b.template.harborCapacity?.[b.level - 1];
-      return capacity || 0;
-    }).reduce((a, b) => a + b, 0);
-    logProximityComputation(locationData.name, options, "Harbor capacity", {
-      locationConstructibleData,
-      totalBuildingsHarborCapacity,
-      naturalHarborSuitability
-    });
-    return naturalHarborSuitability + totalBuildingsHarborCapacity;
   };
   _ProximityComputationHelper.getGameStateProximityComputation = (gameState, gameData2, adjacencyGraph, options) => {
     const proximityResults = {};
@@ -1038,7 +1017,9 @@
               {
                 allowUnownedLocations: true,
                 // allow passing over unowned
-                logForLocations: ["strait_of_dover"],
+                logForLocations: [
+                  /* "strait_of_dover" */
+                ],
                 logMethod: (message, data) => {
                   sendMessage(self, {
                     data: data ?? null,

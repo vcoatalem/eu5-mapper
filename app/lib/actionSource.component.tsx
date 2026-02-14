@@ -26,7 +26,7 @@ export type ActionSourceProps<T extends HTMLElement = HTMLElement> = {
   hover?: HoverConfig;
   click?: ClickConfig;
   children: React.ReactElement<{ ref?: React.Ref<T> }>;
-};
+} & Omit<React.HTMLAttributes<T>, "children" | "ref">;
 
 // Merge an existing child ref with our internal ref so both receive the DOM element
 function mergeRefs<T>(
@@ -49,12 +49,12 @@ function mergeRefs<T>(
   };
 }
 
-export function ActionSource<T extends HTMLElement = HTMLElement>({
-  locations,
-  hover,
-  click,
-  children,
-}: ActionSourceProps<T>) {
+export const ActionSource = React.forwardRef(function ActionSource<
+  T extends HTMLElement = HTMLElement,
+>(
+  { locations, hover, click, children, ...rest }: ActionSourceProps<T>,
+  ref: React.Ref<T>,
+) {
   const internalRef = useRef<T | null>(null);
 
   useEffect(() => {
@@ -99,7 +99,8 @@ export function ActionSource<T extends HTMLElement = HTMLElement>({
   const combinedRef = mergeRefs(
     (child as any).ref as React.Ref<T> | undefined,
     internalRef,
+    ref as React.Ref<T>,
   );
 
-  return React.cloneElement(child, { ref: combinedRef });
-}
+  return React.cloneElement(child, { ref: combinedRef, ...rest });
+});

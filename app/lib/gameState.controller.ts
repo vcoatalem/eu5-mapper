@@ -10,10 +10,12 @@ import {
   IGameData,
   IGameState,
   ILocationIdentifier,
+  ITemporaryLocationData,
   RoadType,
 } from "./types/general";
 
 const baseCountryValues: IGameState["country"] = {
+  templateData: null,
   values: {
     centralizationVsDecentralization: 0,
     landVsNaval: 0,
@@ -36,6 +38,7 @@ export class GameStateController extends Observable<IGameState> {
       country: baseCountryValues,
       roads: gameData.roads,
       ownedLocations: {},
+      temporaryLocationData: {},
     };
     this.notifyListeners();
   }
@@ -261,10 +264,11 @@ export class GameStateController extends Observable<IGameState> {
       country: baseCountryValues,
       roads: this.gameData?.roads || {},
       ownedLocations: {},
+      temporaryLocationData: {},
     };
     if (countryCode) {
-      const country = this.gameData?.countriesDataMap[countryCode];
-      if (!country) {
+      const countryTemplate = this.gameData?.countriesDataMap[countryCode];
+      if (!countryTemplate) {
         throw new Error(`Unknown country code: ${countryCode}`);
       }
       const capitalLocation = CountriesHelper.getCountryBaseCapitalLocation(
@@ -272,15 +276,16 @@ export class GameStateController extends Observable<IGameState> {
         this.gameData?.countriesDataMap!,
       );
       this.subject.capitalLocation = capitalLocation;
-      const locationsToAcquire = country.locations;
+      const locationsToAcquire = countryTemplate.locations;
       if (locationsToAcquire) {
         this.acquireLocations(locationsToAcquire, false);
         this.subject.countryCode = countryCode;
         this.subject.country = {
+          templateData: countryTemplate,
           values: {
             centralizationVsDecentralization:
-              country.centralizationVsDecentralization,
-            landVsNaval: country.landVsNaval,
+              countryTemplate.centralizationVsDecentralization,
+            landVsNaval: countryTemplate.landVsNaval,
           },
           rulerAdministrativeAbility: 50,
         };
@@ -359,6 +364,23 @@ export class GameStateController extends Observable<IGameState> {
     this.changeRoadTypeBulk(
       Object.entries(roads).map(([key]) => ({ key, type })),
     );
+  }
+
+  public changeTemporaryLocationData(
+    location: ILocationIdentifier,
+    data: Partial<ITemporaryLocationData>,
+  ): void {
+    let existingData = this.subject.temporaryLocationData[location];
+    if (!existingData) {
+      this.subject.temporaryLocationData[location] = {};
+      existingData = this.subject.temporaryLocationData[location];
+    }
+
+    this.subject.temporaryLocationData[location] = {
+      ...existingData,
+      ...data,
+    };
+    this.notifyListeners();
   }
 }
 export const gameStateController = new GameStateController();

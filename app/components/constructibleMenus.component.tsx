@@ -31,6 +31,8 @@ import { ShortestPathComponent } from "./shortestPath.component";
 import { FormatedProximity } from "./formatedProximity.component";
 import { RoadList } from "./roadList.component";
 import Image from "next/image";
+import { FormattedProximityWithPathfindingTooltip } from "@/app/components/formattedProximityWithPathfindingTooltip.component";
+import { StringHelper } from "@/app/lib/utils/string.helper";
 
 function CapitalPicker(props: {
   location: ILocationIdentifier;
@@ -172,8 +174,6 @@ const locationRankPicker = (
 const ConstructibleLocationItem = React.memo(
   function ConstructibleLocationItem({
     location,
-    constructible,
-    gameData,
     gameState,
     proximityComputation,
   }: {
@@ -185,62 +185,33 @@ const ConstructibleLocationItem = React.memo(
       typeof proximityComputationController.getSnapshot
     >;
   }) {
-    const proximitySpanRef = useRef<HTMLDivElement>(null);
     return (
       <div
         key={location}
         className="py-1 h-10 grid grid-cols-3 items-center whitespace-nowrap gap-2 "
       >
         <div className="col-span-2 flex flex-row items-center">
-          {gameState.capitalLocation === location && <span>★</span>}
+          {gameState.capitalLocation === location && (
+            <span className="mr-1">★</span>
+          )}
           <ActionSource
             locations={(e) => location}
             hover={{}}
             click={{ type: "goto" }}
           >
             <span className=" text-lg cursor-pointer truncate ... ">
-              {location}
+              {StringHelper.formatLocationName(location)}
             </span>
           </ActionSource>
         </div>
 
-        <div ref={proximitySpanRef} className="col-span-1">
-          <Tooltip>
-            <TooltipTrigger>
-              <FormatedProximity
-                proximity={ProximityComputationHelper.evaluationToProximity(
-                  proximityComputation.result[location]?.cost ?? 100,
-                )}
-                className="cursor-pointer"
-              ></FormatedProximity>
-            </TooltipTrigger>
-            <TooltipContent
-              anchor={{
-                type: "dom",
-                ref: proximitySpanRef as React.RefObject<HTMLElement>,
-              }}
-            >
-              <ShortestPathComponent
-                location={location}
-                className="bg-black"
-              ></ShortestPathComponent>
-            </TooltipContent>
-          </Tooltip>
-        </div>
-
-        <div className="col-span-2 flex flex-row items-center space-x-2">
-          {/* {locationRankPicker(location, constructible)} */}
-        </div>
-        {/*         {expanded && (
-          <div className="col-span-1">
-            {buildingList(
-              location,
-              gameData,
-              gameState.ownedLocations,
-              constructible,
-            )}
-          </div>
-        )} */}
+        <FormattedProximityWithPathfindingTooltip
+          className="col-span-1"
+          location={location}
+          proximity={ProximityComputationHelper.evaluationToProximity(
+            proximityComputation.result[location]?.cost ?? 100,
+          )}
+        ></FormattedProximityWithPathfindingTooltip>
       </div>
     );
   },

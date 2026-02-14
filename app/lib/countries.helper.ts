@@ -1,9 +1,10 @@
 import { IGameData, ILocationIdentifier } from "@/app/lib/types/general";
 
-
 export class CountriesHelper {
-
-  public static getCountryBaseCapitalLocation(countryCode: string, countriesDataMap: IGameData["countriesDataMap"]): ILocationIdentifier {
+  public static getCountryBaseCapitalLocation(
+    countryCode: string,
+    countriesDataMap: IGameData["countriesDataMap"],
+  ): ILocationIdentifier {
     const country = countriesDataMap[countryCode];
     if (!country) {
       throw new Error(`Country not found: ${countryCode}`);
@@ -16,5 +17,4 @@ export class CountriesHelper {
     }
     return country.locations[0];
   }
-
 }

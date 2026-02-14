@@ -76,12 +76,24 @@ export type RoadRecord = Record<
   Array<{ to: ILocationIdentifier; type: RoadType; createdByUser: boolean }>
 >;
 
+export interface ITemporaryLocationData {
+  development?: number;
+  population?: number;
+  maritimePresence?: number;
+}
+
+export type TemporaryLocationDataRecord = Record<
+  ILocationIdentifier,
+  ITemporaryLocationData
+>;
+
 export interface IGameState {
   countryCode: string | null;
   country: ICountryInstance | null;
   roads: RoadRecord;
   ownedLocations: Record<ILocationIdentifier, IConstructibleLocation>;
   capitalLocation?: ILocationIdentifier;
+  temporaryLocationData: TemporaryLocationDataRecord;
 }
 
 export type ILocationDataMap<LocationName extends string = string> = Record<
@@ -109,6 +121,7 @@ export interface ICountryData {
 }
 
 export interface ICountryInstance {
+  templateData: ICountryData | null;
   values: ICountryValues;
   rulerAdministrativeAbility: number; // from 0 to 100, higher means more impact of proximity on the country
 }

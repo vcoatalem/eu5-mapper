@@ -6,6 +6,6 @@
   }
 
   .container {
-    @apply relative bg-black/80 border-white border text-white rounded-lg shadow-xl p-4 max-h-[90vh] max-w-[90vw] overflow-auto;
+    @apply relative bg-black/80 border-white border text-white rounded-lg shadow-xl p-4 max-h-[90vh] max-w-[90vw] overflow-hidden;
   }
 }

@@ -788,7 +788,7 @@ export function WorldMapComponent() {
         <div className="fixed left-5 top-16 flex flex-col gap-2 z-50 max-h-[85vh] min-h-0">
           {hasOwnedLocations && (
             <>
-              <GuiElement className="min-h-0 w-64 shrink overflow-y-scroll">
+              <GuiElement className="min-h-0 shrink w-72 overflow-y-scroll">
                 <CountryOverview />
               </GuiElement>
               <GuiElement className="h-px min-h-14 py-2 flex-none">

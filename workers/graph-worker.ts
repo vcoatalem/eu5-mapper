@@ -123,7 +123,9 @@ self.onmessage = async function (e: MessageEvent<IWorkerTask>) {
             graph,
             {
               allowUnownedLocations: true, // allow passing over unowned
-              logForLocations: ["melun"],
+              logForLocations: [
+                /* "melun" */
+              ],
               logMethod: (message: string, data?: Record<string, unknown>) => {
                 sendMessage(self, {
                   data: data ?? null,
@@ -168,7 +170,9 @@ self.onmessage = async function (e: MessageEvent<IWorkerTask>) {
               graph,
               {
                 allowUnownedLocations: true, // allow passing over unowned
-                logForLocations: ["strait_of_dover"],
+                logForLocations: [
+                  /* "strait_of_dover" */
+                ],
                 logMethod: (
                   message: string,
                   data?: Record<string, unknown>,

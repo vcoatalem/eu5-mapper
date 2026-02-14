@@ -13,7 +13,7 @@ import { VersionResolver } from "@/app/lib/versionResolver";
 export interface IGameDataParsedFiles {
   locationDataMap: ILocationDataMap;
   colorToNameMap: ILocationIdentifierMap;
-  buildingsTemplateMap: Record<string, IBuildingTemplate>;
+  buildingsTemplate: Record<string, IBuildingTemplate>;
   adjacencyCsv: string;
   proximityComputationRule: IProximityComputationRule;
   countriesDataMap: Record<string, ICountryData>;
@@ -85,7 +85,7 @@ export class GameDataLoaderHelper {
     colorToNameMap: async (res) => {
       return (await res.json()) as ILocationIdentifierMap;
     },
-    buildingsTemplateMap: async (res) => {
+    buildingsTemplate: async (res) => {
       return (await res.json()) as Record<string, IBuildingTemplate>;
     },
     adjacencyCsv: async (res) => {
@@ -117,7 +117,7 @@ export class GameDataLoaderHelper {
     const gameDataFileTypes: GameDataFileType[] = [
       "locationDataMap",
       "colorToNameMap",
-      "buildingsTemplateMap",
+      "buildingsTemplate",
       "adjacencyCsv",
       "proximityComputationRule",
       "countriesDataMap",
@@ -153,7 +153,7 @@ export class GameDataLoaderHelper {
     return Object.fromEntries(entries) as {
       locationDataMap: ILocationDataMap;
       colorToNameMap: ILocationIdentifierMap;
-      buildingsTemplateMap: Record<string, IBuildingTemplate>;
+      buildingsTemplate: Record<string, IBuildingTemplate>;
       adjacencyCsv: string;
       proximityComputationRule: IProximityComputationRule;
       countriesDataMap: Record<string, ICountryData>;

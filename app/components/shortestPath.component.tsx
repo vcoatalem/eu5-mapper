@@ -6,8 +6,6 @@ import {
 } from "@/app/lib/shortestPath.controller";
 import { ILocationIdentifier } from "@/app/lib/types/general";
 import { Loader } from "./loader.component";
-import { DrawingHelper } from "../lib/drawing/drawing.helper";
-import { ColorHelper } from "../lib/drawing/color.helper";
 import { FormatedProximityCost } from "./formatedProximityCost.component";
 
 interface IShortestPathComponentProps {
@@ -54,8 +52,13 @@ export function ShortestPathComponent(props: IShortestPathComponentProps) {
 
   const locationResult = result?.[props.location];
 
+  console.log({ locationResult });
+
   useEffect(() => {
-    if (!locationResult || locationResult.status === "needs_update") {
+    if (
+      props.location &&
+      (!locationResult || locationResult.status === "needs_update")
+    ) {
       shortestPathController.launchComputeShortestPathFromProximitySourceTask(
         props.location,
       );

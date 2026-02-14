@@ -254,53 +254,49 @@ export function CountryOverview() {
     return <div>Loading...</div>;
   }
   return (
-    <ExpandablePanel>
-      {(isExpanded) => (
-        <>
-          <FoldableMenu
-            title="Country Values"
-            isExpanded={countryMenuExpanded}
-            onToggle={() => setCountryMenuExpanded(!countryMenuExpanded)}
-          >
-            <div className="flex flex-col gap-1">
-              <CountryValueInput
-                valueKey={"landVsNaval"}
-                value={country.values.landVsNaval ?? 0}
-              ></CountryValueInput>
+    <>
+      <FoldableMenu
+        title="Country Values"
+        isExpanded={countryMenuExpanded}
+        onToggle={() => setCountryMenuExpanded(!countryMenuExpanded)}
+      >
+        <div className="flex flex-col gap-1">
+          <CountryValueInput
+            valueKey={"landVsNaval"}
+            value={country.values.landVsNaval ?? 0}
+          ></CountryValueInput>
 
-              <CountryValueInput
-                valueKey={"centralizationVsDecentralization"}
-                value={country.values.centralizationVsDecentralization ?? 0}
-              ></CountryValueInput>
+          <CountryValueInput
+            valueKey={"centralizationVsDecentralization"}
+            value={country.values.centralizationVsDecentralization ?? 0}
+          ></CountryValueInput>
 
-              <RulerAdministrativeSkillInput
-                value={country.rulerAdministrativeAbility}
-              />
-            </div>
-          </FoldableMenu>
+          <RulerAdministrativeSkillInput
+            value={country.rulerAdministrativeAbility}
+          />
+        </div>
+      </FoldableMenu>
 
-          <FoldableMenu
-            title="Country Statistics"
-            isExpanded={countryStatsExpanded}
-            onToggle={() => setCountryStatsExpanded(!countryStatsExpanded)}
-          >
-            {(Object.keys(gameState?.ownedLocations ?? []).length > 0 && (
-              <>
-                {getCountryStats(
-                  gameState.ownedLocations,
-                  gameData.locationDataMap,
-                  proximityComputation.result,
-                )}
-              </>
-            )) || (
-              <div className="text-stone-400 text-italic">
-                No owned locations - either select a country above, or create
-                your own country from scratch by selecting a location
-              </div>
+      <FoldableMenu
+        title="Country Statistics"
+        isExpanded={countryStatsExpanded}
+        onToggle={() => setCountryStatsExpanded(!countryStatsExpanded)}
+      >
+        {(Object.keys(gameState?.ownedLocations ?? []).length > 0 && (
+          <>
+            {getCountryStats(
+              gameState.ownedLocations,
+              gameData.locationDataMap,
+              proximityComputation.result,
             )}
-          </FoldableMenu>
-        </>
-      )}
-    </ExpandablePanel>
+          </>
+        )) || (
+          <div className="text-stone-400 text-italic">
+            No owned locations - either select a country above, or create your
+            own country from scratch by selecting a location
+          </div>
+        )}
+      </FoldableMenu>
+    </>
   );
 }

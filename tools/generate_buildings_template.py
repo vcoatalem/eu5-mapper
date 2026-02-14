@@ -24,6 +24,7 @@ WHITELISTED_MODIFIERS = {
     "harbor_suitability": "harborSuitability",
     "local_proximity_source": "localProximitySource",
     "local_distance_from_capital_cost_modifier": "localProximityCostModifier",
+    "global_distance_from_capital_cost_modifier": "globalProximityCostModifier",
 }
 
 
@@ -32,10 +33,13 @@ def parse_yes_no(value: Optional[str]) -> bool:
 
 
 def infer_buildability(props: Dict[str, object]) -> bool:
+    #print("infer buildability for props:", props)
     country_potential = props.get("country_potential")
+    #print("country_potential:", country_potential)
     if country_potential:
         return False # for now, dont handle buildings specific to certain countries
     allow = props.get("allow")
+    #print("allow block:", allow)
     if not allow:
         return True
     return parse_yes_no(allow.get("always"))
@@ -177,6 +181,12 @@ def build_templates_from_files(files) -> Dict[str, dict]:
             templates[building_name]["downgrade"] = obsolete
         if obsolete in templates:
             templates[obsolete]["upgrade"] = building_name
+
+
+    # special override for kilwan_shipwrights, as their data seem to be structured differently
+    if "kilwan_shipwrights" in templates:
+        templates["kilwan_shipwrights"]["buildable"] = False
+
 
     return templates
 

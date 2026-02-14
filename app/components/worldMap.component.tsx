@@ -36,6 +36,10 @@ import { roadBuilderController } from "@/app/lib/roadBuilderController";
 import { Tooltip } from "../lib/tooltip/tooltip.component";
 import { TooltipContent } from "../lib/tooltip/tooltipContent.component";
 import { colorSearchController } from "@/app/lib/colorSeach.controller";
+import { shortestPathController } from "../lib/shortestPath.controller";
+import { MainActionsBar } from "./mainActionsBar.component";
+import { changeCapitalController } from "@/app/lib/changeCapital.controller";
+import { RoadList } from "./roadList.component";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
@@ -48,6 +52,10 @@ export function WorldMapComponent() {
   const gameState = useSyncExternalStore(
     gameStateController.subscribe.bind(gameStateController),
     () => gameStateController.getSnapshot(),
+  );
+  const roadBuilderState = useSyncExternalStore(
+    roadBuilderController.subscribe.bind(roadBuilderController),
+    () => roadBuilderController.getSnapshot(),
   );
   const hasOwnedLocations = gameState?.ownedLocations
     ? !!Object.keys(gameState?.ownedLocations)?.length
@@ -521,28 +529,35 @@ export function WorldMapComponent() {
     const clickObserver = new ObservableCombiner([
       actionEventDispatcher.clickedLocationSource,
       roadBuilderController,
+      changeCapitalController,
     ]);
     subscriptionsRef.current.push(clickObserver.dispose.bind(clickObserver));
 
     const clickedLocationUnsubscribe = clickObserver.subscribe(
       ({
-        values: [{ location, type, mouseCoordinate }, roadBuilderState],
+        values: [
+          { location, type, mouseCoordinate },
+          roadBuilderState,
+          changeCapitalState,
+        ],
         changedIndex,
       }) => {
         if (changedIndex !== 0) {
           // only react to changes in clicked location
           return;
         }
-        console.log({
+        /*         console.log({
           clickObserverCombiner: {
             location,
             type,
             mouseCoordinate,
             roadBuilderState,
           },
-        });
+        }); */
         setLastKnownMouseCoordinate(mouseCoordinate);
         switch (true) {
+          case location && changeCapitalState.isModeEnabled:
+            return changeCapitalController.askForConfirmation(location);
           case location &&
             type === "acquire" &&
             !roadBuilderState.isBuildingModeEnabled:
@@ -630,6 +645,8 @@ export function WorldMapComponent() {
     colorSearchController.init(worldMapConfig, gameData);
     roadBuilderController.init();
     actionEventDispatcher.init();
+    shortestPathController.init();
+    changeCapitalController.init();
 
     // Mark as initialized only after waitForInitialization completes
     waitForInitialization(layers.length)
@@ -768,19 +785,24 @@ export function WorldMapComponent() {
           {/* z-50 here is so that dropdowns from header show above of other guiElement */}
           <HeaderComponent />
         </GuiElement>
-        <div className="fixed left-5 top-16 flex flex-col gap-2 z-50 max-h-[85vh] min-h-0 overflow-y-auto">
-
+        <div className="fixed left-5 top-16 flex flex-col gap-2 z-50 max-h-[85vh] min-h-0">
           {hasOwnedLocations && (
             <>
-              <GuiElement className="w-fit min-h-0 shrink overflow-hidden">
+              <GuiElement className="min-h-0 w-64 shrink overflow-y-scroll">
                 <CountryOverview />
               </GuiElement>
-              <GuiElement className="w-fit min-h-0 shrink overflow-hidden">
-                <ConstructibleMenusComponent />
+              <GuiElement className="h-px min-h-14 py-2 flex-none">
+                <MainActionsBar></MainActionsBar>
+              </GuiElement>
+              <GuiElement className="min-h-0 w-72 max-h-[60vh] shrink overflow-y-scroll">
+                {roadBuilderState.isBuildingModeEnabled ? (
+                  <RoadList />
+                ) : (
+                  <ConstructibleMenusComponent />
+                )}
               </GuiElement>
             </>
           )}
-
         </div>
         <GuiElement className="fixed left-5 right-5 bottom-1">
           <InfoBoxComponent />

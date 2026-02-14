@@ -1,5 +1,6 @@
 // do not import other files in this file
 
+import { IBuildingInstance, INewBuildingTemplate } from "./building";
 import { IProximityComputationRule } from "./proximityComputationRules";
 
 export type ILocationIdentifier = string; // location name
@@ -10,7 +11,6 @@ export type RoadType =
   | "paved_road"
   | "modern_road"
   | "rail_road";
-export type BuildingType = "rural" | "urban" | "city" | "common";
 
 export type Topography =
   | "unknown"
@@ -64,40 +64,6 @@ export interface ILocationGameData {
   buildings: string[]; //building names
   development: number; // can me modified , in other interface (ILocationTemporaryData ?)
   population: number; // can me modified , in other interface (ILocationTemporaryData ?)
-}
-
-export type PlacementRestrictions =
-  | "is_coastal"
-  | "has_river"
-  | "is_adjacent_to_lake"
-  | "has_road"
-  | "is_capital";
-
-export type PlacementRestrictionCondition =
-  | PlacementRestrictions
-  | IPlacementRestrictionConfig;
-
-export interface IPlacementRestrictionConfig {
-  mode: "AND" | "OR";
-  conditions: PlacementRestrictionCondition[];
-}
-
-export interface IBuildingTemplate {
-  name: string;
-  levels: number;
-  type: BuildingType;
-  harborCapacity: number[]; // harbor capacity increment per level
-  proximityCostReductionPercentage: number[]; // percentage reduction per level
-  localProximitySource?: number[]; // proximity cost reduction source per level
-  placementRestriction?: IPlacementRestrictionConfig;
-  locationRestriction?: Array<ILocationIdentifier>;
-  countryRestriction?: Array<string>;
-}
-
-interface IBuildingInstance {
-  template: IBuildingTemplate;
-  level: number;
-  createdByUser: boolean; // can be destroyed if false ? should check
 }
 
 export interface IConstructibleLocation {
@@ -155,7 +121,7 @@ export interface ICountryValues {
 export interface IGameData {
   locationDataMap: ILocationDataMap;
   colorToNameMap: ILocationIdentifierMap;
-  buildingsTemplateMap: Record<string, IBuildingTemplate>;
+  buildingsTemplate: Record<string, INewBuildingTemplate>;
   proximityComputationRule: IProximityComputationRule;
   countriesDataMap: Record<string, ICountryData>;
   roads: RoadRecord; // base roads initialized at the start of the game

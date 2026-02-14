@@ -523,7 +523,7 @@
           const locationBuildings = gameState.ownedLocations[locationName].buildings;
           const highestProximitySource = Math.max(
             ...locationBuildings.map(
-              (b) => b.template.localProximitySource?.[b.level - 1] || 0
+              (b) => b.template.modifiers.localProximitySource ?? 0
             )
           );
           if (highestProximitySource > 0) {
@@ -611,21 +611,6 @@
           return 0;
       }
     }
-    /*   private static getGenericCountryProximityCostModifiers(
-      country: ICountryValues,
-      rule: IProximityComputationRule,
-    ): number {
-      return [
-        country.centralizationVsDecentralization < 0
-          ? (Math.abs(country.centralizationVsDecentralization) *
-              rule.valuesImpact.centralizationVsDecentralization[0]
-                .percentageModifier) /
-            100
-          : 0,
-        country.rulerAdministrativeAbility *
-          rule.rulerAdministrativeAbilityImpact,
-      ].reduce((a, b) => a + b, 0);
-    } */
     static getPercentageProximityCostModifiers(from, to, edgeType, gameData2, gameState, proximityBuffs, options, roadType) {
       const rule = gameData2.proximityComputationRule;
       const toLocationData = gameData2.locationDataMap[to];
@@ -807,7 +792,8 @@
     }
     const buildings = locationConstructibleData?.buildings ?? [];
     const totalBuildingsCostReduction = buildings.map(
-      (b) => b.template.proximityCostReductionPercentage?.[b.level - 1] ?? 0
+      (b) => Math.abs(b.template.modifiers.localProximityCostModifier ?? 0) * 100 * // O.0.11 effects are negative floats, 0.1.0 positive - we might need to change this formula if there are buildings giving negative local prox in the future
+      b.level
     ).reduce((a, b) => a + b, 0);
     const environmentalProximityCostIncreasePercentage = behaviour.discardVegetationAndTopographyModifiers ? 0 : _ProximityComputationHelper.getEnvironmentalProximityCostIncreasePercentage(
       location,
@@ -850,7 +836,7 @@
     }
     const buildings = locationConstructibleData.buildings ?? [];
     const totalBuildingsHarborCapacity = buildings.map((b) => {
-      const capacity = b.template.harborCapacity?.[b.level - 1];
+      const capacity = (b.template.modifiers.harborSuitability ?? 0) * b.level;
       return capacity || 0;
     }).reduce((a, b) => a + b, 0);
     logProximityComputation(locationData.name, options, "Harbor capacity", {
@@ -995,7 +981,7 @@
               {
                 allowUnownedLocations: true,
                 // allow passing over unowned
-                logForLocations: ["strait_of_dover", "windsor"],
+                logForLocations: ["melun"],
                 logMethod: (message, data) => {
                   sendMessage(self, {
                     data: data ?? null,

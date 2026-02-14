@@ -1,4 +1,5 @@
 import React, {
+  ReactNode,
   useContext,
   useEffect,
   useMemo,
@@ -28,20 +29,22 @@ import { TooltipTrigger } from "../lib/tooltip/tooltipTrigger.component";
 import { TooltipContent } from "../lib/tooltip/tooltipContent.component";
 import { ShortestPathComponent } from "./shortestPath.component";
 import { FormatedProximity } from "./formatedProximity.component";
+import { RoadList } from "./roadList.component";
+import Image from "next/image";
 
-const capitalPicker = (
-  location: ILocationIdentifier,
-  isCapital: boolean,
-): React.JSX.Element => {
+function CapitalPicker(props: {
+  location: ILocationIdentifier;
+  isCapital: boolean;
+}) {
   return (
     <div className={"bg-white ml-1 w-4"}>
       <button
         onClick={() => {
-          gameStateController.changeCapital(location);
+          gameStateController.changeCapital(props.location);
         }}
         className={
           "px-1" +
-          (isCapital
+          (props.isCapital
             ? " bg-black text-yellow-300"
             : " bg-white text-black hover:bg-yellow-400")
         }
@@ -50,7 +53,7 @@ const capitalPicker = (
       </button>
     </div>
   );
-};
+}
 
 const buildingList = (
   locationName: ILocationIdentifier,
@@ -173,7 +176,6 @@ const ConstructibleLocationItem = React.memo(
     gameData,
     gameState,
     proximityComputation,
-    expanded,
   }: {
     location: ILocationIdentifier;
     constructible: IConstructibleLocation;
@@ -182,23 +184,26 @@ const ConstructibleLocationItem = React.memo(
     proximityComputation: ReturnType<
       typeof proximityComputationController.getSnapshot
     >;
-    expanded: boolean;
   }) {
     const proximitySpanRef = useRef<HTMLDivElement>(null);
     return (
       <div
         key={location}
-        className="py-1 h-10 grid grid-cols-9 items-center whitespace-nowrap gap-2 w-[600px]"
+        className="py-1 h-10 grid grid-cols-3 items-center whitespace-nowrap gap-2 "
       >
-        <ActionSource
-          locations={(e) => location}
-          hover={{}}
-          click={{ type: "goto" }}
-        >
-          <div className="font-bold col-span-2 truncate ... flex-none cursor-pointer">
-            <span className="text-lg ">{location}</span>
-          </div>
-        </ActionSource>
+        <div className="col-span-2 flex flex-row items-center">
+          {gameState.capitalLocation === location && <span>★</span>}
+          <ActionSource
+            locations={(e) => location}
+            hover={{}}
+            click={{ type: "goto" }}
+          >
+            <span className=" text-lg cursor-pointer truncate ... ">
+              {location}
+            </span>
+          </ActionSource>
+        </div>
+
         <div ref={proximitySpanRef} className="col-span-1">
           <Tooltip>
             <TooltipTrigger>
@@ -223,13 +228,10 @@ const ConstructibleLocationItem = React.memo(
           </Tooltip>
         </div>
 
-        {expanded && (
-          <div className="col-span-2 flex flex-row items-center space-x-2">
-            {capitalPicker(location, gameState.capitalLocation === location)}
-            {locationRankPicker(location, constructible)}
-          </div>
-        )}
-        {expanded && (
+        <div className="col-span-2 flex flex-row items-center space-x-2">
+          {/* {locationRankPicker(location, constructible)} */}
+        </div>
+        {/*         {expanded && (
           <div className="col-span-1">
             {buildingList(
               location,
@@ -238,81 +240,11 @@ const ConstructibleLocationItem = React.memo(
               constructible,
             )}
           </div>
-        )}
+        )} */}
       </div>
     );
   },
 );
-
-const RoadItem = React.memo(function RoadItem({
-  roadKey,
-  type,
-  expanded,
-}: {
-  roadKey: `${string}-${string}`;
-  type: RoadType;
-  expanded: boolean;
-}) {
-  const [from, to] = roadKey.split("-");
-
-  if (!from || !to) {
-    return <></>;
-  }
-  return (
-    <div
-      key={roadKey}
-      className="py-1 h-10 grid grid-cols-8 items-center whitespace-nowrap gap-4 w-[600px]"
-    >
-      <ActionSource
-        locations={(e) => [from, to] as [string, string]}
-        hover={{}}
-        click={{ type: "goto" }}
-      >
-        <span
-          className={
-            "  min-w-0 cursor-pointer truncate ... " +
-            (expanded ? "col-span-4" : "col-span-2")
-          }
-        >
-          {from} - {to}
-        </span>
-      </ActionSource>
-
-      {!expanded && (
-        <span className="col-span-1">
-          <img src={getGuiImage(type)} alt={type} width={24} height={24} />
-        </span>
-      )}
-      {expanded && (
-        <div className="col-span-3 flex flex-row items-center gap-2">
-          {(
-            [
-              "gravel_road",
-              "paved_road",
-              "modern_road",
-              "rail_road",
-            ] satisfies RoadType[]
-          ).map((possibleRoadType) => (
-            <button
-              key={possibleRoadType}
-              onClick={() => {
-                gameStateController.changeRoadType(roadKey, possibleRoadType);
-              }}
-              className={`${type === possibleRoadType ? "bg-yellow-300" : "bg-black hover:bg-yellow-400"}`}
-            >
-              <img
-                src={getGuiImage(possibleRoadType)}
-                alt={possibleRoadType}
-                width={24}
-                height={24}
-              />
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-});
 
 export function ConstructibleMenusComponent() {
   const gameState = useSyncExternalStore(
@@ -404,124 +336,86 @@ export function ConstructibleMenusComponent() {
   }
 
   return (
-    <ExpandablePanel>
-      {(isExpanded) => (
+    <div>
+      {noOwnedLoactions ? (
+        <div className="text-stone-400 text-italic">
+          No locations selected - either select a country above, or create your
+          own country from scratch by selecting a location
+        </div>
+      ) : (
         <>
-          {noOwnedLoactions ? (
-            <div className="text-stone-400 text-italic">
-              No locations selected - either select a country above, or create
-              your own country from scratch by selecting a location
-            </div>
-          ) : (
-            <>
-              <div className="flex-shrink-0">
-                <input
-                  type="search"
-                  placeholder="Search for a location..."
-                  className="w-full"
-                  onChange={(e) => setSearch(e.target.value)}
-                  style={{ outline: "none" }}
-                />
-                <hr className="w-full"></hr>
-              </div>
-              <div className="flex-1 min-h-0 overflow-x-hidden [scrollbar-gutter:stable]">
-                <FoldableMenu
-                  title={`Owned Locations (${Object.keys(gameState.ownedLocations).length})`}
-                  isExpanded={ownedLocationsExpanded}
-                  onToggle={() =>
-                    setOwnedLocationsExpanded(!ownedLocationsExpanded)
+          <div className="shrink-0 flex flex-row pt-1">
+            <Image
+              src={"/icons/magnifyingGlass.svg"}
+              alt="search"
+              width={16}
+              height={16}
+              className="invert"
+            />
+            <input
+              type="search"
+              placeholder="Search for a location..."
+              className="w-full ml-2"
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ outline: "none" }}
+            />
+          </div>
+          <hr className="w-full my-2"></hr>
+          <div className="flex-1 min-h-0 overflow-x-hidden">
+            <FoldableMenu
+              title={`Owned Locations (${Object.keys(gameState.ownedLocations).length})`}
+              isExpanded={ownedLocationsExpanded}
+              onToggle={() =>
+                setOwnedLocationsExpanded(!ownedLocationsExpanded)
+              }
+            >
+              {filteredLocationEntries
+                .sort(
+                  ([a], [b]) =>
+                    (proximityComputation.result[a]?.cost ?? 100) -
+                    (proximityComputation.result[b]?.cost ?? 100),
+                )
+                .map(([locationName, constructibleData]) => (
+                  <ConstructibleLocationItem
+                    key={locationName}
+                    location={locationName}
+                    constructible={constructibleData}
+                    gameData={gameData}
+                    gameState={gameState}
+                    proximityComputation={proximityComputation}
+                  />
+                ))}
+            </FoldableMenu>
+            {/*     <FoldableMenu
+              title={`Owned Roads (${Object.keys(gameState.roads).length})`}
+              isExpanded={roadsExpanded}
+              onToggle={() => setRoadsExpanded(!roadsExpanded)}
+            >
+              <div className="gap-4 w-[600px]">
+                <button
+                  className={
+                    " text-black rounded-lg px-3 py-2 " +
+                    (buildingRoadState.isBuildingModeEnabled
+                      ? " bg-yellow-600 hover:bg-yellow-500 "
+                      : " bg-blue-600 hover:bg-blue-500 ")
                   }
+                  onClick={() => roadBuilderController.toggleBuildingMode()}
                 >
-                  {filteredLocationEntries
-                    .sort(
-                      ([a], [b]) =>
-                        (proximityComputation.result[a]?.cost ?? 100) -
-                        (proximityComputation.result[b]?.cost ?? 100),
-                    )
-                    .map(([locationName, constructibleData]) => (
-                      <ConstructibleLocationItem
-                        key={locationName}
-                        location={locationName}
-                        constructible={constructibleData}
-                        gameData={gameData}
-                        gameState={gameState}
-                        proximityComputation={proximityComputation}
-                        expanded={isExpanded}
-                      />
-                    ))}
-                </FoldableMenu>
-                <FoldableMenu
-                  title={`Owned Roads (${Object.keys(filteredRoadsEntries).length})`}
-                  isExpanded={roadsExpanded}
-                  onToggle={() => setRoadsExpanded(!roadsExpanded)}
-                >
-                  <div className="grid grid-cols-8 gap-4 w-[600px]">
-                    <button
-                      className={
-                        " text-black rounded-lg px-3 py-2 " +
-                        (buildingRoadState.isBuildingModeEnabled
-                          ? " bg-yellow-600 hover:bg-yellow-500 "
-                          : " bg-blue-600 hover:bg-blue-500 ") +
-                        (isExpanded ? " col-span-4 " : " col-span-2 ")
-                      }
-                      onClick={() => roadBuilderController.toggleBuildingMode()}
-                    >
-                      Build new roads
-                    </button>
-
-                    {isExpanded && (
-                      <div className="col-span-3 flex flex-row items-center gap-2">
-                        {(
-                          [
-                            "gravel_road",
-                            "paved_road",
-                            "modern_road",
-                            "rail_road",
-                          ] satisfies RoadType[]
-                        ).map((possibleRoadType) => (
-                          <input
-                            key={possibleRoadType}
-                            type="checkbox"
-                            className="w-6 h-6 shrink-0"
-                            checked={ConstructibleHelper.areAllOwnedRoadsOfType(
-                              gameState.ownedLocations,
-                              gameState.roads,
-                              possibleRoadType,
-                            )}
-                            onChange={() =>
-                              gameStateController.changeAllOwnedRoadsToType(
-                                possibleRoadType,
-                              )
-                            }
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {buildingRoadState.isBuildingModeEnabled && (
-                    <div className="text-sm text-yellow-400 italic mb-2 mr-3">
-                      Click on a location to start building a new road
-                    </div>
-                  )}
-
-                  {filteredRoadsEntries &&
-                    Object.entries(filteredRoadsEntries)
-                      .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
-                      .map(([key, type]) => (
-                        <RoadItem
-                          key={key}
-                          roadKey={key as `${string}-${string}`}
-                          type={type}
-                          expanded={isExpanded}
-                        />
-                      ))}
-                </FoldableMenu>
+                  Build new roads
+                </button>
               </div>
-            </>
-          )}
+
+              {buildingRoadState.isBuildingModeEnabled && (
+                <div className="text-sm text-yellow-400 italic mb-2 mr-3">
+                  Click on a location to start building a new road
+                </div>
+              )}
+
+              <RoadList search={search}></RoadList>
+            </FoldableMenu> */}
+          </div>
         </>
       )}
-    </ExpandablePanel>
+    </div>
   );
 }

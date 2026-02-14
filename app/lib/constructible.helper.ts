@@ -1,19 +1,23 @@
+import { evaluateLogicTree, LogicTree } from "./classes/logicTree";
 import { LocationsHelper } from "./locations.helper";
 import {
-  IBuildingTemplate,
+  INewBuildingTemplate,
+  IPlacementRestrictionConfig,
+  PlacementRestrictions,
+} from "./types/building";
+import {
   IConstructibleLocation,
   IGameData,
   IGameState,
   ILocationGameData,
   ILocationIdentifier,
-  PlacementRestrictions,
   RoadRecord,
   RoadType,
 } from "./types/general";
 
 type ConstructibleState = {
   buildings: Array<{
-    name: IBuildingTemplate["name"];
+    name: INewBuildingTemplate["name"];
     amountBuilt: number;
     canBuild: boolean;
     reason: string | null;
@@ -24,45 +28,63 @@ export class ConstructibleHelper {
   private static evaluatePlacementCondition(
     condition: PlacementRestrictions,
     location: ILocationGameData,
-    roads: RoadRecord,
+    gameState: IGameState,
   ): boolean {
     switch (condition) {
       case "is_coastal":
         return location.isCoastal;
-      case "is_on_river":
+      case "has_river":
         return location.isOnRiver;
-      case "is_on_lake":
+      case "is_adjacent_to_lake":
         return location.isOnLake;
+      case "is_capital":
+        return gameState.capitalLocation === location.name;
       case "has_road":
-        return LocationsHelper.locationHasRoad(location.name, roads);
+        return LocationsHelper.locationHasRoad(location.name, gameState.roads);
     }
+  }
+
+  private static treeFromConditions(
+    restrictions: IPlacementRestrictionConfig,
+    location: ILocationGameData,
+    gameState: IGameState,
+  ): LogicTree {
+    const root: LogicTree = { type: "operator", op: "AND", children: [] };
+    for (const condition of restrictions.conditions) {
+      if (typeof condition === "string") {
+        root.children.push({
+          type: "leaf",
+          getValue: () =>
+            this.evaluatePlacementCondition(condition, location, gameState),
+        });
+      } else {
+        root.children.push(
+          this.treeFromConditions(condition, location, gameState),
+        );
+      }
+    }
+    return root;
   }
 
   private static locationDataSupportsBuildingRestrictions(
-    building: IBuildingTemplate,
+    building: INewBuildingTemplate,
     location: ILocationGameData,
     roads: RoadRecord,
   ): boolean {
-    if (!building.placementRestriction) return true;
-
-    const restrictions = building.placementRestriction;
-
-    let res: boolean = false;
-    if (restrictions.mode === "all") {
-      res = restrictions.conditions.every((condition) =>
-        this.evaluatePlacementCondition(condition, location, roads),
-      );
-    } else if (restrictions.mode === "any") {
-      res = restrictions.conditions.some((condition) =>
-        this.evaluatePlacementCondition(condition, location, roads),
-      );
-    }
-
-    return res;
+    /*     if (!building.placementRestriction) return true;
+    const restrictions = building.placementRestriction; */
+    const logicTree = this.treeFromConditions(
+      building.placementRestriction ?? { op: "AND", conditions: [] },
+      location,
+      {
+        roads,
+      } as IGameState,
+    );
+    return evaluateLogicTree(logicTree);
   }
 
   private static locationLevelSupportsBuilding(
-    building: IBuildingTemplate,
+    building: INewBuildingTemplate,
     constructible: IConstructibleLocation,
   ) {
     switch (building.type) {
@@ -80,19 +102,25 @@ export class ConstructibleHelper {
   }
 
   private static locationAlreadyAtMaxCapacityForBuilding(
-    building: IBuildingTemplate,
+    building: INewBuildingTemplate,
     constructible: IConstructibleLocation,
   ): boolean {
+    if (!building.cap) return false;
+
     const alreadyBuilt = constructible.buildings.find(
       (b) => b.template.name === building.name,
     );
     if (!alreadyBuilt) return false;
 
-    return alreadyBuilt && alreadyBuilt.level >= building.levels;
+    return (
+      alreadyBuilt &&
+      alreadyBuilt.level >= building.cap &&
+      building.upgrade === null
+    );
   }
 
   public static getBuildability(
-    building: IBuildingTemplate,
+    building: INewBuildingTemplate,
     location: ILocationIdentifier,
     gameData: IGameData,
     ownedLocations: IGameState["ownedLocations"],
@@ -137,11 +165,13 @@ export class ConstructibleHelper {
   ): ConstructibleState {
     const constructibleState: ConstructibleState = { buildings: [] };
 
-    const templates = Object.values(gameData.buildingsTemplateMap).sort(
-      (a, b) => a.name.localeCompare(b.name),
+    const templates = Object.values(gameData.buildingsTemplate).sort((a, b) =>
+      a.name.localeCompare(b.name),
     );
 
     for (const buildingTemplate of templates) {
+      if (!buildingTemplate.buildable) continue;
+
       const buildability = this.getBuildability(
         buildingTemplate,
         location,

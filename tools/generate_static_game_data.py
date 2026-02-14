@@ -229,7 +229,7 @@ def generate_game_data_json(
     """
 
     # specific values to print
-    locations_to_print = ['cologne', 'paris', 'london', 'siena']
+    locations_to_print = ['cologne', 'paris', 'london', 'siena', 'venice']
 
     # Setup paths
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -275,7 +275,19 @@ def generate_game_data_json(
     populations = parse_pops_file(files.pops_file)
     roads = parse_roads_file(files.roads_file)
     development_rules = parse_development_file(files.development_file)
-    whitelisted_buildings = {'wharf', 'fishing_village', 'dock', 'bridge_infrastructure', 'bailiff'}
+
+
+    print("Generating buildings template...")
+    buildings_template_map = generate_buildings_template(
+        version,
+        None,
+        source=source,
+        game_root_path=game_root_path
+    )
+
+    whitelisted_buildings = set(buildings_template_map.keys())
+    print(f"found {len(whitelisted_buildings)} unique buildings from template generation")
+    print("")
     location_ranks, location_buildings = parse_cities_and_buildings_file(
         files.cities_buildings_file,
         whitelisted_buildings
@@ -463,12 +475,6 @@ def generate_game_data_json(
     # Write output files
     # Convert CountryData objects to dicts for JSON serialization
     countries_data_map_serializable = {k: asdict(v) for k, v in countries_data_map.items()}
-    buildings_template_map = generate_buildings_template(
-        version,
-        None,
-        source=source,
-        game_root_path=game_root_path
-    )
     output_files = {
         "location-data-map.json": location_data_map,
         "color-to-name-map.json": color_to_name,

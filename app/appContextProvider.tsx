@@ -46,7 +46,6 @@ export const AppContextProvider = ({
   const [imagePaths, setImagePaths] = useState<IImagePaths | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isBuildingRoad, setIsBuildingRoad] = useState(false);
 
   useEffect(() => {
     const loadGameData = async () => {
@@ -131,7 +130,7 @@ export const AppContextProvider = ({
         const {
           locationDataMap,
           colorToNameMap,
-          buildingsTemplateMap,
+          buildingsTemplate,
           adjacencyCsv,
           proximityComputationRule,
           countriesDataMap,
@@ -143,7 +142,7 @@ export const AppContextProvider = ({
         const toBePersistedGameData: IGameData = {
           locationDataMap,
           colorToNameMap: {},
-          buildingsTemplateMap: {},
+          buildingsTemplate: {},
           proximityComputationRule,
           countriesDataMap: {},
           roads,
@@ -185,7 +184,7 @@ export const AppContextProvider = ({
         setGameData({
           locationDataMap,
           colorToNameMap,
-          buildingsTemplateMap,
+          buildingsTemplate,
           proximityComputationRule,
           countriesDataMap,
           roads,

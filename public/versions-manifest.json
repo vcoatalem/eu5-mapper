@@ -1,8 +1,5 @@
 {
-  "versions": [
-    "0.0.11",
-    "0.1.0"
-  ],
+  "versions": ["0.0.11", "0.1.0"],
   "files": {
     "locationDataMap": {
       "0.0.11": {
@@ -14,12 +11,12 @@
         "path": "/0.0.11/game_data/color-to-name-map.json"
       }
     },
-    "buildingsTemplateMap": {
+    "buildingsTemplate": {
       "0.0.11": {
-        "path": "/0.0.11/game_data/buildings-template-map.json"
+        "path": "/0.0.11/game_data/buildings-template.json"
       },
       "0.1.0": {
-        "path": "/0.1.0/game_data/buildings-template-map.json"
+        "path": "/0.1.0/game_data/buildings-template.json"
       }
     },
     "adjacencyCsv": {

@@ -75,8 +75,7 @@ export class GameStateController extends Observable<IGameState> {
       const baseBuildings =
         this.gameData?.locationDataMap[location].buildings ?? [];
       const initialLocationBuildings = baseBuildings.map((buildingName) => {
-        const buildingTemplate =
-          this.gameData?.buildingsTemplateMap[buildingName];
+        const buildingTemplate = this.gameData?.buildingsTemplate[buildingName];
         if (!buildingTemplate) {
           throw new Error(
             `Unknown building template: ${buildingName} for location: ${location}`,
@@ -169,8 +168,7 @@ export class GameStateController extends Observable<IGameState> {
           `Cannot add building to unowned location: ${locationName}`,
         );
       }
-      const buildingTemplate =
-        this.gameData?.buildingsTemplateMap[buildingName];
+      const buildingTemplate = this.gameData?.buildingsTemplate[buildingName];
       if (!buildingTemplate) {
         throw new Error(`Unknown building template: ${buildingName}`);
       }
@@ -189,16 +187,27 @@ export class GameStateController extends Observable<IGameState> {
         );
       }
 
-      const buildingToUpgrade = location.buildings.filter(
+      const existingBuilding = location.buildings.filter(
         (b) => b.template.name === buildingName,
-      );
-      const buildingToUpgradeIdx = location.buildings.indexOf(
-        buildingToUpgrade[0],
-      );
-      if (buildingToUpgradeIdx !== -1) {
-        this.subject.ownedLocations[locationName].buildings[
-          buildingToUpgradeIdx
-        ].level += 1;
+      )?.[0];
+      const existingBuildingIdx = existingBuilding
+        ? location.buildings.indexOf(existingBuilding)
+        : -1;
+
+      if (existingBuildingIdx !== -1) {
+        if (existingBuilding.template.upgrade) {
+          const buildingUpgrade = existingBuilding.template.upgrade;
+          this.subject.ownedLocations[locationName].buildings[
+            existingBuildingIdx
+          ] = {
+            template: this.gameData!.buildingsTemplate[buildingUpgrade],
+            level: 1,
+          };
+        } else {
+          this.subject.ownedLocations[locationName].buildings[
+            existingBuildingIdx
+          ].level += 1;
+        }
       } else {
         const buildingToCreate = {
           template: buildingTemplate,
@@ -230,6 +239,12 @@ export class GameStateController extends Observable<IGameState> {
     if (building.level > 1) {
       this.subject.ownedLocations[locationName].buildings[buildingIdx].level -=
         1;
+      this.notifyListeners();
+    } else if (building.level === 1 && building.template.downgrade) {
+      this.subject.ownedLocations[locationName].buildings[buildingIdx] = {
+        template: this.gameData!.buildingsTemplate[building.template.downgrade],
+        level: 1,
+      };
       this.notifyListeners();
     } else {
       this.subject.ownedLocations[locationName].buildings.splice(

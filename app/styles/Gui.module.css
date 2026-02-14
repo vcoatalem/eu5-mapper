@@ -14,4 +14,8 @@
       #facc15 12px
     );
   }
+
+  .header {
+    @apply w-full h-10 flex flex-row items-center relative;
+  }
 }

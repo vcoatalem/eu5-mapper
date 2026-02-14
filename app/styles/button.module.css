@@ -1,0 +1,11 @@
+@reference "tailwindcss";
+
+@layer components {
+  .simpleButton {
+    @apply rounded-md hover:bg-stone-600 px-2 py-1 border border-white text-white cursor-pointer;
+  }
+
+  .iconButton {
+    @apply rounded-md p-1 border border-white hover:bg-stone-600 cursor-pointer;
+  }
+}

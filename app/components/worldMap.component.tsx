@@ -40,6 +40,10 @@ import { shortestPathController } from "../lib/shortestPath.controller";
 import { MainActionsBar } from "./mainActionsBar.component";
 import { changeCapitalController } from "@/app/lib/changeCapital.controller";
 import { RoadList } from "./roadList.component";
+import { WorkerStatusComponent } from "@/app/components/workerStatus.component";
+import { LocationSearchBar } from "@/app/components/locationSearchBar.component";
+import { env } from "process";
+import { useParams } from "next/navigation";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
@@ -60,6 +64,7 @@ export function WorldMapComponent() {
   const hasOwnedLocations = gameState?.ownedLocations
     ? !!Object.keys(gameState?.ownedLocations)?.length
     : false;
+  const version = useParams().version as string;
   const initializedRef = useRef(false);
   const colorCanvasRef = useRef<HTMLCanvasElement>(null);
   const terrainCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -648,6 +653,13 @@ export function WorldMapComponent() {
     shortestPathController.init();
     changeCapitalController.init();
 
+    // dev mode: boot game state from public/test-gamefile.json for quick reloaded
+    if (process.env.NODE_ENV === "development") {
+      fetch("/test-gamefile.json").then((res) =>
+        res.text().then((txt) => gameStateController.loadFile(txt, version)),
+      );
+    }
+
     // Mark as initialized only after waitForInitialization completes
     waitForInitialization(layers.length)
       .then(() => {
@@ -824,6 +836,14 @@ export function WorldMapComponent() {
             </div>
           </TooltipContent>
         </Tooltip>
+        {!roadBuilderState.isBuildingModeEnabled && (
+          <GuiElement className="fixed right-5 top-15 rounded-lg py-2">
+            <LocationSearchBar className="w-52" />
+          </GuiElement>
+        )}
+        <GuiElement className="fixed right-5 bottom-30">
+          <WorkerStatusComponent className="w-24" />
+        </GuiElement>
         <GuiElement className="fixed right-20 bottom-15">
           <button onClick={handleZoomOut} className="w-8 px-2 py-1">
             -

@@ -6,7 +6,7 @@ import { TooltipContent } from "../lib/tooltip/tooltipContent.component";
 import Image from "next/image";
 import { changeCapitalController } from "@/app/lib/changeCapital.controller";
 import { Modal } from "../lib/modal/modal.component";
-import { DetailedLocationViewModal } from "./locationExtensiveViewModalHeader.component";
+import { DetailedLocationViewModal } from "./detailedLocationViewModal.component";
 
 export function MainActionsBar() {
   const buildRoadButtonRef = useRef<HTMLButtonElement>(null);

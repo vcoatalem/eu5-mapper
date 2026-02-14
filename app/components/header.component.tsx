@@ -13,6 +13,7 @@ import {
   changeCapitalController,
   IChangeCapitalState,
 } from "../lib/changeCapital.controller";
+import { ImportExportGameState } from "@/app/components/importExportGameState.component";
 
 function RegularHeader() {
   const gameState = useSyncExternalStore(
@@ -43,9 +44,8 @@ function RegularHeader() {
       >
         <CountrySelectionModal></CountrySelectionModal>
       </Modal>
-      <div className="ml-auto flex flex-row items-center">
-        <LocationSearchBar className="w-52" />
-        <WorkerStatusComponent className="w-32" />
+      <div className="ml-auto w-fit">
+        <ImportExportGameState />
       </div>
     </div>
   );

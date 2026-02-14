@@ -1,19 +1,7 @@
-import { ILocationDetailedViewData } from "@/app/components/locationExtensiveViewModalHeader.component";
-import { FormatedProximity } from "@/app/components/formatedProximity.component";
-import {
-  IConstructibleLocation,
-  ILocationIdentifier,
-  ITemporaryLocationData,
-} from "@/app/lib/types/general";
+import { ILocationDetailedViewData } from "@/app/components/detailedLocationViewModal.component";
+import { ILocationIdentifier, LocationRank } from "@/app/lib/types/general";
 import Image from "next/image";
-import React, {
-  ReactElement,
-  ReactNode,
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import styles from "@/app/styles/button.module.css";
 import { Tooltip } from "@/app/lib/tooltip/tooltip.component";
 import { TooltipTrigger } from "@/app/lib/tooltip/tooltipTrigger.component";
@@ -22,7 +10,7 @@ import { FormattedProximityWithPathfindingTooltip } from "@/app/components/forma
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import { gameStateController } from "@/app/lib/gameState.controller";
 
-interface ILocationExtensiveViewProps {
+interface IDetailedLocationListProps {
   ownedLocations: Record<ILocationIdentifier, ILocationDetailedViewData>;
   capitalLocation: ILocationIdentifier | null;
   togglePin?: (location: ILocationIdentifier) => void;
@@ -30,7 +18,7 @@ interface ILocationExtensiveViewProps {
 
 function DisplayLocation(props: {
   data: ILocationDetailedViewData;
-  extensiveViewProps?: ILocationExtensiveViewProps;
+  extensiveViewProps?: IDetailedLocationListProps;
 }) {
   const pinButtonDivRef = useRef<HTMLDivElement>(null);
   const capitalButtonDivRef = useRef<HTMLDivElement>(null);
@@ -175,12 +163,35 @@ function DisplayBuildings(props: { data: ILocationDetailedViewData }) {
   return <div>buildings go here</div>;
 }
 
+function DisplayRank(props: { data: ILocationDetailedViewData }) {
+  return (
+    <select
+      id={props.data.baseLocationGameData.name + "-rank"}
+      className={"w-full h-full outline-none " + styles.simpleButton}
+      onChange={({ target }) => {
+        console.log("changing location rank to " + target.value);
+        gameStateController.changeLocationRank(
+          props.data.baseLocationGameData.name,
+          target.value as LocationRank,
+        );
+      }}
+      value={props.data.constructibleData.rank}
+    >
+      {["rural", "town", "city"].map((rank) => (
+        <option style={{ outline: "none" }} key={rank} value={rank}>
+          {rank}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 const columns: Array<{
   title: string;
   cols: number;
   displayComponent: React.FC<{
     data: ILocationDetailedViewData;
-    extensiveViewProps?: ILocationExtensiveViewProps;
+    extensiveViewProps?: IDetailedLocationListProps;
   }>;
   sortBy: (
     a: ILocationDetailedViewData,
@@ -237,6 +248,21 @@ const columns: Array<{
     },
   },
   {
+    title: "Rank",
+    cols: 1,
+    displayComponent: DisplayRank,
+    sortBy: (a, b) => {
+      const rankings: Record<LocationRank, number> = {
+        rural: 0,
+        town: 1,
+        city: 2,
+      };
+      const rankA = rankings[a.baseLocationGameData.rank] ?? -1;
+      const rankB = rankings[b.baseLocationGameData.rank] ?? -1;
+      return rankB - rankA;
+    },
+  },
+  {
     title: "Buildings",
     cols: 6,
     displayComponent: DisplayBuildings,
@@ -251,7 +277,7 @@ function LocationLine(props: {
   location: ILocationIdentifier;
   sort: { order: SortOrder; column: string } | null;
   data: ILocationDetailedViewData;
-  extensiveViewProps: ILocationExtensiveViewProps;
+  extensiveViewProps: IDetailedLocationListProps;
 }) {
   const { location, sort, data, extensiveViewProps } = props;
   return (
@@ -264,7 +290,7 @@ function LocationLine(props: {
         "grid border font-bold " +
         (data.pinned
           ? "bg-blue-300/50 hover:bg-blue-300/60 sticky  "
-          : " bg-stone-800 hover:bg-stone-700 ")
+          : " hover:bg-stone-700 ")
       }
     >
       {columns.map((col) => {
@@ -290,7 +316,7 @@ function LocationLine(props: {
   );
 }
 
-export function LocationExtensiveView(props: ILocationExtensiveViewProps) {
+export function DetailedLocationList(props: IDetailedLocationListProps) {
   const [sort, setSort] = useState<{ order: SortOrder; column: string } | null>(
     null,
   );
@@ -299,8 +325,8 @@ export function LocationExtensiveView(props: ILocationExtensiveViewProps) {
     sortedItems,
     pinnedItems,
   }: {
-    sortedItems: ILocationExtensiveViewProps["ownedLocations"];
-    pinnedItems: ILocationExtensiveViewProps["ownedLocations"];
+    sortedItems: IDetailedLocationListProps["ownedLocations"];
+    pinnedItems: IDetailedLocationListProps["ownedLocations"];
   } = useMemo(() => {
     const sortByFn =
       columns.find((col) => col.title === sort?.column)?.sortBy ??
@@ -322,7 +348,7 @@ export function LocationExtensiveView(props: ILocationExtensiveViewProps) {
       ),
     };
 
-    console.log({ sortedItems: res.sortedItems, pinnedItems: res.pinnedItems });
+    /* console.log({ sortedItems: res.sortedItems, pinnedItems: res.pinnedItems }); */
     return res;
   }, [props.ownedLocations, sort]);
 

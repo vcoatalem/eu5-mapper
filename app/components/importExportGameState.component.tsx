@@ -1,0 +1,78 @@
+import { useParams } from "next/navigation";
+import styles from "@/app/styles/button.module.css";
+import { gameStateController } from "@/app/lib/gameState.controller";
+import { useCallback, useState, useSyncExternalStore } from "react";
+import { Modal } from "@/app/lib/modal/modal.component";
+
+export function ImportExportGameState() {
+  const params = useParams();
+  const gameState = useSyncExternalStore(
+    gameStateController.subscribe.bind(gameStateController),
+    () => gameStateController.getSnapshot(),
+  );
+  const [showImportModal, setShowImportModal] = useState(false);
+  const version = params?.version as string;
+
+  const readFile = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+
+      reader.onload = (event) => {
+        try {
+          const content = event.target?.result as string;
+          gameStateController.loadFile(content, version);
+          setShowImportModal(false);
+        } catch (error) {
+          console.error("Failed to parse JSON:", error);
+        }
+      };
+
+      reader.onerror = () => {
+        console.error("Failed to read file");
+      };
+
+      reader.readAsText(file);
+    },
+    [version],
+  );
+
+  if (!version) {
+    throw new Error("[ImportExportGameState] version not found");
+  }
+  return (
+    <div className="flex flex-row items-center gap-2">
+      <button
+        className={styles.simpleButton}
+        onClick={() => setShowImportModal(true)}
+      >
+        Load State
+      </button>
+      <button
+        disabled={!gameState.capitalLocation}
+        className={styles.simpleButton}
+        onClick={() => gameStateController.download(version)}
+      >
+        Save State
+      </button>
+      <Modal isOpen={showImportModal} onClose={() => setShowImportModal(false)}>
+        <div className="w-[30vw] h-[30vh] flex flex-col gap-2 items-center">
+          <h1 className="font-bold text-xl">Import a Game State file</h1>
+          <span className="text-stone-600 text-center">
+            You may import a JSON file exported through the "Save State" button
+          </span>
+          <input
+            className={
+              "border border-white hover:bg-stone-600 rounded-md px-2 py-1"
+            }
+            type="file"
+            accept=".json"
+            onChange={readFile}
+          ></input>
+        </div>
+      </Modal>
+    </div>
+  );
+}

@@ -17,7 +17,7 @@ import {
   ITemporaryLocationData,
 } from "../lib/types/general";
 import Image from "next/image";
-import { LocationExtensiveView } from "./locationsExtensiveView.component";
+import { DetailedLocationList } from "./detailedLocationList.component";
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import { proximityComputationController } from "@/app/lib/proximityComputation.controller";
 
@@ -124,6 +124,7 @@ export function DetailedLocationViewModal() {
         Object.entries(gameState.ownedLocations)
           .map(([key, value]) => {
             const locationGameData = gameData?.locationDataMap[key];
+            /* console.log({ locationGameData }); */
             if (!locationGameData) {
               throw new Error(
                 "[DetailedLocationViewModal] location game data not found for location id: " +
@@ -169,11 +170,11 @@ export function DetailedLocationViewModal() {
         search={search}
         setSearch={setSearch}
       ></LocationExtensiveViewModalHeader>
-      <LocationExtensiveView
+      <DetailedLocationList
         capitalLocation={gameState.capitalLocation ?? null}
         ownedLocations={ownedLocations}
         togglePin={togglePin}
-      ></LocationExtensiveView>
+      ></DetailedLocationList>
     </div>
   );
 }

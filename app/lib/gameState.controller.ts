@@ -382,6 +382,51 @@ export class GameStateController extends Observable<IGameState> {
     };
     this.notifyListeners();
   }
+
+  public loadFile(fileContent: string, expectedVersion: string): void {
+    const parsedState = JSON.parse(fileContent) as IGameState & {
+      version: string;
+    };
+    if (
+      !parsedState ||
+      typeof parsedState !== "object" ||
+      !parsedState.version
+    ) {
+      throw new Error("Invalid file format: missing version");
+    }
+    if (parsedState.version !== expectedVersion) {
+      throw new Error(
+        'File version is of version "' +
+          parsedState.version +
+          '", but expected version is "' +
+          expectedVersion +
+          '". Version migration is not supported yet, but you can try migrating the file manually.',
+      );
+    }
+    this.subject = parsedState;
+    this.notifyListeners();
+    const capitalCoordinates =
+      this.gameData?.locationDataMap[this.subject.capitalLocation ?? ""]
+        ?.centerCoordinates;
+    if (capitalCoordinates) {
+      cameraController.panToCoordinate(capitalCoordinates, 0);
+    }
+  }
+
+  public download(version: string): void {
+    const filename = `${this.subject.countryCode ?? "unknown_country"}-${version.replaceAll(".", "_")}-${new Date().toISOString()}.json`;
+    const fileContent = JSON.stringify({ version, ...this.subject });
+    const blob = new Blob([fileContent], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
 }
 export const gameStateController = new GameStateController();
 

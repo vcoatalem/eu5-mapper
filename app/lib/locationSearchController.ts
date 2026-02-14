@@ -70,7 +70,7 @@ export class LocationSearchController extends Observable<ILocationSearchResult> 
       for (const hierarchyType of Object.keys(hierarchy) as Array<
         keyof ILocationGameData["hierarchy"]
       >) {
-        const value = StringHelper.formatLocationName(hierarchy[hierarchyType]);
+        const value = hierarchy[hierarchyType];
         if (!value) continue;
 
         let typeMap = groups[hierarchyType];
@@ -87,9 +87,7 @@ export class LocationSearchController extends Observable<ILocationSearchResult> 
           };
           typeMap.set(value, entry);
         }
-        entry.locations.push(
-          StringHelper.formatLocationName(locationName) as ILocationIdentifier,
-        );
+        entry.locations.push(locationName);
       }
     }
 
@@ -150,7 +148,7 @@ export class LocationSearchController extends Observable<ILocationSearchResult> 
       this.gameData.locationDataMap,
     )
       .map(([name, data]) => ({
-        name: StringHelper.formatLocationName(name),
+        name: name, //StringHelper.formatLocationName(name),
         hierarchyType: "location" as const,
         hierarchy: data.hierarchy,
         locationsInHierarchy: [name],

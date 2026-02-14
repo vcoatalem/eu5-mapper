@@ -3,6 +3,10 @@
 @layer components {
   .simpleButton {
     @apply rounded-md hover:bg-stone-600 px-2 py-1 border border-white text-white cursor-pointer;
+
+    &:disabled {
+      @apply bg-stone-500/50 hover:bg-stone-500/50 cursor-not-allowed text-black;
+    }
   }
 
   .iconButton {

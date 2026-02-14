@@ -12,6 +12,7 @@ import {
 import { GuiElement } from "./guiElement";
 import { ActionSource } from "@/app/lib/actionSource.component";
 import Image from "next/image";
+import { StringHelper } from "@/app/lib/utils/string.helper";
 
 const LocationSearchResultItem = React.memo(function LocationSearchResultItem({
   locationSearchResult,
@@ -28,7 +29,9 @@ const LocationSearchResultItem = React.memo(function LocationSearchResultItem({
         id={locationSearchResult.name}
         className="hover:bg-stone-700 cursor-pointer px-1"
       >
-        <span>{locationSearchResult.name}</span>
+        <span>
+          {StringHelper.formatLocationName(locationSearchResult.name)}
+        </span>
         <span className="text-stone-500 italic">
           {" "}
           ({locationSearchResult.hierarchyType})

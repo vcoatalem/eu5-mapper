@@ -37,94 +37,96 @@ function DisplayLocation(props: {
         {StringHelper.formatLocationName(props.data.baseLocationGameData.name)}
       </span>
 
-      <div className="ml-auto flex flex-row items-center gap-2">
-        {/* Pin button - visible on hover or if the location is pinned */}
-        <div
-          className={
-            " ml-auto group-hover:block " +
-            (props.data.pinned ? " block " : " hidden ")
-          }
-          ref={pinButtonDivRef}
-        >
-          <Tooltip>
-            <TooltipTrigger>
-              <button
-                className={`${styles.iconButton} ${props.data.pinned ? styles.buttonActive : ""}`}
-                onClick={() => {
-                  if (!props.extensiveViewProps) {
-                    return;
-                  }
-                  const { togglePin } = props.extensiveViewProps;
-                  if (!togglePin) {
-                    return;
-                  }
-                  return togglePin(props.data.baseLocationGameData.name);
-                }}
-              >
-                <Image
-                  src={"/icons/pin.svg"}
-                  alt="pin location"
-                  width={24}
-                  height={24}
-                  className="invert"
-                ></Image>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent
-              anchor={{
-                type: "dom",
-                ref: pinButtonDivRef as React.RefObject<HTMLElement>,
-              }}
+      <div className="w-full h-full relative">
+        <div className="absolute right-0">
+          <div className="flex flex-row-reverse gap-1 ">
+            {/* Capital button - visible on hover or if the location is capital */}
+            <div
+              ref={capitalButtonDivRef}
+              className={
+                " ml-auto group-hover:block  " +
+                (isCapital ? " block " : " hidden ")
+              }
             >
-              <span>
-                {props.data.pinned ? "Unpin location" : "Pin location"}
-              </span>
-            </TooltipContent>
-          </Tooltip>
-        </div>
+              <Tooltip>
+                <TooltipTrigger>
+                  <button
+                    className={`${styles.iconButton} ${isCapital ? styles.buttonActive : ""}`}
+                    onClick={() =>
+                      !isCapital
+                        ? gameStateController.changeCapital(
+                            props.data.baseLocationGameData.name,
+                          )
+                        : null
+                    }
+                  >
+                    <Image
+                      src={"/icons/star.svg"}
+                      alt="capital location"
+                      width={24}
+                      height={24}
+                    ></Image>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent
+                  anchor={{
+                    type: "dom",
+                    ref: capitalButtonDivRef as React.RefObject<HTMLElement>,
+                  }}
+                >
+                  {isCapital ? (
+                    <span>This is your capital</span>
+                  ) : (
+                    <span>Change capital</span>
+                  )}
+                </TooltipContent>
+              </Tooltip>
+            </div>
 
-        {/* Capital button - visible on hover or if the location is capital */}
-        <div
-          ref={capitalButtonDivRef}
-          className={
-            " ml-auto group-hover:block  " +
-            (isCapital ? " block " : " hidden ")
-          }
-        >
-          <Tooltip>
-            <TooltipTrigger>
-              <button
-                className={`${styles.iconButton} ${isCapital ? styles.buttonActive : ""}`}
-                onClick={() =>
-                  !isCapital
-                    ? gameStateController.changeCapital(
-                        props.data.baseLocationGameData.name,
-                      )
-                    : null
-                }
-              >
-                <Image
-                  src={"/icons/star.svg"}
-                  alt="capital location"
-                  width={24}
-                  height={24}
-                  className="invert"
-                ></Image>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent
-              anchor={{
-                type: "dom",
-                ref: capitalButtonDivRef as React.RefObject<HTMLElement>,
-              }}
+            {/* Pin button - visible on hover or if the location is pinned */}
+            <div
+              className={
+                " ml-auto group-hover:block " +
+                (props.data.pinned ? " block " : " hidden ")
+              }
+              ref={pinButtonDivRef}
             >
-              {isCapital ? (
-                <span>This is your capital</span>
-              ) : (
-                <span>Change capital</span>
-              )}
-            </TooltipContent>
-          </Tooltip>
+              <Tooltip>
+                <TooltipTrigger>
+                  <button
+                    className={`${styles.iconButton} ${props.data.pinned ? styles.buttonActive : ""}`}
+                    onClick={() => {
+                      if (!props.extensiveViewProps) {
+                        return;
+                      }
+                      const { togglePin } = props.extensiveViewProps;
+                      if (!togglePin) {
+                        return;
+                      }
+                      return togglePin(props.data.baseLocationGameData.name);
+                    }}
+                  >
+                    <Image
+                      src={"/icons/pin.svg"}
+                      alt="pin location"
+                      width={24}
+                      height={24}
+                    ></Image>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent
+                  anchor={{
+                    type: "dom",
+                    ref: pinButtonDivRef as React.RefObject<HTMLElement>,
+                  }}
+                >
+                  <span>
+                    {props.data.pinned ? "Unpin location" : "Pin location"}
+                  </span>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -371,7 +373,7 @@ export function DetailedLocationList(props: IDetailedLocationListProps) {
     >
       {/* Header Line */}
       <div
-        className="grid sticky top-0"
+        className="grid sticky top-0 z-1"
         style={{
           gridTemplateColumns: `repeat(${totalColumns}, minmax(0, 1fr))`,
         }}
@@ -380,7 +382,7 @@ export function DetailedLocationList(props: IDetailedLocationListProps) {
           <button
             key={col.title}
             style={{ gridColumn: `span ${col.cols}` }}
-            className={`flex flex-row items-center gap-1 ${sort?.column === col.title ? "bg-blue-500" : "bg-black hover:bg-blue-500/50 backdrop-blur-xl"}`}
+            className={`flex flex-row items-center gap-1 ${sort?.column === col.title ? "bg-blue-500" : "bg-black hover:bg-blue-500/50 backdrop-blur-3xl"}  border font-bold px-2 py-1`}
             onClick={() => toggleSort(col.title)}
           >
             <span>{col.title}</span>

@@ -10,10 +10,20 @@
   }
 
   .iconButton {
-    @apply rounded-md p-1 border border-white hover:bg-stone-600 cursor-pointer;
+    @apply rounded-lg p-1 border border-white hover:bg-stone-600 cursor-pointer;
+  }
+
+  .simpleButton > :first-child,
+  .iconButton > :first-child {
+    @apply invert; /* white icons */
+  }
+
+  .simpleButton.buttonActive > :first-child,
+  .iconButton.buttonActive > :first-child {
+    @apply invert-0; /* black icons */
   }
 
   .buttonActive {
-    @apply bg-yellow-500 hover:bg-yellow-500/50;
+    @apply bg-yellow-500 hover:bg-yellow-500/50 border-0;
   }
 }

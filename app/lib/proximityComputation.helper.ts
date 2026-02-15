@@ -125,7 +125,7 @@ export class ProximityComputationHelper {
       return 0;
     }
     const buildings = locationConstructibleData?.buildings ?? []; // for unowned location, consider an empty array
-    const totalBuildingsCostReduction = buildings
+    const totalBuildingsCostReduction = Object.values(buildings)
       .map(
         (b) =>
           Math.abs(b.template.modifiers.localProximityCostModifier ?? 0) *
@@ -190,7 +190,7 @@ export class ProximityComputationHelper {
     }
 
     const buildings = locationConstructibleData.buildings ?? [];
-    const totalBuildingsHarborCapacity = buildings
+    const totalBuildingsHarborCapacity = Object.values(buildings)
       .map((b) => {
         const capacity =
           (b.template.modifiers.harborSuitability ?? 0) * b.level;
@@ -214,8 +214,9 @@ export class ProximityComputationHelper {
       if (gameState.capitalLocation === locationName) {
         proximitySourceLocations[locationName] = 100;
       } else {
-        const locationBuildings =
-          gameState.ownedLocations[locationName].buildings;
+        const locationBuildings = Object.values(
+          gameState.ownedLocations[locationName].buildings,
+        );
         const highestProximitySource = Math.max(
           ...locationBuildings.map(
             (b) => b.template.modifiers.localProximitySource ?? 0,

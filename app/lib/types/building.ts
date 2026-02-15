@@ -36,3 +36,31 @@ export interface INewBuildingTemplate {
   placementRestriction?: IPlacementRestrictionConfig;
   buildable: boolean; // whether the building can be built by the player in normal circumstances (false for most "special" buildings)
 }
+
+export type ConstructibleAction =
+  | {
+      type: "upgrade";
+      building: INewBuildingTemplate["name"];
+      to: INewBuildingTemplate;
+    }
+  | {
+      type: "downgrade";
+      building: INewBuildingTemplate["name"];
+      to: INewBuildingTemplate;
+    }
+  | {
+      type: "demolish";
+      building: INewBuildingTemplate["name"];
+    }
+  | {
+      type: "build";
+      building: INewBuildingTemplate["name"];
+    };
+
+export type NewConstructibleState = Record<
+  INewBuildingTemplate["name"],
+  {
+    instance?: IBuildingInstance;
+    possibleActions: ConstructibleAction[];
+  }
+>;

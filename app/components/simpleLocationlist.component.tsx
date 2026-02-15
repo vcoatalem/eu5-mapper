@@ -1,9 +1,7 @@
 import React, {
-  ReactNode,
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -13,211 +11,63 @@ import {
   IGameData,
   IGameState,
   ILocationIdentifier,
-  RoadType,
 } from "../lib/types/general";
 import { ConstructibleHelper } from "../lib/constructible.helper";
 import { AppContext } from "../appContextProvider";
-import { getGuiImage } from "../lib/drawing/namedGuiImagesMap.const";
 import { proximityComputationController } from "../lib/proximityComputation.controller";
 import { ProximityComputationHelper } from "../lib/proximityComputation.helper";
 import { ActionSource } from "@/app/lib/actionSource.component";
 import { FoldableMenu } from "./foldableMenu.component";
-import { ExpandablePanel } from "./expandablePanel.component";
 import { roadBuilderController } from "../lib/roadBuilderController";
-import { Tooltip } from "../lib/tooltip/tooltip.component";
-import { TooltipTrigger } from "../lib/tooltip/tooltipTrigger.component";
-import { TooltipContent } from "../lib/tooltip/tooltipContent.component";
-import { ShortestPathComponent } from "./shortestPath.component";
-import { FormatedProximity } from "./formatedProximity.component";
-import { RoadList } from "./roadList.component";
 import Image from "next/image";
 import { FormattedProximityWithPathfindingTooltip } from "@/app/components/formattedProximityWithPathfindingTooltip.component";
 import { StringHelper } from "@/app/lib/utils/string.helper";
 
-function CapitalPicker(props: {
+const SimpleLocationListItem = React.memo(function SimpleLocationListItem({
+  location,
+  gameState,
+  proximityComputation,
+}: {
   location: ILocationIdentifier;
-  isCapital: boolean;
+  constructible: IConstructibleLocation;
+  gameData: IGameData;
+  gameState: IGameState;
+  proximityComputation: ReturnType<
+    typeof proximityComputationController.getSnapshot
+  >;
 }) {
   return (
-    <div className={"bg-white ml-1 w-4"}>
-      <button
-        onClick={() => {
-          gameStateController.changeCapital(props.location);
-        }}
-        className={
-          "px-1" +
-          (props.isCapital
-            ? " bg-black text-yellow-300"
-            : " bg-white text-black hover:bg-yellow-400")
-        }
-      >
-        ★
-      </button>
-    </div>
-  );
-}
-
-const buildingList = (
-  locationName: ILocationIdentifier,
-  gameData: IGameData,
-  ownedLocations: IGameState["ownedLocations"],
-  constructible: IConstructibleLocation,
-) => {
-  const state = ConstructibleHelper.getConstructibleState(
-    locationName,
-    constructible,
-    gameData,
-    ownedLocations,
-  );
-  return (
-    <div className="flex flex-row space-x-2 ml-2">
-      {state.buildings
-        .filter((building) => building.canBuild || building.reason === "limit")
-        .map((building) => (
-          <div key={building.name} className="inline-block">
-            <button
-              className={
-                "relative flex items-center justify-center " +
-                (building.canBuild
-                  ? "hover:bg-yellow-400 "
-                  : "backdrop-grayscale-50 ") +
-                (building.amountBuilt > 0 ? "bg-yellow-300 " : "") +
-                (building.amountBuilt > 0 && !building.canBuild
-                  ? " hover:bg-red-500 "
-                  : "")
-              }
-              onClick={() => {
-                if (!building.canBuild && building.amountBuilt > 0) {
-                  gameStateController.removeBuildingFromLocation(
-                    locationName,
-                    building.name,
-                  );
-                } else {
-                  gameStateController.addBuildingToLocation(
-                    locationName,
-                    building.name,
-                  );
-                }
-              }}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                gameStateController.removeBuildingFromLocation(
-                  locationName,
-                  building.name,
-                );
-              }}
-              style={{ width: 32, height: 32, padding: 0 }}
-            >
-              <img
-                src={getGuiImage(building.name)}
-                alt={building.name}
-                width={24}
-                height={24}
-                style={{ display: "block" }}
-              />
-              {building.amountBuilt > 0 && (
-                <span
-                  className="absolute left-0 bottom-0 mb-0.5 ml-0.5 px-1 py-0 text-xs font-bold text-black bg-white/70 backdrop-blur-sm rounded z-10"
-                  style={{
-                    pointerEvents: "none",
-                    fontSize: "0.75rem",
-                    minWidth: 16,
-                    minHeight: 16,
-                    lineHeight: "16px",
-                    textAlign: "center",
-                  }}
-                >
-                  {building.amountBuilt}
-                </span>
-              )}
-            </button>
-          </div>
-        ))}
-    </div>
-  );
-};
-
-const locationRankPicker = (
-  locationName: ILocationIdentifier,
-  constructible: IConstructibleLocation,
-) => {
-  return (
-    <div className="ml-2 flex flex-row space-x-1">
-      {(["rural", "town", "city"] as IConstructibleLocation["rank"][]).map(
-        (rank) => (
-          <button
-            key={rank}
-            disabled={constructible.rank === rank}
-            className={
-              constructible.rank === rank
-                ? `disabled:backdrop-grayscale-75 bg-yellow-300`
-                : `bg-black hover:bg-yellow-400`
-            }
-            onClick={() =>
-              gameStateController.changeLocationRank(locationName, rank)
-            }
-          >
-            <img
-              className="p-1"
-              src={getGuiImage(rank)}
-              alt={rank}
-              width={24}
-              height={24}
-            ></img>
-          </button>
-        ),
-      )}
-    </div>
-  );
-};
-
-const ConstructibleLocationItem = React.memo(
-  function ConstructibleLocationItem({
-    location,
-    gameState,
-    proximityComputation,
-  }: {
-    location: ILocationIdentifier;
-    constructible: IConstructibleLocation;
-    gameData: IGameData;
-    gameState: IGameState;
-    proximityComputation: ReturnType<
-      typeof proximityComputationController.getSnapshot
-    >;
-  }) {
-    return (
-      <div
-        key={location}
-        className="py-1 h-10 grid grid-cols-3 items-center whitespace-nowrap gap-2 "
-      >
-        <div className="col-span-2 flex flex-row items-center">
-          {gameState.capitalLocation === location && (
-            <span className="mr-1">★</span>
-          )}
-          <ActionSource
-            locations={(e) => location}
-            hover={{}}
-            click={{ type: "goto" }}
-          >
-            <span className=" text-lg cursor-pointer truncate ... ">
-              {StringHelper.formatLocationName(location)}
-            </span>
-          </ActionSource>
-        </div>
-
-        <FormattedProximityWithPathfindingTooltip
-          className="col-span-1"
-          location={location}
-          proximity={ProximityComputationHelper.evaluationToProximity(
-            proximityComputation.result[location]?.cost ?? 100,
-          )}
-        ></FormattedProximityWithPathfindingTooltip>
+    <div
+      key={location}
+      className="py-1 h-10 grid grid-cols-3 items-center whitespace-nowrap gap-2 "
+    >
+      <div className="col-span-2 flex flex-row items-center">
+        {gameState.capitalLocation === location && (
+          <span className="mr-1">★</span>
+        )}
+        <ActionSource
+          locations={(e) => location}
+          hover={{}}
+          click={{ type: "goto" }}
+        >
+          <span className=" text-lg cursor-pointer truncate ... ">
+            {StringHelper.formatLocationName(location)}
+          </span>
+        </ActionSource>
       </div>
-    );
-  },
-);
 
-export function ConstructibleMenusComponent() {
+      <FormattedProximityWithPathfindingTooltip
+        className="col-span-1"
+        location={location}
+        proximity={ProximityComputationHelper.evaluationToProximity(
+          proximityComputation.result[location]?.cost ?? 100,
+        )}
+      ></FormattedProximityWithPathfindingTooltip>
+    </div>
+  );
+});
+
+export function SimpleLocationList() {
   const gameState = useSyncExternalStore(
     gameStateController.subscribe.bind(gameStateController),
     () => gameStateController.getSnapshot(),
@@ -347,7 +197,7 @@ export function ConstructibleMenusComponent() {
                     (proximityComputation.result[b]?.cost ?? 100),
                 )
                 .map(([locationName, constructibleData]) => (
-                  <ConstructibleLocationItem
+                  <SimpleLocationListItem
                     key={locationName}
                     location={locationName}
                     constructible={constructibleData}

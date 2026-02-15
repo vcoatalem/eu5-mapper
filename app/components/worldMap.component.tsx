@@ -20,7 +20,7 @@ import { workerManager } from "@/app/lib/workerManager";
 import { LoadingScreenComponent } from "./loadingScreen.component";
 import { cameraController, zoomLevels } from "@/app/lib/cameraController";
 import { proximityComputationController } from "@/app/lib/proximityComputation.controller";
-import { ConstructibleMenusComponent } from "./constructibleMenus.component";
+import { SimpleLocationList } from "./simpleLocationlist.component";
 import { GuiElement } from "./guiElement";
 import { workerManagerConfig } from "../lib/workerManager.config";
 import { worldMapConfig } from "./worldMap.config";
@@ -810,7 +810,7 @@ export function WorldMapComponent() {
                 {roadBuilderState.isBuildingModeEnabled ? (
                   <RoadList />
                 ) : (
-                  <ConstructibleMenusComponent />
+                  <SimpleLocationList />
                 )}
               </GuiElement>
             </>

@@ -45,8 +45,7 @@ export function Modal(props: IModalProps) {
     onClose();
   };
 
-  const portalTarget =
-    modalProvider?.modalRoot ?? document.body;
+  const portalTarget = modalProvider?.modalRoot ?? document.body;
 
   return createPortal(
     <div className={styles.backdrop} onClick={handleBackdropClick}>

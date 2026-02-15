@@ -98,7 +98,6 @@ export class DrawingService {
     }
     this.indicatorDrawingContext = indicatorDrawingContext;
 
-
     colorSearchController.subscribe(() => {
       this.reDraw.emit(new Date());
     });
@@ -193,7 +192,8 @@ export class DrawingService {
 
     const missingCoordinates: ILocationIdentifier[] = [];
     for (const location of Object.keys(gameState.ownedLocations)) {
-      const coordinates =  colorSearchController.getSnapshot().result[location]?.coordinates;
+      const coordinates =
+        colorSearchController.getSnapshot().result[location]?.coordinates;
       if (!coordinates) {
         missingCoordinates.push(location);
         continue;
@@ -330,7 +330,6 @@ export class DrawingService {
   ): ILocationIdentifier[] {
     const toHighlight: Record<ILocationIdentifier, ICoordinate[]> = {};
     const missingCoordinates: ILocationIdentifier[] = [];
-
 
     const colorSearchResult = colorSearchController.getSnapshot().result;
     for (const location of locations) {

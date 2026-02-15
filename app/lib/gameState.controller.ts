@@ -13,6 +13,11 @@ import {
   ITemporaryLocationData,
   RoadType,
 } from "./types/general";
+import {
+  ConstructibleAction,
+  IBuildingInstance,
+  INewBuildingTemplate,
+} from "@/app/lib/types/building";
 
 const baseCountryValues: IGameState["country"] = {
   templateData: null,
@@ -74,22 +79,20 @@ export class GameStateController extends Observable<IGameState> {
       if (!locationData?.ownable) {
         continue;
       }
-      const baseLocationRank = this.gameData?.locationDataMap[location].rank;
+      const baseLocationRank = locationData?.rank;
       const baseBuildings =
         this.gameData?.locationDataMap[location].buildings ?? [];
-      const initialLocationBuildings = baseBuildings.map((buildingName) => {
-        const buildingTemplate = this.gameData?.buildingsTemplate[buildingName];
-        if (!buildingTemplate) {
-          throw new Error(
-            `Unknown building template: ${buildingName} for location: ${location}`,
-          );
-        }
-        return {
-          template: buildingTemplate,
-          level: 1,
-          createdByUser: false,
-        };
-      });
+      const initialLocationBuildings = baseBuildings.reduce(
+        (acc, buildingName) => {
+          const newSet = { ...acc };
+          newSet[buildingName] = {
+            template: this.gameData!.buildingsTemplate[buildingName],
+            level: 1,
+          };
+          return newSet;
+        },
+        {} as Record<INewBuildingTemplate["name"], IBuildingInstance>,
+      );
       const newLocation: IConstructibleLocation = {
         rank: baseLocationRank ?? "rural",
         buildings: initialLocationBuildings,
@@ -132,6 +135,9 @@ export class GameStateController extends Observable<IGameState> {
     locationName: string,
     newRank: IConstructibleLocation["rank"],
   ): void {
+    if (!this.gameData) {
+      throw new Error("Game data is not initialized");
+    }
     const location = this.subject.ownedLocations[locationName];
     if (!location) {
       throw new Error(
@@ -140,122 +146,99 @@ export class GameStateController extends Observable<IGameState> {
     }
     location.rank = newRank;
 
-    const buildingToKeep: string[] = [];
-    for (const building of location.buildings) {
-      const { reason } = ConstructibleHelper.getBuildability(
-        building.template,
-        locationName,
-        this.gameData!,
-        this.subject.ownedLocations,
-        this.gameData!.roads,
-      );
-      if (reason !== "restriction") {
-        buildingToKeep.push(building.template.name);
-      }
-    }
-    this.subject.ownedLocations[locationName].buildings =
-      location.buildings.filter((b) =>
-        buildingToKeep.includes(b.template.name),
-      );
+    const eligibleBuildings = ConstructibleHelper.getEligibleBuildingTemplates(
+      locationName,
+      this.gameData!,
+      this.subject,
+    );
+
+    const buildingsToRemove = new Set(
+      Object.entries(location.buildings)
+        .filter(([buildingName, buildingInstance]) => {
+          if (buildingName in eligibleBuildings) {
+            return true;
+          }
+          return buildingInstance.template.buildable; // for now, we don't want to allow destroy un buildable buildings (usually special buildings) as we don't handle their buildability yet)
+        })
+        .map(([name]) => name),
+    );
+
+    this.removeAllBuildingsFromLocation(locationName, buildingsToRemove);
     this.notifyListeners();
   }
 
-  public addBuildingToLocation(
-    locationName: string,
-    buildingName: string,
+  public handleBuildingAction(
+    location: ILocationIdentifier,
+    action: ConstructibleAction,
   ): void {
-    {
-      const location = this.subject.ownedLocations[locationName];
-      if (!location) {
-        throw new Error(
-          `Cannot add building to unowned location: ${locationName}`,
-        );
-      }
-      const buildingTemplate = this.gameData?.buildingsTemplate[buildingName];
-      if (!buildingTemplate) {
-        throw new Error(`Unknown building template: ${buildingName}`);
-      }
-
-      const { canBuild, reason } = ConstructibleHelper.getBuildability(
-        buildingTemplate,
-        locationName,
-        this.gameData!,
-        this.subject.ownedLocations,
-        this.gameData!.roads,
+    const locationConstructibleData = this.subject.ownedLocations[location];
+    if (!locationConstructibleData) {
+      throw new Error(
+        `Cannot perform constructible action on unowned location: ${location}`,
       );
-
-      if (!canBuild) {
-        throw new Error(
-          `Cannot build ${buildingName} at location: ${locationName} (${reason})`,
-        );
-      }
-
-      const existingBuilding = location.buildings.filter(
-        (b) => b.template.name === buildingName,
-      )?.[0];
-      const existingBuildingIdx = existingBuilding
-        ? location.buildings.indexOf(existingBuilding)
-        : -1;
-
-      if (existingBuildingIdx !== -1) {
-        if (existingBuilding.template.upgrade) {
-          const buildingUpgrade = existingBuilding.template.upgrade;
-          this.subject.ownedLocations[locationName].buildings[
-            existingBuildingIdx
-          ] = {
-            template: this.gameData!.buildingsTemplate[buildingUpgrade],
+    }
+    switch (action.type) {
+      case "build":
+        if (
+          action.building in this.subject.ownedLocations[location].buildings
+        ) {
+          this.subject.ownedLocations[location].buildings[
+            action.building
+          ].level += 1;
+        } else {
+          this.subject.ownedLocations[location].buildings[action.building] = {
+            template: this.gameData!.buildingsTemplate[action.building],
             level: 1,
           };
-        } else {
-          this.subject.ownedLocations[locationName].buildings[
-            existingBuildingIdx
-          ].level += 1;
         }
-      } else {
-        const buildingToCreate = {
-          template: buildingTemplate,
+        break;
+      case "upgrade":
+        delete this.subject.ownedLocations[location].buildings[action.building];
+        this.subject.ownedLocations[location].buildings[action.to.name] = {
+          template: action.to,
           level: 1,
-          createdByUser: true,
         };
-        this.subject.ownedLocations[locationName].buildings.push(
-          buildingToCreate,
-        );
-      }
-      this.notifyListeners();
+        break;
+      case "downgrade":
+        delete this.subject.ownedLocations[location].buildings[action.building];
+        this.subject.ownedLocations[location].buildings[action.to.name] = {
+          template: action.to,
+          level: 1,
+        };
+        break;
+      case "demolish":
+        if (
+          this.subject.ownedLocations[location].buildings[action.building]
+            .level > 1
+        ) {
+          this.subject.ownedLocations[location].buildings[
+            action.building
+          ].level -= 1;
+        } else {
+          delete this.subject.ownedLocations[location].buildings[
+            action.building
+          ];
+        }
+        break;
+      default:
+        throw new Error(`Unknown constructible action ${action}`);
     }
   }
 
-  public removeBuildingFromLocation(
+  public removeAllBuildingsFromLocation(
     locationName: string,
-    buildingName: string,
+    buildings: Set<string>,
   ): void {
     const location = this.subject.ownedLocations[locationName];
-    const building = location.buildings.find(
-      (b) => b.template.name === buildingName,
-    );
-    if (!building) {
+    if (!location) {
       throw new Error(
-        `Cannot remove non-existing building ${buildingName} at location: ${locationName}`,
+        `Cannot remove building from unowned location: ${locationName}`,
       );
     }
-    const buildingIdx = location.buildings.indexOf(building);
-    if (building.level > 1) {
-      this.subject.ownedLocations[locationName].buildings[buildingIdx].level -=
-        1;
-      this.notifyListeners();
-    } else if (building.level === 1 && building.template.downgrade) {
-      this.subject.ownedLocations[locationName].buildings[buildingIdx] = {
-        template: this.gameData!.buildingsTemplate[building.template.downgrade],
-        level: 1,
-      };
-      this.notifyListeners();
-    } else {
-      this.subject.ownedLocations[locationName].buildings.splice(
-        buildingIdx,
-        1,
-      );
-      this.notifyListeners();
+    for (const buildingName of buildings) {
+      delete this.subject.ownedLocations[locationName].buildings[buildingName];
     }
+    this.notifyListeners();
   }
 
   public reset(countryCode?: string): void {

@@ -22,6 +22,7 @@ import Image from "next/image";
 import { DetailedLocationList } from "./detailedLocationList.component";
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import { proximityComputationController } from "@/app/lib/proximityComputation.controller";
+import { NewConstructibleState } from "@/app/lib/types/building";
 
 function LocationExtensiveViewModalHeader(props: {
   countryName: string | null;
@@ -75,6 +76,7 @@ export interface ILocationDetailedViewData {
   baseLocationGameData: ILocationGameData;
   pinned?: boolean;
   proximity: number | null;
+  constructibleState: NewConstructibleState;
 }
 
 export function DetailedLocationViewModal() {

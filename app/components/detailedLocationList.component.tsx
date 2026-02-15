@@ -212,6 +212,10 @@ function DisplayPop(props: { data: ILocationDetailedViewData }) {
 }
 
 function DisplayBuildings(props: { data: ILocationDetailedViewData }) {
+  console.log(
+    `[DetailedLocationList] constructibleState for location ${props.data.baseLocationGameData.name}`,
+    props.data.constructibleState,
+  );
   return <div>buildings go here</div>;
 }
 

@@ -68,7 +68,7 @@ export interface ILocationGameData {
 
 export interface IConstructibleLocation {
   rank: LocationRank;
-  buildings: IBuildingInstance[];
+  buildings: Record<INewBuildingTemplate["name"], IBuildingInstance>;
 }
 
 export type RoadRecord = Record<

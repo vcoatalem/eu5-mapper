@@ -1,3 +1,10 @@
+import {
+  IPlacementRestrictionConfig,
+  PlacementRestrictionCondition,
+  PlacementRestrictions,
+} from "@/app/lib/types/building";
+import { IGameState, ILocationGameData } from "@/app/lib/types/general";
+
 type EvaluationMethod = (...args: any[]) => boolean;
 
 type LogicLeaf = { type: "leaf"; getValue: EvaluationMethod };
@@ -20,4 +27,32 @@ export function evaluateLogicTree(tree: LogicTree): boolean {
     }
   }
   return false;
+}
+
+export class LogicTreeBuilder {
+  public static treeFromConditions(
+    conditions: IPlacementRestrictionConfig,
+    location: ILocationGameData,
+    gameState: IGameState,
+    evaluateFn: (
+      condition: PlacementRestrictions,
+      location: ILocationGameData,
+      gameState: IGameState,
+    ) => boolean,
+  ): LogicTree {
+    const root: LogicTree = { type: "operator", op: "AND", children: [] };
+    for (const condition of conditions.conditions) {
+      if (typeof condition === "string") {
+        root.children.push({
+          type: "leaf",
+          getValue: () => evaluateFn(condition, location, gameState),
+        });
+      } else {
+        root.children.push(
+          this.treeFromConditions(condition, location, gameState, evaluateFn),
+        );
+      }
+    }
+    return root;
+  }
 }

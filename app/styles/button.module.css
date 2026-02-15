@@ -10,7 +10,7 @@
   }
 
   .iconButton {
-    @apply rounded-lg p-1 border border-white hover:bg-stone-600 cursor-pointer;
+    @apply rounded-lg p-1 border border-white hover:bg-stone-600 cursor-pointer  backdrop-blur-lg;
   }
 
   .simpleButton > :first-child,
@@ -24,6 +24,6 @@
   }
 
   .buttonActive {
-    @apply bg-yellow-500 hover:bg-yellow-500/50 border-0;
+    @apply bg-yellow-500 hover:bg-yellow-500/50 border-0 shadow-lg/yellow-500;
   }
 }

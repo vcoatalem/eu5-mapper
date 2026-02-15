@@ -1,7 +1,7 @@
 import React, { cloneElement, useContext } from "react";
 import { TooltipInstanceContext } from "./tooltip.component";
 
-type TooltipTriggerChildProps = {
+export type TooltipTriggerChildProps = {
   ref: React.Ref<HTMLElement>;
   onMouseEnter?: (e: React.MouseEvent) => void;
   onMouseLeave?: (e: React.MouseEvent) => void;

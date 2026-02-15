@@ -1,12 +1,14 @@
 import {
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
 import { ModalInstanceContext } from "@/app/lib/modal/modal.component";
-import { debouncedGameStateController } from "@/app/lib/gameState.controller";
+import { gameStateController } from "@/app/lib/gameState.controller";
 import { AppContext } from "../appContextProvider";
 import { CountryStats } from "./countryStatsComponent";
 import {
@@ -28,7 +30,7 @@ function LocationExtensiveViewModalHeader(props: {
   setSearch?: (search: string) => void;
 }) {
   return (
-    <div className="w-full flex flex-row items-center border-b border-white h-12">
+    <div className="w-full flex flex-row items-center border-b border-white h-12 pb-2">
       <>
         <span>Locations</span>
         {props.countryName && (
@@ -60,7 +62,7 @@ function LocationExtensiveViewModalHeader(props: {
       </div>
 
       <CountryStats
-        className="ml-auto border-stone-500 border rounded-md px-2 py-1 items-center"
+        className="ml-auto border-stone-500 border rounded-md px-2 py-1 items-center flex-none"
         ownedLocations={props.ownedLocations}
       ></CountryStats>
     </div>
@@ -78,8 +80,8 @@ export interface ILocationDetailedViewData {
 export function DetailedLocationViewModal() {
   const modalInstanceContext = useContext(ModalInstanceContext);
   const gameState = useSyncExternalStore(
-    debouncedGameStateController.subscribe.bind(debouncedGameStateController),
-    () => debouncedGameStateController.getSnapshot(),
+    gameStateController.subscribe.bind(gameStateController),
+    () => gameStateController.getSnapshot(),
   );
   const proximityComputation = useSyncExternalStore(
     proximityComputationController.subscribe.bind(
@@ -163,7 +165,7 @@ export function DetailedLocationViewModal() {
     ]);
 
   return (
-    <div className="h-[80vh] w-[85vw] overflow-x-scroll flex flex-col">
+    <div className="h-[80vh] w-[85vw] flex flex-col">
       <LocationExtensiveViewModalHeader
         countryName={gameState.country?.templateData?.name ?? null}
         ownedLocations={gameState.ownedLocations}

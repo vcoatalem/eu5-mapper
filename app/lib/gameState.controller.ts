@@ -383,6 +383,21 @@ export class GameStateController extends Observable<IGameState> {
     this.notifyListeners();
   }
 
+  public resetTemporaryLocationData(
+    location: ILocationIdentifier,
+    key: keyof ITemporaryLocationData,
+  ): void {
+    if (this.subject.temporaryLocationData[location]) {
+      delete this.subject.temporaryLocationData[location][key];
+      if (
+        Object.keys(this.subject.temporaryLocationData[location]).length === 0
+      ) {
+        delete this.subject.temporaryLocationData[location];
+      }
+      this.notifyListeners();
+    }
+  }
+
   public loadFile(fileContent: string, expectedVersion: string): void {
     const parsedState = JSON.parse(fileContent) as IGameState & {
       version: string;

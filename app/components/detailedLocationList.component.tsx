@@ -1,14 +1,21 @@
 import { ILocationDetailedViewData } from "@/app/components/detailedLocationViewModal.component";
 import { ILocationIdentifier, LocationRank } from "@/app/lib/types/general";
 import Image from "next/image";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import styles from "@/app/styles/button.module.css";
-import { Tooltip } from "@/app/lib/tooltip/tooltip.component";
-import { TooltipTrigger } from "@/app/lib/tooltip/tooltipTrigger.component";
-import { TooltipContent } from "@/app/lib/tooltip/tooltipContent.component";
 import { FormattedProximityWithPathfindingTooltip } from "@/app/components/formattedProximityWithPathfindingTooltip.component";
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import { gameStateController } from "@/app/lib/gameState.controller";
+import { ColorHelper } from "@/app/lib/drawing/color.helper";
+import { ContextualButton } from "@/app/components/contextualButton.component";
+import { EditableField } from "@/app/components/editableField.component";
+import { NumbersHelper } from "@/app/lib/utils/numbers.helper";
 
 interface IDetailedLocationListProps {
   ownedLocations: Record<ILocationIdentifier, ILocationDetailedViewData>;
@@ -20,8 +27,6 @@ function DisplayLocation(props: {
   data: ILocationDetailedViewData;
   extensiveViewProps?: IDetailedLocationListProps;
 }) {
-  const pinButtonDivRef = useRef<HTMLDivElement>(null);
-  const capitalButtonDivRef = useRef<HTMLDivElement>(null);
   const isCapital = useMemo(
     () =>
       props.extensiveViewProps?.capitalLocation ===
@@ -31,103 +36,71 @@ function DisplayLocation(props: {
       props.data.baseLocationGameData.name,
     ],
   );
+  const isPinned = props.data.pinned ?? false;
+  const capitalBtn = (
+    <ContextualButton
+      key={"capital-btn-" + props.data.baseLocationGameData.name}
+      isSelected={isCapital}
+      tooltip={
+        isCapital ? (
+          <span>This is your capital</span>
+        ) : (
+          <span>Change capital</span>
+        )
+      }
+      onClick={() =>
+        !isCapital
+          ? gameStateController.changeCapital(
+              props.data.baseLocationGameData.name,
+            )
+          : null
+      }
+    >
+      <Image
+        src={"/icons/star.svg"}
+        alt="capital location"
+        width={16}
+        height={16}
+      />
+    </ContextualButton>
+  );
+  const pinBtn = (
+    <ContextualButton
+      key={"pin-btn-" + props.data.baseLocationGameData.name}
+      isSelected={isPinned}
+      tooltip={
+        isPinned ? <span>Unpin location</span> : <span>Pin location</span>
+      }
+      onClick={() => {
+        if (!props.extensiveViewProps) {
+          return;
+        }
+        const { togglePin } = props.extensiveViewProps;
+        if (!togglePin) {
+          return;
+        }
+        return togglePin(props.data.baseLocationGameData.name);
+      }}
+    >
+      <Image src={"/icons/pin.svg"} alt="pin location" width={16} height={16} />
+    </ContextualButton>
+  );
+  const buttons = [capitalBtn, pinBtn];
+  const activeButtons = buttons.filter((btn, idx) =>
+    idx === 0 ? isCapital : isPinned,
+  );
+  const inactiveButtons = buttons.filter(
+    (btn, idx) => !(idx === 0 ? isCapital : isPinned),
+  );
   return (
-    <div className="w-full h-full flex flex-row items-center px-1">
-      <span className="px-1 py-1">
+    <div className="w-full h-full flex flex-row items-center px-1 relative">
+      <span className="px-1 py-1 flex-none">
         {StringHelper.formatLocationName(props.data.baseLocationGameData.name)}
       </span>
 
-      <div className="w-full h-full relative">
-        <div className="absolute right-0">
-          <div className="flex flex-row-reverse gap-1 ">
-            {/* Capital button - visible on hover or if the location is capital */}
-            <div
-              ref={capitalButtonDivRef}
-              className={
-                " ml-auto group-hover:block  " +
-                (isCapital ? " block " : " hidden ")
-              }
-            >
-              <Tooltip>
-                <TooltipTrigger>
-                  <button
-                    className={`${styles.iconButton} ${isCapital ? styles.buttonActive : ""}`}
-                    onClick={() =>
-                      !isCapital
-                        ? gameStateController.changeCapital(
-                            props.data.baseLocationGameData.name,
-                          )
-                        : null
-                    }
-                  >
-                    <Image
-                      src={"/icons/star.svg"}
-                      alt="capital location"
-                      width={24}
-                      height={24}
-                    ></Image>
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent
-                  anchor={{
-                    type: "dom",
-                    ref: capitalButtonDivRef as React.RefObject<HTMLElement>,
-                  }}
-                >
-                  {isCapital ? (
-                    <span>This is your capital</span>
-                  ) : (
-                    <span>Change capital</span>
-                  )}
-                </TooltipContent>
-              </Tooltip>
-            </div>
-
-            {/* Pin button - visible on hover or if the location is pinned */}
-            <div
-              className={
-                " ml-auto group-hover:block " +
-                (props.data.pinned ? " block " : " hidden ")
-              }
-              ref={pinButtonDivRef}
-            >
-              <Tooltip>
-                <TooltipTrigger>
-                  <button
-                    className={`${styles.iconButton} ${props.data.pinned ? styles.buttonActive : ""}`}
-                    onClick={() => {
-                      if (!props.extensiveViewProps) {
-                        return;
-                      }
-                      const { togglePin } = props.extensiveViewProps;
-                      if (!togglePin) {
-                        return;
-                      }
-                      return togglePin(props.data.baseLocationGameData.name);
-                    }}
-                  >
-                    <Image
-                      src={"/icons/pin.svg"}
-                      alt="pin location"
-                      width={24}
-                      height={24}
-                    ></Image>
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent
-                  anchor={{
-                    type: "dom",
-                    ref: pinButtonDivRef as React.RefObject<HTMLElement>,
-                  }}
-                >
-                  <span>
-                    {props.data.pinned ? "Unpin location" : "Pin location"}
-                  </span>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          </div>
-        </div>
+      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-row-reverse gap-1">
+        {activeButtons}
+        {inactiveButtons}
       </div>
     </div>
   );
@@ -136,7 +109,7 @@ function DisplayLocation(props: {
 function DisplayProximity(props: { data: ILocationDetailedViewData }) {
   return (
     <FormattedProximityWithPathfindingTooltip
-      className="px-2 py-1"
+      className=""
       location={props.data.baseLocationGameData.name}
       proximity={props.data.proximity ?? 0}
     ></FormattedProximityWithPathfindingTooltip>
@@ -144,19 +117,96 @@ function DisplayProximity(props: { data: ILocationDetailedViewData }) {
 }
 
 function DisplayDevelopment(props: { data: ILocationDetailedViewData }) {
+  const { dev, isModified, isHigher } = useMemo(() => {
+    const baseDev = props.data.baseLocationGameData.development ?? 0;
+    const tempDev = props.data.temporaryLocationData.development;
+    const isModified = tempDev !== undefined && tempDev !== baseDev;
+    const isHigher = tempDev !== undefined && tempDev > baseDev;
+    return {
+      isHigher,
+      dev: tempDev ?? baseDev,
+      isModified,
+    };
+  }, [
+    props.data.baseLocationGameData.development,
+    props.data.temporaryLocationData.development,
+  ]);
   return (
-    <div className="px-2 py-1">
-      {props.data.temporaryLocationData.development ??
-        props.data.baseLocationGameData.development}
+    <div className="px-2 py-1 group w-full h-full flex flex-row items-center relative">
+      <EditableField<number>
+        value={dev}
+        baseValue={props.data.baseLocationGameData.development}
+        onValidate={(value) => {
+          if (-100 < value && value < 100) {
+            gameStateController.changeTemporaryLocationData(
+              props.data.baseLocationGameData.name,
+              { development: value },
+            );
+          }
+        }}
+        tooltip={<span>Edit development</span>}
+      >
+        <span
+          style={{
+            color: isModified
+              ? ColorHelper.rgbToHex(
+                  ...ColorHelper.getEvaluationColor(isHigher ? 30 : 70),
+                )
+              : "white",
+          }}
+        >
+          {dev}
+        </span>
+      </EditableField>
     </div>
   );
 }
 
 function DisplayPop(props: { data: ILocationDetailedViewData }) {
+  const { pop, basePop } = {
+    pop:
+      props.data.temporaryLocationData.population ??
+      props.data.baseLocationGameData.population ??
+      0,
+    basePop: props.data.baseLocationGameData.population ?? 0,
+  };
+  const isModified = basePop !== pop;
+  const baseIsLower = basePop < pop;
   return (
-    <div className="px-2 py-1">
-      {props.data.temporaryLocationData.population ??
-        props.data.baseLocationGameData.population}
+    <div className="px-2 py-1 group w-full h-full flex flex-row items-center relative">
+      <EditableField<number>
+        value={pop}
+        baseValue={basePop}
+        onValidate={(value) => {
+          if (value > 0) {
+            gameStateController.changeTemporaryLocationData(
+              props.data.baseLocationGameData.name,
+              { population: value },
+            );
+          }
+        }}
+        tooltip={
+          <div className="flex flex-col items-start">
+            <p>
+              Population in that location:{" "}
+              <span className="font-bold">{pop}</span>
+            </p>
+            <p>Click to edit</p>
+          </div>
+        }
+      >
+        <span
+          style={{
+            color: isModified
+              ? ColorHelper.rgbToHex(
+                  ...ColorHelper.getEvaluationColor(baseIsLower ? 70 : 30),
+                )
+              : "white",
+          }}
+        >
+          {NumbersHelper.formatWithSymbol(pop)}
+        </span>
+      </EditableField>
     </div>
   );
 }
@@ -272,6 +322,7 @@ const columns: Array<{
   },
 ];
 const totalColumns = columns.reduce((sum, col) => sum + col.cols, 0);
+const minimalColumnWidth = 128;
 
 type SortOrder = "asc" | "desc" | null;
 
@@ -286,10 +337,10 @@ function LocationLine(props: {
     <div
       key={location}
       style={{
-        gridTemplateColumns: `repeat(${totalColumns}, minmax(0, 1fr))`,
+        gridTemplateColumns: `repeat(${totalColumns}, minmax(${minimalColumnWidth}px, 1fr))`,
       }}
       className={
-        "grid border font-bold " +
+        "grid border-b font-bold " +
         (data.pinned
           ? "bg-blue-300/50 hover:bg-blue-300/60 sticky  "
           : " hover:bg-stone-700 ")
@@ -301,7 +352,7 @@ function LocationLine(props: {
             key={col.title}
             style={{ gridColumn: `span ${col.cols}` }}
             className={
-              `group border h-12 pt-2 pb-1` +
+              `group border h-12 pl-2 pb-1 pt-2 flex flex-row items-center ` +
               (sort?.column === col.title ? " bg-blue-300/30 " : "")
             }
           >
@@ -368,21 +419,21 @@ export function DetailedLocationList(props: IDetailedLocationListProps) {
 
   return (
     <div
-      className={`grid overflow-w-scroll min-w-[1200px] overflow-y-scroll`}
+      className={`grid overflow-w-scroll min-w-[1200px] overflow-y-scroll overflow-x-scroll overscroll-x-none`}
       style={{ scrollbarGutter: "stable" }}
     >
       {/* Header Line */}
       <div
-        className="grid sticky top-0 z-1"
+        className="grid sticky top-0 z-2"
         style={{
-          gridTemplateColumns: `repeat(${totalColumns}, minmax(0, 1fr))`,
+          gridTemplateColumns: `repeat(${totalColumns}, minmax(128px, 1fr))`,
         }}
       >
         {columns.map((col) => (
           <button
             key={col.title}
             style={{ gridColumn: `span ${col.cols}` }}
-            className={`flex flex-row items-center gap-1 ${sort?.column === col.title ? "bg-blue-500" : "bg-black hover:bg-blue-500/50 backdrop-blur-3xl"}  border font-bold px-2 py-1`}
+            className={`flex flex-row items-center gap-1  ${sort?.column === col.title ? "bg-blue-500" : "bg-black hover:bg-blue-500/50 backdrop-blur-3xl"}  border font-bold px-2 py-1`}
             onClick={() => toggleSort(col.title)}
           >
             <span>{col.title}</span>
@@ -394,15 +445,16 @@ export function DetailedLocationList(props: IDetailedLocationListProps) {
                     : "/icons/chevron-down.svg"
                 }
                 alt="Sort Icon"
-                width={24}
-                height={24}
+                width={16}
+                height={16}
               />
             )}
           </button>
         ))}
       </div>
       {/* Sticky Lines (pinned content) */}
-      <div className="sticky top-6 backdrop-blur-3xl">
+      {/* top offset not to be proper to avoid going under the header */}
+      <div className="sticky top-8 bg-black z-1">
         {Object.entries(pinnedItems).map(([locId, locData]) => {
           return (
             <LocationLine

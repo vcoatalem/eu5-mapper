@@ -1,6 +1,6 @@
 import { ParserHelper } from "@/app/lib/parser.helper";
+import { INewBuildingTemplate } from "@/app/lib/types/building";
 import {
-  IBuildingTemplate,
   ICountryData,
   ILocationDataMap,
   ILocationIdentifierMap,
@@ -13,7 +13,7 @@ import { VersionResolver } from "@/app/lib/versionResolver";
 export interface IGameDataParsedFiles {
   locationDataMap: ILocationDataMap;
   colorToNameMap: ILocationIdentifierMap;
-  buildingsTemplate: Record<string, IBuildingTemplate>;
+  buildingsTemplate: Record<string, INewBuildingTemplate>;
   adjacencyCsv: string;
   proximityComputationRule: IProximityComputationRule;
   countriesDataMap: Record<string, ICountryData>;
@@ -86,7 +86,7 @@ export class GameDataLoaderHelper {
       return (await res.json()) as ILocationIdentifierMap;
     },
     buildingsTemplate: async (res) => {
-      return (await res.json()) as Record<string, IBuildingTemplate>;
+      return (await res.json()) as Record<string, INewBuildingTemplate>;
     },
     adjacencyCsv: async (res) => {
       return (await res.text()) as string;
@@ -153,7 +153,7 @@ export class GameDataLoaderHelper {
     return Object.fromEntries(entries) as {
       locationDataMap: ILocationDataMap;
       colorToNameMap: ILocationIdentifierMap;
-      buildingsTemplate: Record<string, IBuildingTemplate>;
+      buildingsTemplate: Record<string, INewBuildingTemplate>;
       adjacencyCsv: string;
       proximityComputationRule: IProximityComputationRule;
       countriesDataMap: Record<string, ICountryData>;

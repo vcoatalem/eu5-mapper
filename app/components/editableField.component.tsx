@@ -1,4 +1,4 @@
-import { ContextualButton } from "@/app/components/contextualButton.component";
+import { ButtonWithTooltip } from "@/app/components/buttonWithTooltip.component";
 import { Tooltip } from "@/app/lib/tooltip/tooltip.component";
 import { TooltipContent } from "@/app/lib/tooltip/tooltipContent.component";
 import {
@@ -115,8 +115,9 @@ export function EditableField<T>(props: IEditableFieldProps<T>) {
       </div>
       <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-row-reverse gap-1">
         {isEditing === null && props.value !== props.baseValue && (
-          <ContextualButton
-            isSelected={false}
+          <ButtonWithTooltip
+            isActive={false}
+            showOnHover={true}
             tooltip={"Revert to base value: " + props.baseValue}
             onClick={(e) => {
               if (e) {
@@ -133,10 +134,11 @@ export function EditableField<T>(props: IEditableFieldProps<T>) {
               height={16}
               alt="Revert"
             ></Image>
-          </ContextualButton>
+          </ButtonWithTooltip>
         )}
         {isEditing !== null && (
-          <ContextualButton
+          <ButtonWithTooltip
+            showOnHover={true}
             tooltip={"Validate changes"}
             onClick={(e) => {
               if (e) {
@@ -153,7 +155,7 @@ export function EditableField<T>(props: IEditableFieldProps<T>) {
               height={16}
               alt="Validate"
             ></Image>
-          </ContextualButton>
+          </ButtonWithTooltip>
         )}
       </div>
     </>

@@ -13,9 +13,13 @@ import { FormattedProximityWithPathfindingTooltip } from "@/app/components/forma
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import { gameStateController } from "@/app/lib/gameState.controller";
 import { ColorHelper } from "@/app/lib/drawing/color.helper";
-import { ContextualButton } from "@/app/components/contextualButton.component";
+import { ButtonWithTooltip } from "@/app/components/buttonWithTooltip.component";
 import { EditableField } from "@/app/components/editableField.component";
 import { NumbersHelper } from "@/app/lib/utils/numbers.helper";
+import { getGuiImage } from "@/app/lib/drawing/namedGuiImagesMap.const";
+import { ConstructibleAction } from "@/app/lib/types/building";
+import { MdOutlineRemoveCircleOutline, MdOutlineAddCircleOutline } from "react-icons/md";
+import {FaAnglesDown, FaAnglesUp} from 'react-icons/fa6';
 
 interface IDetailedLocationListProps {
   ownedLocations: Record<ILocationIdentifier, ILocationDetailedViewData>;
@@ -38,9 +42,9 @@ function DisplayLocation(props: {
   );
   const isPinned = props.data.pinned ?? false;
   const capitalBtn = (
-    <ContextualButton
+    <ButtonWithTooltip
       key={"capital-btn-" + props.data.baseLocationGameData.name}
-      isSelected={isCapital}
+      isActive={isCapital}
       tooltip={
         isCapital ? (
           <span>This is your capital</span>
@@ -51,10 +55,12 @@ function DisplayLocation(props: {
       onClick={() =>
         !isCapital
           ? gameStateController.changeCapital(
-              props.data.baseLocationGameData.name,
-            )
+            props.data.baseLocationGameData.name,
+          )
           : null
       }
+      showOnHover={true}
+      className="ml-auto"
     >
       <Image
         src={"/icons/star.svg"}
@@ -62,15 +68,17 @@ function DisplayLocation(props: {
         width={16}
         height={16}
       />
-    </ContextualButton>
+    </ButtonWithTooltip>
   );
   const pinBtn = (
-    <ContextualButton
+    <ButtonWithTooltip
       key={"pin-btn-" + props.data.baseLocationGameData.name}
-      isSelected={isPinned}
+      isActive={isPinned}
       tooltip={
         isPinned ? <span>Unpin location</span> : <span>Pin location</span>
       }
+      showOnHover={true}
+      className="ml-auto"
       onClick={() => {
         if (!props.extensiveViewProps) {
           return;
@@ -83,7 +91,7 @@ function DisplayLocation(props: {
       }}
     >
       <Image src={"/icons/pin.svg"} alt="pin location" width={16} height={16} />
-    </ContextualButton>
+    </ButtonWithTooltip>
   );
   const buttons = [capitalBtn, pinBtn];
   const activeButtons = buttons.filter((btn, idx) =>
@@ -93,7 +101,7 @@ function DisplayLocation(props: {
     (btn, idx) => !(idx === 0 ? isCapital : isPinned),
   );
   return (
-    <div className="w-full h-full flex flex-row items-center px-1 relative">
+    <div className="group w-full h-full flex flex-row items-center px-1 relative">
       <span className="px-1 py-1 flex-none">
         {StringHelper.formatLocationName(props.data.baseLocationGameData.name)}
       </span>
@@ -150,8 +158,8 @@ function DisplayDevelopment(props: { data: ILocationDetailedViewData }) {
           style={{
             color: isModified
               ? ColorHelper.rgbToHex(
-                  ...ColorHelper.getEvaluationColor(isHigher ? 30 : 70),
-                )
+                ...ColorHelper.getEvaluationColor(isHigher ? 30 : 70),
+              )
               : "white",
           }}
         >
@@ -199,8 +207,8 @@ function DisplayPop(props: { data: ILocationDetailedViewData }) {
           style={{
             color: isModified
               ? ColorHelper.rgbToHex(
-                  ...ColorHelper.getEvaluationColor(baseIsLower ? 70 : 30),
-                )
+                ...ColorHelper.getEvaluationColor(baseIsLower ? 70 : 30),
+              )
               : "white",
           }}
         >
@@ -212,11 +220,51 @@ function DisplayPop(props: { data: ILocationDetailedViewData }) {
 }
 
 function DisplayBuildings(props: { data: ILocationDetailedViewData }) {
-  console.log(
+/*    console.log(
     `[DetailedLocationList] constructibleState for location ${props.data.baseLocationGameData.name}`,
     props.data.constructibleState,
-  );
-  return <div>buildings go here</div>;
+  ); */
+
+  const actionsMetadata: Record<ConstructibleAction["type"], {
+    icon: React.ReactNode;
+    tooltip: string;
+  }> = {
+    upgrade: {
+      icon: <FaAnglesUp size={16}></FaAnglesUp>,
+      tooltip: "Upgrade building",
+    },
+    downgrade: {
+      icon: <FaAnglesDown size={16}></FaAnglesDown>,
+      tooltip: "Downgrade building",
+    },
+    demolish: {
+      icon: <MdOutlineRemoveCircleOutline size={16}></MdOutlineRemoveCircleOutline>,
+      tooltip: "Demolish building",
+    },
+    build: {
+      icon: <MdOutlineAddCircleOutline size={16}></MdOutlineAddCircleOutline>,
+      tooltip: "Build building",
+    },
+  };
+
+  return <div className="flex flex-row w-full h-full">{
+    Object.entries(props.data.constructibleState).map(([buildingTemplateName, { instance, possibleActions }]) => {
+      const key = `${props.data.baseLocationGameData.name}-${buildingTemplateName}`;
+      return (<div key={key} className="flex flex-row items-center gap-1">
+        <Image src={getGuiImage(buildingTemplateName) ?? "/icons/question.svg"} alt={buildingTemplateName} width={16} height={16} />
+        {
+          possibleActions.map((action) => {
+            const actionKey = `${key}-${action.type}`;
+            return (
+              <button key={actionKey} className={`flex flex-row items-center gap-1 ${styles.iconButton}` } onClick={() => gameStateController.handleBuildingAction(props.data.baseLocationGameData.name, action)}>
+                {actionsMetadata[action.type].icon}
+              </button>
+            )
+          })
+        }
+      </div>)
+    })}
+  </div>;
 }
 
 function DisplayRank(props: { data: ILocationDetailedViewData }) {
@@ -254,77 +302,77 @@ const columns: Array<{
     b: ILocationDetailedViewData,
   ) => number;
 }> = [
-  {
-    title: "Location",
-    cols: 2,
-    displayComponent: DisplayLocation,
-    sortBy: (a, b) =>
-      a.baseLocationGameData.name.localeCompare(b.baseLocationGameData.name),
-  },
-  {
-    title: "Proximity",
-    cols: 1,
-    displayComponent: DisplayProximity,
-    sortBy: (a, b) => {
-      const proxA = a.proximity ?? 0;
-      const proxB = b.proximity ?? 0;
-      return proxB - proxA;
+    {
+      title: "Location",
+      cols: 2,
+      displayComponent: DisplayLocation,
+      sortBy: (a, b) =>
+        a.baseLocationGameData.name.localeCompare(b.baseLocationGameData.name),
     },
-  },
-  {
-    title: "Development",
-    cols: 1,
-    displayComponent: DisplayDevelopment,
-    sortBy: (a, b) => {
-      const devA =
-        a.temporaryLocationData.development ??
-        a.baseLocationGameData.development ??
-        0;
-      const devB =
-        b.temporaryLocationData.development ??
-        b.baseLocationGameData.development ??
-        0;
-      return devB - devA;
+    {
+      title: "Proximity",
+      cols: 1,
+      displayComponent: DisplayProximity,
+      sortBy: (a, b) => {
+        const proxA = a.proximity ?? 0;
+        const proxB = b.proximity ?? 0;
+        return proxB - proxA;
+      },
     },
-  },
-  {
-    title: "Population",
-    cols: 1,
-    displayComponent: DisplayPop,
-    sortBy: (a, b) => {
-      const popA =
-        a.temporaryLocationData.population ??
-        a.baseLocationGameData.population ??
-        0;
-      const popB =
-        b.temporaryLocationData.population ??
-        b.baseLocationGameData.population ??
-        0;
-      return popB - popA;
+    {
+      title: "Development",
+      cols: 1,
+      displayComponent: DisplayDevelopment,
+      sortBy: (a, b) => {
+        const devA =
+          a.temporaryLocationData.development ??
+          a.baseLocationGameData.development ??
+          0;
+        const devB =
+          b.temporaryLocationData.development ??
+          b.baseLocationGameData.development ??
+          0;
+        return devB - devA;
+      },
     },
-  },
-  {
-    title: "Rank",
-    cols: 1,
-    displayComponent: DisplayRank,
-    sortBy: (a, b) => {
-      const rankings: Record<LocationRank, number> = {
-        rural: 0,
-        town: 1,
-        city: 2,
-      };
-      const rankA = rankings[a.baseLocationGameData.rank] ?? -1;
-      const rankB = rankings[b.baseLocationGameData.rank] ?? -1;
-      return rankB - rankA;
+    {
+      title: "Population",
+      cols: 1,
+      displayComponent: DisplayPop,
+      sortBy: (a, b) => {
+        const popA =
+          a.temporaryLocationData.population ??
+          a.baseLocationGameData.population ??
+          0;
+        const popB =
+          b.temporaryLocationData.population ??
+          b.baseLocationGameData.population ??
+          0;
+        return popB - popA;
+      },
     },
-  },
-  {
-    title: "Buildings",
-    cols: 6,
-    displayComponent: DisplayBuildings,
-    sortBy: (a, b) => 0, // no sorting for now
-  },
-];
+    {
+      title: "Rank",
+      cols: 1,
+      displayComponent: DisplayRank,
+      sortBy: (a, b) => {
+        const rankings: Record<LocationRank, number> = {
+          rural: 0,
+          town: 1,
+          city: 2,
+        };
+        const rankA = rankings[a.baseLocationGameData.rank] ?? -1;
+        const rankB = rankings[b.baseLocationGameData.rank] ?? -1;
+        return rankB - rankA;
+      },
+    },
+    {
+      title: "Buildings",
+      cols: 6,
+      displayComponent: DisplayBuildings,
+      sortBy: (a, b) => 0, // no sorting for now
+    },
+  ];
 const totalColumns = columns.reduce((sum, col) => sum + col.cols, 0);
 const minimalColumnWidth = 128;
 

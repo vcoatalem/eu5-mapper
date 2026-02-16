@@ -36,7 +36,10 @@ export class ConstructibleHelper {
         locationGameData,
         gameState,
       );
-      return evaluateLogicTree(tree);
+
+      const evaluation = evaluateLogicTree(tree);
+      /* console.log(`[ConstructibleHelper] evaluation eligibility of building template ${template.name}`, tree, evaluation); */
+      return evaluation;
     });
   }
 
@@ -53,6 +56,7 @@ export class ConstructibleHelper {
       gameData,
       gameState,
     );
+    /*     console.log(`[ConstructibleHelper] eligible building templates for location ${location}`, eligibleBuildingTemplates); */
 
     for (const buildingTemplate of eligibleBuildingTemplates) {
       const possibleActions: ConstructibleAction[] = [];
@@ -82,18 +86,6 @@ export class ConstructibleHelper {
 
         if (
           buildingTemplate.buildable &&
-          (!buildingTemplate.cap ||
-            locationBuildings[buildingTemplate.name].level <
-              buildingTemplate.cap)
-        ) {
-          possibleActions.push({
-            type: "build",
-            building: buildingTemplate.name,
-          });
-        }
-
-        if (
-          buildingTemplate.buildable &&
           locationBuildings[buildingTemplate.name]
         ) {
           possibleActions.push({
@@ -109,7 +101,28 @@ export class ConstructibleHelper {
           };
         }
       }
+      if (
+        buildingTemplate.buildable &&
+        (!locationBuildings[buildingTemplate.name] ||
+          (!buildingTemplate.cap ||
+            locationBuildings[buildingTemplate.name].level <
+            buildingTemplate.cap))
+      ) {
+        possibleActions.push({
+          type: "build",
+          building: buildingTemplate.name,
+        });
+      }
+
+      if (possibleActions.length > 0) {
+        res[buildingTemplate.name] = {
+          instance: locationBuildings[buildingTemplate.name] ?? null,
+          possibleActions,
+        };
+      }
     }
+
+
 
     for (const building of Object.values(locationBuildings)) {
       if (!res[building.template.name]) {
@@ -120,6 +133,7 @@ export class ConstructibleHelper {
       }
     }
 
+    /* console.log(`[ConstructibleHelper] new constructible state for location ${location}`, res); */
     return res;
   }
 
@@ -147,33 +161,32 @@ export class ConstructibleHelper {
     location: ILocationGameData,
     gameState: IGameState,
   ): LogicTree {
-    const placementRestrictionTree = LogicTreeBuilder.treeFromConditions(
-      buildingTemplate.placementRestriction ?? {
-        op: "AND",
-        conditions: [],
-      },
+    const placementRestrictionTree = buildingTemplate.placementRestriction?.conditions?.length ? LogicTreeBuilder.treeFromConditions(
+      buildingTemplate.placementRestriction,
       location,
       gameState,
       this.evaluatePlacementCondition,
-    );
+    ) : {
+      type: "leaf" as const,
+      getValue: () => true,
+    };
+
+    const locationRankSupportsBuildingTree = {
+      type: "leaf" as const,
+      getValue: () =>
+        this.locationLevelSupportsBuilding(
+          buildingTemplate,
+          gameState.ownedLocations[location.name].rank,
+        ),
+    } as LogicTree;
+
+
     const root: LogicTree =
-      buildingTemplate.type === "common"
-        ? { type: "operator", op: "AND", children: [placementRestrictionTree] }
-        : {
-            type: "operator",
-            op: "AND",
-            children: [
-              placementRestrictionTree,
-              {
-                type: "leaf",
-                getValue: () =>
-                  this.locationLevelSupportsBuilding(
-                    buildingTemplate,
-                    location.rank,
-                  ),
-              },
-            ],
-          };
+    {
+      type: "operator",
+      op: "AND",
+      children: [placementRestrictionTree, locationRankSupportsBuildingTree],
+    };
 
     return root;
   }

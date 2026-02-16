@@ -23,6 +23,7 @@ import { DetailedLocationList } from "./detailedLocationList.component";
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import { proximityComputationController } from "@/app/lib/proximityComputation.controller";
 import { NewConstructibleState } from "@/app/lib/types/building";
+import { ConstructibleHelper } from "@/app/lib/constructible.helper";
 
 function LocationExtensiveViewModalHeader(props: {
   countryName: string | null;
@@ -118,6 +119,7 @@ export function DetailedLocationViewModal() {
     [pinnedLocations],
   );
 
+  // TODO: optimize this ^^
   const ownedLocations: Record<ILocationIdentifier, ILocationDetailedViewData> =
     useMemo(() => {
       const temporaryLocationData = gameState.temporaryLocationData;
@@ -141,6 +143,7 @@ export function DetailedLocationViewModal() {
                 constructibleData: value,
                 temporaryLocationData: temporaryLocationData[key] ?? {},
                 baseLocationGameData: locationGameData,
+                constructibleState: ConstructibleHelper.getNewConstructibleState(key, gameData, gameState),
                 pinned: pinnedLocations.has(key),
                 proximity:
                   gameState.capitalLocation === key
@@ -159,15 +162,15 @@ export function DetailedLocationViewModal() {
           }),
       );
     }, [
-      gameState.ownedLocations,
-      gameState.temporaryLocationData,
+      gameData,
+      gameState,
       pinnedLocations,
       proximityComputation,
       search,
     ]);
 
   return (
-    <div className="h-[80vh] w-[85vw] flex flex-col">
+    <div className="h-[80vh] w-[85vw] flex flex-col overflow-x-hidden">
       <LocationExtensiveViewModalHeader
         countryName={gameState.country?.templateData?.name ?? null}
         ownedLocations={gameState.ownedLocations}

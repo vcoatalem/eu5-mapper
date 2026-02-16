@@ -22,6 +22,7 @@ import { roadBuilderController } from "../lib/roadBuilderController";
 import Image from "next/image";
 import { FormattedProximityWithPathfindingTooltip } from "@/app/components/formattedProximityWithPathfindingTooltip.component";
 import { StringHelper } from "@/app/lib/utils/string.helper";
+import { IoSearch } from "react-icons/io5";
 
 const SimpleLocationListItem = React.memo(function SimpleLocationListItem({
   location,
@@ -166,13 +167,7 @@ export function SimpleLocationList() {
       ) : (
         <>
           <div className="shrink-0 flex flex-row pt-1">
-            <Image
-              src={"/icons/magnifyingGlass.svg"}
-              alt="search"
-              width={16}
-              height={16}
-              className="invert"
-            />
+            <IoSearch color="white" size={16}></IoSearch>
             <input
               type="search"
               placeholder="Search for a location..."

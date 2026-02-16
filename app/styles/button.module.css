@@ -6,21 +6,20 @@
 
     &:disabled {
       @apply bg-stone-500/50 hover:bg-stone-500/50 cursor-not-allowed text-black;
+
+      > :first-child {
+        @apply invert-50; /* grey out icon color */
+      }
     }
   }
 
   .iconButton {
-    @apply rounded-lg p-1 border border-white hover:bg-stone-600 cursor-pointer  backdrop-blur-lg;
-  }
-
-  .simpleButton > :first-child,
-  .iconButton > :first-child {
-    @apply invert; /* white icons */
+    @apply rounded-lg p-1 border border-white hover:bg-stone-600 cursor-pointer backdrop-blur-lg;
   }
 
   .simpleButton.buttonActive > :first-child,
   .iconButton.buttonActive > :first-child {
-    @apply invert-0; /* black icons */
+    @apply invert; /* revert icon color to be visible on top of background */
   }
 
   .buttonActive {

@@ -7,15 +7,15 @@ import {
 } from "@/app/lib/tooltip/tooltipTrigger.component";
 import Image from "next/image";
 import {
-  forwardRef,
   JSXElementConstructor,
   ReactElement,
   useCallback,
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
 } from "react";
+import { FaCheck } from "react-icons/fa6";
+import { RiResetRightFill, RiResetRightLine } from "react-icons/ri";
 
 interface IEditableFieldProps<T> {
   onValidate: (value: T) => void;
@@ -128,12 +128,7 @@ export function EditableField<T>(props: IEditableFieldProps<T>) {
               props.onValidate(props.baseValue);
             }}
           >
-            <Image
-              src={"/icons/reset.svg"}
-              width={16}
-              height={16}
-              alt="Revert"
-            ></Image>
+            <RiResetRightLine color="white" size={16}></RiResetRightLine>
           </ButtonWithTooltip>
         )}
         {isEditing !== null && (
@@ -149,12 +144,7 @@ export function EditableField<T>(props: IEditableFieldProps<T>) {
               inputRef.current?.blur();
             }}
           >
-            <Image
-              src={"/icons/check.svg"}
-              width={16}
-              height={16}
-              alt="Validate"
-            ></Image>
+            <FaCheck color="white" size={16}></FaCheck>
           </ButtonWithTooltip>
         )}
       </div>

@@ -13,6 +13,7 @@ import { GuiElement } from "./guiElement";
 import { ActionSource } from "@/app/lib/actionSource.component";
 import Image from "next/image";
 import { StringHelper } from "@/app/lib/utils/string.helper";
+import { IoSearch } from "react-icons/io5";
 
 const LocationSearchResultItem = React.memo(function LocationSearchResultItem({
   locationSearchResult,
@@ -85,13 +86,7 @@ export function LocationSearchBar(props: { className?: string }) {
       }
       onMouseLeave={handleMouseLeave}
     >
-      <Image
-        src={"/icons/magnifyingGlass.svg"}
-        className="invert"
-        alt="magnifying glass"
-        width={24}
-        height={24}
-      ></Image>
+      <IoSearch color="white" size={24}></IoSearch>
       <input
         ref={inputRef}
         type="text"

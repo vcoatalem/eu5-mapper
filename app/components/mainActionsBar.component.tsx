@@ -7,6 +7,8 @@ import Image from "next/image";
 import { changeCapitalController } from "@/app/lib/changeCapital.controller";
 import { Modal } from "../lib/modal/modal.component";
 import { DetailedLocationViewModal } from "./detailedLocationViewModal.component";
+import { IoStarSharp } from "react-icons/io5";
+import { TbListDetails } from "react-icons/tb";
 
 export function MainActionsBar() {
   const buildRoadButtonRef = useRef<HTMLButtonElement>(null);
@@ -44,7 +46,7 @@ export function MainActionsBar() {
       >
         <Tooltip>
           <TooltipTrigger>
-            <span className="text-3xl">★</span>
+            <IoStarSharp color="white" size={24}></IoStarSharp>
           </TooltipTrigger>
           <TooltipContent
             anchor={{
@@ -98,13 +100,7 @@ export function MainActionsBar() {
       >
         <Tooltip>
           <TooltipTrigger>
-            <Image
-              src="/gui/icons/book.svg"
-              alt="open detailed location detailed view"
-              className="invert"
-              width={32}
-              height={32}
-            ></Image>
+            <TbListDetails color="white" size={32}></TbListDetails>
           </TooltipTrigger>
           <TooltipContent
             anchor={{

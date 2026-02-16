@@ -10,6 +10,8 @@ import { Tooltip } from "../lib/tooltip/tooltip.component";
 import { TooltipTrigger } from "../lib/tooltip/tooltipTrigger.component";
 import { TooltipContent } from "../lib/tooltip/tooltipContent.component";
 import buttonStyles from "../styles/button.module.css";
+import { IoSearch } from "react-icons/io5";
+import { FaAnglesDown, FaAnglesUp } from 'react-icons/fa6';
 
 interface IRoadListProps {}
 
@@ -92,13 +94,7 @@ const RoadItem = React.memo(function RoadItem({
               gameStateController.changeRoadType(roadKey, upgradeType)
             }
           >
-            <Image
-              src="/icons/arrow-up.svg"
-              alt="Upgrade"
-              width={24}
-              height={24}
-              className="invert"
-            />
+            <FaAnglesUp color="white" size={24}></FaAnglesUp>
           </button>
         )}
 
@@ -109,13 +105,7 @@ const RoadItem = React.memo(function RoadItem({
               gameStateController.changeRoadType(roadKey, downgradeType)
             }
           >
-            <Image
-              src="/icons/arrow-down.svg"
-              alt="Downgrade"
-              width={24}
-              height={24}
-              className="invert"
-            />
+            <FaAnglesDown color="white" size={24}></FaAnglesDown>
           </button>
         )}
       </div>
@@ -163,13 +153,7 @@ export function RoadList(props: IRoadListProps) {
   return (
     <div>
       <div className="shrink-0 flex flex-row pt-1">
-        <Image
-          src={"/icons/magnifyingGlass.svg"}
-          alt="search"
-          width={16}
-          height={16}
-          className="invert"
-        />
+        <IoSearch color="white" size={24}></IoSearch>
         <input
           type="search"
           placeholder="Search for a location..."

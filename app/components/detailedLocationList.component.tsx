@@ -19,7 +19,9 @@ import { NumbersHelper } from "@/app/lib/utils/numbers.helper";
 import { getGuiImage } from "@/app/lib/drawing/namedGuiImagesMap.const";
 import { ConstructibleAction } from "@/app/lib/types/building";
 import { MdOutlineRemoveCircleOutline, MdOutlineAddCircleOutline } from "react-icons/md";
-import {FaAnglesDown, FaAnglesUp} from 'react-icons/fa6';
+import { FaAnglesDown, FaAnglesUp } from 'react-icons/fa6';
+import { TiPinOutline } from "react-icons/ti";
+import { IoStarSharp } from "react-icons/io5";
 
 interface IDetailedLocationListProps {
   ownedLocations: Record<ILocationIdentifier, ILocationDetailedViewData>;
@@ -62,12 +64,7 @@ function DisplayLocation(props: {
       showOnHover={true}
       className="ml-auto"
     >
-      <Image
-        src={"/icons/star.svg"}
-        alt="capital location"
-        width={16}
-        height={16}
-      />
+      <IoStarSharp color="white" size={16}></IoStarSharp>
     </ButtonWithTooltip>
   );
   const pinBtn = (
@@ -90,7 +87,7 @@ function DisplayLocation(props: {
         return togglePin(props.data.baseLocationGameData.name);
       }}
     >
-      <Image src={"/icons/pin.svg"} alt="pin location" width={16} height={16} />
+      <TiPinOutline color="white" size={16}></TiPinOutline>
     </ButtonWithTooltip>
   );
   const buttons = [capitalBtn, pinBtn];
@@ -230,19 +227,19 @@ function DisplayBuildings(props: { data: ILocationDetailedViewData }) {
     tooltip: string;
   }> = {
     upgrade: {
-      icon: <FaAnglesUp size={16}></FaAnglesUp>,
+      icon: <FaAnglesUp color="white" size={16}></FaAnglesUp>,
       tooltip: "Upgrade building",
     },
     downgrade: {
-      icon: <FaAnglesDown size={16}></FaAnglesDown>,
+      icon: <FaAnglesDown color="white" size={16}></FaAnglesDown>,
       tooltip: "Downgrade building",
     },
     demolish: {
-      icon: <MdOutlineRemoveCircleOutline size={16}></MdOutlineRemoveCircleOutline>,
+      icon: <MdOutlineRemoveCircleOutline color="white" size={16}></MdOutlineRemoveCircleOutline>,
       tooltip: "Demolish building",
     },
     build: {
-      icon: <MdOutlineAddCircleOutline size={16}></MdOutlineAddCircleOutline>,
+      icon: <MdOutlineAddCircleOutline color="white" size={16}></MdOutlineAddCircleOutline>,
       tooltip: "Build building",
     },
   };
@@ -256,9 +253,9 @@ function DisplayBuildings(props: { data: ILocationDetailedViewData }) {
           possibleActions.map((action) => {
             const actionKey = `${key}-${action.type}`;
             return (
-              <button key={actionKey} className={`flex flex-row items-center gap-1 ${styles.iconButton}` } onClick={() => gameStateController.handleBuildingAction(props.data.baseLocationGameData.name, action)}>
-                {actionsMetadata[action.type].icon}
-              </button>
+              <ButtonWithTooltip key={actionKey} tooltip={actionsMetadata[action.type].tooltip} onClick={() => gameStateController.handleBuildingAction(props.data.baseLocationGameData.name, action)}>
+                <span>{actionsMetadata[action.type].icon}</span>
+              </ButtonWithTooltip>
             )
           })
         }
@@ -490,16 +487,7 @@ export function DetailedLocationList(props: IDetailedLocationListProps) {
           >
             <span>{col.title}</span>
             {sort?.column === col.title && (
-              <Image
-                src={
-                  sort?.order === "asc"
-                    ? "/icons/chevron-up.svg"
-                    : "/icons/chevron-down.svg"
-                }
-                alt="Sort Icon"
-                width={16}
-                height={16}
-              />
+              sort?.order === "asc" ? <FaAnglesUp color="white" size={16}></FaAnglesUp> : <FaAnglesDown color="white" size={16}></FaAnglesDown>
             )}
           </button>
         ))}

@@ -24,6 +24,7 @@ import { StringHelper } from "@/app/lib/utils/string.helper";
 import { proximityComputationController } from "@/app/lib/proximityComputation.controller";
 import { NewConstructibleState } from "@/app/lib/types/building";
 import { ConstructibleHelper } from "@/app/lib/constructible.helper";
+import { IoSearch } from "react-icons/io5";
 
 function LocationExtensiveViewModalHeader(props: {
   countryName: string | null;
@@ -47,13 +48,7 @@ function LocationExtensiveViewModalHeader(props: {
       </>
 
       <div className="flex flex-row items-center gap-1 ml-16">
-        <Image
-          src={"/icons/magnifyingGlass.svg"}
-          alt="search"
-          width={16}
-          height={16}
-          className="invert"
-        ></Image>
+        <IoSearch color="white" size={16}></IoSearch>
         <input
           type="text"
           placeholder="Search for a location..."

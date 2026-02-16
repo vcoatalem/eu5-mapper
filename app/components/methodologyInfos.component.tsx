@@ -4,7 +4,7 @@ import { useMemo, useRef } from "react";
 import { Tooltip } from "../lib/tooltip/tooltip.component";
 import { TooltipTrigger } from "../lib/tooltip/tooltipTrigger.component";
 import { TooltipContent } from "../lib/tooltip/tooltipContent.component";
-import Image from "next/image";
+import { AiOutlineQuestionCircle } from "react-icons/ai";
 
 export function MethodologyInfos({ className = "" }: { className?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -32,13 +32,7 @@ export function MethodologyInfos({ className = "" }: { className?: string }) {
             target="_blank"
             className="flex items-center h-full w-full gap-1"
           >
-            <Image
-              src="/icons/question.svg"
-              alt="question"
-              width={16}
-              height={16}
-              className="invert"
-            />
+            <AiOutlineQuestionCircle size={16} color="white" />
             <span className="text-sm">Methodology</span>
           </a>
         </TooltipTrigger>

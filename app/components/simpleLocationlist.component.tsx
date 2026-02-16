@@ -12,14 +12,11 @@ import {
   IGameState,
   ILocationIdentifier,
 } from "../lib/types/general";
-import { ConstructibleHelper } from "../lib/constructible.helper";
 import { AppContext } from "../appContextProvider";
-import { proximityComputationController } from "../lib/proximityComputation.controller";
+import { IProximityComputationResults, proximityComputationController } from "../lib/proximityComputation.controller";
 import { ProximityComputationHelper } from "../lib/proximityComputation.helper";
 import { ActionSource } from "@/app/lib/actionSource.component";
 import { FoldableMenu } from "./foldableMenu.component";
-import { roadBuilderController } from "../lib/roadBuilderController";
-import Image from "next/image";
 import { FormattedProximityWithPathfindingTooltip } from "@/app/components/formattedProximityWithPathfindingTooltip.component";
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import { IoSearch } from "react-icons/io5";
@@ -33,9 +30,7 @@ const SimpleLocationListItem = React.memo(function SimpleLocationListItem({
   constructible: IConstructibleLocation;
   gameData: IGameData;
   gameState: IGameState;
-  proximityComputation: ReturnType<
-    typeof proximityComputationController.getSnapshot
-  >;
+  proximityComputation: IProximityComputationResults;
 }) {
   return (
     <div
@@ -47,7 +42,7 @@ const SimpleLocationListItem = React.memo(function SimpleLocationListItem({
           <span className="mr-1">★</span>
         )}
         <ActionSource
-          locations={(e) => location}
+          locations={() => location}
           hover={{}}
           click={{ type: "goto" }}
         >
@@ -79,16 +74,11 @@ export function SimpleLocationList() {
     ),
     () => proximityComputationController.getSnapshot(),
   );
-  const buildingRoadState = useSyncExternalStore(
-    roadBuilderController.subscribe.bind(roadBuilderController),
-    () => roadBuilderController.getSnapshot(),
-  );
   const { gameData } = useContext(AppContext);
 
   const [search, setSearch] = useState("");
   const [ownedLocationsExpanded, setOwnedLocationsExpanded] =
     useState<boolean>(false);
-  const [roadsExpanded, setRoadsExpanded] = useState<boolean>(false);
 
   const ownedLocationKeys = Object.keys(gameState?.ownedLocations ?? {});
   const noOwnedLoactions = useMemo(
@@ -106,40 +96,6 @@ export function SimpleLocationList() {
     );
   }, [search, gameState.ownedLocations, ownedLocationKeys.length]);
 
-  const filteredRoadsEntries = useMemo(() => {
-    const entries = ConstructibleHelper.getOwnedRoads(
-      gameState?.ownedLocations ?? {},
-      gameState?.roads ?? {},
-    );
-    if (!search) {
-      return entries;
-    }
-    const searchLower = search.toLowerCase();
-
-    for (const [key] of Object.entries(entries)) {
-      const [from, to] = key.split("-");
-      const fromContains = from.toLowerCase().includes(searchLower);
-      const toContains = to.toLowerCase().includes(searchLower);
-      const fromScore = fromContains ? searchLower.length / from.length : 0;
-      const toScore = toContains ? searchLower.length / to.length : 0;
-      const keyMatched: "from" | "to" = fromScore >= toScore ? "from" : "to";
-
-      if (!key.toLowerCase().includes(searchLower)) {
-        delete entries[key as keyof typeof entries];
-      } else if (keyMatched === "to") {
-        const type = entries[key];
-        delete entries[key];
-        const newKey = `${to}-${from}`;
-        entries[newKey] = type;
-      }
-    }
-    return entries;
-  }, [
-    search,
-    gameState.ownedLocations,
-    gameState.roads,
-    ownedLocationKeys.length,
-  ]);
 
   // Auto-expand when search has results
   // This is a legitimate side effect: syncing UI state (expansion) with user input (search)
@@ -147,11 +103,8 @@ export function SimpleLocationList() {
     if (search && filteredLocationEntries.length > 0) {
       setOwnedLocationsExpanded(true);
     }
-    if (search && Object.keys(filteredRoadsEntries).length > 0) {
-      setRoadsExpanded(true);
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredLocationEntries.length, filteredRoadsEntries]);
+  }, [filteredLocationEntries.length]);
 
   if (!gameData) {
     return <div>Loading gameData</div>;
@@ -166,7 +119,7 @@ export function SimpleLocationList() {
         </div>
       ) : (
         <>
-          <div className="shrink-0 flex flex-row pt-1">
+          <div className="shrink-0 flex flex-row pt-1 items-center">
             <IoSearch color="white" size={16}></IoSearch>
             <input
               type="search"
@@ -202,33 +155,6 @@ export function SimpleLocationList() {
                   />
                 ))}
             </FoldableMenu>
-            {/*     <FoldableMenu
-              title={`Owned Roads (${Object.keys(gameState.roads).length})`}
-              isExpanded={roadsExpanded}
-              onToggle={() => setRoadsExpanded(!roadsExpanded)}
-            >
-              <div className="gap-4 w-[600px]">
-                <button
-                  className={
-                    " text-black rounded-lg px-3 py-2 " +
-                    (buildingRoadState.isBuildingModeEnabled
-                      ? " bg-yellow-600 hover:bg-yellow-500 "
-                      : " bg-blue-600 hover:bg-blue-500 ")
-                  }
-                  onClick={() => roadBuilderController.toggleBuildingMode()}
-                >
-                  Build new roads
-                </button>
-              </div>
-
-              {buildingRoadState.isBuildingModeEnabled && (
-                <div className="text-sm text-yellow-400 italic mb-2 mr-3">
-                  Click on a location to start building a new road
-                </div>
-              )}
-
-              <RoadList search={search}></RoadList>
-            </FoldableMenu> */}
           </div>
         </>
       )}

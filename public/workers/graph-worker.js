@@ -520,7 +520,9 @@
         if (gameState.capitalLocation === locationName) {
           proximitySourceLocations[locationName] = 100;
         } else {
-          const locationBuildings = gameState.ownedLocations[locationName].buildings;
+          const locationBuildings = Object.values(
+            gameState.ownedLocations[locationName].buildings
+          );
           const highestProximitySource = Math.max(
             ...locationBuildings.map(
               (b) => b.template.modifiers.localProximitySource ?? 0
@@ -791,7 +793,7 @@
       return 0;
     }
     const buildings = locationConstructibleData?.buildings ?? [];
-    const totalBuildingsCostReduction = buildings.map(
+    const totalBuildingsCostReduction = Object.values(buildings).map(
       (b) => Math.abs(b.template.modifiers.localProximityCostModifier ?? 0) * 100 * // O.0.11 effects are negative floats, 0.1.0 positive - we might need to change this formula if there are buildings giving negative local prox in the future
       b.level
     ).reduce((a, b) => a + b, 0);
@@ -835,7 +837,7 @@
       return naturalHarborSuitability;
     }
     const buildings = locationConstructibleData.buildings ?? [];
-    const totalBuildingsHarborCapacity = buildings.map((b) => {
+    const totalBuildingsHarborCapacity = Object.values(buildings).map((b) => {
       const capacity = (b.template.modifiers.harborSuitability ?? 0) * b.level;
       return capacity || 0;
     }).reduce((a, b) => a + b, 0);

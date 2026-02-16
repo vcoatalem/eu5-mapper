@@ -18,13 +18,13 @@ import {
   ILocationIdentifier,
   ITemporaryLocationData,
 } from "../lib/types/general";
-import Image from "next/image";
 import { DetailedLocationList } from "./detailedLocationList.component";
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import { proximityComputationController } from "@/app/lib/proximityComputation.controller";
 import { NewConstructibleState } from "@/app/lib/types/building";
 import { ConstructibleHelper } from "@/app/lib/constructible.helper";
 import { IoSearch } from "react-icons/io5";
+import { ProximityComputationHelper } from "@/app/lib/proximityComputation.helper";
 
 function LocationExtensiveViewModalHeader(props: {
   countryName: string | null;
@@ -140,12 +140,9 @@ export function DetailedLocationViewModal() {
                 baseLocationGameData: locationGameData,
                 constructibleState: ConstructibleHelper.getNewConstructibleState(key, gameData, gameState),
                 pinned: pinnedLocations.has(key),
-                proximity:
-                  gameState.capitalLocation === key
-                    ? 100
-                    : proximityComputed
-                      ? (proximityComputation.result[key]?.cost ?? 0)
-                      : null,
+                proximity: ProximityComputationHelper.evaluationToProximity(
+                  proximityComputation.result[key]?.cost ?? 100,
+                ),
               },
             ] as [string, ILocationDetailedViewData];
           })

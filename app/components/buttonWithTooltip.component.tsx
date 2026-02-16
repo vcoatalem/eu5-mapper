@@ -31,7 +31,7 @@ export function ButtonWithTooltip({
       ref={buttonDivRef}
       className={
         `${className ?? ""} ` +
-        ` h-full w-full ml-auto transition-opacity duration-50 ` +
+        `  h-fit ml-auto transition-opacity duration-50 w-fit ` +
         (showOnHover
           ? " group-hover:opacity-100 group-hover:pointer-events-auto " +
           (isActive ? "opacity-100 pointer-events-auto" : " opacity-0 pointer-events-none ")

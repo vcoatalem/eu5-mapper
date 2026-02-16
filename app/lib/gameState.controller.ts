@@ -171,22 +171,19 @@ export class GameStateController extends Observable<IGameState> {
     location: ILocationIdentifier,
     action: ConstructibleAction,
   ): void {
-    const locationConstructibleData = this.subject.ownedLocations[location];
-    if (!locationConstructibleData) {
-      throw new Error(
-        `Cannot perform constructible action on unowned location: ${location}`,
-      );
-    }
+    console.log("[GameStateController] handling building action", location, action);
     switch (action.type) {
       case "build":
-        if (
-          action.building in this.subject.ownedLocations[location].buildings
-        ) {
-          this.subject.ownedLocations[location].buildings[
-            action.building
-          ].level += 1;
+        const locationConstructibleData = this.subject.ownedLocations[location];
+        if (!locationConstructibleData) {
+          throw new Error(
+            `Cannot perform constructible action on unowned location: ${location}`,
+          );
+        }
+        if (action.building in locationConstructibleData.buildings) {
+          locationConstructibleData.buildings[action.building].level += 1;
         } else {
-          this.subject.ownedLocations[location].buildings[action.building] = {
+          locationConstructibleData.buildings[action.building] = {
             template: this.gameData!.buildingsTemplate[action.building],
             level: 1,
           };
@@ -223,6 +220,7 @@ export class GameStateController extends Observable<IGameState> {
       default:
         throw new Error(`Unknown constructible action ${action}`);
     }
+    this.notifyListeners();
   }
 
   public removeAllBuildingsFromLocation(

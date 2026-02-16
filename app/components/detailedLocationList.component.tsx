@@ -3,9 +3,7 @@ import { ILocationIdentifier, LocationRank } from "@/app/lib/types/general";
 import Image from "next/image";
 import React, {
   useCallback,
-  useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import styles from "@/app/styles/button.module.css";
@@ -225,7 +223,7 @@ function DisplayBuildings(props: { data: ILocationDetailedViewData }) {
   const actionsMetadata: Record<ConstructibleAction["type"], {
     icon: React.ReactNode;
     tooltip: string;
-  }> = {
+  }> = useMemo(() => ({
     upgrade: {
       icon: <FaAnglesUp color="white" size={16}></FaAnglesUp>,
       tooltip: "Upgrade building",
@@ -242,13 +240,18 @@ function DisplayBuildings(props: { data: ILocationDetailedViewData }) {
       icon: <MdOutlineAddCircleOutline color="white" size={16}></MdOutlineAddCircleOutline>,
       tooltip: "Build building",
     },
-  };
+  }), [props.data.constructibleState]);
 
-  return <div className="flex flex-row w-full h-full">{
+  return <div className="flex flex-row w-full h-full gap-2">{
     Object.entries(props.data.constructibleState).map(([buildingTemplateName, { instance, possibleActions }]) => {
+      const hasInstance = !!instance;
+      if (hasInstance) {
+        console.log(`[DetailedLocationList] instance for building ${buildingTemplateName}`, instance);
+      }
       const key = `${props.data.baseLocationGameData.name}-${buildingTemplateName}`;
-      return (<div key={key} className="flex flex-row items-center gap-1">
-        <Image src={getGuiImage(buildingTemplateName) ?? "/icons/question.svg"} alt={buildingTemplateName} width={16} height={16} />
+      return (
+      <div key={key} className={" flex flex-row items-center gap-1 border-stone border rounded-md justify-center p-2 " + (hasInstance && " bg-yellow-500" || "")}>
+        <Image src={getGuiImage(buildingTemplateName) ?? "/icons/question.svg"} alt={buildingTemplateName} width={32} height={32} />
         {
           possibleActions.map((action) => {
             const actionKey = `${key}-${action.type}`;
@@ -259,7 +262,8 @@ function DisplayBuildings(props: { data: ILocationDetailedViewData }) {
             )
           })
         }
-      </div>)
+      </div>
+      )
     })}
   </div>;
 }

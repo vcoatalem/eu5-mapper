@@ -4,6 +4,7 @@ import Image from "next/image";
 import React, {
   useCallback,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import styles from "@/app/styles/button.module.css";
@@ -14,18 +15,43 @@ import { ColorHelper } from "@/app/lib/drawing/color.helper";
 import { ButtonWithTooltip } from "@/app/components/buttonWithTooltip.component";
 import { EditableField } from "@/app/components/editableField.component";
 import { NumbersHelper } from "@/app/lib/utils/numbers.helper";
-import { getGuiImage } from "@/app/lib/drawing/namedGuiImagesMap.const";
-import { ConstructibleAction } from "@/app/lib/types/building";
+import { ConstructibleAction, NewConstructibleState } from "@/app/lib/types/building";
 import { MdOutlineRemoveCircleOutline, MdOutlineAddCircleOutline } from "react-icons/md";
 import { FaAnglesDown, FaAnglesUp } from 'react-icons/fa6';
 import { TiPinOutline } from "react-icons/ti";
 import { IoStarSharp } from "react-icons/io5";
+import { Tooltip } from "@/app/lib/tooltip/tooltip.component";
+import { TooltipTrigger } from "@/app/lib/tooltip/tooltipTrigger.component";
+import { TooltipContent } from "@/app/lib/tooltip/tooltipContent.component";
 
 interface IDetailedLocationListProps {
   ownedLocations: Record<ILocationIdentifier, ILocationDetailedViewData>;
   capitalLocation: ILocationIdentifier | null;
   togglePin?: (location: ILocationIdentifier) => void;
 }
+
+const actionsMetadata: Record<ConstructibleAction["type"], {
+  icon: React.ReactNode;
+  tooltip: string;
+}> = {
+  upgrade: {
+    icon: <FaAnglesUp color="white" size={16}></FaAnglesUp>,
+    tooltip: "Upgrade building",
+  },
+  downgrade: {
+    icon: <FaAnglesDown color="white" size={16}></FaAnglesDown>,
+    tooltip: "Downgrade building",
+  },
+  demolish: {
+    icon: <MdOutlineRemoveCircleOutline color="white" size={16}></MdOutlineRemoveCircleOutline>,
+    tooltip: "Demolish building",
+  },
+  build: {
+    icon: <MdOutlineAddCircleOutline color="white" size={16}></MdOutlineAddCircleOutline>,
+    tooltip: "Build building",
+  },
+}
+
 
 function DisplayLocation(props: {
   data: ILocationDetailedViewData;
@@ -214,33 +240,44 @@ function DisplayPop(props: { data: ILocationDetailedViewData }) {
   );
 }
 
-function DisplayBuildings(props: { data: ILocationDetailedViewData }) {
-/*    console.log(
-    `[DetailedLocationList] constructibleState for location ${props.data.baseLocationGameData.name}`,
-    props.data.constructibleState,
-  ); */
+function DisplayBuilding(props: { location: ILocationIdentifier, buildingTemplateName: string, buildingData: NewConstructibleState[string] }) {
+  const { instance, possibleActions } = props.buildingData;
+  const hasInstance = !!instance;
+  const divRef = useRef<HTMLDivElement>(null);
+  return (
+    <div ref={divRef} className={" flex flex-row items-center gap-1 border-stone border rounded-md justify-center p-2 " + (hasInstance && " bg-yellow-500/50" || "")}>
+      <Tooltip config={{ offset: { x: 0, y: 10 } }}>
+        <TooltipTrigger>
+          <div className="relative">
+            <Image src={`/gui/buildings/${props.buildingTemplateName}.png`} alt={props.buildingTemplateName} width={32} height={32} />
+            {hasInstance && instance?.template.cap === null && <span className="text-white absolute bottom-0 left-[1/4] px-1 rounded-md backdrop-blur-md text-xs" >{instance?.level}</span>}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent anchor={{ type: "dom", ref: divRef as React.RefObject<HTMLElement> }}>
+          <span>{props.buildingTemplateName}</span>
+        </TooltipContent>
+      </Tooltip>
 
-  const actionsMetadata: Record<ConstructibleAction["type"], {
-    icon: React.ReactNode;
-    tooltip: string;
-  }> = useMemo(() => ({
-    upgrade: {
-      icon: <FaAnglesUp color="white" size={16}></FaAnglesUp>,
-      tooltip: "Upgrade building",
-    },
-    downgrade: {
-      icon: <FaAnglesDown color="white" size={16}></FaAnglesDown>,
-      tooltip: "Downgrade building",
-    },
-    demolish: {
-      icon: <MdOutlineRemoveCircleOutline color="white" size={16}></MdOutlineRemoveCircleOutline>,
-      tooltip: "Demolish building",
-    },
-    build: {
-      icon: <MdOutlineAddCircleOutline color="white" size={16}></MdOutlineAddCircleOutline>,
-      tooltip: "Build building",
-    },
-  }), [props.data.constructibleState]);
+      {
+        possibleActions.map((action) => {
+          const actionKey = `${props.location}-${props.buildingTemplateName}-${action.type}`;
+          return (
+            <ButtonWithTooltip key={actionKey} tooltip={actionsMetadata[action.type].tooltip} onClick={() => gameStateController.handleBuildingAction(props.location, action)} isActive={hasInstance}>
+              <span>{actionsMetadata[action.type].icon}</span>
+            </ButtonWithTooltip>
+          )
+        })
+      }
+    </div>
+  );
+}
+
+function DisplayBuildings(props: { data: ILocationDetailedViewData }) {
+  /*    console.log(
+      `[DetailedLocationList] constructibleState for location ${props.data.baseLocationGameData.name}`,
+      props.data.constructibleState,
+    ); */
+
 
   return <div className="flex flex-row w-full h-full gap-2">{
     Object.entries(props.data.constructibleState).map(([buildingTemplateName, { instance, possibleActions }]) => {
@@ -250,19 +287,7 @@ function DisplayBuildings(props: { data: ILocationDetailedViewData }) {
       }
       const key = `${props.data.baseLocationGameData.name}-${buildingTemplateName}`;
       return (
-      <div key={key} className={" flex flex-row items-center gap-1 border-stone border rounded-md justify-center p-2 " + (hasInstance && " bg-yellow-500" || "")}>
-        <Image src={getGuiImage(buildingTemplateName) ?? "/icons/question.svg"} alt={buildingTemplateName} width={32} height={32} />
-        {
-          possibleActions.map((action) => {
-            const actionKey = `${key}-${action.type}`;
-            return (
-              <ButtonWithTooltip key={actionKey} tooltip={actionsMetadata[action.type].tooltip} onClick={() => gameStateController.handleBuildingAction(props.data.baseLocationGameData.name, action)}>
-                <span>{actionsMetadata[action.type].icon}</span>
-              </ButtonWithTooltip>
-            )
-          })
-        }
-      </div>
+        <DisplayBuilding location={props.data.baseLocationGameData.name} key={key} buildingTemplateName={buildingTemplateName} buildingData={{ instance, possibleActions }}></DisplayBuilding>
       )
     })}
   </div>;

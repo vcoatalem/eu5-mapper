@@ -3,15 +3,6 @@
  * Images are located in /public/gui/buildings/ and /public/gui/icons/
  */
 export const NAMED_GUI_IMAGES_MAP: Record<string, string> = {
-  // Buildings
-  bridge_infrastructure: "/gui/buildings/bridge_infrastructure.png",
-  canal_infrastructure: "/gui/buildings/canal_infrastructure.png",
-  dock: "/gui/buildings/dock.png",
-  wharf: "/gui/buildings/wharf.png",
-  "protected_harbor": "/gui/buildings/protected_harbor.png",
-  "fishing_village": "/gui/buildings/fishing_village.png",
-  bailiff: "/gui/buildings/bailiff.png",
-
   // Icons
   city: "/gui/icons/city.png",
   town: "/gui/icons/town.png",

@@ -186,7 +186,8 @@ def build_templates_from_files(files) -> Dict[str, dict]:
     # special override for kilwan_shipwrights, as their data seem to be structured differently
     if "kilwan_shipwrights" in templates:
         templates["kilwan_shipwrights"]["buildable"] = False
-
+    if "copenhagen_dockyard" in templates:
+        templates["copenhagen_dockyard"]["buildable"] = False
 
     return templates
 

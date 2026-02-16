@@ -23,23 +23,66 @@ import {
   RoadType,
 } from "./types/general";
 
-export class ConstructibleHelper {
+export class ConstructibleHelper {  
+
+  private static partitionTemplatesByFamily(
+    templates: Record<INewBuildingTemplate["name"], INewBuildingTemplate>,
+  ): Record<string, INewBuildingTemplate["name"][]> {
+    const res: Record<string, INewBuildingTemplate["name"][]> = {};
+
+    const { baseTemplates } = Object.values(templates).reduce((acc: { baseTemplates: INewBuildingTemplate[], upgradeTemplates: INewBuildingTemplate[] }, template) => {
+      if (template.downgrade === null) {
+        acc.baseTemplates.push(template);
+      } else {
+        acc.upgradeTemplates.push(template);
+      }
+      return acc;
+    }, { baseTemplates: [], upgradeTemplates: [] } as { baseTemplates: INewBuildingTemplate[], upgradeTemplates: INewBuildingTemplate[] });
+
+    for (const baseTemplate of baseTemplates) {
+      res[baseTemplate.name] = [baseTemplate.name];
+      let upgradeTemplate = baseTemplate.upgrade;
+      while (upgradeTemplate) {
+        res[baseTemplate.name].push(upgradeTemplate);
+        upgradeTemplate = templates[upgradeTemplate]?.upgrade;
+      }
+    }
+
+    return res;
+  }
+
+  /**
+   * For each family, returns the single template name to consider: the one
+   * already at the location if any, otherwise the base template of the family.
+   */
+  private static getRepresentativeTemplateNamesPerFamily(
+    templatesByFamily: Record<string, INewBuildingTemplate["name"][]>,
+    locationBuildings: Record<INewBuildingTemplate["name"], IBuildingInstance>,
+  ): Set<INewBuildingTemplate["name"]> {
+    const names = new Set<INewBuildingTemplate["name"]>();
+    for (const [baseName, memberNames] of Object.entries(templatesByFamily)) {
+      const existingInFamily = memberNames.find((name) => name in locationBuildings);
+      names.add(existingInFamily ?? baseName);
+    }
+    return names;
+  }
+
   public static getEligibleBuildingTemplates(
     location: ILocationIdentifier,
     gameData: IGameData,
     gameState: IGameState,
+    templatesToConsider?: INewBuildingTemplate[],
   ): INewBuildingTemplate[] {
     const locationGameData = gameData.locationDataMap[location];
-    return Object.values(gameData.buildingsTemplate).filter((template) => {
+    const templates =
+      templatesToConsider ?? Object.values(gameData.buildingsTemplate);
+    return templates.filter((template) => {
       const tree = this.getBuildingSupportabilityLogicTree(
         template,
         locationGameData,
         gameState,
       );
-
-      const evaluation = evaluateLogicTree(tree);
-      /* console.log(`[ConstructibleHelper] evaluation eligibility of building template ${template.name}`, tree, evaluation); */
-      return evaluation;
+      return evaluateLogicTree(tree);
     });
   }
 
@@ -49,24 +92,35 @@ export class ConstructibleHelper {
     gameState: IGameState,
   ): NewConstructibleState {
     const res: NewConstructibleState = {};
-    const locationBuildings = gameState.ownedLocations[location].buildings;
+    const locationBuildings =  gameState.ownedLocations[location].buildings;
+
+    const templatesByFamily = this.partitionTemplatesByFamily(gameData.buildingsTemplate);
+    const representativeTemplateNames = this.getRepresentativeTemplateNamesPerFamily(
+      templatesByFamily,
+      locationBuildings,
+    );
+    const templatesToConsider = Object.values(gameData.buildingsTemplate).filter(
+      (t) => representativeTemplateNames.has(t.name),
+    );
 
     const eligibleBuildingTemplates = this.getEligibleBuildingTemplates(
       location,
       gameData,
       gameState,
+      templatesToConsider,
     );
     /*     console.log(`[ConstructibleHelper] eligible building templates for location ${location}`, eligibleBuildingTemplates); */
 
     for (const buildingTemplate of eligibleBuildingTemplates) {
       const possibleActions: ConstructibleAction[] = [];
 
-      if (locationBuildings[buildingTemplate.name]) {
+      const alreadyExistingBuilding = locationBuildings[buildingTemplate.name];
+      if (!!alreadyExistingBuilding) {
         if (
           buildingTemplate.upgrade &&
           !(buildingTemplate.upgrade in locationBuildings)
         ) {
-          possibleActions.push({
+          possibleActions.push({ // TODO : need to check recursively for upgrades and downgrades ...
             type: "upgrade",
             building: buildingTemplate.name,
             to: gameData.buildingsTemplate[buildingTemplate.upgrade],
@@ -85,8 +139,7 @@ export class ConstructibleHelper {
         }
 
         if (
-          buildingTemplate.buildable &&
-          locationBuildings[buildingTemplate.name]
+          buildingTemplate.buildable
         ) {
           possibleActions.push({
             type: "demolish",
@@ -101,12 +154,12 @@ export class ConstructibleHelper {
           };
         }
       }
+
+      const buildingIsNotSpecial = buildingTemplate.buildable;
+      const buildingIsBaseBuilding = buildingTemplate.downgrade === null;
+      const buildingCapIsNotReached =  !alreadyExistingBuilding || (!buildingTemplate.cap || locationBuildings[buildingTemplate.name].level < buildingTemplate.cap);
       if (
-        buildingTemplate.buildable &&
-        (!locationBuildings[buildingTemplate.name] ||
-          (!buildingTemplate.cap ||
-            locationBuildings[buildingTemplate.name].level <
-            buildingTemplate.cap))
+       buildingIsNotSpecial && buildingIsBaseBuilding && buildingCapIsNotReached
       ) {
         possibleActions.push({
           type: "build",
@@ -121,8 +174,6 @@ export class ConstructibleHelper {
         };
       }
     }
-
-
 
     for (const building of Object.values(locationBuildings)) {
       if (!res[building.template.name]) {

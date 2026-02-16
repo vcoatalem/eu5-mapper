@@ -247,6 +247,9 @@ export class GameStateController extends Observable<IGameState> {
       ownedLocations: {},
       temporaryLocationData: {},
     };
+    if (!this.gameData) {
+      throw new Error("Game data is not initialized");
+    }
     if (countryCode) {
       const countryTemplate = this.gameData?.countriesDataMap[countryCode];
       if (!countryTemplate) {
@@ -254,7 +257,7 @@ export class GameStateController extends Observable<IGameState> {
       }
       const capitalLocation = CountriesHelper.getCountryBaseCapitalLocation(
         countryCode,
-        this.gameData?.countriesDataMap!,
+        this.gameData.countriesDataMap,
       );
       this.subject.capitalLocation = capitalLocation;
       const locationsToAcquire = countryTemplate.locations;

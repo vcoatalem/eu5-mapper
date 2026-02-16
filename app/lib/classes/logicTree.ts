@@ -40,7 +40,11 @@ export class LogicTreeBuilder {
       gameState: IGameState,
     ) => boolean,
   ): LogicTree {
-    const root: LogicTree = { type: "operator", op: "AND", children: [] };
+    const root: LogicTree = {
+      type: "operator",
+      op: conditions.op,
+      children: [],
+    };
     for (const condition of conditions.conditions) {
       if (typeof condition === "string") {
         root.children.push({

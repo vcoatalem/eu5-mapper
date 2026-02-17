@@ -16,14 +16,14 @@ import { ButtonWithTooltip } from "@/app/components/buttonWithTooltip.component"
 import { EditableField } from "@/app/components/editableField.component";
 import { NumbersHelper } from "@/app/lib/utils/numbers.helper";
 import { ConstructibleAction, NewConstructibleState } from "@/app/lib/types/building";
-import { MdOutlineRemoveCircleOutline, MdOutlineAddCircleOutline } from "react-icons/md";
-import { FaAnglesDown, FaAnglesUp } from 'react-icons/fa6';
+import { FaAnglesDown, FaAnglesUp, FaMinus } from 'react-icons/fa6';
 import { TiPinOutline } from "react-icons/ti";
 import { IoStarSharp } from "react-icons/io5";
 import { Tooltip } from "@/app/lib/tooltip/tooltip.component";
 import { TooltipTrigger } from "@/app/lib/tooltip/tooltipTrigger.component";
 import { TooltipContent } from "@/app/lib/tooltip/tooltipContent.component";
 import { BuildingDescription } from "@/app/components/buildingDescription.component";
+import { FaPlus } from "react-icons/fa";
 
 interface IDetailedLocationListProps {
   ownedLocations: Record<ILocationIdentifier, ILocationDetailedViewData>;
@@ -44,11 +44,11 @@ const actionsMetadata: Record<ConstructibleAction["type"], {
     tooltip: "Downgrade building",
   },
   demolish: {
-    icon: <MdOutlineRemoveCircleOutline color="white" size={16}></MdOutlineRemoveCircleOutline>,
+    icon: <FaMinus color="white" size={16}></FaMinus>,
     tooltip: "Demolish building",
   },
   build: {
-    icon: <MdOutlineAddCircleOutline color="white" size={16}></MdOutlineAddCircleOutline>,
+    icon: <FaPlus color="white" size={16}></FaPlus>,
     tooltip: "Build building",
   },
 }
@@ -273,6 +273,15 @@ function DisplayBuilding(props: { location: ILocationIdentifier, buildingTemplat
   );
 }
 
+function DisplayHarborSuitability(props: { data: ILocationDetailedViewData }) {
+  if (!props.data.baseLocationGameData.isCoastal) {
+    return null;
+  }
+  return <div className="px-2 py-1 group w-full h-full flex flex-row items-center relative">
+    <span>{props.data.computedLocationData.harborSuitability}</span>
+  </div>
+}
+
 function DisplayBuildings(props: { data: ILocationDetailedViewData }) {
   /*    console.log(
       `[DetailedLocationList] constructibleState for location ${props.data.baseLocationGameData.name}`,
@@ -392,6 +401,22 @@ const columns: Array<{
         const rankA = rankings[a.baseLocationGameData.rank] ?? -1;
         const rankB = rankings[b.baseLocationGameData.rank] ?? -1;
         return rankB - rankA;
+      },
+    },
+    {
+      title: "Harbor Suitability",
+      cols: 1,
+      displayComponent: DisplayHarborSuitability,
+      sortBy: (a, b) => {
+        if (!a.baseLocationGameData.isCoastal) {
+          return 1;
+        }
+        if (!b.baseLocationGameData.isCoastal) {
+          return -1
+        }
+        const harborSuitabilityA = a.baseLocationGameData.naturalHarborSuitability ?? 0;
+        const harborSuitabilityB = b.baseLocationGameData.naturalHarborSuitability ?? 0;
+        return harborSuitabilityB - harborSuitabilityA;
       },
     },
     {

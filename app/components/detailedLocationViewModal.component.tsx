@@ -73,6 +73,9 @@ export interface ILocationDetailedViewData {
   pinned?: boolean;
   proximity: number | null;
   constructibleState: NewConstructibleState;
+  computedLocationData: {
+    harborSuitability: number;
+  }
 }
 
 export function DetailedLocationViewModal() {
@@ -118,32 +121,33 @@ export function DetailedLocationViewModal() {
   const ownedLocations: Record<ILocationIdentifier, ILocationDetailedViewData> =
     useMemo(() => {
       const temporaryLocationData = gameState.temporaryLocationData;
-      const proximityComputed = !!Object.keys(proximityComputation.result)
-        .length;
 
       return Object.fromEntries(
         Object.entries(gameState.ownedLocations)
           .map(([key, value]) => {
             const locationGameData = gameData?.locationDataMap[key];
-            /* console.log({ locationGameData }); */
             if (!locationGameData) {
               throw new Error(
                 "[DetailedLocationViewModal] location game data not found for location id: " +
                   key,
               );
             }
+            const data: ILocationDetailedViewData = {
+              constructibleData: value,
+              temporaryLocationData: temporaryLocationData[key] ?? {},
+              baseLocationGameData: locationGameData,
+              constructibleState: ConstructibleHelper.getNewConstructibleState(key, gameData, gameState),
+              pinned: pinnedLocations.has(key),
+              proximity: ProximityComputationHelper.evaluationToProximity(
+                proximityComputation.result[key]?.cost ?? 100,
+              ),
+              computedLocationData: {
+                harborSuitability: locationGameData.naturalHarborSuitability + (Object.values(value.buildings).reduce((acc, building) => acc + (building.template.modifiers.harborSuitability ?? 0) * building.level, 0)),
+              }
+            }
             return [
               key,
-              {
-                constructibleData: value,
-                temporaryLocationData: temporaryLocationData[key] ?? {},
-                baseLocationGameData: locationGameData,
-                constructibleState: ConstructibleHelper.getNewConstructibleState(key, gameData, gameState),
-                pinned: pinnedLocations.has(key),
-                proximity: ProximityComputationHelper.evaluationToProximity(
-                  proximityComputation.result[key]?.cost ?? 100,
-                ),
-              },
+              data
             ] as [string, ILocationDetailedViewData];
           })
           .filter(([key, value]) => {

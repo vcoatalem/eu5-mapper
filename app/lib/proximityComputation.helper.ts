@@ -2,11 +2,11 @@ import { ProximityBuffsRecord } from "./classes/countryProximityBuffs";
 import { CompactGraph } from "./graph";
 import {
   IConstructibleLocation,
-  ICountryValues,
   IGameData,
   IGameState,
   ILocationGameData,
   ILocationIdentifier,
+  ITemporaryLocationData,
   RoadType,
 } from "./types/general";
 import {
@@ -113,6 +113,7 @@ export class ProximityComputationHelper {
   public static getLandLocationProximityModifiers = (
     location: ILocationGameData,
     locationConstructibleData: IConstructibleLocation,
+    locationTemporaryData: ITemporaryLocationData | null,
     gameData: IGameData,
     behaviour: {
       discardVegetationModifiers: boolean;
@@ -144,7 +145,7 @@ export class ProximityComputationHelper {
             options,
           );
 
-    const development = location.development;
+    const development = locationTemporaryData?.development ?? location.development;
     const developmentCostReduction =
       development * gameData.proximityComputationRule.developmentImpact;
 
@@ -298,6 +299,7 @@ export class ProximityComputationHelper {
           return ProximityComputationHelper.getLandLocationProximityModifiers(
             gameData.locationDataMap[from],
             gameState.ownedLocations[from],
+            gameState.temporaryLocationData[from] ?? null,
             gameData,
             {
               discardVegetationModifiers: !!roadType,
@@ -333,6 +335,7 @@ export class ProximityComputationHelper {
             ProximityComputationHelper.getLandLocationProximityModifiers(
               gameData.locationDataMap[locationWithHarbor],
               gameState.ownedLocations[locationWithHarbor],
+              gameState.temporaryLocationData[locationWithHarbor] ?? null,
               gameData,
               {
                 discardVegetationAndTopographyModifiers: true,

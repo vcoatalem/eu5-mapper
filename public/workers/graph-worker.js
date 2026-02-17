@@ -564,6 +564,7 @@
             return _ProximityComputationHelper.getLandLocationProximityModifiers(
               gameData2.locationDataMap[from],
               gameState.ownedLocations[from],
+              gameState.temporaryLocationData[from] ?? null,
               gameData2,
               {
                 discardVegetationModifiers: !!roadType,
@@ -592,6 +593,7 @@
             const harborLocationProximityModifiers = _ProximityComputationHelper.getLandLocationProximityModifiers(
               gameData2.locationDataMap[locationWithHarbor],
               gameState.ownedLocations[locationWithHarbor],
+              gameState.temporaryLocationData[locationWithHarbor] ?? null,
               gameData2,
               {
                 discardVegetationAndTopographyModifiers: true,
@@ -788,7 +790,7 @@
     const totalEnvironmentalCostIncrease = topographyCostIncreasePercentage + vegetationCostIncreasePercentage;
     return totalEnvironmentalCostIncrease;
   };
-  _ProximityComputationHelper.getLandLocationProximityModifiers = (location, locationConstructibleData, gameData2, behaviour, proximityBuffs, options) => {
+  _ProximityComputationHelper.getLandLocationProximityModifiers = (location, locationConstructibleData, locationTemporaryData, gameData2, behaviour, proximityBuffs, options) => {
     if (location.isSea || location.isLake || !location.ownable) {
       return 0;
     }
@@ -804,7 +806,7 @@
       // road
       options
     );
-    const development = location.development;
+    const development = locationTemporaryData?.development ?? location.development;
     const developmentCostReduction = development * gameData2.proximityComputationRule.developmentImpact;
     const landModifierFromBuffs = proximityBuffs.getBuffsOfType("landModifier");
     logProximityComputation(

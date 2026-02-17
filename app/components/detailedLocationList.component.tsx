@@ -23,6 +23,7 @@ import { IoStarSharp } from "react-icons/io5";
 import { Tooltip } from "@/app/lib/tooltip/tooltip.component";
 import { TooltipTrigger } from "@/app/lib/tooltip/tooltipTrigger.component";
 import { TooltipContent } from "@/app/lib/tooltip/tooltipContent.component";
+import { BuildingDescription } from "@/app/components/buildingDescription.component";
 
 interface IDetailedLocationListProps {
   ownedLocations: Record<ILocationIdentifier, ILocationDetailedViewData>;
@@ -254,7 +255,7 @@ function DisplayBuilding(props: { location: ILocationIdentifier, buildingTemplat
           </div>
         </TooltipTrigger>
         <TooltipContent anchor={{ type: "dom", ref: divRef as React.RefObject<HTMLElement> }}>
-          <span>{props.buildingTemplateName}</span>
+          <BuildingDescription buildingTemplateName={props.buildingTemplateName} instance={instance}></BuildingDescription>
         </TooltipContent>
       </Tooltip>
 
@@ -297,7 +298,7 @@ function DisplayRank(props: { data: ILocationDetailedViewData }) {
   return (
     <select
       id={props.data.baseLocationGameData.name + "-rank"}
-      className={"w-full h-full outline-none " + styles.simpleButton}
+      className={"w-content h-full outline-none " + styles.simpleButton}
       onChange={({ target }) => {
         console.log("changing location rank to " + target.value);
         gameStateController.changeLocationRank(
@@ -306,6 +307,7 @@ function DisplayRank(props: { data: ILocationDetailedViewData }) {
         );
       }}
       value={props.data.constructibleData.rank}
+      style={{ outline: "none", border: "none", appearance: "none" }}
     >
       {["rural", "town", "city"].map((rank) => (
         <option style={{ outline: "none" }} key={rank} value={rank}>

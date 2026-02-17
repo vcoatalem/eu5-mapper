@@ -22,9 +22,9 @@ import { DetailedLocationList } from "./detailedLocationList.component";
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import { proximityComputationController } from "@/app/lib/proximityComputation.controller";
 import { NewConstructibleState } from "@/app/lib/types/building";
-import { ConstructibleHelper } from "@/app/lib/constructible.helper";
 import { IoSearch } from "react-icons/io5";
 import { ProximityComputationHelper } from "@/app/lib/proximityComputation.helper";
+import { EligibleBuildingService } from "@/app/lib/eligibleBuilding.service";
 
 function LocationExtensiveViewModalHeader(props: {
   countryName: string | null;
@@ -117,6 +117,10 @@ export function DetailedLocationViewModal() {
     [pinnedLocations],
   );
 
+
+  const eligibleBuildingService = useMemo(() =>
+    gameData && new EligibleBuildingService(gameData) || null, [gameData]);
+
   // TODO: optimize this ^^
   const ownedLocations: Record<ILocationIdentifier, ILocationDetailedViewData> =
     useMemo(() => {
@@ -129,14 +133,14 @@ export function DetailedLocationViewModal() {
             if (!locationGameData) {
               throw new Error(
                 "[DetailedLocationViewModal] location game data not found for location id: " +
-                  key,
+                key,
               );
             }
             const data: ILocationDetailedViewData = {
               constructibleData: value,
               temporaryLocationData: temporaryLocationData[key] ?? {},
               baseLocationGameData: locationGameData,
-              constructibleState: ConstructibleHelper.getNewConstructibleState(key, gameData, gameState),
+              constructibleState: eligibleBuildingService?.getConstructibleState(key, gameState) ?? {},
               pinned: pinnedLocations.has(key),
               proximity: ProximityComputationHelper.evaluationToProximity(
                 proximityComputation.result[key]?.cost ?? 100,
@@ -163,6 +167,7 @@ export function DetailedLocationViewModal() {
       pinnedLocations,
       proximityComputation,
       search,
+      eligibleBuildingService
     ]);
 
   return (

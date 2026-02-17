@@ -18,6 +18,7 @@ import {
   IBuildingInstance,
   INewBuildingTemplate,
 } from "@/app/lib/types/building";
+import { EligibleBuildingService } from "@/app/lib/eligibleBuilding.service";
 
 const baseCountryValues: IGameState["country"] = {
   templateData: null,
@@ -146,12 +147,8 @@ export class GameStateController extends Observable<IGameState> {
     }
     location.rank = newRank;
 
-    const eligibleBuildings = ConstructibleHelper.getEligibleBuildingTemplates(
-      locationName,
-      this.gameData!,
-      this.subject,
-    );
-
+    const eligibleBuildingService = new EligibleBuildingService(this.gameData);
+    const eligibleBuildings = eligibleBuildingService.getEligibleBuildingTemplates(locationName, this.subject);
     const buildingsToRemove = new Set(
       Object.entries(location.buildings)
         .filter(([buildingName, buildingInstance]) => {

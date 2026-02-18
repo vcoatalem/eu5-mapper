@@ -8,6 +8,7 @@ import React, {
   useState,
 } from "react";
 import styles from "@/app/styles/button.module.css";
+import listStyles from "@/app/styles/detailedLocationList.module.css";
 import { FormattedProximityWithPathfindingTooltip } from "@/app/components/formattedProximityWithPathfindingTooltip.component";
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import { gameStateController } from "@/app/lib/gameState.controller";
@@ -247,11 +248,11 @@ function DisplayBuilding(props: { location: ILocationIdentifier, buildingTemplat
   const hasInstance = !!instance;
   const divRef = useRef<HTMLDivElement>(null);
   return (
-    <div ref={divRef} className={" flex flex-row items-center gap-1 border-stone border rounded-md justify-center p-2 " + (hasInstance && " bg-yellow-500/50" || "")}>
+    <div ref={divRef} className={" flex flex-row items-center gap-1 rounded-md justify-center px-2 py-1 h-fit " + (hasInstance && " bg-yellow-500/50" || " border border-stone-400 ")}>
       <Tooltip config={{ offset: { x: 0, y: 10 } }}>
         <TooltipTrigger>
           <div className="relative">
-            <Image src={`/gui/buildings/${props.buildingTemplateName}.png`} alt={props.buildingTemplateName} width={32} height={32} />
+            <Image src={`/gui/buildings/${props.buildingTemplateName}.png`} alt={props.buildingTemplateName} width={28} height={28} />
             {hasInstance && instance?.template.cap === null && <span className="text-white absolute bottom-0 left-[1/4] px-1 rounded-md backdrop-blur-md text-xs" >{instance?.level}</span>}
           </div>
         </TooltipTrigger>
@@ -290,7 +291,7 @@ function DisplayBuildings(props: { data: ILocationDetailedViewData }) {
     ); */
 
 
-  return <div className="flex flex-row w-full h-full gap-2">{
+  return <div className="flex flex-row w-full h-full gap-2 items-center ">{
     Object.entries(props.data.constructibleState).map(([buildingTemplateName, { instance, possibleActions }]) => {
       const key = `${props.data.baseLocationGameData.name}-${buildingTemplateName}`;
       return (
@@ -437,36 +438,40 @@ function LocationLine(props: {
   extensiveViewProps: IDetailedLocationListProps;
 }) {
   const { location, sort, data, extensiveViewProps } = props;
+  const isPinned = data.pinned;
+  const rowClasses = [
+    listStyles.row,
+    isPinned ? listStyles.pinnedLine : listStyles.contentLine,
+  ].join(" ");
   return (
     <div
       key={location}
+      className={rowClasses}
       style={{
         gridTemplateColumns: `repeat(${totalColumns}, minmax(${minimalColumnWidth}px, 1fr))`,
         height: `${lineHeight}px`,
       }}
-      className={
-        "grid border-b font-bold " +
-        (data.pinned
-          ? "bg-blue-300/50 hover:bg-blue-300/60 sticky  "
-          : " hover:bg-stone-700 ")
-      }
     >
-      {columns.map((col) => {
+      {columns.map((col, idx) => {
+        const isFirstColumn = idx === 0;
+        const isSelectedColumn = sort?.column === col.title;
+        const cellClasses = [
+          listStyles.contentCell,
+          isFirstColumn ? listStyles.stickyColumn : "",
+          isSelectedColumn ? listStyles.selectedColumn : "",
+          "group",
+        ]
+          .join(" ");
         return (
           <div
             key={col.title}
+            className={cellClasses}
             style={{ gridColumn: `span ${col.cols}` }}
-            className={
-              `group border pl-2 flex flex-row items-center ` +
-              (sort?.column === col.title ? " bg-blue-300/30 " : "")
-            }
           >
-            {
-              <col.displayComponent
-                data={data}
-                extensiveViewProps={extensiveViewProps}
-              ></col.displayComponent>
-            }
+            <col.displayComponent
+              data={data}
+              extensiveViewProps={extensiveViewProps}
+            />
           </div>
         );
       })}
@@ -524,59 +529,74 @@ export function DetailedLocationList(props: IDetailedLocationListProps) {
 
   return (
     <div
-      className={`grid overflow-w-scroll min-w-[1200px] overflow-y-scroll overflow-x-scroll overscroll-x-none overscroll-y-none`}
+      className={listStyles.gridContainer}
       style={{ scrollbarGutter: "stable" }}
     >
       {/* Header Line */}
       <div
-        className="grid sticky top-0 z-2"
+        className={`${listStyles.headerLine} ${listStyles.row}`}
         style={{
+          height: `${lineHeight}px`,
           gridTemplateColumns: `repeat(${totalColumns}, minmax(128px, 1fr))`,
         }}
       >
-        {columns.map((col) => (
-          <button
-            key={col.title}
-            style={{ gridColumn: `span ${col.cols}` }}
-            className={`flex flex-row items-center gap-1  ${sort?.column === col.title ? "bg-blue-500" : "bg-black hover:bg-blue-500/50 backdrop-blur-3xl"}  border font-bold px-2 py-1`}
-            onClick={() => toggleSort(col.title)}
-          >
-            <span>{col.title}</span>
-            {sort?.column === col.title && (
-              sort?.order === "asc" ? <FaAnglesUp color="white" size={16}></FaAnglesUp> : <FaAnglesDown color="white" size={16}></FaAnglesDown>
-            )}
-          </button>
-        ))}
+        {columns.map((col, idx) => {
+          const isFirstColumn = idx === 0;
+          const isSelectedColumn = sort?.column === col.title;
+          const headerCellClasses = [
+            listStyles.headerCell,
+            isFirstColumn ? listStyles.stickyColumn : "",
+            isSelectedColumn ? listStyles.selectedColumn : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
+          return (
+            <button
+              key={col.title}
+              type="button"
+              className={headerCellClasses}
+              style={{ gridColumn: `span ${col.cols}` }}
+              onClick={() => toggleSort(col.title)}
+            >
+              <span>{col.title}</span>
+              {isSelectedColumn &&
+                (sort?.order === "asc" ? (
+                  <FaAnglesUp color="white" size={16} />
+                ) : (
+                  <FaAnglesDown color="white" size={16} />
+                ))}
+            </button>
+          );
+        })}
       </div>
       {/* Sticky Lines (pinned content) */}
-      {/* top offset not to be proper to avoid going under the header */}
-      <div className="sticky top-14 bg-black z-1">
-        {Object.entries(pinnedItems).map(([locId, locData]) => {
-          return (
+      {Object.entries(pinnedItems).length > 0 && (
+        <div className={listStyles.pinnedBlock}>
+          {Object.entries(pinnedItems).map(([locId, locData]) => (
             <LocationLine
               key={locId}
               location={locId}
               sort={sort}
               data={locData}
               extensiveViewProps={props}
-            ></LocationLine>
-          );
-        })}
-      </div>
+            />
+          ))}
+        </div>
+      )}
 
       {/* Sorted Lines (content) */}
-      {sortedItems &&
-        Object.entries(sortedItems).map(([locId, locData]) => {
-          return (
+      <div className={listStyles.contentBlock}>
+        {sortedItems &&
+          Object.entries(sortedItems).map(([locId, locData]) => (
             <LocationLine
               key={locId}
               location={locId}
               sort={sort}
               data={locData}
               extensiveViewProps={props}
-            ></LocationLine>
-          );
-        })}
+            />
+          ))}
+      </div>
     </div>
   );
 }

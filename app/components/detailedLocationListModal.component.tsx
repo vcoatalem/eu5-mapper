@@ -33,7 +33,7 @@ function LocationExtensiveViewModalHeader(props: {
   setSearch?: (search: string) => void;
 }) {
   return (
-    <div className="w-full flex flex-row items-center border-b border-white h-12 pb-2">
+    <div className="w-full flex flex-row items-center h-12 pb-2">
       <>
         <span>Locations</span>
         {props.countryName && (

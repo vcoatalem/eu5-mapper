@@ -1,0 +1,149 @@
+@reference "tailwindcss";
+
+/* ---- Color variables (detailed list) ---- */
+:root {
+  --dl-bg-header: black;
+  --dl-bg-pinned: #2a2222;
+  --dl-bg-content: transparent;
+  --dl-overlay-hover: rgba(118, 113, 107, 0.35);
+  --dl-overlay-hover-cell: rgba(118, 113, 107, 0.55); /* stronger on the cell under cursor */
+  --dl-overlay-selected: rgba(59, 130, 246, 0.25);
+  --dl-overlay-selected-hover: rgba(59, 130, 246, 0.5);
+  --dl-border-header: rgb(82 82 82);
+  --dl-border-cell: rgb(112, 108, 105);
+}
+
+/* ---- Layer stacking: z-index and base background ---- */
+@layer components {
+  .headerLine {
+    @apply sticky top-0 z-[5];
+    background-color: var(--dl-bg-header);
+  }
+  
+  /* Sticky first column: must override .headerCell/.contentCell position:relative */
+  .headerCell.stickyColumn,
+  .contentCell.stickyColumn {
+    @apply sticky left-0 z-[3] border-l;
+  }
+  
+  .headerLine .stickyColumn {
+    background-color: var(--dl-bg-header);
+  }
+  
+  .pinnedBlock {
+    @apply sticky top-12 z-[2]; /* top-12 is whatever the header height is */
+    background-color: var(--dl-bg-pinned);
+  }
+  
+  .pinnedLine .stickyColumn {
+    background-color: var(--dl-bg-pinned);
+  }
+  
+  .pinnedLine {
+    background-color: var(--dl-bg-pinned);
+  }
+  
+  .contentLine .stickyColumn {
+    background-color: var(--dl-bg-header);
+  }
+  
+  .contentLine {
+    background-color: var(--dl-bg-content);
+  }
+  
+  .contentBlock {
+    @apply relative z-[1];
+  }
+  
+  /* ---- Cell structure: relative for overlay positioning (non-sticky cells) ---- */
+  .headerCell,
+  .contentCell {
+    @apply relative;
+  }
+  
+  /* ---- Hover: entire line (::before layer), behind content ---- */
+  .headerLine:hover .headerCell::before,
+  .contentLine:hover .contentCell::before,
+  .pinnedLine:hover .contentCell::before {
+    content: "";
+    @apply absolute inset-0 pointer-events-none;
+    background-color: var(--dl-overlay-hover);
+    z-index: 0;
+  }
+  
+  /* ---- Cell under cursor: stronger hue than rest of line ---- */
+  .headerLine:hover .headerCell:hover::before,
+  .contentLine:hover .contentCell:hover::before,
+  .pinnedLine:hover .contentCell:hover::before {
+    background-color: var(--dl-overlay-hover-cell);
+  }
+  
+  /* ---- Selection: ::after layer behind content ---- */
+  .selectedColumn::after {
+    content: "";
+    @apply absolute inset-0 pointer-events-none;
+    background-color: var(--dl-overlay-selected);
+    z-index: 0;
+  }
+  
+  /* Selected + hover: stronger selection tint when that cell is hovered */
+  .headerLine:hover .headerCell.selectedColumn:hover::after,
+  .contentLine:hover .contentCell.selectedColumn:hover::after,
+  .pinnedLine:hover .contentCell.selectedColumn:hover::after {
+    background-color: var(--dl-overlay-selected-hover);
+  }
+  
+  /* Keep cell content above the overlay pseudo-elements */
+  .headerCell > *,
+  .contentCell > * {
+    position: relative;
+    z-index: 1;
+  }
+  
+  /* Header cell base layout (full border so bottom edge shows above first row) */
+  .headerCell {
+    @apply flex flex-row items-center gap-1 border font-bold px-2 py-1 cursor-pointer;
+    background-color: var(--dl-bg-header);
+    border-color: var(--dl-border-header);
+  }
+  
+  .headerCell:focus {
+    @apply outline-none;
+  }
+  
+  /* Content/pinned cell: top + right so row separator belongs to row below (visible when pinned stack) */
+  .contentCell {
+    @apply flex flex-row items-center border-t border-r pl-2;
+    border-color: var(--dl-border-cell);
+  }
+  
+  /* Sticky column: right edge via box-shadow so it stays visible above scrolling content (no border-r to avoid double line) */
+  .contentCell.stickyColumn {
+    border-right: none;
+    box-shadow: 1px 0 0 0 var(--dl-border-cell);
+  }
+  
+  .headerCell.stickyColumn {
+    border-right: none;
+    box-shadow: 1px 0 0 0 var(--dl-border-header);
+  }
+  
+  .row {
+    @apply grid font-bold;
+    grid-template-rows: 48px; /* exactly one row at line height so content takes full 48px */
+  }
+  
+  .pinnedLine.row {
+    @apply sticky;
+  }
+  
+  .gridContainer {
+    @apply grid overflow-x-auto overflow-y-auto min-w-[1200px] min-h-[70vh] overscroll-none;
+    align-content: start; /* list starts at top when container has extra height */
+  }
+  
+  .headerLine.row {
+    @apply grid;
+  }
+  
+}

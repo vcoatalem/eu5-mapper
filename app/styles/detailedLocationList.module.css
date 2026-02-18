@@ -2,8 +2,8 @@
 
 /* ---- Color variables (detailed list) ---- */
 :root {
-  --dl-bg-header: black;
-  --dl-bg-pinned: #2a2222;
+  --dl-bg-header: rgb(26, 24, 24);
+  --dl-bg-pinned: #474141;
   --dl-bg-content: transparent;
   --dl-overlay-hover: rgba(118, 113, 107, 0.35);
   --dl-overlay-hover-cell: rgba(118, 113, 107, 0.55); /* stronger on the cell under cursor */
@@ -138,7 +138,7 @@
   }
   
   .gridContainer {
-    @apply grid overflow-x-auto overflow-y-auto min-w-[1200px] min-h-[70vh] overscroll-none;
+    @apply grid overflow-x-auto overflow-y-auto min-w-[1200px] overscroll-none;
     align-content: start; /* list starts at top when container has extra height */
   }
   

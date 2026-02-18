@@ -27,6 +27,116 @@ import { BuildingDescription } from "@/app/components/buildingDescription.compon
 import { FaPlus } from "react-icons/fa";
 import { LocationsHelper } from "@/app/lib/locations.helper";
 
+
+const columns: Array<{
+  title: string;
+  cols: number;
+  displayComponent: React.FC<{
+    data: ILocationDetailedViewData;
+    extensiveViewProps?: IDetailedLocationListProps;
+  }>;
+  sortBy: (
+    a: ILocationDetailedViewData,
+    b: ILocationDetailedViewData,
+  ) => number;
+}> = [
+    {
+      title: "Location",
+      cols: 2,
+      displayComponent: DisplayLocation,
+      sortBy: (a, b) =>
+        a.baseLocationGameData.name.localeCompare(b.baseLocationGameData.name),
+    },
+    {
+      title: "Proximity",
+      cols: 1,
+      displayComponent: DisplayProximity,
+      sortBy: (a, b) => {
+        const proxA = a.proximity ?? 0;
+        const proxB = b.proximity ?? 0;
+        return proxB - proxA;
+      },
+    },
+    {
+      title: "Development",
+      cols: 1,
+      displayComponent: DisplayDevelopment,
+      sortBy: (a, b) => {
+        const devA =
+          a.temporaryLocationData.development ??
+          a.baseLocationGameData.development ??
+          0;
+        const devB =
+          b.temporaryLocationData.development ??
+          b.baseLocationGameData.development ??
+          0;
+        return devB - devA;
+      },
+    },
+    {
+      title: "Population",
+      cols: 1,
+      displayComponent: DisplayPop,
+      sortBy: (a, b) => {
+        const popA =
+          a.temporaryLocationData.population ??
+          a.baseLocationGameData.population ??
+          0;
+        const popB =
+          b.temporaryLocationData.population ??
+          b.baseLocationGameData.population ??
+          0;
+        return popB - popA;
+      },
+    },
+    {
+      title: "Rank",
+      cols: 1,
+      displayComponent: DisplayRank,
+      sortBy: (a, b) => {
+        const rankings: Record<LocationRank, number> = {
+          rural: 0,
+          town: 1,
+          city: 2,
+        };
+        const rankA = rankings[a.baseLocationGameData.rank] ?? -1;
+        const rankB = rankings[b.baseLocationGameData.rank] ?? -1;
+        return rankB - rankA;
+      },
+    },
+    {
+      title: "Harbor Suitability",
+      cols: 1,
+      displayComponent: DisplayHarborSuitability,
+      sortBy: (a, b) => {
+        if (!a.baseLocationGameData.isCoastal) {
+          return 1;
+        }
+        if (!b.baseLocationGameData.isCoastal) {
+          return -1
+        }
+        const harborSuitabilityA = LocationsHelper.getLocationHarborSuitability(a.baseLocationGameData, a.constructibleData);
+        const harborSuitabilityB = LocationsHelper.getLocationHarborSuitability(b.baseLocationGameData, b.constructibleData);
+        return harborSuitabilityB - harborSuitabilityA;
+      },
+    },
+    {
+      title: "Buildings",
+      cols: 6,
+      displayComponent: DisplayBuildings,
+      sortBy: (a, b) => 0, // no sorting for now
+    },
+  ];
+
+
+const totalColumns = columns.reduce((sum, col) => sum + col.cols, 0);
+const minimalColumnWidth = 128; // px
+const lineHeight = 48; // px
+const maxLineDisplayed = 16;
+const windowHeight = lineHeight * maxLineDisplayed;
+
+
+type SortOrder = "asc" | "desc" | null;
 interface IDetailedLocationListProps {
   ownedLocations: Record<ILocationIdentifier, ILocationDetailedViewData>;
   capitalLocation: ILocationIdentifier | null;
@@ -325,113 +435,7 @@ function DisplayRank(props: { data: ILocationDetailedViewData }) {
   );
 }
 
-const columns: Array<{
-  title: string;
-  cols: number;
-  displayComponent: React.FC<{
-    data: ILocationDetailedViewData;
-    extensiveViewProps?: IDetailedLocationListProps;
-  }>;
-  sortBy: (
-    a: ILocationDetailedViewData,
-    b: ILocationDetailedViewData,
-  ) => number;
-}> = [
-    {
-      title: "Location",
-      cols: 2,
-      displayComponent: DisplayLocation,
-      sortBy: (a, b) =>
-        a.baseLocationGameData.name.localeCompare(b.baseLocationGameData.name),
-    },
-    {
-      title: "Proximity",
-      cols: 1,
-      displayComponent: DisplayProximity,
-      sortBy: (a, b) => {
-        const proxA = a.proximity ?? 0;
-        const proxB = b.proximity ?? 0;
-        return proxB - proxA;
-      },
-    },
-    {
-      title: "Development",
-      cols: 1,
-      displayComponent: DisplayDevelopment,
-      sortBy: (a, b) => {
-        const devA =
-          a.temporaryLocationData.development ??
-          a.baseLocationGameData.development ??
-          0;
-        const devB =
-          b.temporaryLocationData.development ??
-          b.baseLocationGameData.development ??
-          0;
-        return devB - devA;
-      },
-    },
-    {
-      title: "Population",
-      cols: 1,
-      displayComponent: DisplayPop,
-      sortBy: (a, b) => {
-        const popA =
-          a.temporaryLocationData.population ??
-          a.baseLocationGameData.population ??
-          0;
-        const popB =
-          b.temporaryLocationData.population ??
-          b.baseLocationGameData.population ??
-          0;
-        return popB - popA;
-      },
-    },
-    {
-      title: "Rank",
-      cols: 1,
-      displayComponent: DisplayRank,
-      sortBy: (a, b) => {
-        const rankings: Record<LocationRank, number> = {
-          rural: 0,
-          town: 1,
-          city: 2,
-        };
-        const rankA = rankings[a.baseLocationGameData.rank] ?? -1;
-        const rankB = rankings[b.baseLocationGameData.rank] ?? -1;
-        return rankB - rankA;
-      },
-    },
-    {
-      title: "Harbor Suitability",
-      cols: 1,
-      displayComponent: DisplayHarborSuitability,
-      sortBy: (a, b) => {
-        if (!a.baseLocationGameData.isCoastal) {
-          return 1;
-        }
-        if (!b.baseLocationGameData.isCoastal) {
-          return -1
-        }
-        const harborSuitabilityA = LocationsHelper.getLocationHarborSuitability(a.baseLocationGameData, a.constructibleData);
-        const harborSuitabilityB = LocationsHelper.getLocationHarborSuitability(b.baseLocationGameData, b.constructibleData);
-        return harborSuitabilityB - harborSuitabilityA;
-      },
-    },
-    {
-      title: "Buildings",
-      cols: 6,
-      displayComponent: DisplayBuildings,
-      sortBy: (a, b) => 0, // no sorting for now
-    },
-  ];
-const totalColumns = columns.reduce((sum, col) => sum + col.cols, 0);
-const minimalColumnWidth = 128; // px
-const lineHeight = 48; // px
-const maxLineDisplayed = 12;
-
-type SortOrder = "asc" | "desc" | null;
-
-function LocationLine(props: {
+function LocationRow(props: {
   location: ILocationIdentifier;
   sort: { order: SortOrder; column: string } | null;
   data: ILocationDetailedViewData;
@@ -483,6 +487,7 @@ export function DetailedLocationList(props: IDetailedLocationListProps) {
   const [sort, setSort] = useState<{ order: SortOrder; column: string } | null>(
     null,
   );
+  const [scrollY, setScrollY] = useState<number>(0);
 
   const {
     sortedItems,
@@ -515,6 +520,22 @@ export function DetailedLocationList(props: IDetailedLocationListProps) {
     return res;
   }, [props.ownedLocations, sort]);
 
+  const sortedCount = Object.keys(sortedItems).length;
+  const pinnedCount = Object.keys(pinnedItems).length;
+  const totalContentHeight =
+    lineHeight * (1 + pinnedCount + sortedCount);
+
+  const sortedContentOffset = lineHeight * (1 + pinnedCount);
+
+  const sortedItemsVirtualized = useMemo(() => {
+    const startIndex = Math.max(
+      0,
+      Math.floor((scrollY - sortedContentOffset) / lineHeight),
+    );
+    const endIndex = Math.min(sortedCount, startIndex + maxLineDisplayed);
+    return Object.fromEntries(Object.entries(sortedItems).slice(startIndex, endIndex));
+  }, [sortedItems, scrollY, sortedCount, sortedContentOffset]);
+
   const toggleSort = useCallback((column: string) => {
     setSort((currentSort) => {
       if (!currentSort || currentSort.column !== column) {
@@ -527,75 +548,94 @@ export function DetailedLocationList(props: IDetailedLocationListProps) {
     });
   }, []);
 
+  const startIndex = Math.max(
+    0,
+    Math.floor((scrollY - sortedContentOffset) / lineHeight),
+  );
+  const endIndex = Math.min(sortedCount, startIndex + maxLineDisplayed);
+
   return (
     <div
+      onScroll={({ currentTarget }) => setScrollY(currentTarget.scrollTop)}
       className={listStyles.gridContainer}
-      style={{ scrollbarGutter: "stable" }}
+      style={{ scrollbarGutter: "stable", height: `${windowHeight}px` }}
     >
-      {/* Header Line */}
       <div
-        className={`${listStyles.headerLine} ${listStyles.row}`}
-        style={{
-          height: `${lineHeight}px`,
-          gridTemplateColumns: `repeat(${totalColumns}, minmax(128px, 1fr))`,
-        }}
+        className={listStyles.gridContainerInner}
+        style={{ height: `${totalContentHeight}px` }}
       >
-        {columns.map((col, idx) => {
-          const isFirstColumn = idx === 0;
-          const isSelectedColumn = sort?.column === col.title;
-          const headerCellClasses = [
-            listStyles.headerCell,
-            isFirstColumn ? listStyles.stickyColumn : "",
-            isSelectedColumn ? listStyles.selectedColumn : "",
-          ]
-            .filter(Boolean)
-            .join(" ");
-          return (
-            <button
-              key={col.title}
-              type="button"
-              className={headerCellClasses}
-              style={{ gridColumn: `span ${col.cols}` }}
-              onClick={() => toggleSort(col.title)}
-            >
-              <span>{col.title}</span>
-              {isSelectedColumn &&
-                (sort?.order === "asc" ? (
-                  <FaAnglesUp color="white" size={16} />
-                ) : (
-                  <FaAnglesDown color="white" size={16} />
-                ))}
-            </button>
-          );
-        })}
-      </div>
-      {/* Sticky Lines (pinned content) */}
-      {Object.entries(pinnedItems).length > 0 && (
-        <div className={listStyles.pinnedBlock}>
-          {Object.entries(pinnedItems).map(([locId, locData]) => (
-            <LocationLine
-              key={locId}
-              location={locId}
-              sort={sort}
-              data={locData}
-              extensiveViewProps={props}
-            />
-          ))}
+        {/* Header Line */}
+        <div
+          className={`${listStyles.headerLine} ${listStyles.row}`}
+          style={{
+            height: `${lineHeight}px`,
+            gridTemplateColumns: `repeat(${totalColumns}, minmax(128px, 1fr))`,
+          }}
+        >
+          {columns.map((col, idx) => {
+            const isFirstColumn = idx === 0;
+            const isSelectedColumn = sort?.column === col.title;
+            const headerCellClasses = [
+              listStyles.headerCell,
+              isFirstColumn ? listStyles.stickyColumn : "",
+              isSelectedColumn ? listStyles.selectedColumn : "",
+            ]
+              .filter(Boolean)
+              .join(" ");
+            return (
+              <button
+                key={col.title}
+                type="button"
+                className={headerCellClasses}
+                style={{ gridColumn: `span ${col.cols}` }}
+                onClick={() => toggleSort(col.title)}
+              >
+                <span>{col.title}</span>
+                {isSelectedColumn &&
+                  (sort?.order === "asc" ? (
+                    <FaAnglesUp color="white" size={16} />
+                  ) : (
+                    <FaAnglesDown color="white" size={16} />
+                  ))}
+              </button>
+            );
+          })}
         </div>
-      )}
+        {/* Sticky Lines (pinned content) */}
+        {Object.entries(pinnedItems).length > 0 && (
+          <div className={listStyles.pinnedBlock}>
+            {Object.entries(pinnedItems).map(([locId, locData]) => (
+              <LocationRow
+                key={locId}
+                location={locId}
+                sort={sort}
+                data={locData}
+                extensiveViewProps={props}
+              />
+            ))}
+          </div>
+        )}
 
-      {/* Sorted Lines (content) */}
-      <div className={listStyles.contentBlock}>
-        {sortedItems &&
-          Object.entries(sortedItems).map(([locId, locData]) => (
-            <LocationLine
-              key={locId}
-              location={locId}
-              sort={sort}
-              data={locData}
-              extensiveViewProps={props}
+        <div className={listStyles.contentBlock}>
+          {startIndex > 0 && (
+            <div style={{ height: `${startIndex * lineHeight}px` }} />
+          )}
+          {sortedItems &&
+            Object.entries(sortedItemsVirtualized).map(([locId, locData]) => (
+              <LocationRow
+                key={locId}
+                location={locId}
+                sort={sort}
+                data={locData}
+                extensiveViewProps={props}
+              />
+            ))}
+          {endIndex < sortedCount && (
+            <div
+              style={{ height: `${(sortedCount - endIndex) * lineHeight}px` }}
             />
-          ))}
+          )}
+        </div>
       </div>
     </div>
   );

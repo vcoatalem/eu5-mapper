@@ -1,4 +1,4 @@
-import { ILocationDetailedViewData } from "@/app/components/detailedLocationViewModal.component";
+import { ILocationDetailedViewData } from "@/app/components/detailedLocationListModal.component";
 import { ILocationIdentifier, LocationRank } from "@/app/lib/types/general";
 import Image from "next/image";
 import React, {
@@ -24,6 +24,7 @@ import { TooltipTrigger } from "@/app/lib/tooltip/tooltipTrigger.component";
 import { TooltipContent } from "@/app/lib/tooltip/tooltipContent.component";
 import { BuildingDescription } from "@/app/components/buildingDescription.component";
 import { FaPlus } from "react-icons/fa";
+import { LocationsHelper } from "@/app/lib/locations.helper";
 
 interface IDetailedLocationListProps {
   ownedLocations: Record<ILocationIdentifier, ILocationDetailedViewData>;
@@ -291,10 +292,6 @@ function DisplayBuildings(props: { data: ILocationDetailedViewData }) {
 
   return <div className="flex flex-row w-full h-full gap-2">{
     Object.entries(props.data.constructibleState).map(([buildingTemplateName, { instance, possibleActions }]) => {
-      const hasInstance = !!instance;
-      if (hasInstance) {
-        console.log(`[DetailedLocationList] instance for building ${buildingTemplateName}`, instance);
-      }
       const key = `${props.data.baseLocationGameData.name}-${buildingTemplateName}`;
       return (
         <DisplayBuilding location={props.data.baseLocationGameData.name} key={key} buildingTemplateName={buildingTemplateName} buildingData={{ instance, possibleActions }}></DisplayBuilding>
@@ -414,8 +411,8 @@ const columns: Array<{
         if (!b.baseLocationGameData.isCoastal) {
           return -1
         }
-        const harborSuitabilityA = a.baseLocationGameData.naturalHarborSuitability ?? 0;
-        const harborSuitabilityB = b.baseLocationGameData.naturalHarborSuitability ?? 0;
+        const harborSuitabilityA = LocationsHelper.getLocationHarborSuitability(a.baseLocationGameData, a.constructibleData);
+        const harborSuitabilityB = LocationsHelper.getLocationHarborSuitability(b.baseLocationGameData, b.constructibleData);
         return harborSuitabilityB - harborSuitabilityA;
       },
     },
@@ -427,7 +424,9 @@ const columns: Array<{
     },
   ];
 const totalColumns = columns.reduce((sum, col) => sum + col.cols, 0);
-const minimalColumnWidth = 128;
+const minimalColumnWidth = 128; // px
+const lineHeight = 48; // px
+const maxLineDisplayed = 12;
 
 type SortOrder = "asc" | "desc" | null;
 
@@ -443,6 +442,7 @@ function LocationLine(props: {
       key={location}
       style={{
         gridTemplateColumns: `repeat(${totalColumns}, minmax(${minimalColumnWidth}px, 1fr))`,
+        height: `${lineHeight}px`,
       }}
       className={
         "grid border-b font-bold " +
@@ -457,7 +457,7 @@ function LocationLine(props: {
             key={col.title}
             style={{ gridColumn: `span ${col.cols}` }}
             className={
-              `group border h-12 pl-2 pb-1 pt-2 flex flex-row items-center ` +
+              `group border pl-2 flex flex-row items-center ` +
               (sort?.column === col.title ? " bg-blue-300/30 " : "")
             }
           >
@@ -524,7 +524,7 @@ export function DetailedLocationList(props: IDetailedLocationListProps) {
 
   return (
     <div
-      className={`grid overflow-w-scroll min-w-[1200px] overflow-y-scroll overflow-x-scroll overscroll-x-none`}
+      className={`grid overflow-w-scroll min-w-[1200px] overflow-y-scroll overflow-x-scroll overscroll-x-none overscroll-y-none`}
       style={{ scrollbarGutter: "stable" }}
     >
       {/* Header Line */}
@@ -550,7 +550,7 @@ export function DetailedLocationList(props: IDetailedLocationListProps) {
       </div>
       {/* Sticky Lines (pinned content) */}
       {/* top offset not to be proper to avoid going under the header */}
-      <div className="sticky top-8 bg-black z-1">
+      <div className="sticky top-14 bg-black z-1">
         {Object.entries(pinnedItems).map(([locId, locData]) => {
           return (
             <LocationLine

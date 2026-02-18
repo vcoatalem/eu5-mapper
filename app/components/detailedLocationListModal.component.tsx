@@ -78,7 +78,7 @@ export interface ILocationDetailedViewData {
   }
 }
 
-export function DetailedLocationViewModal() {
+export function DetailedLocationListModal() {
   const modalInstanceContext = useContext(ModalInstanceContext);
   const gameState = useSyncExternalStore(
     gameStateController.subscribe.bind(gameStateController),

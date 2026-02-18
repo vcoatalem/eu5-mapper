@@ -393,6 +393,19 @@
     }
   };
 
+  // app/lib/locations.helper.ts
+  var LocationsHelper = class {
+    static locationHasRoad(location, roads) {
+      return !!roads[location] && roads[location].length > 0;
+    }
+    static getLocationHarborSuitability(locationData, locationConstructibleData) {
+      if (!locationData.isCoastal) {
+        return -1;
+      }
+      return locationData.naturalHarborSuitability + (Object.values(locationConstructibleData?.buildings ?? {}).reduce((acc, building) => acc + (building?.template?.modifiers?.harborSuitability ?? 0), 0) ?? 0);
+    }
+  };
+
   // app/lib/classes/countryProximityBuffs.ts
   var ProximityBuffsRecord = class {
     constructor(rule, country) {
@@ -580,10 +593,9 @@
           const toLocation = gameData2.locationDataMap[to];
           const fromLocation = gameData2.locationDataMap[from];
           const locationWithHarbor = toLocation.isSea ? from : to;
-          const harborCapacity = _ProximityComputationHelper.getLocationHarborCapacity(
+          const harborCapacity = LocationsHelper.getLocationHarborSuitability(
             gameData2.locationDataMap[locationWithHarbor],
-            gameState.ownedLocations[locationWithHarbor],
-            options
+            gameState.ownedLocations[locationWithHarbor]
           );
           const harborImpact = gameData2.proximityComputationRule.harborCapacityImpact;
           const harborCapacityModifier = harborCapacity * harborImpact * 100;
@@ -826,29 +838,6 @@
       environmentalProximityCostIncreasePercentage
     );
     return total;
-  };
-  _ProximityComputationHelper.getLocationHarborCapacity = (locationData, locationConstructibleData, options) => {
-    logProximityComputation(
-      locationData.name,
-      options,
-      "Enter location harbor capacity calculation",
-      { locationConstructibleData }
-    );
-    const naturalHarborSuitability = locationData.naturalHarborSuitability ?? 0;
-    if (!locationConstructibleData) {
-      return naturalHarborSuitability;
-    }
-    const buildings = locationConstructibleData.buildings ?? [];
-    const totalBuildingsHarborCapacity = Object.values(buildings).map((b) => {
-      const capacity = (b.template.modifiers.harborSuitability ?? 0) * b.level;
-      return capacity || 0;
-    }).reduce((a, b) => a + b, 0);
-    logProximityComputation(locationData.name, options, "Harbor capacity", {
-      locationConstructibleData,
-      totalBuildingsHarborCapacity,
-      naturalHarborSuitability
-    });
-    return naturalHarborSuitability + totalBuildingsHarborCapacity;
   };
   _ProximityComputationHelper.getGameStateProximityComputation = (gameState, gameData2, adjacencyGraph, options) => {
     const proximityResults = {};

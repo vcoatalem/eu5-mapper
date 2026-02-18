@@ -3,7 +3,7 @@ import { AppContext } from "../appContextProvider";
 import { IGameState, ILocationGameData } from "../lib/types/general";
 import { gameStateController } from "@/app/lib/gameState.controller";
 import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
-import { ProximityComputationHelper } from "@/app/lib/proximityComputation.helper";
+import { LocationsHelper } from "@/app/lib/locations.helper";
 
 const buildLocationDisplay = (
   locationData: ILocationGameData,
@@ -15,7 +15,7 @@ const buildLocationDisplay = (
   }
   const owned = gameState.ownedLocations[locationData?.name];
 
-  const harborCapacity = locationData.isCoastal ? ProximityComputationHelper.getLocationHarborCapacity(locationData, gameState.ownedLocations[locationData.name], {}) : 0;
+  const harborCapacity = LocationsHelper.getLocationHarborSuitability(locationData, gameState.ownedLocations[locationData.name]);
   if (!locationData) {
     return <span>No data available</span>;
   }

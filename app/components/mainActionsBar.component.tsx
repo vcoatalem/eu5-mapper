@@ -6,7 +6,7 @@ import { TooltipContent } from "../lib/tooltip/tooltipContent.component";
 import Image from "next/image";
 import { changeCapitalController } from "@/app/lib/changeCapital.controller";
 import { Modal } from "../lib/modal/modal.component";
-import { DetailedLocationViewModal } from "./detailedLocationViewModal.component";
+import { DetailedLocationListModal } from "./detailedLocationListModal.component";
 import { IoStarSharp } from "react-icons/io5";
 import { TbListDetails } from "react-icons/tb";
 
@@ -117,7 +117,7 @@ export function MainActionsBar() {
         onClose={() => setIsDetailedLocationViewOpen(false)}
         isOpen={isDetailedLocationViewOpen}
       >
-        <DetailedLocationViewModal></DetailedLocationViewModal>
+        <DetailedLocationListModal></DetailedLocationListModal>
       </Modal>
     </div>
   );

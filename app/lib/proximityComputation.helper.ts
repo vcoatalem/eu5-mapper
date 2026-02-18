@@ -1,3 +1,4 @@
+import { LocationsHelper } from "@/app/lib/locations.helper";
 import { ProximityBuffsRecord } from "./classes/countryProximityBuffs";
 import { CompactGraph } from "./graph";
 import {
@@ -172,41 +173,6 @@ export class ProximityComputationHelper {
     return total;
   };
 
-  public static getLocationHarborCapacity = (
-    locationData: ILocationGameData,
-    locationConstructibleData: IConstructibleLocation,
-    options: PathFindingOptions,
-  ): number => {
-    logProximityComputation(
-      locationData.name,
-      options,
-      "Enter location harbor capacity calculation",
-      { locationConstructibleData },
-    );
-    const naturalHarborSuitability = locationData.naturalHarborSuitability ?? 0;
-
-    if (!locationConstructibleData) {
-      // unowned location
-      return naturalHarborSuitability;
-    }
-
-    const buildings = locationConstructibleData.buildings ?? [];
-    const totalBuildingsHarborCapacity = Object.values(buildings)
-      .map((b) => {
-        const capacity =
-          (b.template.modifiers.harborSuitability ?? 0) * b.level;
-        return capacity || 0;
-      })
-      .reduce((a, b) => a + b, 0);
-
-    logProximityComputation(locationData.name, options, "Harbor capacity", {
-      locationConstructibleData,
-      totalBuildingsHarborCapacity,
-      naturalHarborSuitability,
-    });
-    return naturalHarborSuitability + totalBuildingsHarborCapacity;
-  };
-
   public static getLocalProximitySourceLocations(
     gameState: IGameState,
   ): Record<ILocationIdentifier, number> {
@@ -316,10 +282,9 @@ export class ProximityComputationHelper {
         const fromLocation = gameData.locationDataMap[from];
         const locationWithHarbor = toLocation.isSea ? from : to;
         const harborCapacity =
-          ProximityComputationHelper.getLocationHarborCapacity(
+          LocationsHelper.getLocationHarborSuitability(
             gameData.locationDataMap[locationWithHarbor],
             gameState.ownedLocations[locationWithHarbor],
-            options,
           );
         const harborImpact =
           gameData.proximityComputationRule.harborCapacityImpact;

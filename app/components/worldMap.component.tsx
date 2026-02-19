@@ -42,7 +42,6 @@ import { changeCapitalController } from "@/app/lib/changeCapital.controller";
 import { RoadList } from "./roadList.component";
 import { WorkerStatusComponent } from "@/app/components/workerStatus.component";
 import { LocationSearchBar } from "@/app/components/locationSearchBar.component";
-import { env } from "process";
 import { useParams } from "next/navigation";
 
 export function WorldMapComponent() {
@@ -551,14 +550,14 @@ export function WorldMapComponent() {
           // only react to changes in clicked location
           return;
         }
-        /*         console.log({
+      console.log("[WorldMapComponent] clickedLocation event got", {
           clickObserverCombiner: {
             location,
             type,
             mouseCoordinate,
             roadBuilderState,
           },
-        }); */
+        }); 
         setLastKnownMouseCoordinate(mouseCoordinate);
         switch (true) {
           case location && changeCapitalState.isModeEnabled:

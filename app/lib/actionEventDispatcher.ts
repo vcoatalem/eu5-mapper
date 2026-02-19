@@ -231,6 +231,10 @@ export class ActionEventDispatcher {
       ); */
     }
   }
+
+  public dispatchClickAction(type: ClickActionType, location: ILocationIdentifier | null, mouseCoordinate: ICoordinate | null) {
+    this.clickedLocationSource.emit({ location, type, mouseCoordinate });
+  }
 }
 
 export const actionEventDispatcher = new ActionEventDispatcher();

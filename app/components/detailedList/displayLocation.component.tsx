@@ -1,9 +1,13 @@
 import { ButtonWithTooltip } from "@/app/components/buttonWithTooltip.component";
 import { IDetailedLocationListProps } from "@/app/components/detailedList/detailedList.config";
 import { ILocationDetailedViewData } from "@/app/components/detailedList/detailedLocationListModal.component";
+import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
+import { ActionSource } from "@/app/lib/actionSource.component";
 import { gameStateController } from "@/app/lib/gameState.controller";
+import { useModal } from "@/app/lib/modal/modal.component";
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import { useMemo } from "react";
+import { FaRegEye } from "react-icons/fa6";
 import { IoStarSharp } from "react-icons/io5";
 import { TiPinOutline } from "react-icons/ti";
 
@@ -11,6 +15,7 @@ export function DisplayLocation(props: {
   data: ILocationDetailedViewData;
   extensiveViewProps: IDetailedLocationListProps;
 }) {
+  const modalControls = useModal();
   const isCapital = useMemo(
     () =>
       props.extensiveViewProps?.capitalLocation ===
@@ -62,13 +67,26 @@ export function DisplayLocation(props: {
       <TiPinOutline color="white" size={16}></TiPinOutline>
     </ButtonWithTooltip>
   );
-  const buttons = [capitalBtn, pinBtn];
-  const activeButtons = buttons.filter((btn, idx) =>
-    idx === 0 ? isCapital : isPinned,
-  );
-  const inactiveButtons = buttons.filter(
-    (btn, idx) => !(idx === 0 ? isCapital : isPinned),
-  );
+
+  const gotoBtn = (
+      <ButtonWithTooltip
+        key={"goto-btn-" + props.data.baseLocationGameData.name}
+        showOnHover={true}
+        tooltip={<span>See location</span>}
+        onClick={() =>  { modalControls.close(); actionEventDispatcher.dispatchClickAction("goto", props.data.baseLocationGameData.name, null); }}
+      >
+        <FaRegEye color="white" size={16}></FaRegEye>
+      </ButtonWithTooltip>
+  )
+  const activeButtons = [
+    ...(isCapital ? [capitalBtn] : []),
+    ...(isPinned ? [pinBtn] : []),
+  ]
+  const inactiveButtons = [
+    ...(isCapital ? [] : [capitalBtn]),
+    ...(isPinned ? [] : [pinBtn]),
+    ...([gotoBtn]),
+  ]
   return (
     <div className="group w-full h-full flex flex-row items-center px-1 relative">
       <span className="px-1 py-1 flex-none">

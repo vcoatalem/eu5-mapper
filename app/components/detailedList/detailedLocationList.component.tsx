@@ -4,14 +4,24 @@ import { ILocationIdentifier } from "@/app/lib/types/general";
 import listStyles from "@/app/styles/detailedLocationList.module.css";
 import {
   useMemo,
-  useState
+  useState,
+  useEffect,
 } from "react";
 import { FaAnglesDown, FaAnglesUp } from 'react-icons/fa6';
 
 const minimalColumnWidth = 128; // px
 const lineHeight = 48; // px
-const maxLineDisplayed = 16;
-const windowHeight = lineHeight * maxLineDisplayed;
+const minListHeightPx = 500;
+const maxListHeightRatio = 3 / 4;
+
+function getMaxLinesAndHeight(): { maxLineDisplayed: number; listHeightPx: number } {
+  if (typeof window === "undefined") {
+    return { maxLineDisplayed: 12, listHeightPx: lineHeight * 12 };
+  }
+  const listHeightPx = Math.max(minListHeightPx, maxListHeightRatio * window.innerHeight);
+  const maxLineDisplayed = Math.floor(listHeightPx / lineHeight);
+  return { maxLineDisplayed, listHeightPx: maxLineDisplayed * lineHeight };
+}
 
 
 function LocationRow(props: {
@@ -67,6 +77,15 @@ function LocationRow(props: {
 
 export function DetailedLocationList(props: IDetailedLocationListProps) {
   const [scrollY, setScrollY] = useState<number>(0);
+  const [{ maxLineDisplayed, listHeightPx }, setMaxLinesAndHeight] = useState(getMaxLinesAndHeight);
+
+  useEffect(() => {
+    const update = () => setMaxLinesAndHeight(getMaxLinesAndHeight());
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
   const columnsToDisplay = columns.filter((col) => col.title === columns[0].title || props.config.columnVisibility[col.title]);
   const totalColumns = columnsToDisplay.reduce((sum, col) => sum + col.cols, 0);
 
@@ -115,7 +134,7 @@ export function DetailedLocationList(props: IDetailedLocationListProps) {
     );
     const endIndex = Math.min(sortedCount, startIndex + maxLineDisplayed);
     return Object.fromEntries(Object.entries(sortedItems).slice(startIndex, endIndex));
-  }, [sortedItems, scrollY, sortedCount, sortedContentOffset]);
+  }, [sortedItems, scrollY, sortedCount, sortedContentOffset, maxLineDisplayed]);
 
   const startIndex = Math.max(
     0,
@@ -127,7 +146,7 @@ export function DetailedLocationList(props: IDetailedLocationListProps) {
     <div
       onScroll={({ currentTarget }) => setScrollY(currentTarget.scrollTop)}
       className={listStyles.gridContainer}
-      style={{ scrollbarGutter: "stable", height: `${windowHeight}px` }}
+      style={{ scrollbarGutter: "stable", height: `${listHeightPx}px` }}
     >
       <div
         className={listStyles.gridContainerInner}

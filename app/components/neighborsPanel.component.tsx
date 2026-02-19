@@ -97,9 +97,8 @@ const NeighborPanelListItem = memo(function NeighborPanelListItem({
         )}
 
         <span className="ml-2 col-span-1">
-          {computationStatus === "pending" && <Loader></Loader>}
+          {computationStatus === "pending" || computationStatus === "needs_update" && <Loader></Loader>}
           {computationStatus === "error" && "error"}
-          {computationStatus === "needs_update" && "needs update"}
           {computationStatus === "completed" && (
             <FormatedProximityCost proximityCost={cost}></FormatedProximityCost>
           )}

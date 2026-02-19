@@ -24,7 +24,7 @@ export interface IDetailedLocationListProps {
 
 export interface IStoredLocationListConfig {
   sort: { order: SortOrder; column: string } | null;
-  pinnedLocations: Set<ILocationIdentifier>;
+  pinnedLocations: Record<ILocationIdentifier, boolean>;
   search?: string;
   columnVisibility: Record<string, boolean>;
 }
@@ -154,7 +154,7 @@ export const columns: Array<{
 
 export const defaultStoredLocationListConfig: IStoredLocationListConfig = {
   sort: null,
-  pinnedLocations: new Set(),
+  pinnedLocations: {},
   search: undefined,
   columnVisibility: {
     ...columns.reduce((acc, col) => {
@@ -162,4 +162,24 @@ export const defaultStoredLocationListConfig: IStoredLocationListConfig = {
       return acc;
     }, {} as Record<string, boolean>),
   },
+}
+
+const computeConfigKey = (countryName: string, version: string) => {
+  return `detailedLocationListConfig:${countryName}:${version}`;
+}
+
+export function saveConfigToLocalStorage(countryCode: string, version: string, config: IStoredLocationListConfig) {
+  const key = computeConfigKey(countryCode, version);
+  console.log("[DetailedListConfig] saving config to localStorage", key, config);
+  localStorage.setItem(key, JSON.stringify(config));
+}
+
+export function loadConfigFromLocalStorage(countryCode: string, version: string): IStoredLocationListConfig {
+  const key = computeConfigKey(countryCode, version);
+  const config = localStorage.getItem(key);
+  if (config) {
+    console.log("[DetailedListConfig] loaded config from localStorage", config);
+    return JSON.parse(config) as IStoredLocationListConfig;
+  }
+  return defaultStoredLocationListConfig;
 }

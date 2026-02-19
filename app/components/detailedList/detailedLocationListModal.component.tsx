@@ -27,8 +27,9 @@ import { EligibleBuildingService } from "@/app/lib/eligibleBuilding.service";
 import { HiOutlineCog6Tooth } from "react-icons/hi2";
 import styles from "@/app/styles/button.module.css";
 import { ClickContext } from "@/app/clickContext.provider";
-import { columns, defaultStoredLocationListConfig, IStoredLocationListConfig } from "@/app/components/detailedList/detailedList.config";
+import { columns, IStoredLocationListConfig, loadConfigFromLocalStorage, saveConfigToLocalStorage } from "@/app/components/detailedList/detailedList.config";
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
+import { useParams } from "next/navigation";
 
 function LocationExtensiveViewModalHeader(props: {
   countryName: string | null;
@@ -146,17 +147,18 @@ export function DetailedLocationListModal() {
       "[DetailedLocationViewModal] must be used within a ModalInstanceContext provider",
     );
   }
-
-  const [storedLocationListConfig, setStoredLocationListConfig] = useState<IStoredLocationListConfig>(defaultStoredLocationListConfig);
+  const version = useParams().version as string;
+  const [storedLocationListConfig, setStoredLocationListConfig] = useState<IStoredLocationListConfig | null>(null);
 
   const togglePin = useCallback(
     (location: ILocationIdentifier) => {
       setStoredLocationListConfig((prev) => {
-        const newPinned = new Set(prev.pinnedLocations);
-        if (newPinned.has(location)) {
-          newPinned.delete(location);
+        if (!prev) return null;
+        const newPinned = {...prev.pinnedLocations};
+        if (location in newPinned) {
+          delete newPinned[location];
         } else {
-          newPinned.add(location);
+          newPinned[location] = true;
         }
         return { ...prev, pinnedLocations: newPinned };
       });
@@ -181,6 +183,7 @@ export function DetailedLocationListModal() {
 
   const toggleSort = useCallback((column: string) => {
     setStoredLocationListConfig((prev) => {
+      if (!prev) return null;
       const newConfig = { ...prev };
       if (!newConfig.sort || newConfig.sort.column !== column) {
         newConfig.sort = { column, order: "asc" };
@@ -195,11 +198,25 @@ export function DetailedLocationListModal() {
 
   const setSearch = useCallback((search: string) => {
     setStoredLocationListConfig((prev) => {
+      if (!prev) return null;
       const newConfig = { ...prev };
       newConfig.search = search;
       return newConfig;
     });
   }, []);
+
+  useEffect(() => {
+    // load on initial mount
+    const config = loadConfigFromLocalStorage(gameState.countryCode ?? "CUSTOM", version);
+    setStoredLocationListConfig(config);
+  }, []);
+
+  useEffect(() => {
+    // save config whenever it changes
+    if (storedLocationListConfig !== null) {
+      saveConfigToLocalStorage(gameState.countryCode ?? "CUSTOM", version, storedLocationListConfig);
+    }
+  }, [storedLocationListConfig]);
 
   const eligibleBuildingService = useMemo(() =>
     gameData && new EligibleBuildingService(gameData) || null, [gameData]);
@@ -224,7 +241,7 @@ export function DetailedLocationListModal() {
               temporaryLocationData: temporaryLocationData[key] ?? {},
               baseLocationGameData: locationGameData,
               constructibleState: eligibleBuildingService?.getConstructibleState(key, gameState) ?? {},
-              pinned: storedLocationListConfig.pinnedLocations.has(key),
+              pinned: storedLocationListConfig ? key in storedLocationListConfig.pinnedLocations : false,
               proximity: ProximityComputationHelper.evaluationToProximity(
                 proximityComputation.result[key]?.cost ?? 100,
               ),
@@ -241,7 +258,7 @@ export function DetailedLocationListModal() {
             if (value.pinned) {
               return true;
             }
-            return StringHelper.isInSearchQuery(key, storedLocationListConfig.search ?? "");
+            return StringHelper.isInSearchQuery(key, storedLocationListConfig?.search ?? "");
           }),
       );
     }, [
@@ -252,6 +269,9 @@ export function DetailedLocationListModal() {
       storedLocationListConfig
     ]);
 
+  if (storedLocationListConfig === null) {
+    return null;
+  }
   return (
     <div className="h-[80vh] w-[85vw] flex flex-col overflow-x-hidden">
       <LocationExtensiveViewModalHeader

@@ -31,7 +31,7 @@ function LocationRow(props: {
   extensiveViewProps: IDetailedLocationListProps;
 }) {
   const { location, sort, data, extensiveViewProps } = props;
-  const isPinned = props.extensiveViewProps.config.pinnedLocations.has(location);
+  const isPinned = location in props.extensiveViewProps.config.pinnedLocations;
   const rowClasses = [
     listStyles.row,
     isPinned ? listStyles.pinnedLine : listStyles.contentLine,

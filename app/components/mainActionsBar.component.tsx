@@ -6,7 +6,7 @@ import { TooltipContent } from "../lib/tooltip/tooltipContent.component";
 import Image from "next/image";
 import { changeCapitalController } from "@/app/lib/changeCapital.controller";
 import { Modal } from "../lib/modal/modal.component";
-import { DetailedLocationListModal } from "./detailedLocationListModal.component";
+import { DetailedLocationListModal } from "./detailedList/detailedLocationListModal.component";
 import { IoStarSharp } from "react-icons/io5";
 import { TbListDetails } from "react-icons/tb";
 

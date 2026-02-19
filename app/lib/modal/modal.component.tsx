@@ -28,7 +28,7 @@ interface IModalProps {
 
 export function Modal(props: IModalProps) {
   const { isOpen, onClose, preventClose, children } = props;
-  const [mounted, setMounted] = useState(false);
+  const [ mounted, setMounted ] = useState(false);
   const modalProvider = useContext(ModalProviderContext);
 
   useEffect(() => {

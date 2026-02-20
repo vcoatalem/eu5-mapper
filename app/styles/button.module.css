@@ -2,7 +2,7 @@
 
 @layer components {
   .simpleButton {
-    @apply rounded-md hover:bg-stone-600 px-2 py-1 border border-white text-white cursor-pointer;
+    @apply rounded-md hover:bg-stone-600 px-2 py-1 border border-stone-400 text-white cursor-pointer;
 
     &:disabled {
       @apply bg-stone-500/50 hover:bg-stone-500/50 cursor-not-allowed text-black;
@@ -14,7 +14,15 @@
   }
 
   .iconButton {
-    @apply rounded-lg p-1 border border-white hover:bg-stone-600 cursor-pointer backdrop-blur-lg;
+    @apply rounded-lg p-1 border border-stone-400 hover:bg-stone-600 cursor-pointer backdrop-blur-lg;
+    
+    &:disabled {
+      @apply bg-stone-500/50 hover:bg-stone-500/50 cursor-not-allowed text-black;
+
+      > :first-child {
+        @apply invert-50; /* grey out icon color */
+      }
+    }
   }
 
   .simpleButton.buttonActive > :first-child,

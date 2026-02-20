@@ -1,10 +1,11 @@
 interface LoaderProps {
   size?: number;
+  className?: string;
 }
 
-export function Loader({ size }: LoaderProps) {
+export function Loader({ size, className }: LoaderProps) {
   return (
-    <div className="grid w-full place-items-center overflow-x-scroll rounded-lg lg:overflow-visible">
+    <div className={className + " grid w-full place-items-center overflow-x-scroll rounded-lg lg:overflow-visible "}>
       <svg
         className="text-gray-300 animate-spin"
         viewBox="0 0 64 64"

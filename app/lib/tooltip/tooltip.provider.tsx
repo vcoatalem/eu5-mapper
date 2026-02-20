@@ -29,7 +29,7 @@ export function TooltipProvider({ children }: { children: React.ReactNode }) {
   const [tooltipRoot, setTooltipRoot] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
-    setTooltipRoot(document.getElementById("tooltip-root"));
+    queueMicrotask(() => setTooltipRoot(document.getElementById("tooltip-root")));
   }, []);
 
   const value = useMemo(

@@ -26,10 +26,11 @@ import { ProximityComputationHelper } from "@/app/lib/proximityComputation.helpe
 import { EligibleBuildingService } from "@/app/lib/eligibleBuilding.service";
 import { HiOutlineCog6Tooth } from "react-icons/hi2";
 import styles from "@/app/styles/button.module.css";
-import { ClickContext } from "@/app/clickContext.provider";
 import { columns, IStoredLocationListConfig, loadConfigFromLocalStorage, saveConfigToLocalStorage } from "@/app/components/detailedList/detailedList.config";
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
 import { useParams } from "next/navigation";
+import { Loader } from "@/app/components/loader.component";
+import { Popover } from "@/app/lib/popover/popover.component";
 
 function LocationExtensiveViewModalHeader(props: {
   countryName: string | null;
@@ -38,24 +39,6 @@ function LocationExtensiveViewModalHeader(props: {
   setSearch: (search: string) => void;
   toggleColumnVisibility: (column: keyof IStoredLocationListConfig["columnVisibility"]) => void;
 }) {
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const clickContext = useContext(ClickContext);
-  /*   console.log("clickContext", clickContext); */
-
-  useEffect(() => {
-    if (clickContext?.clickedElement) {
-      const { clickedElement, clickOnMenuButton, clickOnMenu } = {
-        clickedElement: clickContext.clickedElement,
-        clickOnMenuButton: clickContext.clickedElement.closest(".location-list-modal-settings-menu-button"),
-        clickOnMenu: clickContext.clickedElement.closest(".location-list-modal-settings-menu"),
-      };
-      /* console.log("clickedElement", { clickedElement, clickOnMenuButton, clickOnMenu }); */
-      if (isSettingsOpen && !clickOnMenuButton && !clickOnMenu) {
-        setIsSettingsOpen(false);
-      }
-    }
-  }, [clickContext]) // eslint-disable-line react-hooks/exhaustive-deps
-
   return (
     <div className=" w-full flex flex-row items-center h-12 pb-2 z-10">
       {/* z-index so that the header stays above modal content */}
@@ -86,25 +69,24 @@ function LocationExtensiveViewModalHeader(props: {
 
 
       <div className="relative ml-auto flex flex-row items-center gap-2">
-        <button
-          type="button"
-          className={["location-list-modal-settings-menu-button", styles.iconButton, isSettingsOpen ? styles.buttonActive : ""].join(" ")}
-          onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+        <Popover
+          renderTrigger={({ isOpen, toggle }) => (
+            <button
+              type="button"
+              className={[styles.iconButton, isOpen ? styles.buttonActive : ""].join(" ")}
+              onClick={toggle}
+            >
+              <HiOutlineCog6Tooth color="white" size={24} />
+            </button>
+          )}
         >
-          <HiOutlineCog6Tooth color="white" size={16} />
-        </button>
-        {isSettingsOpen && (
-          <div className=" location-list-modal-settings-menu absolute top-8 left-0 w-40 z-10 bg-black p-2 rounded-md border border-stone-600 flex flex-col ">
-            {Object.entries(props.config.columnVisibility).filter(([column,]) => column !== columns[0].title).map(([column, visible]) => (
-              <label key={column} className=" flex items-center gap-2 cursor-pointer hover:bg-stone-600 rounded-md " onClick={(e) => { e.stopPropagation(); e.preventDefault(); props.toggleColumnVisibility(column as keyof IStoredLocationListConfig["columnVisibility"]) }}>
-                {
-                  visible ? <FaRegEye color="white" size={16} /> : <FaRegEyeSlash color="white" size={16} />
-                }
-                <span>{column}</span>
-              </label>
-            ))}
-          </div>
-        )}
+          {Object.entries(props.config.columnVisibility).filter(([column]) => column !== columns[0].title).map(([column, visible]) => (
+            <label key={column} className=" flex items-center gap-2 cursor-pointer hover:bg-stone-600 rounded-md " onClick={(e) => { e.stopPropagation(); e.preventDefault(); props.toggleColumnVisibility(column as keyof IStoredLocationListConfig["columnVisibility"]) }}>
+              {visible ? <FaRegEye color="white" size={16} /> : <FaRegEyeSlash color="white" size={16} />}
+              <span>{column}</span>
+            </label>
+          ))}
+        </Popover>
 
         <CountryStats
           className="ml-auto border-stone-500 border rounded-md px-2 py-1 items-center flex-none"
@@ -154,7 +136,7 @@ export function DetailedLocationListModal() {
     (location: ILocationIdentifier) => {
       setStoredLocationListConfig((prev) => {
         if (!prev) return null;
-        const newPinned = {...prev.pinnedLocations};
+        const newPinned = { ...prev.pinnedLocations };
         if (location in newPinned) {
           delete newPinned[location];
         } else {
@@ -170,6 +152,7 @@ export function DetailedLocationListModal() {
     (column: keyof IStoredLocationListConfig["columnVisibility"]) => {
       console.log("toggleColumnVisibility", column);
       setStoredLocationListConfig((prev) => {
+        if (!prev) return null;
         const newState = {
           ...prev, columnVisibility: {
             ...prev.columnVisibility,
@@ -206,10 +189,9 @@ export function DetailedLocationListModal() {
   }, []);
 
   useEffect(() => {
-    // load on initial mount
     const config = loadConfigFromLocalStorage(gameState.countryCode ?? "CUSTOM", version);
-    setStoredLocationListConfig(config);
-  }, []);
+    queueMicrotask(() => setStoredLocationListConfig(config));
+  }, [gameState.countryCode, version]);
 
   useEffect(() => {
     // save config whenever it changes
@@ -269,25 +251,26 @@ export function DetailedLocationListModal() {
       storedLocationListConfig
     ]);
 
-  if (storedLocationListConfig === null) {
-    return null;
-  }
   return (
     <div className="h-[80vh] w-[85vw] flex flex-col overflow-x-hidden">
-      <LocationExtensiveViewModalHeader
-        countryName={gameState.country?.templateData?.name ?? null}
-        ownedLocations={gameState.ownedLocations}
-        config={storedLocationListConfig}
-        setSearch={setSearch}
-        toggleColumnVisibility={toggleColumnVisibility}
-      ></LocationExtensiveViewModalHeader>
-      <DetailedLocationList
-        capitalLocation={gameState.capitalLocation ?? null}
-        ownedLocations={ownedLocations}
-        config={storedLocationListConfig}
-        togglePin={togglePin}
-        toggleSort={toggleSort}
-      ></DetailedLocationList>
+      {storedLocationListConfig ? (
+        <>
+          <LocationExtensiveViewModalHeader
+            countryName={gameState.country?.templateData?.name ?? null}
+            ownedLocations={gameState.ownedLocations}
+            config={storedLocationListConfig}
+            setSearch={setSearch}
+            toggleColumnVisibility={toggleColumnVisibility}
+          ></LocationExtensiveViewModalHeader>
+          <DetailedLocationList
+            capitalLocation={gameState.capitalLocation ?? null}
+            ownedLocations={ownedLocations}
+            config={storedLocationListConfig}
+            togglePin={togglePin}
+            toggleSort={toggleSort}
+          ></DetailedLocationList>
+        </>
+      ) : <Loader className="w-full h-full" size={80}></Loader>}
     </div>
   );
 }

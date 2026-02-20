@@ -49,7 +49,7 @@ export function EditableField<T>(props: IEditableFieldProps<T>) {
         inputRef.current.focus();
         inputRef.current.select();
       }
-      setIsStartingEdition(false);
+      queueMicrotask(() => setIsStartingEdition(false));
     }
   }, [isStartingEdition]);
 

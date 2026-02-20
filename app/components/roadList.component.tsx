@@ -12,8 +12,9 @@ import { TooltipContent } from "../lib/tooltip/tooltipContent.component";
 import buttonStyles from "../styles/button.module.css";
 import { IoSearch } from "react-icons/io5";
 import { FaAnglesDown, FaAnglesUp } from 'react-icons/fa6';
+import { Popover } from "@/app/lib/popover/popover.component";
 
-interface IRoadListProps {}
+interface IRoadListProps { }
 
 const RoadItem = React.memo(function RoadItem({
   roadKey,
@@ -57,7 +58,7 @@ const RoadItem = React.memo(function RoadItem({
       key={roadKey}
       className="py-1 h-10 flex flex-row items-center whitespace-nowrap gap-4"
     >
-      <span ref={spanRef} className="min-w-0 max-w-32 truncate ...">
+      <span ref={spanRef} className="flex-1 truncate ...">
         <Tooltip config={{ openDelay: 1000 }}>
           <TooltipTrigger>
             <ActionSource
@@ -82,30 +83,33 @@ const RoadItem = React.memo(function RoadItem({
         </Tooltip>
       </span>
 
+
+      {(
+        <button
+          className={buttonStyles.iconButton}
+          disabled={!downgradeType}
+          onClick={() =>
+            gameStateController.changeRoadType(roadKey, downgradeType)
+          }
+        >
+          <FaAnglesDown color="white" size={24}></FaAnglesDown>
+        </button>
+      )}
+
       <span className="col-span-1">
-        <img src={getGuiImage(type)} alt={type} width={24} height={24} />
+        <Image src={getGuiImage(type) ?? ""} alt={type} width={24} height={24} />
       </span>
 
       <div className="flex flex-none flex-row gap-1">
-        {upgradeType && (
+        {(
           <button
             className={buttonStyles.iconButton}
+            disabled={!upgradeType}
             onClick={() =>
               gameStateController.changeRoadType(roadKey, upgradeType)
             }
           >
             <FaAnglesUp color="white" size={24}></FaAnglesUp>
-          </button>
-        )}
-
-        {downgradeType && (
-          <button
-            className={buttonStyles.iconButton}
-            onClick={() =>
-              gameStateController.changeRoadType(roadKey, downgradeType)
-            }
-          >
-            <FaAnglesDown color="white" size={24}></FaAnglesDown>
           </button>
         )}
       </div>
@@ -149,6 +153,15 @@ export function RoadList(props: IRoadListProps) {
     return entries;
   }, [search, gameState.ownedLocations, gameState.roads]);
 
+  const areAllRoadsOfType: Record<RoadType, boolean> = useMemo(() => {
+    return {
+      gravel_road: ConstructibleHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, gameState.roads, "gravel_road"),
+      paved_road: ConstructibleHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, gameState.roads, "paved_road"),
+      modern_road: ConstructibleHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, gameState.roads, "modern_road"),
+      rail_road: ConstructibleHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, gameState.roads, "rail_road"),
+    }
+  }, [gameState.ownedLocations, gameState.roads]);
+
   if (!filteredRoadsEntries) return null;
   return (
     <div>
@@ -162,6 +175,23 @@ export function RoadList(props: IRoadListProps) {
           style={{ outline: "none" }}
         />
       </div>
+      <hr className="mt-2 mb-1"></hr>
+      <div className="w-full flex flex-row gap-2 relative">
+        <Popover
+          panelPosition="top-9"
+          panelClassName="w-full flex flex-col gap-2"
+          renderTrigger={({ isOpen, toggle }) => (
+            <button className={`${buttonStyles.simpleButton} ${isOpen ? buttonStyles.buttonActive : ""}`} onClick={toggle}>
+              Bulk Update
+            </button>
+          )}
+        >
+          {(["gravel_road", "paved_road", "modern_road", "rail_road"] as RoadType[]).map((type) => (
+            <button key={type} className={`${buttonStyles.simpleButton} ${areAllRoadsOfType[type] ? buttonStyles.buttonActive : ""}`} onClick={() => gameStateController.changeAllOwnedRoadsToType(type)}>{type}</button>
+          ))}
+        </Popover>
+      </div>
+      <hr className="mt-2 mb-1"></hr>
       <div>
         {Object.entries(filteredRoadsEntries)
           .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))

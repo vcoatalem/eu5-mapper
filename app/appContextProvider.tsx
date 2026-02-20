@@ -52,14 +52,9 @@ export const AppContextProvider = ({
       try {
         setIsLoading(true);
         setError(null);
-
         console.log(`[AppContext] Loading game data for version ${version}...`);
-
-        // Initialize version resolver and load manifest once
         const versionResolver = new VersionResolver();
         await versionResolver.loadVersionsManifest();
-
-        // Resolve and preload map images with version resolution
         const resolveAndPreloadImages = async (): Promise<IImagePaths> => {
           const imageFileTypes: GameDataFileType[] = [
             "locationsImage",
@@ -78,7 +73,6 @@ export const AppContextProvider = ({
                 resolvedVersion,
               );
 
-              // Preload the image
               await new Promise<void>((resolve, reject) => {
                 const img = new Image();
                 img.onload = () => {

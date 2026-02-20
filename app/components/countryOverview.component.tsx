@@ -9,7 +9,6 @@ import React, {
 } from "react";
 import { gameStateController } from "@/app/lib/gameState.controller";
 import { ICountryInstance } from "../lib/types/general";
-import { proximityComputationController } from "@/app/lib/proximityComputation.controller";
 import { AppContext } from "../appContextProvider";
 import { FoldableMenu } from "@/app/components/foldableMenu.component";
 import { CountryStats } from "./countryStatsComponent";
@@ -171,11 +170,11 @@ export function CountryOverview() {
             ownedLocations={gameState.ownedLocations}
           ></CountryStats>
         )) || (
-          <div className="text-stone-400 text-italic">
-            No owned locations - either select a country above, or create your
-            own country from scratch by selecting a location
-          </div>
-        )}
+            <div className="text-stone-400 text-italic">
+              No owned locations - either select a country above, or create your
+              own country from scratch by selecting a location
+            </div>
+          )}
       </FoldableMenu>
     </>
   );

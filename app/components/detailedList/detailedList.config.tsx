@@ -44,11 +44,11 @@ export const actionsMetadata: Record<ConstructibleAction["type"], {
   },
   demolish: {
     icon: <PiMinusLight color="white" size={16}></PiMinusLight>,
-    tooltip: "Demolish building",
+    tooltip: "Remove building",
   },
   build: {
     icon: <PiPlusLight color="white" size={16}></PiPlusLight>,
-    tooltip: "Build building",
+    tooltip: "Add building",
   },
 }
 

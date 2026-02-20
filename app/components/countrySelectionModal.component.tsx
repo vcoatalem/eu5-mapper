@@ -36,7 +36,7 @@ export function CountrySelectionModal() {
     );
   }, [selectedCountry, gameData?.countriesDataMap]);
 
-  useEffect(() => {
+  useEffect(() => { 
     setFlagLoaded(false);
     const flagImg = new Image();
     flagImg.onload = () => {

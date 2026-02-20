@@ -1,19 +1,15 @@
-import React, { useContext, useSyncExternalStore } from "react";
-import { AppContext } from "../appContextProvider";
-import { WorkerStatusComponent } from "./workerStatus.component";
-import { LocationSearchBar } from "./locationSearchBar.component";
-import { MethodologyInfos } from "@/app/components/methodologyInfos.component";
-import { roadBuilderController } from "@/app/lib/roadBuilderController";
-import styles from "../styles/Gui.module.css";
-import { gameStateController } from "../lib/gameState.controller";
-import { Modal } from "../lib/modal/modal.component";
 import { CountrySelectionModal } from "@/app/components/countrySelectionModal.component";
 import { GameVersionSelector } from "@/app/components/gameVersionSelector.component";
+import { ImportExportGameState } from "@/app/components/importExportGameState.component";
+import { MethodologyInfos } from "@/app/components/methodologyInfos.component";
+import { useContext, useState, useSyncExternalStore } from "react";
+import { AppContext } from "../appContextProvider";
 import {
   changeCapitalController,
-  IChangeCapitalState,
 } from "../lib/changeCapital.controller";
-import { ImportExportGameState } from "@/app/components/importExportGameState.component";
+import { gameStateController } from "../lib/gameState.controller";
+import { Modal } from "../lib/modal/modal.component";
+import styles from "../styles/Gui.module.css";
 
 function RegularHeader() {
   const gameState = useSyncExternalStore(
@@ -21,11 +17,11 @@ function RegularHeader() {
     gameStateController.subscribe.bind(gameStateController),
     () => gameStateController.getSnapshot(),
   );
+
+  const [chooseCountryModalOpen, setChooseCountryModalOpen] = useState(false);
   const gameData = useContext(AppContext).gameData;
   if (!gameData) return null;
 
-  const [chooseCountryModalOpen, setChooseCountryModalOpen] =
-    React.useState(false);
   return (
     <div className={styles.header}>
       <GameVersionSelector />
@@ -47,43 +43,26 @@ function RegularHeader() {
       <div className="ml-auto w-fit">
         <ImportExportGameState />
       </div>
+
     </div>
+
   );
 }
 
-function RoadBuildingHeader() {
-  return (
-    <div className={styles.header + " " + styles.roadBuildingStripes}>
-      <div className={"mx-auto flex items-center gap-2 px-4 bg-black"}>
-        <div className="px-4 py-1 text-xl mx-auto">
-          Road Building Mode - Click on a location to start building a new road
-        </div>
-        <button
-          className="text-black bg-yellow-500 hover:bg-yellow-600 rounded-lg px-4 my-1"
-          onClick={() => roadBuilderController.toggleBuildingMode()}
-        >
-          Done
-        </button>
-      </div>
-    </div>
+export function HeaderComponent() {
+  const { gameData } = useContext(AppContext);
+  const changeCapitalState = useSyncExternalStore(
+    changeCapitalController.subscribe.bind(changeCapitalController),
+    () => changeCapitalController.getSnapshot(),
   );
-}
 
-function ChangeCapitalHeader(props: {
-  changeCapitalState: IChangeCapitalState;
-}) {
+  if (!gameData) return;
+
   return (
-    <div className={styles.header + " " + styles.roadBuildingStripes}>
-      <div className={"mx-auto flex items-center gap-2 px-4 bg-black"}>
-        <div className="px-4 py-1 text-xl mx-auto">
-          Change Capital Mode - Click on a location to set it as the new capital
-        </div>
-        <button className="text-black bg-yellow-500 hover:bg-yellow-600 rounded-lg px-4 my-1">
-          Cancel
-        </button>
-      </div>
+    <>
+      <RegularHeader />
       <Modal
-        isOpen={!!props.changeCapitalState.needConfirmationForLocation}
+        isOpen={!!changeCapitalState.needConfirmationForLocation}
         onClose={() => changeCapitalController.toggleChangeCapitalMode()}
       >
         <div
@@ -94,7 +73,7 @@ function ChangeCapitalHeader(props: {
           <span className="text-lg">
             Change capital to{" "}
             <span className="text-yellow-500 font-bold">
-              {props.changeCapitalState.needConfirmationForLocation} ?
+              {changeCapitalState.needConfirmationForLocation} ?
             </span>
           </span>
           <div className="w-full flex flex-row gap-2 items-center justify-center">
@@ -113,38 +92,6 @@ function ChangeCapitalHeader(props: {
           </div>
         </div>
       </Modal>
-    </div>
-  );
-}
-
-export function HeaderComponent() {
-  const { gameData } = useContext(AppContext);
-
-  const buildingRoadState = useSyncExternalStore(
-    roadBuilderController.subscribe.bind(roadBuilderController),
-    () => roadBuilderController.getSnapshot(),
-  );
-
-  const changeCapitalState = useSyncExternalStore(
-    changeCapitalController.subscribe.bind(changeCapitalController),
-    () => changeCapitalController.getSnapshot(),
-  );
-
-  const gameState = useSyncExternalStore(
-    // TODO: put a special subject in gameStateController for Country changes ?
-    gameStateController.subscribe.bind(gameStateController),
-    () => gameStateController.getSnapshot(),
-  );
-
-  if (!gameData) return;
-
-  if (buildingRoadState.isBuildingModeEnabled) {
-    return <RoadBuildingHeader />;
-  }
-
-  if (changeCapitalState.isModeEnabled) {
-    return <ChangeCapitalHeader changeCapitalState={changeCapitalState} />;
-  }
-
-  return <RegularHeader />;
+    </>
+  )
 }

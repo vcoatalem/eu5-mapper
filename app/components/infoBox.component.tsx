@@ -1,61 +1,112 @@
-import { JSX, useContext, useSyncExternalStore } from "react";
+import { JSX, memo, useContext, useMemo, useSyncExternalStore } from "react";
 import { AppContext } from "../appContextProvider";
 import { IGameState, ILocationGameData } from "../lib/types/general";
 import { gameStateController } from "@/app/lib/gameState.controller";
 import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
 import { LocationsHelper } from "@/app/lib/locations.helper";
+import { roadBuilderController } from "@/app/lib/roadBuilderController";
+import styles from "@/app/styles/Gui.module.css";
+import { changeCapitalController } from "@/app/lib/changeCapital.controller";
+import { NumbersHelper } from "@/app/lib/utils/numbers.helper";
+import { StringHelper } from "@/app/lib/utils/string.helper";
 
-const buildLocationDisplay = (
-  locationData: ILocationGameData,
-  gameState: IGameState,
-): JSX.Element => {
+function LocationInfoBox(
+  props: {
+    locationData: ILocationGameData,
+    gameState: IGameState,
+    mode: "acquire" | "roadBuilding" | "changeCapital" | "editMaritimePresence",
+  }
+) {
+  const { locationData, gameState, mode } = props;
+
+  const owned = useMemo(() => gameState.ownedLocations[locationData?.name ?? ""], [gameState.ownedLocations, locationData?.name]);
+
+  const cta = useMemo<{label: string, active: boolean}>(() => {
+    if (mode === "roadBuilding") {
+      return { label: "Click to start building a road", active: true };
+    }
+    if (mode === "changeCapital") {
+      return { label: "Click to change capital location", active: true };
+    }
+    else {
+      if (props.locationData.ownable) {
+        if (owned) {
+          return { label: "Click to release this location", active: true };
+        }
+        return { label: "Click to acquire this location", active: true };
+      }
+      else {
+        return { label: "Not Ownable", active: false };
+      }
+    }
+  }, [mode, locationData.ownable, owned]);
+
+  const harborCapacity = useMemo(() => LocationsHelper.getLocationHarborSuitability(locationData, gameState.ownedLocations[locationData.name]), [locationData, gameState.ownedLocations]);
+
+
   if (!locationData || !gameState.ownedLocations) {
     // can happen with HMR
     return <></>
   }
-  const owned = gameState.ownedLocations[locationData?.name];
-
-  const harborCapacity = LocationsHelper.getLocationHarborSuitability(locationData, gameState.ownedLocations[locationData.name]);
+ 
   if (!locationData) {
     return <span>No data available</span>;
   }
   return (
-    <>
-      <div className="flex flex-row items-center gap-6 px-4">
-        <div className="flex items-center gap-2">
-          <span className="font-bold text-base">{locationData.name}</span>
-          {!locationData.ownable && (
-            <span className="text-xs text-stone-400">(Not Ownable)</span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-4 text-sm">
-          <span>🏔️ {locationData.topography}</span>
-          {locationData.ownable && (
-            <>
-              <span>📈 Dev: {locationData.development}</span>
-              <span>👥 Pop: {locationData.population}</span>
-              <span>{owned ? "✓ Owned" : "○ Not Owned"}</span>
-            </>
-
-          )}
-          {locationData.isCoastal && locationData.ownable && <span>⚓ Capacity: {harborCapacity}</span>}
-          {locationData.vegetation && <span>🌿 {locationData.vegetation}</span>}
-          
- 
-        </div>
-
-        {locationData.hierarchy && (
-          <div className="flex items-center gap-2 text-xs text-stone-300 ml-auto">
-            <span>{locationData.hierarchy.province}</span>
-            <span className="text-stone-500">•</span>
-            <span>{locationData.hierarchy.subcontinent}</span>
-          </div>
-        )}
+    <div className="flex flex-row items-center gap-6 px-4 w-full">
+      <div className="flex items-center gap-2 flex-1">
+        <span className="font-bold text-base text-white">{StringHelper.formatLocationName(locationData.name)}</span>
       </div>
-    </>
+
+      <div className="flex items-center gap-4 text-sm">
+        <span>🏔️ {locationData.topography}</span>
+        {locationData.ownable && (
+          <>
+            <span>📈 {locationData.development}</span>
+            <span>👥 {NumbersHelper.formatWithSymbol(locationData.population)}</span>
+          </>
+
+        )}
+        {locationData.isCoastal && locationData.ownable && <span>⚓ Capacity: {harborCapacity}</span>}
+        {locationData.vegetation && <span>🌿 {locationData.vegetation}</span>}
+
+
+      </div>
+
+      {locationData.hierarchy && (
+        <div className="flex items-center gap-2 text-xs text-stone-300 ml-auto">
+          <span>{locationData.hierarchy.province}</span>
+          <span className="text-stone-500">•</span>
+          <span>{locationData.hierarchy.subcontinent}</span>
+        </div>
+      )}
+
+      <span className={["ml-auto w-64", (cta.active ? "text-yellow-500" : "text-stone-400")].join(" ")} >
+        {cta.label}
+      </span>
+
+    </div>
   );
 };
+
+
+
+const Container = memo(function Container(props: { children: React.ReactNode, mode: "acquire" | "roadBuilding" | "changeCapital" | "editMaritimePresence" }) {
+  const stripes = useMemo(() => {
+    if (props.mode === "roadBuilding") {
+      return styles.roadBuildingStripes;
+    }
+    if (props.mode === "changeCapital") {
+      return styles.changeCapitalStripes;
+    }
+    return "";
+  }, [props.mode]);
+  return (
+    <div className={[styles.infoBoxContainer, "h-12 bg-black/80 text-stone-400 px-4 flex items-center", stripes].join(" ")}>
+      {props.children}
+    </div>
+  );
+});
 
 export function InfoBoxComponent() {
 
@@ -73,22 +124,36 @@ export function InfoBoxComponent() {
     },
   );
 
+  const roadBuildingMode = useSyncExternalStore(
+    roadBuilderController.subscribe.bind(roadBuilderController),
+    () => roadBuilderController.getSnapshot(),
+  );
+
+  const changeCapitalMode = useSyncExternalStore(
+    changeCapitalController.subscribe.bind(changeCapitalController),
+    () => changeCapitalController.getSnapshot(),
+  );
+
+  const mode = useMemo(() => {
+    if (roadBuildingMode.isBuildingModeEnabled) {
+      return "roadBuilding";
+    }
+    if (changeCapitalMode.isModeEnabled) {
+      return "changeCapital";
+    }
+    return "acquire";
+  }, [roadBuildingMode.isBuildingModeEnabled, changeCapitalMode.isModeEnabled]);
 
   const { gameData } = useContext(AppContext);
   if (!gameData) {
     return;
   }
-  
-
-
 
   const hoveredLocations = hoveredLocation?.locations ?? [];
   if (hoveredLocations.length === 0) {
-    return (
-      <span className="h-10 bg-black/80 text-stone-400 px-4">
-        Hover or select a location to view details
-      </span>
-    );
+    return <Container mode={mode}>
+      Hover or select a location to view details
+    </Container>;
   }
 
   const primaryLocation = hoveredLocations[0];
@@ -98,19 +163,10 @@ export function InfoBoxComponent() {
     console.warn(
       `[InfoBoxComponent] No location data found for location: ${primaryLocation}`,
     );
-    return (
-      <span className="h-10 bg-black/80 text-stone-400 px-4">
-        Hover or select a location to view details
-      </span>
-    );
+    return <Container mode={mode}>
+      Hover or select a location to view details
+    </Container>;
   }
-  const locationDisplay = buildLocationDisplay(locationData, gameLogic);
 
-  return (
-    <div
-      className={`w-full h-10 flex items-center bg-black/80 backdrop-blur-sm border-t border-stone-700`}
-    >
-      {locationDisplay}
-    </div>
-  );
+  return <Container mode={mode}><LocationInfoBox locationData={locationData} gameState={gameLogic} mode={mode}></LocationInfoBox></Container>;
 }

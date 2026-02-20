@@ -550,14 +550,6 @@ export function WorldMapComponent() {
           // only react to changes in clicked location
           return;
         }
-      console.log("[WorldMapComponent] clickedLocation event got", {
-          clickObserverCombiner: {
-            location,
-            type,
-            mouseCoordinate,
-            roadBuilderState,
-          },
-        }); 
         setLastKnownMouseCoordinate(mouseCoordinate);
         switch (true) {
           case location && changeCapitalState.isModeEnabled:
@@ -843,12 +835,12 @@ export function WorldMapComponent() {
         <GuiElement className="fixed right-5 bottom-30">
           <WorkerStatusComponent className="w-24" />
         </GuiElement>
-        <GuiElement className="fixed right-20 bottom-15">
+        <GuiElement className="fixed right-20 bottom-17">
           <button onClick={handleZoomOut} className="w-8 px-2 py-1">
             -
           </button>
         </GuiElement>
-        <GuiElement className="fixed right-5 bottom-15">
+        <GuiElement className="fixed right-5 bottom-17">
           <button onClick={handleZoomIn} className="w-8 px-2 py-1">
             +
           </button>

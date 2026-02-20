@@ -12,7 +12,7 @@ import { FaAnglesDown, FaAnglesUp } from 'react-icons/fa6';
 const minimalColumnWidth = 128; // px
 const lineHeight = 48; // px
 const minListHeightPx = 500;
-const maxListHeightRatio = 3 / 4;
+const maxListHeightRatio = 4 / 5;
 
 function getMaxLinesAndHeight(): { maxLineDisplayed: number; listHeightPx: number } {
   if (typeof window === "undefined") {

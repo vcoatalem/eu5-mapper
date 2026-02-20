@@ -11,7 +11,6 @@ import {
 } from "@/app/lib/locationSearchController";
 import { GuiElement } from "./guiElement";
 import { ActionSource } from "@/app/lib/actionSource.component";
-import Image from "next/image";
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import { IoSearch } from "react-icons/io5";
 

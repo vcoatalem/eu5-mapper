@@ -8,6 +8,7 @@ import { editModeController } from "../lib/editMode.controller";
 import { gameStateController } from "../lib/gameState.controller";
 import { Modal } from "../lib/modal/modal.component";
 import styles from "../styles/Gui.module.css";
+import buttonStyles from "../styles/button.module.css";
 
 function RegularHeader() {
   const gameState = useSyncExternalStore(
@@ -20,17 +21,29 @@ function RegularHeader() {
   const gameData = useContext(AppContext).gameData;
   if (!gameData) return null;
 
+  const flagUrl = gameData.countriesDataMap[gameState.countryCode ?? ""]?.flagUrl;
+  console.log({ flagUrl });
+
   return (
     <div className={styles.header}>
       <GameVersionSelector />
       <MethodologyInfos />
       <button
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hover:bg-stone-600 px-4 py-2 rounded-md"
+        className={["absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 min-w-24 hover:grayscale-50", buttonStyles.simpleButton].join(" ")}
         onClick={() => setChooseCountryModalOpen(true)}
+        style={{
+          backgroundImage: flagUrl ? `url(${flagUrl})` : 'none',
+          backgroundSize: '100% auto',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }}
       >
+        <span className="inset text-center backdrop-blur-sm">
         {(gameState.countryCode &&
           gameData.countriesDataMap[gameState.countryCode]?.name) ||
           "Choose a Country"}
+        </span>
+ 
       </button>
       <Modal
         isOpen={chooseCountryModalOpen}

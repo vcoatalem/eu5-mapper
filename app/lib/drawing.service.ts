@@ -24,9 +24,8 @@ import {
 } from "./drawing/color.helper";
 import { Subject } from "./subject";
 import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
-import { roadBuilderController } from "@/app/lib/roadBuilderController";
+import { editModeController } from "@/app/lib/editMode.controller";
 import { colorSearchController } from "@/app/lib/colorSeach.controller";
-import { maritimePresenceEditController } from "@/app/lib/maritimePresenceEditController";
 
 
 const canvasNames = ["areas", "constructibles", "roads", "indicators", "maritimePresences"] as const;
@@ -83,7 +82,6 @@ export class DrawingService {
     ])
       .debounce(10)
       .subscribe(({ values: [gameState, proximityEvaluation] }) => {
-        console.log("[DrawingService] gamestate + proximity subscription triggered", { gameState, proximityEvaluation });
         this.drawingCallbackBuffer["areas"] = () =>
           this.drawAreas(gameState, proximityEvaluation);
         this.drawingCallbackBuffer["roads"] = () => this.drawRoads(gameState);
@@ -102,8 +100,8 @@ export class DrawingService {
     new ObservableCombiner([
       actionEventDispatcher.prolongedHoverLocation,
       actionEventDispatcher.hoveredLocation,
-      roadBuilderController,
-      maritimePresenceEditController,
+      editModeController.roadSlice,
+      editModeController.maritimeSlice,
     ]).subscribe(
       ({
         values: [prolongedHoverLocation, hoveredLocation, roadBuilderState, maritimePresenceEditState],
@@ -111,10 +109,10 @@ export class DrawingService {
         const toHighlight = [
           ...(hoveredLocation?.locations ?? []),
           ...(prolongedHoverLocation?.locations ?? []),
-          ...(roadBuilderState?.isBuildingAtLocation
-            ? [roadBuilderState.isBuildingAtLocation]
+          ...(roadBuilderState?.selectedLocation
+            ? [roadBuilderState.selectedLocation]
             : []),
-          ...(maritimePresenceEditState.location ? [maritimePresenceEditState.location] : []),
+          ...(maritimePresenceEditState.selectedLocation ? [maritimePresenceEditState.selectedLocation] : []),
         ].filter((loc) => !!loc);
         this.drawingCallbackBuffer["indicators"] = () =>
           this.drawHighlighted(toHighlight);

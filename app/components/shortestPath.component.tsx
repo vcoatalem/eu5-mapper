@@ -8,6 +8,7 @@ import { ILocationIdentifier } from "@/app/lib/types/general";
 import { Loader } from "./loader.component";
 import { FormatedProximityCost } from "./formatedProximityCost.component";
 import { FormatedProximity } from "@/app/components/formatedProximity.component";
+import { StringHelper } from "@/app/lib/utils/string.helper";
 
 interface IShortestPathComponentProps {
   location: ILocationIdentifier;
@@ -22,17 +23,17 @@ function ShortestPathDisplay(props: {
   const { proximityResult } = props;
   return (
     <div>
-      <span>
-        Closest proximity source: {proximityResult.sourceLocation}(
-        <FormatedProximity
+      <span className="text-md">
+        <b>{StringHelper.formatLocationName(proximityResult.sourceLocation)}</b> is the closest proximity source (<FormatedProximity
           proximity={proximityResult.proximity}
-        ></FormatedProximity>
-        )
+        ></FormatedProximity>)
       </span>
+      <hr className="my-2 border-white border-1"></hr>
       <div className="flex flex-col gap-2">
         {proximityResult.path.map((step, index) => (
-          <span key={index}>
-            {" → "}
+          <span key={index} className="flex flex-row items-center gap-1">
+            {index === 0 ? proximityResult.sourceLocation : proximityResult.path[index - 1].throughLocation}
+            →
             {step.throughLocation} (
             <FormatedProximityCost
               proximityCost={step.cost}
@@ -54,8 +55,6 @@ export function ShortestPathComponent(props: IShortestPathComponentProps) {
   );
 
   const locationResult = result?.[props.location];
-
-  console.log({ locationResult });
 
   useEffect(() => {
     if (

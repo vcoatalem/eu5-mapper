@@ -3,7 +3,7 @@ import {
   debouncedNeighborsProximityComputationController,
   neighborsProximityComputationController,
 } from "@/app/lib/neighborsProximityComputation.controller";
-import { roadBuilderController } from "@/app/lib/roadBuilderController";
+import { editModeController } from "@/app/lib/editMode.controller";
 import Image from "next/image";
 import {
   memo,
@@ -22,13 +22,13 @@ import { EdgeType } from "../lib/types/pathfinding";
 import { FormatedProximity } from "./formatedProximity.component";
 import { FormatedProximityCost } from "./formatedProximityCost.component";
 import { Loader } from "./loader.component";
-import { maritimePresenceEditController } from "@/app/lib/maritimePresenceEditController";
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import { LocationsHelper } from "@/app/lib/locations.helper";
 import { AppContext } from "@/app/appContextProvider";
 import { EditableField } from "@/app/components/editableField.component";
 import styles from "@/app/styles/button.module.css";
 import { ColorHelper } from "@/app/lib/drawing/color.helper";
+import { FormattedProximityWithPathfindingTooltip } from "@/app/components/formattedProximityWithPathfindingTooltip.component";
 
 const NeighborPanelListItem = memo(function NeighborPanelListItem({
   baseLocation,
@@ -106,13 +106,13 @@ const NeighborPanelListItem = memo(function NeighborPanelListItem({
         )}
 
         <span className="ml-2 col-span-1">
-          {computationStatus === "pending" || computationStatus === "needs_update" && <Loader></Loader>}
+          {["pending", "needs_update"].includes(computationStatus) && <Loader></Loader>}
           {computationStatus === "error" && "error"}
           {computationStatus === "completed" && (
             <FormatedProximityCost proximityCost={cost}></FormatedProximityCost>
           )}
         </span>
-        <span className="col-span-1"> ({through})</span>
+        <span className="col-span-1 pl-2"> ({through})</span>
       </div>
     </ActionSource>
   );
@@ -139,18 +139,19 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
     },
   );
 
-  const roadBuilderState = useSyncExternalStore(
-    roadBuilderController.subscribe.bind(roadBuilderController),
-    () => {
-      return roadBuilderController.getSnapshot();
-    },
+  const maritimePresenceEditState = useSyncExternalStore(
+    editModeController.maritimeSlice.subscribe.bind(editModeController.maritimeSlice),
+    () => editModeController.maritimeSlice.getSnapshot(),
   );
 
-  const maritimePresenceEditState = useSyncExternalStore(
-    maritimePresenceEditController.subscribe.bind(maritimePresenceEditController),
-    () => {
-      return maritimePresenceEditController.getSnapshot();
-    },
+  const roadEditState = useSyncExternalStore(
+    editModeController.roadSlice.subscribe.bind(editModeController.roadSlice),
+    () => editModeController.roadSlice.getSnapshot(),
+  );
+
+  const editModeState = useSyncExternalStore(
+    editModeController.subscribe.bind(editModeController),
+    () => editModeController.getSnapshot(),
   );
 
   const globalProximityResult = useSyncExternalStore(
@@ -161,7 +162,6 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
   );
 
   const neighborLocationResult = computationResults?.[locationName];
-  const computationStatus = computationResults?.[locationName]?.status;
 
   useEffect(() => {
     if (
@@ -178,15 +178,15 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
     neighborLocationResult?.neighbors ?? {},
   )
     .filter(([location, { through }]) => {
-      if (location === locationName) return false;
-      if (roadBuilderState.isModeEnabled) {
-        return through === "land" || through === "river";
-      }
-      else if (maritimePresenceEditState.isModeEnabled) {
-        return through === "sea" || through === "lake" || through === "through-sea";
-      }
-      else {
-        return true;
+      switch (true) {
+        case location === locationName:
+          return false;
+        case roadEditState.isModeEnabled:
+          return through === "land" || through === "river";
+        case maritimePresenceEditState.isModeEnabled:
+          return through === "sea" || through === "lake" || through === "through-sea";
+        default:
+          return true;
       }
     })
     .map(([location, data]) => ({
@@ -197,7 +197,7 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
         gameState.roads[locationName]?.find((r) => r.to === location)?.type ??
         null,
       owned: gameState.ownedLocations[location] !== undefined,
-    })), [neighborLocationResult, roadBuilderState, maritimePresenceEditState, gameState, locationName]);
+    })), [neighborLocationResult, roadEditState, maritimePresenceEditState, gameState, locationName]);
 
   const locationMaritimePresence = useMemo(() => {
     if (!gameData || !gameState) {
@@ -216,49 +216,42 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
     <div
       className={
         "max-h-96 min-h-52 overflow-y-auto backdrop-blur-sm p-3" +
-        (roadBuilderState.isModeEnabled ? " w-[400px] " : " w-[280px] ")
+        (roadEditState.isModeEnabled ? " w-[400px] " : " w-[280px] ")
       }
     >
       <div className="w-full flex flex-row items-center mb-2">
         <div className="font-semibold text-stone-300">{locationName ? StringHelper.formatLocationName(locationName) : ""}</div>
         {locationName in globalProximityResult.result && (
           <span className="ml-4">
-            {globalProximityResult.status === "pending" && <></>}
-            {globalProximityResult.status === "updating" && <Loader></Loader>}
+            {["pending", "updating"].includes(globalProximityResult.status) && <Loader></Loader>}
             {globalProximityResult.status === "completed" && (
-              <FormatedProximity
+              <FormattedProximityWithPathfindingTooltip
+                location={locationName}
                 proximity={ProximityComputationHelper.evaluationToProximity(
                   globalProximityResult.result[locationName]?.cost ?? 100,
                 )}
-              ></FormatedProximity>
+              ></FormattedProximityWithPathfindingTooltip>
             )}
           </span>
         )}
-        {roadBuilderState.isModeEnabled && (
-          <button
-            className={[styles.simpleButton, "ml-auto"].join(" ")}
-            onClick={() => roadBuilderController.toggleMode()}
-          >
-            Done
-          </button>
-        )}
-
-        {maritimePresenceEditState.isModeEnabled && maritimePresenceEditState.location === locationName && (
-          <button
-            className={[styles.simpleButton, "ml-auto"].join(" ")}
-            onClick={() => maritimePresenceEditController.toggleMode()}
-          >
-            Done
-          </button>
-        )}
+        {
+          editModeState.modeEnabled && (
+            <button
+              className={[styles.simpleButton, "ml-auto"].join(" ")}
+              onClick={() => editModeController.reset()}
+            >
+              Done
+            </button>
+          )
+        }
       </div>
       <hr className="my-2 border-stone-300 w-full"></hr>
       {locationMaritimePresence > -1 && (
         <>
-          <div className="flex flex-row items-center gap-2 relative">⚓ Maritime Presence: 
+          <div className="flex flex-row items-center gap-2 relative">⚓ Maritime Presence:
             <EditableField
               key={locationName}
-              autoFocus={maritimePresenceEditState.isModeEnabled && maritimePresenceEditState.location === locationName}
+              autoFocus={maritimePresenceEditState.isModeEnabled && maritimePresenceEditState.selectedLocation === locationName}
               onValidate={(value) => {
                 gameStateController.changeTemporaryLocationData(locationName, { maritimePresence: value });
               }}
@@ -275,8 +268,8 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
       <div className="flex flex-col gap-1 text-xs">
 
         <span>adjacent regions proximity</span>
-        {adjacentLocations.length === 0 && computationStatus === "pending" && (
-          <div className="w-full h-10">
+        {adjacentLocations.length === 0 && computationResults?.[locationName]?.status === "pending" && (
+          <div className="w-full text-center">
             <Loader></Loader>
           </div>
         )}
@@ -286,11 +279,11 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
             baseLocation={locationName}
             neighborLocation={location}
             cost={cost}
-            computationStatus={computationStatus}
+            computationStatus={neighborLocationResult?.status}
             through={through}
             road={road}
             owned={owned}
-            isRoadBuildingMode={roadBuilderState.isModeEnabled}
+            isRoadBuildingMode={roadEditState.isModeEnabled}
           ></NeighborPanelListItem>
         ))}
       </div>

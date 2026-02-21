@@ -4,9 +4,7 @@ import { ImportExportGameState } from "@/app/components/importExportGameState.co
 import { MethodologyInfos } from "@/app/components/methodologyInfos.component";
 import { useContext, useState, useSyncExternalStore } from "react";
 import { AppContext } from "../appContextProvider";
-import {
-  changeCapitalController,
-} from "../lib/changeCapital.controller";
+import { editModeController } from "../lib/editMode.controller";
 import { gameStateController } from "../lib/gameState.controller";
 import { Modal } from "../lib/modal/modal.component";
 import styles from "../styles/Gui.module.css";
@@ -52,8 +50,8 @@ function RegularHeader() {
 export function HeaderComponent() {
   const { gameData } = useContext(AppContext);
   const changeCapitalState = useSyncExternalStore(
-    changeCapitalController.subscribe.bind(changeCapitalController),
-    () => changeCapitalController.getSnapshot(),
+    editModeController.capitalSlice.subscribe.bind(editModeController.capitalSlice),
+    () => editModeController.capitalSlice.getSnapshot(),
   );
 
   if (!gameData) return;
@@ -62,8 +60,8 @@ export function HeaderComponent() {
     <>
       <RegularHeader />
       <Modal
-        isOpen={!!changeCapitalState.needConfirmationForLocation}
-        onClose={() => changeCapitalController.toggleMode()}
+        isOpen={!!changeCapitalState.askConfirmationForLocation}
+        onClose={() => editModeController.toggleCapitalMode()}
       >
         <div
           className={
@@ -73,18 +71,18 @@ export function HeaderComponent() {
           <span className="text-lg">
             Change capital to{" "}
             <span className="text-yellow-500 font-bold">
-              {changeCapitalState.needConfirmationForLocation} ?
+              {changeCapitalState.askConfirmationForLocation} ?
             </span>
           </span>
           <div className="w-full flex flex-row gap-2 items-center justify-center">
             <button
               className="bg-yellow-400 hover:bg-yellow-500 rounded-md px-2 py-1 min-w-16 text-black font-bold"
-              onClick={() => changeCapitalController.confirmChangeCapital()}
+              onClick={() => editModeController.confirmChangeCapital()}
             >
               Yes
             </button>
             <button
-              onClick={() => changeCapitalController.toggleMode()}
+              onClick={() => editModeController.toggleCapitalMode()}
               className="border border white px-2 py-1 min-w-16 hover:bg-stone-600 text-white rounded-md font-bold"
             >
               Cancel

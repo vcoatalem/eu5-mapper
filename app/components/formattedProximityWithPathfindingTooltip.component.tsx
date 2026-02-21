@@ -34,7 +34,7 @@ export function FormattedProximityWithPathfindingTooltip(
         >
           <ShortestPathComponent
             location={props.location}
-            className="bg-black"
+            className="bg-black border-white border-1 p-1"
           ></ShortestPathComponent>
         </TooltipContent>
       </Tooltip>

@@ -16,6 +16,9 @@ type NeighborsProximityComputationResults = {
 };
 
 class NeighborProximityComputationController extends Observable<NeighborsProximityComputationResults> {
+
+  private lastCompletedTaskId: string | null = null;
+
   constructor() {
     super();
     this.subject = {
@@ -27,6 +30,9 @@ class NeighborProximityComputationController extends Observable<NeighborsProximi
     workerManager.subscribe(({ lastCompletedTask }) => {
       if (!lastCompletedTask) return;
       if (lastCompletedTask.type !== "computeNeighbors") return;
+      if (lastCompletedTask.taskId === this.lastCompletedTaskId) return;
+
+      this.lastCompletedTaskId = lastCompletedTask.taskId;
 
       const data = lastCompletedTask.data as IWorkerTaskComputeNeighborsResult;
 
@@ -62,6 +68,10 @@ class NeighborProximityComputationController extends Observable<NeighborsProximi
   }
 
   public launchGetNeighborsProximity(locationName: ILocationIdentifier): void {
+    if (this.subject.computationResults[locationName]?.status === "pending") {
+      // job is still running, wait for it to complete
+      return;
+    }
     if (this.subject.computationResults[locationName]?.status === "completed") {
       this.subject = { ...this.subject };
       this.notifyListeners();

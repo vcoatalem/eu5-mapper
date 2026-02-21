@@ -14,6 +14,8 @@ export function ButtonWithTooltip({
   children,
   onClick,
   showOnHover = false,
+  disabled = false,
+  
 }: {
   className?: string,
   isActive?: boolean;
@@ -24,6 +26,7 @@ export function ButtonWithTooltip({
   >;
   onClick?: (e?: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
   showOnHover?: boolean;
+  disabled?: boolean
 }) {
   const buttonDivRef = useRef<HTMLDivElement>(null);
   return (
@@ -41,6 +44,7 @@ export function ButtonWithTooltip({
       <Tooltip>
         <TooltipTrigger>
           <button
+            disabled={disabled}
             onClick={onClick}
             className={
               `${styles.iconButton} ` +

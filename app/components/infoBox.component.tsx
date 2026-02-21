@@ -1,23 +1,21 @@
-import { JSX, memo, useContext, useMemo, useSyncExternalStore } from "react";
-import { AppContext } from "../appContextProvider";
-import { IGameState, ILocationGameData, ITemporaryLocationData } from "../lib/types/general";
-import { gameStateController } from "@/app/lib/gameState.controller";
 import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
+import { ColorHelper } from "@/app/lib/drawing/color.helper";
+import { EditMode, editModeController } from "@/app/lib/editMode.controller";
+import { gameStateController } from "@/app/lib/gameState.controller";
 import { LocationsHelper } from "@/app/lib/locations.helper";
-import { roadBuilderController } from "@/app/lib/roadBuilderController";
-import styles from "@/app/styles/Gui.module.css";
-import { changeCapitalController } from "@/app/lib/changeCapital.controller";
 import { NumbersHelper } from "@/app/lib/utils/numbers.helper";
 import { StringHelper } from "@/app/lib/utils/string.helper";
-import { maritimePresenceEditController } from "@/app/lib/maritimePresenceEditController";
-import { ColorHelper } from "@/app/lib/drawing/color.helper";
+import styles from "@/app/styles/Gui.module.css";
+import { memo, useContext, useMemo, useSyncExternalStore } from "react";
+import { AppContext } from "../appContextProvider";
+import { IGameState, ILocationGameData, ITemporaryLocationData } from "../lib/types/general";
 
 function LocationInfoBox(
   props: {
     locationData: ILocationGameData,
     temporaryData: ITemporaryLocationData,
     gameState: IGameState,
-    mode: "acquire" | "roadBuilding" | "changeCapital" | "editMaritimePresence",
+    mode: EditMode | null,
   }
 ) {
   const { locationData, gameState, mode, temporaryData } = props;
@@ -25,13 +23,13 @@ function LocationInfoBox(
   const owned = useMemo(() => gameState.ownedLocations[locationData?.name ?? ""], [gameState.ownedLocations, locationData?.name]);
 
   const cta = useMemo<{ label: string, active: boolean }>(() => {
-    if (mode === "roadBuilding") {
+    if (mode === "road") {
       return { label: "Click to start building a road", active: true };
     }
-    if (mode === "changeCapital") {
+    if (mode === "capital") {
       return { label: "Click to change capital location", active: true };
     }
-    if (mode === "editMaritimePresence") {
+    if (mode === "maritime") {
       if (locationData.isSea || locationData.isLake) {
         return { label: "Click to edit maritime presence", active: true };
       }
@@ -99,15 +97,16 @@ function LocationInfoBox(
 
 
 
-const Container = memo(function Container(props: { children: React.ReactNode, mode: "acquire" | "roadBuilding" | "changeCapital" | "editMaritimePresence" }) {
+const Container = memo(function Container(props: { children: React.ReactNode, mode: EditMode | null }) {
   const stripes = useMemo(() => {
-    if (props.mode === "roadBuilding") {
+    if (!props.mode) return "";
+    if (props.mode === "road") {
       return styles.roadBuildingStripes;
     }
-    if (props.mode === "changeCapital") {
+    if (props.mode === "capital") {
       return styles.changeCapitalStripes;
     }
-    if (props.mode === "editMaritimePresence") {
+    if (props.mode === "maritime") {
       return styles.editMaritimePresenceStripes;
     }
     return "";
@@ -135,33 +134,10 @@ export function InfoBoxComponent() {
     },
   );
 
-  const roadBuildingMode = useSyncExternalStore(
-    roadBuilderController.subscribe.bind(roadBuilderController),
-    () => roadBuilderController.getSnapshot(),
+  const mapEditMode = useSyncExternalStore(
+    editModeController.subscribe.bind(editModeController),
+    () => editModeController.getSnapshot(),
   );
-
-  const changeCapitalMode = useSyncExternalStore(
-    changeCapitalController.subscribe.bind(changeCapitalController),
-    () => changeCapitalController.getSnapshot(),
-  );
-
-  const maritimePresenceEditMode = useSyncExternalStore(
-    maritimePresenceEditController.subscribe.bind(maritimePresenceEditController),
-    () => maritimePresenceEditController.getSnapshot(),
-  );
-
-  const mode = useMemo(() => {
-    if (roadBuildingMode.isModeEnabled) {
-      return "roadBuilding";
-    }
-    if (changeCapitalMode.isModeEnabled) {
-      return "changeCapital";
-    }
-    if (maritimePresenceEditMode.isModeEnabled) {
-      return "editMaritimePresence";
-    }
-    return "acquire";
-  }, [roadBuildingMode.isModeEnabled, changeCapitalMode.isModeEnabled, maritimePresenceEditMode.isModeEnabled]);
 
   const { gameData } = useContext(AppContext);
   if (!gameData) {
@@ -170,7 +146,7 @@ export function InfoBoxComponent() {
 
   const hoveredLocations = hoveredLocation?.locations ?? [];
   if (hoveredLocations.length === 0) {
-    return <Container mode={mode}>
+    return <Container mode={mapEditMode.modeEnabled ?? null}>
       Hover or select a location to view details
     </Container>;
   }
@@ -183,10 +159,10 @@ export function InfoBoxComponent() {
     console.warn(
       `[InfoBoxComponent] No location data found for location: ${primaryLocation}`,
     );
-    return <Container mode={mode}>
+    return <Container mode={mapEditMode.modeEnabled ?? null}>
       Hover or select a location to view details
     </Container>;
   }
 
-  return <Container mode={mode}><LocationInfoBox locationData={locationData} temporaryData={temporaryData} gameState={gameLogic} mode={mode}></LocationInfoBox></Container>;
+  return <Container mode={mapEditMode.modeEnabled ?? null}><LocationInfoBox locationData={locationData} temporaryData={temporaryData} gameState={gameLogic} mode={mapEditMode.modeEnabled ?? null}></LocationInfoBox></Container>;
 }

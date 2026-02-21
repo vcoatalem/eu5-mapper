@@ -11,7 +11,7 @@ const railroadColor = "#f70202";
 
 export class ColorHelper {
   public static componentToHex(c: number): string {
-    var hex = c.toString(16);
+    const hex = c.toString(16);
     return hex.length == 1 ? "0" + hex : hex;
   }
 
@@ -60,6 +60,21 @@ export class ColorHelper {
     proximity: number,
   ): [r: number, g: number, b: number] {
     return this.getEvaluationColor(100 - proximity);
+  }
+
+  public static getMaritimePresenceColor(
+    maritimePresence: number,
+  ): [r: number, g: number, b: number] {
+    // since maritime presence is in [0,100], we can take same as proximity
+    return this.getProximityColor(maritimePresence);
+  }
+
+  public static getHarborSuitabilityColor(
+    harborSuitability: number,
+  ): [r: number, g: number, b: number] {
+    // harbor suitability is in [0,1]
+    // consider anything about 1 to be 100%
+    return this.getProximityColor(Math.min(100, harborSuitability * 100));
   }
 
   public static getRoadHexColor(roadType: RoadType): string {

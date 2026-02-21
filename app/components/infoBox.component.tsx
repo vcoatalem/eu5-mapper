@@ -10,6 +10,7 @@ import { changeCapitalController } from "@/app/lib/changeCapital.controller";
 import { NumbersHelper } from "@/app/lib/utils/numbers.helper";
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import { maritimePresenceEditController } from "@/app/lib/maritimePresenceEditController";
+import { ColorHelper } from "@/app/lib/drawing/color.helper";
 
 function LocationInfoBox(
   props: {
@@ -74,17 +75,16 @@ function LocationInfoBox(
             <span>📈 {locationData.development}</span>
             <span>👥 {NumbersHelper.formatWithSymbol(locationData.population)}</span>
             {locationData.hierarchy && (
-              <div className="flex items-center gap-2 text-xs text-stone-300 ml-auto">
+              <div className="flex flex-col items-center gap-1 text-xs text-stone-300 ml-auto">
                 <span>{locationData.hierarchy.province}</span>
-                <span className="text-stone-500">•</span>
                 <span>{locationData.hierarchy.subcontinent}</span>
               </div>
             )}
           </>
 
         )}
-        {locationData.isCoastal && locationData.ownable && <span>⚓ Harbor Suitability: {harborCapacity}</span>}
-        {(locationData.isSea || locationData.isLake) && <span>⚓ Maritime Presence: {LocationsHelper.getLocationMaritimePresence(locationData, temporaryData)}</span>}
+        {locationData.isCoastal && locationData.ownable && <span className="text-white text-md">⚓ Harbor Suitability: <span style={{ color: ColorHelper.rgbToHex(...ColorHelper.getHarborSuitabilityColor(harborCapacity)) }}>{harborCapacity.toFixed(2)}</span></span>}
+        {(locationData.isSea || locationData.isLake) && <span className="text-white text-md">⚓ Maritime Presence: <span style={{ color: ColorHelper.rgbToHex(...ColorHelper.getMaritimePresenceColor(LocationsHelper.getLocationMaritimePresence(locationData, temporaryData))) }}>{LocationsHelper.getLocationMaritimePresence(locationData, temporaryData).toFixed(2)}</span></span>}
       </div>
 
 

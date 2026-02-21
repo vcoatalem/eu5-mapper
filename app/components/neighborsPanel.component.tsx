@@ -27,6 +27,8 @@ import { StringHelper } from "@/app/lib/utils/string.helper";
 import { LocationsHelper } from "@/app/lib/locations.helper";
 import { AppContext } from "@/app/appContextProvider";
 import { EditableField } from "@/app/components/editableField.component";
+import styles from "@/app/styles/button.module.css";
+import { ColorHelper } from "@/app/lib/drawing/color.helper";
 
 const NeighborPanelListItem = memo(function NeighborPanelListItem({
   baseLocation,
@@ -181,7 +183,7 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
         return through === "land" || through === "river";
       }
       else if (maritimePresenceEditState.isModeEnabled) {
-        return through === "sea" || through === "lake" || through === "through-sea" || through === "coastal" || through === "port" || through === "port-river";
+        return through === "sea" || through === "lake" || through === "through-sea";
       }
       else {
         return true;
@@ -234,8 +236,17 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
         )}
         {roadBuilderState.isModeEnabled && (
           <button
-            className="bg-yellow-400 hover:bg-yellow-500 rounded-lg ml-auto px-2 py-1 text-black"
+            className={[styles.simpleButton, "ml-auto"].join(" ")}
             onClick={() => roadBuilderController.toggleMode()}
+          >
+            Done
+          </button>
+        )}
+
+        {maritimePresenceEditState.isModeEnabled && maritimePresenceEditState.location === locationName && (
+          <button
+            className={[styles.simpleButton, "ml-auto"].join(" ")}
+            onClick={() => maritimePresenceEditController.toggleMode()}
           >
             Done
           </button>
@@ -248,12 +259,14 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
             <EditableField
               key={locationName}
               autoFocus={maritimePresenceEditState.isModeEnabled && maritimePresenceEditState.location === locationName}
-              onValidate={(value) => {}}
+              onValidate={(value) => {
+                gameStateController.changeTemporaryLocationData(locationName, { maritimePresence: value });
+              }}
               tooltip={<span>Edit maritime presence</span>}
               value={locationMaritimePresence}
               baseValue={locationMaritimePresence}
             >
-              <span>{locationMaritimePresence}</span>
+              <span style={{ color: ColorHelper.rgbToHex(...ColorHelper.getMaritimePresenceColor(locationMaritimePresence)) }}>{locationMaritimePresence}</span>
             </EditableField></div>
           <hr className="my-2 border-stone-300 w-full"></hr>
         </>

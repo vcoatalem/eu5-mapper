@@ -227,12 +227,7 @@ export class ProximityComputationHelper {
       return baseCost - roadFlatCostReduction;
     } else {
       // Normalize maritimePresence to [0,1]
-      let normalizedMaritimePresence =
-        edgeType === "lake" ? 1 : maritimePresence / 100;
-      normalizedMaritimePresence = Math.max(
-        0,
-        Math.min(1, normalizedMaritimePresence),
-      );
+      const normalizedMaritimePresence = Math.max(0, Math.min(1, maritimePresence / 100));
       const costWithoutMaritimePresence =
         rule.baseCostWithoutMaritimePresence -
         (proximityBuffs.getBuffsOfType("seaWithoutMaritimeFlatCostReduction")
@@ -289,7 +284,6 @@ export class ProximityComputationHelper {
           gameData.proximityComputationRule.harborCapacityImpact;
 
         const harborCapacityModifier = harborCapacity * harborImpact * 100;
-        /* const proximityModifier = harborImpact * harborCapacity * 100; */
 
         if (fromLocation.isSea) {
           return harborCapacityModifier;
@@ -373,17 +367,6 @@ export class ProximityComputationHelper {
     return modifiers.reduce((a, b) => a + b, 0);
   }
 
-  private static getMaritimePresenceAtLocation(
-    gameData: IGameData,
-    location: ILocationIdentifier,
-  ): number {
-    // TODO: allow gameState to store override for specific locations
-    if (gameData.locationDataMap[location].topography === "ocean") {
-      return 0;
-    }
-    return 50;
-  }
-
   public static getProximityCostFunction(
     gameState: IGameState,
     gameData: IGameData,
@@ -412,10 +395,7 @@ export class ProximityComputationHelper {
         from = throughSeaLocation;
       }
 
-      const maritimePresence = this.getMaritimePresenceAtLocation(
-        gameData,
-        from,
-      );
+      const maritimePresence =  LocationsHelper.getLocationMaritimePresence(gameData.locationDataMap[from], gameState.temporaryLocationData[from] ?? null);
       const baseCost = this.getFlatProximityCost(
         edgeType,
         rule,

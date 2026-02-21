@@ -53,7 +53,6 @@ export function MainActionsBar() {
 
   return (
     <div className="flex flex-row gap-2 items-center">
-
       <ButtonWithTooltip className="h-10 relative" tooltip="Toggle capital location edition" isActive={changeCapitalState.isModeEnabled} onClick={() => toggleMode(changeCapitalController)}>
         <IoStarSharp color="white" size={24}></IoStarSharp>
       </ButtonWithTooltip>

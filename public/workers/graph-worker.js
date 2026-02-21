@@ -404,6 +404,22 @@
       }
       return locationData.naturalHarborSuitability + (Object.values(locationConstructibleData?.buildings ?? {}).reduce((acc, building) => acc + (building?.template?.modifiers?.harborSuitability ?? 0), 0) ?? 0);
     }
+    static getDefaultMaritimePresence(locationData) {
+      if (locationData.topography === "ocean") {
+        return 0;
+      }
+      if (locationData.isLake) {
+        return 100;
+      }
+      return 50;
+    }
+    static getLocationMaritimePresence(locationData, locationTemporaryData) {
+      if (!locationData.isSea && !locationData.isLake) {
+        return -1;
+      }
+      const defaultMaritimePresence = this.getDefaultMaritimePresence(locationData);
+      return locationTemporaryData?.maritimePresence ?? defaultMaritimePresence;
+    }
   };
 
   // app/lib/classes/countryProximityBuffs.ts
@@ -560,11 +576,7 @@
         const roadFlatCostReduction = isImpactedByRoad && roadToDestination ? rule.roadProximityCostReduction[roadToDestination] : 0;
         return baseCost - roadFlatCostReduction;
       } else {
-        let normalizedMaritimePresence = edgeType === "lake" ? 1 : maritimePresence / 100;
-        normalizedMaritimePresence = Math.max(
-          0,
-          Math.min(1, normalizedMaritimePresence)
-        );
+        const normalizedMaritimePresence = Math.max(0, Math.min(1, maritimePresence / 100));
         const costWithoutMaritimePresence = rule.baseCostWithoutMaritimePresence - (proximityBuffs.getBuffsOfType("seaWithoutMaritimeFlatCostReduction").sum ?? 0);
         const costWithMaritimePresence = rule.baseCostWithMaritimePresence - (proximityBuffs.getBuffsOfType("seaWithMaritimeFlatCostReduction").sum ?? 0);
         return costWithoutMaritimePresence * (1 - normalizedMaritimePresence) + costWithMaritimePresence * normalizedMaritimePresence;
@@ -653,12 +665,6 @@
       });
       return modifiers.reduce((a, b) => a + b, 0);
     }
-    static getMaritimePresenceAtLocation(gameData2, location) {
-      if (gameData2.locationDataMap[location].topography === "ocean") {
-        return 0;
-      }
-      return 50;
-    }
     static getProximityCostFunction(gameState, gameData2, options) {
       return (from, to, edgeType, throughSeaLocation) => {
         const rule = gameData2.proximityComputationRule;
@@ -672,10 +678,7 @@
         if (!rule.throughSeaEdgeCountedAsLandProximity && throughSeaLocation && edgeType === "through-sea") {
           from = throughSeaLocation;
         }
-        const maritimePresence = this.getMaritimePresenceAtLocation(
-          gameData2,
-          from
-        );
+        const maritimePresence = LocationsHelper.getLocationMaritimePresence(gameData2.locationDataMap[from], gameState.temporaryLocationData[from] ?? null);
         const baseCost = this.getFlatProximityCost(
           edgeType,
           rule,
@@ -974,7 +977,9 @@
               {
                 allowUnownedLocations: true,
                 // allow passing over unowned
-                logForLocations: ["strait_of_dover", "windsor"],
+                logForLocations: [
+                  /* "strait_of_dover", "windsor" */
+                ],
                 logMethod: (message, data) => {
                   sendMessage(self, {
                     data: data ?? null,

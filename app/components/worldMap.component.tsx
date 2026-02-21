@@ -74,6 +74,7 @@ export function WorldMapComponent() {
   const topLayerRef = useRef<HTMLCanvasElement>(null);
   const constructibleCanvasRef = useRef<HTMLCanvasElement>(null);
   const roadCanvasRef = useRef<HTMLCanvasElement>(null);
+  const maritimePresenceCanvasRef = useRef<HTMLCanvasElement>(null);
   const indicatorCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const drawingServiceRef = useRef<DrawingService>(null);
@@ -187,7 +188,7 @@ export function WorldMapComponent() {
       {
         name: "borderLayer",
         ref: borderCanvasRef,
-        zIndex: 5,
+        zIndex: 4,
         path: imagePaths?.borderLayer,
       },
       {
@@ -199,7 +200,7 @@ export function WorldMapComponent() {
       {
         name: "terrainLayer",
         ref: terrainCanvasRef,
-        zIndex: 4,
+        zIndex: 3,
         path: imagePaths?.terrainLayer,
       },
       {
@@ -220,6 +221,12 @@ export function WorldMapComponent() {
         zIndex: 10,
         createMethod: createTransparentCanvas,
       },
+      {
+        name: "maritimePresenceLayer",
+        ref: maritimePresenceCanvasRef,
+        zIndex: 5,
+        createMethod: createTransparentCanvas,
+      }
     ],
     [
       imagePaths?.locationsImage,
@@ -420,6 +427,7 @@ export function WorldMapComponent() {
       constructibleCanvasRef.current!,
       roadCanvasRef.current!,
       indicatorCanvasRef.current!,
+      maritimePresenceCanvasRef.current!,
       { width: worldMapConfig.width, height: worldMapConfig.height },
       gameData,
     );
@@ -519,6 +527,7 @@ export function WorldMapComponent() {
         values: [{ locations }, maritimePresenceEditState],
       }) => {
         /* console.log("[WorldMapComponent] hover in maritime presence mode",{ locations, type, maritimePresenceEditState}); */
+        if (roadBuilderController.getSnapshot().isModeEnabled) return;
         if (maritimePresenceEditState.location) {
           return; // already editing a location
         }
@@ -860,7 +869,7 @@ export function WorldMapComponent() {
               <GuiElement className="min-h-0 shrink w-72 overflow-y-scroll">
                 <CountryOverview />
               </GuiElement>
-              <GuiElement className="h-px min-h-14 py-2 flex-none">
+              <GuiElement className="h-content py-2 flex-none">
                 <MainActionsBar></MainActionsBar>
               </GuiElement>
               <GuiElement className="min-h-0 w-72 max-h-[60vh] shrink overflow-y-scroll">

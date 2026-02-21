@@ -69,14 +69,14 @@ export function EditableField<TValue>(props: IEditableFieldProps<TValue>) {
     setIsStartingEdition(false);
   }, []);
 
-  /* const prevAutoFocusRef = useRef(false); */
+  const prevAutoFocusRef = useRef(false);
   useEffect(() => {
-    if (props.autoFocus /* && !prevAutoFocusRef.current */) {
-      /* prevAutoFocusRef.current = true; */
+    if (props.autoFocus && !prevAutoFocusRef.current) {
+      prevAutoFocusRef.current = true;
       console.log("[EditableField] autoFocus is true, starting edition");
       queueMicrotask(() => startEditing());
     } else if (!props.autoFocus) {
-      /* prevAutoFocusRef.current = false; */
+      prevAutoFocusRef.current = false;
     }
   }, [props.autoFocus, startEditing]);
 

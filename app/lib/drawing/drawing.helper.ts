@@ -47,8 +47,9 @@ export class DrawingHelper {
   ): void {
     const radius = size / 2;
     ctx.beginPath();
-    for (let i = 0; i < 5; i++) {
-      const angle = (i * 2 * Math.PI) / 5 - Math.PI / 2; // Start from top
+    // Diamond square: 4 vertices (top, right, bottom, left)
+    for (let i = 0; i < 4; i++) {
+      const angle = (i * Math.PI) / 2 - Math.PI / 2; // Start from top
       const px = canvasCoordinate.x + radius * Math.cos(angle);
       const py = canvasCoordinate.y + radius * Math.sin(angle);
       if (i === 0) {
@@ -86,9 +87,11 @@ export class DrawingHelper {
   public static drawHighlights(
     ctx: CanvasRenderingContext2D,
     borderCanvas: ICoordinate[][],
+    colorFn: (...args: unknown[]) => string = () => "rgba(255,255,255,0.5)",
+    colorFnArgs?: unknown[]
   ): void {
     ctx.save();
-    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    ctx.fillStyle = colorFn(...colorFnArgs ?? []);
     for (const coords of borderCanvas) {
       for (const c of coords) {
         ctx.fillRect(c.x, c.y, 1, 1);

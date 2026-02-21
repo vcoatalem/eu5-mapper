@@ -178,7 +178,6 @@ export function RoadList(props: IRoadListProps) {
       <hr className="mt-2 mb-1"></hr>
       <div className="w-full flex flex-row gap-2 relative">
         <Popover
-          panelPosition="top-9"
           panelClassName="w-full flex flex-col gap-2"
           renderTrigger={({ isOpen, toggle }) => (
             <button className={`${buttonStyles.simpleButton} ${isOpen ? buttonStyles.buttonActive : ""}`} onClick={toggle}>

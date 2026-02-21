@@ -12,6 +12,7 @@ import {
 import { AppContext } from "../appContextProvider";
 import { ICountryInstance } from "../lib/types/general";
 import { CountryStats } from "./countryStatsComponent";
+import { CountryProximityBuffs } from "@/app/components/countryProximityBuffs.component";
 
 function CountryValueInput({
   valueKey,
@@ -120,6 +121,7 @@ function RulerAdministrativeSkillInput({ value }: { value: number }) {
 export function CountryOverview() {
   const [countryMenuExpanded, setCountryMenuExpanded] = useState(false);
   const [countryStatsExpanded, setCountryStatsExpanded] = useState(false);
+  const [countryProximityBuffsExpanded, setCountryProximityBuffsExpanded] = useState(false);
   const gameState = useSyncExternalStore(
     gameStateController.subscribe.bind(gameStateController),
     () => gameStateController.getSnapshot(),
@@ -157,6 +159,15 @@ export function CountryOverview() {
             value={country.rulerAdministrativeAbility}
           />
         </div>
+        
+      </FoldableMenu>
+
+      <FoldableMenu
+        title="Country Buff Breakdown"
+        isExpanded={countryProximityBuffsExpanded}
+        onToggle={() => setCountryProximityBuffsExpanded(!countryProximityBuffsExpanded)}
+      >
+        <CountryProximityBuffs country={country}></CountryProximityBuffs>
       </FoldableMenu>
 
       <FoldableMenu

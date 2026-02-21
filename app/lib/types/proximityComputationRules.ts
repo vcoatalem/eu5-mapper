@@ -3,13 +3,17 @@ import { ILocationGameData, RoadType } from "./general";
 export interface IProximityBuffs {
   genericModifier?: number;
   landModifier?: number;
-  genericFlatModifier?: number;
-  seaWithMaritimeFlatCostReduction?: number;
+  seaWithMaritimeFlatCostReduction?: number
   seaWithoutMaritimeFlatCostReduction?: number;
   portFlatCostReduction?: number;
   topographyMultipliers?: Partial<
     Record<ILocationGameData["topography"], number>
   >;
+}
+
+export interface IProximityBuffDisplayableData {
+  label: string;
+  description: string;
 }
 
 export interface IProximityComputationRule {

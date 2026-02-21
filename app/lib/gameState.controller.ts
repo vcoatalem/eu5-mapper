@@ -59,7 +59,7 @@ export class GameStateController extends Observable<IGameState> {
     return name ?? "??";
   }
 
-  public selectLocation(locationName: string): boolean {
+  public toggleLocationOwnership(locationName: string): boolean {
     if (!this.subject) return false;
     const storedLocation = this.subject.ownedLocations[locationName];
     if (!storedLocation) {

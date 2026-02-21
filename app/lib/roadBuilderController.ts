@@ -1,14 +1,14 @@
 import { Observable } from "./observable";
-import { ILocationIdentifier } from "./types/general";
+import { ILocationGameData, ILocationIdentifier } from "./types/general";
 
 interface IRoadBuilderState {
-  isBuildingModeEnabled: boolean;
+  isModeEnabled: boolean;
   isBuildingAtLocation: ILocationIdentifier | null;
 }
 
-export class RoadBuilderController extends Observable<IRoadBuilderState> {
+class RoadBuilderController extends Observable<IRoadBuilderState> {
   private baseState: IRoadBuilderState = {
-    isBuildingModeEnabled: false,
+    isModeEnabled: false,
     isBuildingAtLocation: null,
   };
   constructor() {
@@ -16,10 +16,10 @@ export class RoadBuilderController extends Observable<IRoadBuilderState> {
     this.init();
   }
 
-  public toggleBuildingMode(): void {
+  public toggleMode(): void {
     this.subject = {
       isBuildingAtLocation: null,
-      isBuildingModeEnabled: !this.subject.isBuildingModeEnabled,
+      isModeEnabled: !this.subject.isModeEnabled,
     };
     this.notifyListeners();
   }
@@ -27,7 +27,7 @@ export class RoadBuilderController extends Observable<IRoadBuilderState> {
   public selectLocationForBuildingRoad(
     locationName: ILocationIdentifier,
   ): void {
-    if (!this.subject.isBuildingModeEnabled) return;
+    if (!this.subject.isModeEnabled) return;
     this.subject = {
       ...this.subject,
       isBuildingAtLocation: locationName,
@@ -38,6 +38,10 @@ export class RoadBuilderController extends Observable<IRoadBuilderState> {
   public init(): void {
     this.subject = { ...this.baseState };
     this.notifyListeners();
+  }
+
+  public isLocationEligibleForMode(location: ILocationGameData): boolean {
+    return !!location.ownable && !location.isSea && !location.isLake;
   }
 }
 

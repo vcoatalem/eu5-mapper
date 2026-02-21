@@ -1,4 +1,4 @@
-import { IConstructibleLocation, ILocationGameData, ILocationIdentifier, RoadRecord } from "./types/general";
+import { IConstructibleLocation, ILocationGameData, ILocationIdentifier, ITemporaryLocationData, RoadRecord } from "./types/general";
 
 export class LocationsHelper {
   public static locationHasRoad(
@@ -17,5 +17,27 @@ export class LocationsHelper {
     }
     return locationData.naturalHarborSuitability +
       (Object.values(locationConstructibleData?.buildings ?? {}).reduce((acc, building) => acc + (building?.template?.modifiers?.harborSuitability ?? 0), 0) ?? 0);
+  }
+
+
+  private static getDefaultMaritimePresence(locationData: ILocationGameData): number {
+    if (locationData.topography === "ocean") {
+      return 0;
+    }
+    if (locationData.isLake) {
+      return 100;
+    }
+    return 50;
+  }
+
+  public static getLocationMaritimePresence(
+    locationData: NonNullable<ILocationGameData>,
+    locationTemporaryData: ITemporaryLocationData | null,
+  ): number {
+    if (!locationData.isSea && !locationData.isLake) {
+      return -1;
+    }
+    const defaultMaritimePresence = this.getDefaultMaritimePresence(locationData);
+    return locationTemporaryData?.maritimePresence ?? defaultMaritimePresence;
   }
 }

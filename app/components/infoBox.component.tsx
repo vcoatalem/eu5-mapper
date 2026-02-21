@@ -1,6 +1,6 @@
 import { JSX, memo, useContext, useMemo, useSyncExternalStore } from "react";
 import { AppContext } from "../appContextProvider";
-import { IGameState, ILocationGameData } from "../lib/types/general";
+import { IGameState, ILocationGameData, ITemporaryLocationData } from "../lib/types/general";
 import { gameStateController } from "@/app/lib/gameState.controller";
 import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
 import { LocationsHelper } from "@/app/lib/locations.helper";
@@ -9,24 +9,32 @@ import styles from "@/app/styles/Gui.module.css";
 import { changeCapitalController } from "@/app/lib/changeCapital.controller";
 import { NumbersHelper } from "@/app/lib/utils/numbers.helper";
 import { StringHelper } from "@/app/lib/utils/string.helper";
+import { maritimePresenceEditController } from "@/app/lib/maritimePresenceEditController";
 
 function LocationInfoBox(
   props: {
     locationData: ILocationGameData,
+    temporaryData: ITemporaryLocationData,
     gameState: IGameState,
     mode: "acquire" | "roadBuilding" | "changeCapital" | "editMaritimePresence",
   }
 ) {
-  const { locationData, gameState, mode } = props;
+  const { locationData, gameState, mode, temporaryData } = props;
 
   const owned = useMemo(() => gameState.ownedLocations[locationData?.name ?? ""], [gameState.ownedLocations, locationData?.name]);
 
-  const cta = useMemo<{label: string, active: boolean}>(() => {
+  const cta = useMemo<{ label: string, active: boolean }>(() => {
     if (mode === "roadBuilding") {
       return { label: "Click to start building a road", active: true };
     }
     if (mode === "changeCapital") {
       return { label: "Click to change capital location", active: true };
+    }
+    if (mode === "editMaritimePresence") {
+      if (locationData.isSea || locationData.isLake) {
+        return { label: "Click to edit maritime presence", active: true };
+      }
+      return { label: "Not Maritime Location", active: false };
     }
     else {
       if (props.locationData.ownable) {
@@ -48,7 +56,7 @@ function LocationInfoBox(
     // can happen with HMR
     return <></>
   }
- 
+
   if (!locationData) {
     return <span>No data available</span>;
   }
@@ -62,24 +70,24 @@ function LocationInfoBox(
         <span>🏔️ {locationData.topography}</span>
         {locationData.ownable && (
           <>
+            {locationData.vegetation && <span>🌿 {locationData.vegetation}</span>}
             <span>📈 {locationData.development}</span>
             <span>👥 {NumbersHelper.formatWithSymbol(locationData.population)}</span>
+            {locationData.hierarchy && (
+              <div className="flex items-center gap-2 text-xs text-stone-300 ml-auto">
+                <span>{locationData.hierarchy.province}</span>
+                <span className="text-stone-500">•</span>
+                <span>{locationData.hierarchy.subcontinent}</span>
+              </div>
+            )}
           </>
 
         )}
-        {locationData.isCoastal && locationData.ownable && <span>⚓ Capacity: {harborCapacity}</span>}
-        {locationData.vegetation && <span>🌿 {locationData.vegetation}</span>}
-
-
+        {locationData.isCoastal && locationData.ownable && <span>⚓ Harbor Suitability: {harborCapacity}</span>}
+        {(locationData.isSea || locationData.isLake) && <span>⚓ Maritime Presence: {LocationsHelper.getLocationMaritimePresence(locationData, temporaryData)}</span>}
       </div>
 
-      {locationData.hierarchy && (
-        <div className="flex items-center gap-2 text-xs text-stone-300 ml-auto">
-          <span>{locationData.hierarchy.province}</span>
-          <span className="text-stone-500">•</span>
-          <span>{locationData.hierarchy.subcontinent}</span>
-        </div>
-      )}
+
 
       <span className={["ml-auto w-64", (cta.active ? "text-yellow-500" : "text-stone-400")].join(" ")} >
         {cta.label}
@@ -98,6 +106,9 @@ const Container = memo(function Container(props: { children: React.ReactNode, mo
     }
     if (props.mode === "changeCapital") {
       return styles.changeCapitalStripes;
+    }
+    if (props.mode === "editMaritimePresence") {
+      return styles.editMaritimePresenceStripes;
     }
     return "";
   }, [props.mode]);
@@ -134,15 +145,23 @@ export function InfoBoxComponent() {
     () => changeCapitalController.getSnapshot(),
   );
 
+  const maritimePresenceEditMode = useSyncExternalStore(
+    maritimePresenceEditController.subscribe.bind(maritimePresenceEditController),
+    () => maritimePresenceEditController.getSnapshot(),
+  );
+
   const mode = useMemo(() => {
-    if (roadBuildingMode.isBuildingModeEnabled) {
+    if (roadBuildingMode.isModeEnabled) {
       return "roadBuilding";
     }
     if (changeCapitalMode.isModeEnabled) {
       return "changeCapital";
     }
+    if (maritimePresenceEditMode.isModeEnabled) {
+      return "editMaritimePresence";
+    }
     return "acquire";
-  }, [roadBuildingMode.isBuildingModeEnabled, changeCapitalMode.isModeEnabled]);
+  }, [roadBuildingMode.isModeEnabled, changeCapitalMode.isModeEnabled, maritimePresenceEditMode.isModeEnabled]);
 
   const { gameData } = useContext(AppContext);
   if (!gameData) {
@@ -159,6 +178,7 @@ export function InfoBoxComponent() {
   const primaryLocation = hoveredLocations[0];
   const locationData =
     gameData.locationDataMap?.[primaryLocation ?? ""];
+  const temporaryData = gameLogic.temporaryLocationData[primaryLocation ?? ""] ?? null;
   if (!locationData) {
     console.warn(
       `[InfoBoxComponent] No location data found for location: ${primaryLocation}`,
@@ -168,5 +188,5 @@ export function InfoBoxComponent() {
     </Container>;
   }
 
-  return <Container mode={mode}><LocationInfoBox locationData={locationData} gameState={gameLogic} mode={mode}></LocationInfoBox></Container>;
+  return <Container mode={mode}><LocationInfoBox locationData={locationData} temporaryData={temporaryData} gameState={gameLogic} mode={mode}></LocationInfoBox></Container>;
 }

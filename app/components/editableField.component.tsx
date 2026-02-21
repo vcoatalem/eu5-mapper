@@ -5,7 +5,6 @@ import {
   TooltipTrigger,
   TooltipTriggerChildProps,
 } from "@/app/lib/tooltip/tooltipTrigger.component";
-import Image from "next/image";
 import {
   JSXElementConstructor,
   ReactElement,
@@ -15,32 +14,35 @@ import {
   useState,
 } from "react";
 import { FaCheck } from "react-icons/fa6";
-import { RiResetRightFill, RiResetRightLine } from "react-icons/ri";
+import { RiResetRightLine } from "react-icons/ri";
 
-interface IEditableFieldProps<T> {
-  onValidate: (value: T) => void;
+interface IEditableFieldProps<TValue> {
+  onValidate: (value: TValue) => void;
   className?: string;
   tooltip: ReactElement;
   children: ReactElement<
     TooltipTriggerChildProps,
     string | JSXElementConstructor<unknown>
   >;
-  value: T; // handle strings later
-  baseValue: T;
+  value: TValue; // handle strings later
+  baseValue: TValue;
+  autoFocus?: boolean;
 }
 
-export function EditableField<T>(props: IEditableFieldProps<T>) {
+export function EditableField<TValue>(props: IEditableFieldProps<TValue>) {
   const divRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const baseValueRef = useRef<T | null>(null);
-  const [isEditing, setIsEditing] = useState<T | null>(null);
+  const baseValueRef = useRef<TValue | null>(null);
+  const [isEditing, setIsEditing] = useState<TValue | null>(null);
   const [isStartingEdition, setIsStartingEdition] = useState<boolean>(false);
 
+
+  console.log("[EditableField] props", props);
   const startEditing = useCallback(() => {
     console.log("[EditableField] Starting edition");
     setIsStartingEdition(true);
     setIsEditing(props.value);
-  }, [props.value, inputRef.current]);
+  }, [props.value]);
 
   useEffect(() => {
     if (isStartingEdition) {
@@ -55,23 +57,39 @@ export function EditableField<T>(props: IEditableFieldProps<T>) {
 
   const completeEdition = useCallback(() => {
     console.log("[EditableField] Completing edition");
-    if (isEditing && isEditing !== props.value) {
+    if (isEditing !== null && isEditing !== props.value) {
       props.onValidate(isEditing);
     }
     setIsEditing(null);
     setIsStartingEdition(false);
   }, [isEditing, props]);
 
+  const cancelEdition = useCallback(() => {
+    setIsEditing(null);
+    setIsStartingEdition(false);
+  }, []);
+
+  /* const prevAutoFocusRef = useRef(false); */
+  useEffect(() => {
+    if (props.autoFocus /* && !prevAutoFocusRef.current */) {
+      /* prevAutoFocusRef.current = true; */
+      console.log("[EditableField] autoFocus is true, starting edition");
+      queueMicrotask(() => startEditing());
+    } else if (!props.autoFocus) {
+      /* prevAutoFocusRef.current = false; */
+    }
+  }, [props.autoFocus, startEditing]);
+
   useEffect(() => {
     baseValueRef.current = props.value;
 
     if (divRef.current) {
-      console.log("[EditableField] registering event listeners");
+      /* console.log("[EditableField] registering event listeners"); */
       divRef.current.addEventListener("click", startEditing);
       divRef.current.addEventListener("focus", startEditing);
     }
     return () => {
-      console.log("[EditableField] unregistering event listeners");
+      /* console.log("[EditableField] unregistering event listeners"); */
       divRef.current?.removeEventListener("click", startEditing);
       divRef.current?.removeEventListener("focus", startEditing);
     };
@@ -90,11 +108,20 @@ export function EditableField<T>(props: IEditableFieldProps<T>) {
                 type="number"
                 defaultValue={Number(isEditing)}
                 onChange={(e) =>
-                  setIsEditing((Number(e.target.value) ?? 0) as T)
+                  setIsEditing((Number(e.target.value) ?? 0) as TValue)
                 } //TODO: find proper way to handle cast
-                onBlur={(e) => {
-                  console.log("onblur");
+                onBlur={() => {
+                  console.log("[EditableField] onBlur");
                   completeEdition();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    completeEdition();
+                  } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    cancelEdition();
+                  }
                 }}
               />
             ) : (
@@ -133,7 +160,7 @@ export function EditableField<T>(props: IEditableFieldProps<T>) {
         )}
         {isEditing !== null && (
           <ButtonWithTooltip
-            showOnHover={true}
+            showOnHover={false}
             tooltip={"Validate changes"}
             onClick={(e) => {
               if (e) {

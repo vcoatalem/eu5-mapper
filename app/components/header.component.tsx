@@ -63,7 +63,7 @@ export function HeaderComponent() {
       <RegularHeader />
       <Modal
         isOpen={!!changeCapitalState.needConfirmationForLocation}
-        onClose={() => changeCapitalController.toggleChangeCapitalMode()}
+        onClose={() => changeCapitalController.toggleMode()}
       >
         <div
           className={
@@ -84,7 +84,7 @@ export function HeaderComponent() {
               Yes
             </button>
             <button
-              onClick={() => changeCapitalController.toggleChangeCapitalMode()}
+              onClick={() => changeCapitalController.toggleMode()}
               className="border border white px-2 py-1 min-w-16 hover:bg-stone-600 text-white rounded-md font-bold"
             >
               Cancel

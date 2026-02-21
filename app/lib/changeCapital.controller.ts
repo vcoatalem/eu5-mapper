@@ -1,6 +1,6 @@
 import { gameStateController } from "./gameState.controller";
 import { Observable } from "./observable";
-import { ILocationIdentifier } from "./types/general";
+import { ILocationGameData, ILocationIdentifier } from "./types/general";
 
 export interface IChangeCapitalState {
   isModeEnabled: boolean;
@@ -37,7 +37,7 @@ class ChangeCapitalController extends Observable<IChangeCapitalState> {
     this.notifyListeners();
   }
 
-  public toggleChangeCapitalMode(): void {
+  public toggleMode(): void {
     this.subject = {
       isModeEnabled: !this.subject.isModeEnabled,
       needConfirmationForLocation: null,
@@ -48,6 +48,10 @@ class ChangeCapitalController extends Observable<IChangeCapitalState> {
   public init(): void {
     this.subject = baseState;
     this.notifyListeners();
+  }
+
+  public isLocationEligibleForMode(location: ILocationGameData): boolean {
+    return !!location.ownable && !location.isSea && !location.isLake;
   }
 }
 

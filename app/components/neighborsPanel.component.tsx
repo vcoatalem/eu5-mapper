@@ -1,25 +1,32 @@
-import React, {
-  memo,
-  useCallback,
-  useEffect,
-  useSyncExternalStore,
-} from "react";
-import { ILocationIdentifier, RoadType } from "../lib/types/general";
+import { gameStateController } from "@/app/lib/gameState.controller";
 import {
   debouncedNeighborsProximityComputationController,
   neighborsProximityComputationController,
 } from "@/app/lib/neighborsProximityComputation.controller";
-import { gameStateController } from "@/app/lib/gameState.controller";
-import { ColorHelper } from "../lib/drawing/color.helper";
 import { roadBuilderController } from "@/app/lib/roadBuilderController";
+import Image from "next/image";
+import {
+  memo,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useSyncExternalStore,
+} from "react";
 import { ActionSource } from "../lib/actionSource.component";
-import { EdgeType } from "../lib/types/pathfinding";
 import { getGuiImage } from "../lib/drawing/namedGuiImagesMap.const";
-import { Loader } from "./loader.component";
 import { debouncedProximityComputationController } from "../lib/proximityComputation.controller";
 import { ProximityComputationHelper } from "../lib/proximityComputation.helper";
-import { FormatedProximityCost } from "./formatedProximityCost.component";
+import { ILocationIdentifier, RoadType } from "../lib/types/general";
+import { EdgeType } from "../lib/types/pathfinding";
 import { FormatedProximity } from "./formatedProximity.component";
+import { FormatedProximityCost } from "./formatedProximityCost.component";
+import { Loader } from "./loader.component";
+import { maritimePresenceEditController } from "@/app/lib/maritimePresenceEditController";
+import { StringHelper } from "@/app/lib/utils/string.helper";
+import { LocationsHelper } from "@/app/lib/locations.helper";
+import { AppContext } from "@/app/appContextProvider";
+import { EditableField } from "@/app/components/editableField.component";
 
 const NeighborPanelListItem = memo(function NeighborPanelListItem({
   baseLocation,
@@ -81,7 +88,7 @@ const NeighborPanelListItem = memo(function NeighborPanelListItem({
         </ActionSource>
 
         {isRoadBuildingMode && (
-          <img
+          <Image
             src={getGuiImage("gravel_road") ?? ""}
             alt="road"
             width={32}
@@ -114,6 +121,8 @@ interface NeighborsPanelProps {
 }
 
 export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
+
+  const gameData = useContext(AppContext).gameData;
   const { computationResults } = useSyncExternalStore(
     debouncedNeighborsProximityComputationController.subscribe.bind(
       debouncedNeighborsProximityComputationController,
@@ -132,6 +141,13 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
     roadBuilderController.subscribe.bind(roadBuilderController),
     () => {
       return roadBuilderController.getSnapshot();
+    },
+  );
+
+  const maritimePresenceEditState = useSyncExternalStore(
+    maritimePresenceEditController.subscribe.bind(maritimePresenceEditController),
+    () => {
+      return maritimePresenceEditController.getSnapshot();
     },
   );
 
@@ -156,14 +172,18 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
     }
   }, [neighborLocationResult]);
 
-  const adjacentLocations = Object.entries(
+  const adjacentLocations = useMemo(() => Object.entries(
     neighborLocationResult?.neighbors ?? {},
   )
     .filter(([location, { through }]) => {
       if (location === locationName) return false;
-      if (roadBuilderState.isBuildingModeEnabled) {
+      if (roadBuilderState.isModeEnabled) {
         return through === "land" || through === "river";
-      } else {
+      }
+      else if (maritimePresenceEditState.isModeEnabled) {
+        return through === "sea" || through === "lake" || through === "through-sea" || through === "coastal" || through === "port" || through === "port-river";
+      }
+      else {
         return true;
       }
     })
@@ -175,18 +195,30 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
         gameState.roads[locationName]?.find((r) => r.to === location)?.type ??
         null,
       owned: gameState.ownedLocations[location] !== undefined,
-    }));
+    })), [neighborLocationResult, roadBuilderState, maritimePresenceEditState, gameState, locationName]);
 
+  const locationMaritimePresence = useMemo(() => {
+    if (!gameData || !gameState) {
+      return -1;
+    }
+    /* console.log("[NeighborsPanelComponent] locationMaritimePresence", gameData?.locationDataMap[locationName], gameState.temporaryLocationData[locationName]); */
+    if (!gameData.locationDataMap[locationName]) {
+      return -1;
+    }
+    return LocationsHelper.getLocationMaritimePresence(gameData.locationDataMap[locationName], gameState.temporaryLocationData[locationName] ?? null);
+  }, [gameData, gameState, locationName]);
+
+
+  /*  console.log("[NeighborsPanelComponent] locationMaritimePresence", locationMaritimePresence); */
   return (
     <div
       className={
         "max-h-96 min-h-52 overflow-y-auto backdrop-blur-sm p-3" +
-        (roadBuilderState.isBuildingModeEnabled ? " w-[400px] " : " w-[280px] ")
+        (roadBuilderState.isModeEnabled ? " w-[400px] " : " w-[280px] ")
       }
     >
       <div className="w-full flex flex-row items-center mb-2">
-        <div className="font-semibold text-stone-300">{locationName}</div>
-
+        <div className="font-semibold text-stone-300">{locationName ? StringHelper.formatLocationName(locationName) : ""}</div>
         {locationName in globalProximityResult.result && (
           <span className="ml-4">
             {globalProximityResult.status === "pending" && <></>}
@@ -200,17 +232,35 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
             )}
           </span>
         )}
-
-        {roadBuilderState.isBuildingModeEnabled && (
+        {roadBuilderState.isModeEnabled && (
           <button
             className="bg-yellow-400 hover:bg-yellow-500 rounded-lg ml-auto px-2 py-1 text-black"
-            onClick={() => roadBuilderController.toggleBuildingMode()}
+            onClick={() => roadBuilderController.toggleMode()}
           >
             Done
           </button>
         )}
       </div>
+      <hr className="my-2 border-stone-300 w-full"></hr>
+      {locationMaritimePresence > -1 && (
+        <>
+          <div className="flex flex-row items-center gap-2 relative">⚓ Maritime Presence: 
+            <EditableField
+              key={locationName}
+              autoFocus={maritimePresenceEditState.isModeEnabled && maritimePresenceEditState.location === locationName}
+              onValidate={(value) => {}}
+              tooltip={<span>Edit maritime presence</span>}
+              value={locationMaritimePresence}
+              baseValue={locationMaritimePresence}
+            >
+              <span>{locationMaritimePresence}</span>
+            </EditableField></div>
+          <hr className="my-2 border-stone-300 w-full"></hr>
+        </>
+      )}
+
       <div className="flex flex-col gap-1 text-xs">
+
         <span>adjacent regions proximity</span>
         {adjacentLocations.length === 0 && computationStatus === "pending" && (
           <div className="w-full h-10">
@@ -227,7 +277,7 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
             through={through}
             road={road}
             owned={owned}
-            isRoadBuildingMode={roadBuilderState.isBuildingModeEnabled}
+            isRoadBuildingMode={roadBuilderState.isModeEnabled}
           ></NeighborPanelListItem>
         ))}
       </div>

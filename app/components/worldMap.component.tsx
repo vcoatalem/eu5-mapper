@@ -43,6 +43,7 @@ import { RoadList } from "./roadList.component";
 import { WorkerStatusComponent } from "@/app/components/workerStatus.component";
 import { LocationSearchBar } from "@/app/components/locationSearchBar.component";
 import { useParams } from "next/navigation";
+import { maritimePresenceEditController } from "@/app/lib/maritimePresenceEditController";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
@@ -496,7 +497,7 @@ export function WorldMapComponent() {
     }
 
     const prolongedHoverProximityCalculationObservable = new ObservableCombiner(
-      [actionEventDispatcher.prolongedHoverLocation, roadBuilderController],
+      [actionEventDispatcher.prolongedHoverLocation, roadBuilderController, maritimePresenceEditController],
     );
     subscriptionsRef.current.push(
       prolongedHoverProximityCalculationObservable.dispose.bind(
@@ -504,12 +505,53 @@ export function WorldMapComponent() {
       ),
     );
 
-    const prolongedHoverOutsideBuildingMode =
+    const hoverMaritimePresenceModeObservable = new ObservableCombiner(
+      [actionEventDispatcher.hoveredLocation, maritimePresenceEditController],
+    );
+    subscriptionsRef.current.push(
+      hoverMaritimePresenceModeObservable.dispose.bind(
+        hoverMaritimePresenceModeObservable,
+      ),
+    );
+
+    const hoverInMaritimePresenceMode = hoverMaritimePresenceModeObservable.subscribe(
+      ({
+        values: [{ locations }, maritimePresenceEditState],
+      }) => {
+        /* console.log("[WorldMapComponent] hover in maritime presence mode",{ locations, type, maritimePresenceEditState}); */
+        if (maritimePresenceEditState.location) {
+          return; // already editing a location
+        }
+        if (!maritimePresenceEditState.isModeEnabled) {
+          setSelectedLocation(null);
+          return;
+        }
+        const location = locations[0];
+        if (!location) {
+          setSelectedLocation(null);
+          return;
+        }
+
+        const locationData = gameData.locationDataMap[location ?? ""] ?? null;
+        if (!locationData) return;
+        if (!maritimePresenceEditController.isLocationEligibleForMode(locationData)) {
+          setSelectedLocation(null);
+          return;
+        }
+        setSelectedLocation(location);
+      },
+    );
+    subscriptionsRef.current.push(hoverInMaritimePresenceMode);
+
+
+
+    const prolongedHoverOutsideRoadAndMaritimeMode =
       prolongedHoverProximityCalculationObservable.subscribe(
         ({
-          values: [{ locations, type, mouseCoordinate }, roadBuilderState],
+          values: [{ locations, type, mouseCoordinate }, roadBuilderState, maritimePresenceEditState],
         }) => {
-          if (roadBuilderState.isBuildingModeEnabled) return;
+          if (roadBuilderState.isModeEnabled) return;
+          if (maritimePresenceEditState.isModeEnabled) return;
           if (type === "search") return;
           if (locations.length === 1) {
             // only show neighbors panel if there is exactly one location hovered
@@ -528,12 +570,13 @@ export function WorldMapComponent() {
           }
         },
       );
-    subscriptionsRef.current.push(prolongedHoverOutsideBuildingMode);
+    subscriptionsRef.current.push(prolongedHoverOutsideRoadAndMaritimeMode);
 
     const clickObserver = new ObservableCombiner([
       actionEventDispatcher.clickedLocationSource,
       roadBuilderController,
       changeCapitalController,
+      maritimePresenceEditController
     ]);
     subscriptionsRef.current.push(clickObserver.dispose.bind(clickObserver));
 
@@ -543,6 +586,7 @@ export function WorldMapComponent() {
           { location, type, mouseCoordinate },
           roadBuilderState,
           changeCapitalState,
+          maritimePresenceEditState
         ],
         changedIndex,
       }) => {
@@ -551,17 +595,25 @@ export function WorldMapComponent() {
           return;
         }
         setLastKnownMouseCoordinate(mouseCoordinate);
+        const locationData = gameData.locationDataMap[location ?? ""] ?? null;
         switch (true) {
-          case location && changeCapitalState.isModeEnabled:
-            return changeCapitalController.askForConfirmation(location);
-          case location &&
+          case locationData && changeCapitalState.isModeEnabled:
+            if (!changeCapitalController.isLocationEligibleForMode(locationData)) {
+              return;
+            }
+            return changeCapitalController.askForConfirmation(locationData.name);
+          case locationData &&
             type === "acquire" &&
-            !roadBuilderState.isBuildingModeEnabled:
-            return gameStateController.selectLocation(location);
-          case location && roadBuilderState.isBuildingModeEnabled:
-            const locationData = gameData.locationDataMap[location];
+            !roadBuilderState.isModeEnabled &&
+            !maritimePresenceEditState.isModeEnabled
+            :
+            return gameStateController.toggleLocationOwnership(locationData.name);
+          case locationData && roadBuilderState.isModeEnabled:
+            if (!roadBuilderController.isLocationEligibleForMode(locationData)) {
+              return;
+            }
             setSelectedLocation(null);
-            roadBuilderController.selectLocationForBuildingRoad(location);
+            roadBuilderController.selectLocationForBuildingRoad(locationData.name);
             cameraController
               .panToCoordinate(locationData?.centerCoordinates, 300, {
                 x: -25,
@@ -571,6 +623,19 @@ export function WorldMapComponent() {
                 setSelectedLocation(location);
               });
             break;
+          case locationData && maritimePresenceEditState.isModeEnabled:
+            console.log("[WorldMapComponent] clicked location in maritime presence edit mode", location);
+            if (!maritimePresenceEditController.isLocationEligibleForMode(locationData)) {
+              return;
+            }
+            if (maritimePresenceEditState.location && maritimePresenceEditState.location === locationData.name) {
+              setSelectedLocation(null);
+              return maritimePresenceEditController.clearLocationForEditing();
+            }
+            else {
+              setSelectedLocation(location);
+              return maritimePresenceEditController.selectLocationForEditing(locationData.name);
+            }
           case location && type === "goto":
             const coordinates =
               gameData.locationDataMap[location]?.centerCoordinates;
@@ -640,6 +705,7 @@ export function WorldMapComponent() {
     locationSearchController.init(gameData);
     colorSearchController.init(worldMapConfig, gameData);
     roadBuilderController.init();
+    maritimePresenceEditController.init();
     actionEventDispatcher.init();
     shortestPathController.init();
     changeCapitalController.init();
@@ -798,7 +864,7 @@ export function WorldMapComponent() {
                 <MainActionsBar></MainActionsBar>
               </GuiElement>
               <GuiElement className="min-h-0 w-72 max-h-[60vh] shrink overflow-y-scroll">
-                {roadBuilderState.isBuildingModeEnabled ? (
+                {roadBuilderState.isModeEnabled ? (
                   <RoadList />
                 ) : (
                   <SimpleLocationList />
@@ -827,7 +893,7 @@ export function WorldMapComponent() {
             </div>
           </TooltipContent>
         </Tooltip>
-        {!roadBuilderState.isBuildingModeEnabled && (
+        {!roadBuilderState.isModeEnabled && (
           <GuiElement className="fixed right-5 top-15 rounded-lg py-2">
             <LocationSearchBar className="w-52" />
           </GuiElement>

@@ -31,6 +31,6 @@
   }
 
   .buttonActive {
-    @apply bg-yellow-500 hover:bg-yellow-500/50 border-0 shadow-lg/yellow-500;
+    @apply bg-yellow-500 hover:bg-yellow-500/50 border-transparent shadow-lg/yellow-500;
   }
 }

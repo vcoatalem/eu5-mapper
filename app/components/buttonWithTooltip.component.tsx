@@ -27,11 +27,11 @@ export function ButtonWithTooltip({
 }) {
   const buttonDivRef = useRef<HTMLDivElement>(null);
   return (
-    <div
+    <div  
       ref={buttonDivRef}
       className={
         `${className ?? ""} ` +
-        `  h-fit ml-auto transition-opacity duration-50 w-fit ` +
+        `  h-fit transition-opacity duration-50 w-fit ` +
         (showOnHover
           ? " group-hover:opacity-100 group-hover:pointer-events-auto " +
           (isActive ? "opacity-100 pointer-events-auto" : " opacity-0 pointer-events-none ")

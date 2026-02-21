@@ -974,9 +974,7 @@
               {
                 allowUnownedLocations: true,
                 // allow passing over unowned
-                logForLocations: [
-                  /* "melun" */
-                ],
+                logForLocations: ["strait_of_dover", "windsor"],
                 logMethod: (message, data) => {
                   sendMessage(self, {
                     data: data ?? null,

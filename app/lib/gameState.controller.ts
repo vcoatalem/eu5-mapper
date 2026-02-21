@@ -1,6 +1,12 @@
 "use client";
 
 import { CountriesHelper } from "@/app/lib/countries.helper";
+import { EligibleBuildingService } from "@/app/lib/eligibleBuilding.service";
+import {
+  ConstructibleAction,
+  IBuildingInstance,
+  INewBuildingTemplate,
+} from "@/app/lib/types/building";
 import { cameraController } from "./cameraController";
 import { ConstructibleHelper } from "./constructible.helper";
 import { Observable } from "./observable";
@@ -13,12 +19,6 @@ import {
   ITemporaryLocationData,
   RoadType,
 } from "./types/general";
-import {
-  ConstructibleAction,
-  IBuildingInstance,
-  INewBuildingTemplate,
-} from "@/app/lib/types/building";
-import { EligibleBuildingService } from "@/app/lib/eligibleBuilding.service";
 
 const baseCountryValues: IGameState["country"] = {
   templateData: null,
@@ -393,10 +393,10 @@ export class GameStateController extends Observable<IGameState> {
     if (parsedState.version !== expectedVersion) {
       throw new Error(
         'File version is of version "' +
-          parsedState.version +
-          '", but expected version is "' +
-          expectedVersion +
-          '". Version migration is not supported yet, but you can try migrating the file manually.',
+        parsedState.version +
+        '", but expected version is "' +
+        expectedVersion +
+        '". Version migration is not supported yet, but you can try migrating the file manually.',
       );
     }
     this.subject = parsedState;

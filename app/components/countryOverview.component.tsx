@@ -1,4 +1,6 @@
-import React, {
+import { FoldableMenu } from "@/app/components/foldableMenu.component";
+import { gameStateController } from "@/app/lib/gameState.controller";
+import {
   ChangeEvent,
   useCallback,
   useContext,
@@ -7,10 +9,8 @@ import React, {
   useState,
   useSyncExternalStore,
 } from "react";
-import { gameStateController } from "@/app/lib/gameState.controller";
-import { ICountryInstance } from "../lib/types/general";
 import { AppContext } from "../appContextProvider";
-import { FoldableMenu } from "@/app/components/foldableMenu.component";
+import { ICountryInstance } from "../lib/types/general";
 import { CountryStats } from "./countryStatsComponent";
 
 function CountryValueInput({

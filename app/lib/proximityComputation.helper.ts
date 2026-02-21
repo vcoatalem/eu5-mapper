@@ -149,7 +149,6 @@ export class ProximityComputationHelper {
     const development = locationTemporaryData?.development ?? location.development;
     const developmentCostReduction =
       development * gameData.proximityComputationRule.developmentImpact;
-
     const landModifierFromBuffs = proximityBuffs.getBuffsOfType("landModifier");
 
     logProximityComputation(
@@ -363,13 +362,6 @@ export class ProximityComputationHelper {
       ),
       proximityBuffs.getBuffsOfType("genericModifier").sum ?? 0,
     ];
-
-    // generic proximity modifiers go here
-    /*   this.getGenericCountryProximityCostModifiers(
-        gameState.country,
-        gameData.proximityComputationRule,
-      ), */
-    /*   ); */
 
     logProximityComputation([from, to], options, "Proximity cost modifiers", {
       from,

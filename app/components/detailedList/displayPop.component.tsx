@@ -3,6 +3,7 @@ import { EditableField } from "@/app/components/editableField.component";
 import { ColorHelper } from "@/app/lib/drawing/color.helper";
 import { gameStateController } from "@/app/lib/gameState.controller";
 import { NumbersHelper } from "@/app/lib/utils/numbers.helper";
+import { validatePositiveInteger } from "@/app/lib/utils/editableFieldValidation.helper";
 
 export function DisplayPop(props: { data: ILocationDetailedViewData }) {
   const { pop, basePop } = {
@@ -15,17 +16,17 @@ export function DisplayPop(props: { data: ILocationDetailedViewData }) {
   const isModified = basePop !== pop;
   const baseIsLower = basePop < pop;
   return (
-    <div className="px-2 py-1 group w-full h-full flex flex-row items-center relative">
+    <div className=" py-1 pr-2 group w-full h-full flex flex-row items-center relative">
       <EditableField<number>
+        className="w-full"
         value={pop}
         baseValue={basePop}
+        validate={validatePositiveInteger}
         onValidate={(value) => {
-          if (value > 0) {
-            gameStateController.changeTemporaryLocationData(
-              props.data.baseLocationGameData.name,
-              { population: value },
-            );
-          }
+          gameStateController.changeTemporaryLocationData(
+            props.data.baseLocationGameData.name,
+            { population: value },
+          );
         }}
         tooltip={
           <div className="flex flex-col items-start">

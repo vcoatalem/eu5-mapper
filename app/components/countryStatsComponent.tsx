@@ -1,6 +1,5 @@
 import { AppContext } from "@/app/appContextProvider";
 import { FormatedProximity } from "@/app/components/formatedProximity.component";
-import { FormatedProximityCost } from "@/app/components/formatedProximityCost.component";
 import { Loader } from "@/app/components/loader.component";
 import { debouncedProximityComputationController } from "@/app/lib/proximityComputation.controller";
 import { ProximityComputationHelper } from "@/app/lib/proximityComputation.helper";
@@ -16,7 +15,6 @@ interface ICountryStatsProps {
   className?: string;
   align?: boolean;
 }
-
 export function CountryStats(props: ICountryStatsProps) {
   const avgProxDivRef = useRef<HTMLDivElement>(null);
   const totalPopDivRef = useRef<HTMLDivElement>(null);

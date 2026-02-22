@@ -422,6 +422,34 @@
     }
   };
 
+  // app/lib/classes/countryProximityBuffs.const.ts
+  var countryProximityBuffsDisplayableData = {
+    genericModifier: {
+      label: "Generic proximity modifier",
+      description: "% modifier applied to proximity over any kind of terrain or connection"
+    },
+    landModifier: {
+      label: "Land proximity modifier",
+      description: "% modifier applied to proximity over land and rivers"
+    },
+    seaWithMaritimeFlatCostReduction: {
+      label: "Proximity cost with maritime presence",
+      description: `<p>This is a flat reduction to the base proximity cost of a sea edge with a maritime presence of 100.<br/>Total flat cost of traveling on sea edge is obtained through formula:<br/> <code>costWithMaritimePresence * maritimePresence / 100 + costWithoutMaritimePresence * (1 - maritimePresence / 100)</code></p>`
+    },
+    seaWithoutMaritimeFlatCostReduction: {
+      label: "Proximity cost without maritime presence",
+      description: `<p>This is a flat reduction to the base proximity cost of a sea edge without a maritime presence of 0.<br/>Total flat cost of traveling on sea edge is obtained through formula:<br/> <code>costWithMaritimePresence * maritimePresence / 100 + costWithoutMaritimePresence * (1 - maritimePresence / 100)</code></p>`
+    },
+    portFlatCostReduction: {
+      label: "Port proximity modifier",
+      description: "Flat reduction applied to proximity going in and out of a harbor, with or without river. Note: not all land <-> sea connections are harbor."
+    },
+    topographyMultipliers: {
+      label: "Topography multipliers",
+      description: "Multipliers applied at the end of the proximity computation, based on the topography of the source location."
+    }
+  };
+
   // app/lib/classes/countryProximityBuffs.ts
   var ProximityBuffsRecord = class {
     constructor(rule, country) {
@@ -434,32 +462,6 @@
       );
       const rulerAdministrativeAbility = {
         genericModifier: (country?.rulerAdministrativeAbility ?? 0) * rule.rulerAdministrativeAbilityImpact
-      };
-      this.buffDisplayableData = {
-        genericModifier: {
-          label: "Generic proximity modifier",
-          description: "% modifier applied to proximity over any kind of terrain or connection"
-        },
-        landModifier: {
-          label: "Land proximity modifier",
-          description: "% modifier applied to proximity over land and rivers"
-        },
-        seaWithMaritimeFlatCostReduction: {
-          label: "Proximity cost with maritime presence",
-          description: `<p>This is a flat reduction to the base proximity cost of a sea edge with a maritime presence of 100.<br/>Total flat cost of traveling on sea edge is obtained through formula:<br/> <code>costWithMaritimePresence * maritimePresence / 100 + costWithoutMaritimePresence * (1 - maritimePresence / 100)</code></p><br/>This is reducing from base cost of ${this.rule.baseCostWithMaritimePresence}`
-        },
-        seaWithoutMaritimeFlatCostReduction: {
-          label: "Proximity cost without maritime presence",
-          description: `<p>This is a flat reduction to the base proximity cost of a sea edge without a maritime presence of 0.<br/>Total flat cost of traveling on sea edge is obtained through formula:<br/> <code>costWithMaritimePresence * maritimePresence / 100 + costWithoutMaritimePresence * (1 - maritimePresence / 100)</code><br/>This is reducing from base cost of ${this.rule.baseCostWithMaritimePresence}</p>`
-        },
-        portFlatCostReduction: {
-          label: "Port proximity modifier",
-          description: "Flat reduction applied to proximity going in and out of a harbor, with or without river. Note: not all land <-> sea connections are harbor."
-        },
-        topographyMultipliers: {
-          label: "Topography multipliers",
-          description: "Multipliers applied at the end of the proximity computation, based on the topography of the source location."
-        }
       };
       const modifiersBuff = Object.entries(this.country?.modifiers ?? {}).reduce((acc, [name, { buff, enabled }]) => {
         if (enabled) {
@@ -567,7 +569,7 @@
       }, /* @__PURE__ */ new Set());
       const res = {};
       for (const buffKey of buffs) {
-        res[buffKey] = this.buffDisplayableData[buffKey];
+        res[buffKey] = countryProximityBuffsDisplayableData[buffKey];
       }
       return res;
     }

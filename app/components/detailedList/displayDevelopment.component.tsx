@@ -2,6 +2,7 @@ import { ILocationDetailedViewData } from "@/app/components/detailedList/detaile
 import { EditableField } from "@/app/components/editableField.component";
 import { ColorHelper } from "@/app/lib/drawing/color.helper";
 import { gameStateController } from "@/app/lib/gameState.controller";
+import { validateFloatInRange } from "@/app/lib/utils/editableFieldValidation.helper";
 import { useMemo } from "react";
 
 export function DisplayDevelopment(props: { data: ILocationDetailedViewData }) {
@@ -20,17 +21,17 @@ export function DisplayDevelopment(props: { data: ILocationDetailedViewData }) {
     props.data.temporaryLocationData.development,
   ]);
   return (
-    <div className="px-2 py-1 group w-full h-full flex flex-row items-center relative">
+    <div className="pr-2 py-1 group w-full h-full flex flex-row items-center relative">
       <EditableField<number>
+        className="w-full"
         value={dev}
-        baseValue={props.data.baseLocationGameData.development}
+        baseValue={props.data.baseLocationGameData.development ?? 0}
+        validate={(raw) => validateFloatInRange(raw, -100, 100)}
         onValidate={(value) => {
-          if (-100 < value && value < 100) {
-            gameStateController.changeTemporaryLocationData(
-              props.data.baseLocationGameData.name,
-              { development: value },
-            );
-          }
+          gameStateController.changeTemporaryLocationData(
+            props.data.baseLocationGameData.name,
+            { development: value },
+          );
         }}
         tooltip={<span>Edit development</span>}
       >

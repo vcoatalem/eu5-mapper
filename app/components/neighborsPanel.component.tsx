@@ -19,13 +19,13 @@ import { debouncedProximityComputationController } from "../lib/proximityComputa
 import { ProximityComputationHelper } from "../lib/proximityComputation.helper";
 import { ILocationIdentifier, RoadType } from "../lib/types/general";
 import { EdgeType } from "../lib/types/pathfinding";
-import { FormatedProximity } from "./formatedProximity.component";
 import { FormatedProximityCost } from "./formatedProximityCost.component";
 import { Loader } from "./loader.component";
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import { LocationsHelper } from "@/app/lib/locations.helper";
 import { AppContext } from "@/app/appContextProvider";
 import { EditableField } from "@/app/components/editableField.component";
+import { validateFloatInRange } from "@/app/lib/utils/editableFieldValidation.helper";
 import styles from "@/app/styles/button.module.css";
 import { ColorHelper } from "@/app/lib/drawing/color.helper";
 import { FormattedProximityWithPathfindingTooltip } from "@/app/components/formattedProximityWithPathfindingTooltip.component";
@@ -248,16 +248,18 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
       <hr className="my-2 border-stone-300 w-full"></hr>
       {locationMaritimePresence > -1 && (
         <>
-          <div className="flex flex-row items-center gap-2 relative">⚓ Maritime Presence:
-            <EditableField
+          <div className="flex flex-row items-center gap-2 relative flex-1">⚓ Maritime Presence:
+            <EditableField<number>
+              className="w-12"
               key={locationName}
               autoFocus={maritimePresenceEditState.isModeEnabled && maritimePresenceEditState.selectedLocation === locationName}
+              value={locationMaritimePresence}
+              baseValue={locationMaritimePresence}
+              validate={(raw) => validateFloatInRange(raw, 0, 101)}
               onValidate={(value) => {
                 gameStateController.changeTemporaryLocationData(locationName, { maritimePresence: value });
               }}
               tooltip={<span>Edit maritime presence</span>}
-              value={locationMaritimePresence}
-              baseValue={locationMaritimePresence}
             >
               <span style={{ color: ColorHelper.rgbToHex(...ColorHelper.getMaritimePresenceColor(locationMaritimePresence)) }}>{locationMaritimePresence}</span>
             </EditableField></div>

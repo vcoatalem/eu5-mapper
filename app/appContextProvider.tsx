@@ -141,7 +141,7 @@ export const AppContextProvider = ({
           proximityComputationRule,
           countriesDataMap: {},
           roads,
-          countryProximityBuffsTemplate: {},
+          countryModifiersTemplate: {},
         };
         const indexedDBWriter = new IndexedDBWriter(
           dbName,
@@ -184,7 +184,7 @@ export const AppContextProvider = ({
           proximityComputationRule,
           countriesDataMap,
           roads,
-          countryProximityBuffsTemplate,
+          countryModifiersTemplate: countryProximityBuffsTemplate,
         });
 
         console.log(

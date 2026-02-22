@@ -12,6 +12,7 @@ import { ConstructibleHelper } from "./constructible.helper";
 import { Observable } from "./observable";
 import {
   IConstructibleLocation,
+  ICountryInstance,
   ICountryValues,
   IGameData,
   IGameState,
@@ -19,14 +20,16 @@ import {
   ITemporaryLocationData,
   RoadType,
 } from "./types/general";
+import { IProximityBuffs } from "@/app/lib/types/proximityComputationRules";
 
-const baseCountryValues: IGameState["country"] = {
+const baseCountryValues: ICountryInstance = {
   templateData: null,
   values: {
     centralizationVsDecentralization: 0,
     landVsNaval: 0,
   },
   rulerAdministrativeAbility: 50,
+  modifiers: {},
 };
 
 export class GameStateController extends Observable<IGameState> {
@@ -310,6 +313,34 @@ export class GameStateController extends Observable<IGameState> {
       return;
     }
     this.subject.country.rulerAdministrativeAbility = value;
+    this.notifyListeners();
+  }
+
+  public changeCountryModifier(name: string, toUpdate: {description?: string, buff?: IProximityBuffs, enabled?: boolean}): void {
+    if (!this.subject.country?.modifiers) {
+      return;
+    }
+    if (!(name in this.subject.country.modifiers )) {
+      this.subject.country.modifiers[name] = { buff: toUpdate.buff ?? {}, enabled: toUpdate.enabled ?? true, description: toUpdate.description ?? "" };
+    } else {
+      if (toUpdate.buff !== undefined) {
+        this.subject.country.modifiers[name].buff = toUpdate.buff;
+      }
+      if (toUpdate.enabled !== undefined) {
+        this.subject.country.modifiers[name].enabled = toUpdate.enabled;
+      }
+      if (toUpdate.description !== undefined) {
+        this.subject.country.modifiers[name].description = toUpdate.description;
+      }
+    }
+    this.notifyListeners();
+  }
+
+  public removeCountryModifier(name: string): void {
+    if (!this.subject.country?.modifiers) {
+      return;
+    }
+    delete this.subject.country.modifiers[name];
     this.notifyListeners();
   }
 

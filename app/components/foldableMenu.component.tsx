@@ -18,7 +18,7 @@ export function FoldableMenu({
       <button
         type="button"
         onClick={onToggle}
-        className="w-full text-left font-bold hover:bg-stone-600 rounded-md py-1 cursor-pointer flex items-center gap-2 truncate sticky top-0 z-10 bg-black/80"
+        className="w-full text-left font-bold bg-black hover:bg-stone-600 py-1 cursor-pointer flex items-center gap-2 truncate sticky top-0 z-10 px-2"
       >
         <span
           className={`inline-block transition-transform duration-300 ease-in-out ${isExpanded ? "rotate-180" : ""}`}

@@ -7,7 +7,7 @@ import { MdAnchor } from "react-icons/md";
 import { TbListDetails } from "react-icons/tb";
 import { Modal } from "../lib/modal/modal.component";
 import { DetailedLocationListModal } from "./detailedList/detailedLocationListModal.component";
-import { CountryBuffsModal } from "@/app/components/countryBuffsModal.component";
+import { CountryBuffsModal } from "@/app/components/countryBuffs/countryBuffsModal.component";
 import { IoIosFlask } from "react-icons/io";
 
 export function MainActionsBar() {

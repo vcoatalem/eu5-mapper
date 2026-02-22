@@ -123,6 +123,7 @@ export interface ICountryInstance {
   templateData: ICountryData | null;
   values: ICountryValues;
   rulerAdministrativeAbility: number; // from 0 to 100, higher means more impact of proximity on the country
+  modifiers: Record<string, {buff: IProximityBuffs, description: string, enabled: boolean;}>;
 }
 
 export interface ICountryValues {
@@ -130,12 +131,18 @@ export interface ICountryValues {
   landVsNaval: number;
 }
 
+
+export interface ICountryModifierTemplate {
+  name: string;
+  description: string | null;
+  buff: Partial<IProximityBuffs>;
+}
 export interface IGameData {
   locationDataMap: ILocationDataMap;
   colorToNameMap: ILocationIdentifierMap;
   buildingsTemplate: Record<string, INewBuildingTemplate>;
   proximityComputationRule: IProximityComputationRule;
   countriesDataMap: Record<string, ICountryData>; //TODO: move this outside of mandatory game data. Can be loaded only when needed, stored in indexedDB, and read by specific components that need it
-  countryProximityBuffsTemplate: Record<string, Partial<IProximityBuffs>> //TODO: move this outside of mandatory game data. Can be loaded only when needed, stored in indexedDB, and read by specific components that need it
+  countryModifiersTemplate: Record<string, ICountryModifierTemplate>; //TODO: move this outside of mandatory game data. Can be loaded only when needed, stored in indexedDB, and read by specific components that need it
   roads: RoadRecord; // base roads initialized at the start of the game
 }

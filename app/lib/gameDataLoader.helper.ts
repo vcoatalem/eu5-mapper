@@ -2,11 +2,12 @@ import { ParserHelper } from "@/app/lib/parser.helper";
 import { INewBuildingTemplate } from "@/app/lib/types/building";
 import {
   ICountryData,
+  ICountryModifierTemplate,
   ILocationDataMap,
   ILocationIdentifierMap,
   RoadRecord,
 } from "@/app/lib/types/general";
-import { IProximityBuffs, IProximityComputationRule } from "@/app/lib/types/proximityComputationRules";
+import { IProximityComputationRule } from "@/app/lib/types/proximityComputationRules";
 import { GameDataFileType } from "@/app/lib/types/versionsManifest";
 import { VersionResolver } from "@/app/lib/versionResolver";
 
@@ -18,7 +19,7 @@ export interface IGameDataParsedFiles {
   proximityComputationRule: IProximityComputationRule;
   countriesDataMap: Record<string, ICountryData>;
   roads: RoadRecord;
-  countryProximityBuffsTemplate: Record<string, Partial<IProximityBuffs>>;
+  countryProximityBuffsTemplate: Record<string, ICountryModifierTemplate>;
 }
 
 // Node.js environment stub of fetch Response object
@@ -99,7 +100,19 @@ export class GameDataLoaderHelper {
       return (await res.json()) as Record<string, ICountryData>;
     },
     countryProximityBuffsTemplate: async (res) => {
-      return (await res.json()) as Record<string, Partial<IProximityBuffs>>;
+      const arr = (await res.json()) as ICountryModifierTemplate[];
+      if (!Array.isArray(arr)) {
+        throw new Error(
+          `Expected country modifiers template to be an array, got ${typeof arr}`,
+        );
+      }
+      return arr.reduce(
+        (acc, entry) => {
+          acc[entry.name] = entry;
+          return acc;
+        },
+        {} as Record<string, ICountryModifierTemplate>,
+      );
     },
     roads: async (res) => {
       const roadsJson = await res.json();
@@ -163,7 +176,7 @@ export class GameDataLoaderHelper {
       proximityComputationRule: IProximityComputationRule;
       countriesDataMap: Record<string, ICountryData>;
       roads: RoadRecord;
-      countryProximityBuffsTemplate: Record<string, Partial<IProximityBuffs>>;
+      countryProximityBuffsTemplate: Record<string, ICountryModifierTemplate>;
     };
   }
 }

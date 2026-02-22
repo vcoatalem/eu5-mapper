@@ -53,10 +53,19 @@ export class ProximityBuffsRecord {
     }
 
 
+    const modifiersBuff = Object.entries(this.country?.modifiers ?? {}).reduce((acc, [name, {buff, enabled}]) => {
+      if (enabled) {
+        acc[name] = buff;
+      }
+      return acc;
+    }, {} as Record<string, IProximityBuffs>);
+
+
     this.countryProximityBuffs = {
       navalVsLand,
       centralizationVsDecentralization,
       rulerAdministrativeAbility,
+      ...modifiersBuff,
     };
   }
 

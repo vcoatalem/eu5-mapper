@@ -461,10 +461,17 @@
           description: "Multipliers applied at the end of the proximity computation, based on the topography of the source location."
         }
       };
+      const modifiersBuff = Object.entries(this.country?.modifiers ?? {}).reduce((acc, [name, { buff, enabled }]) => {
+        if (enabled) {
+          acc[name] = buff;
+        }
+        return acc;
+      }, {});
       this.countryProximityBuffs = {
         navalVsLand,
         centralizationVsDecentralization,
-        rulerAdministrativeAbility
+        rulerAdministrativeAbility,
+        ...modifiersBuff
       };
     }
     computeCountryValuesBuff(valueKey) {

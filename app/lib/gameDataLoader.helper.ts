@@ -6,7 +6,7 @@ import {
   ILocationIdentifierMap,
   RoadRecord,
 } from "@/app/lib/types/general";
-import { IProximityComputationRule } from "@/app/lib/types/proximityComputationRules";
+import { IProximityBuffs, IProximityComputationRule } from "@/app/lib/types/proximityComputationRules";
 import { GameDataFileType } from "@/app/lib/types/versionsManifest";
 import { VersionResolver } from "@/app/lib/versionResolver";
 
@@ -18,6 +18,7 @@ export interface IGameDataParsedFiles {
   proximityComputationRule: IProximityComputationRule;
   countriesDataMap: Record<string, ICountryData>;
   roads: RoadRecord;
+  countryProximityBuffsTemplate: Record<string, Partial<IProximityBuffs>>;
 }
 
 // Node.js environment stub of fetch Response object
@@ -97,6 +98,9 @@ export class GameDataLoaderHelper {
     countriesDataMap: async (res) => {
       return (await res.json()) as Record<string, ICountryData>;
     },
+    countryProximityBuffsTemplate: async (res) => {
+      return (await res.json()) as Record<string, Partial<IProximityBuffs>>;
+    },
     roads: async (res) => {
       const roadsJson = await res.json();
       // Ensure roadsJson is an array (handle both browser Response and Node.js ResponseLike)
@@ -121,8 +125,9 @@ export class GameDataLoaderHelper {
       "adjacencyCsv",
       "proximityComputationRule",
       "countriesDataMap",
+      "countryProximityBuffsTemplate",
       "roads",
-    ] satisfies (keyof IGameDataParsedFiles)[]; // make sure file types from IGameDataParsedFiles are valid GameDataFileTypes
+    ];
 
     const entries = await Promise.all(
       gameDataFileTypes.map(async (fileType) => {
@@ -158,6 +163,7 @@ export class GameDataLoaderHelper {
       proximityComputationRule: IProximityComputationRule;
       countriesDataMap: Record<string, ICountryData>;
       roads: RoadRecord;
+      countryProximityBuffsTemplate: Record<string, Partial<IProximityBuffs>>;
     };
   }
 }

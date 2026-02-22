@@ -22,7 +22,6 @@ function RegularHeader() {
   if (!gameData) return null;
 
   const flagUrl = gameData.countriesDataMap[gameState.countryCode ?? ""]?.flagUrl;
-  console.log({ flagUrl });
 
   return (
     <div className={styles.header}>

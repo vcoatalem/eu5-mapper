@@ -1,9 +1,15 @@
 {
-  "versions": ["0.0.11", "0.1.0"],
+  "versions": [
+    "0.0.11",
+    "0.1.0"
+  ],
   "files": {
     "locationDataMap": {
       "0.0.11": {
         "path": "/0.0.11/game_data/location-data-map.json"
+      },
+      "0.1.0": {
+        "path": "/0.1.0/game_data/location-data-map.json"
       }
     },
     "colorToNameMap": {
@@ -55,6 +61,11 @@
     "terrainLayer": {
       "0.0.11": {
         "path": "/0.0.11/images/terrain_layer.png"
+      }
+    },
+    "countryProximityBuffsTemplate": {
+      "0.0.11": {
+        "path": "/0.0.11/game_data/buffs-template.json"
       }
     }
   }

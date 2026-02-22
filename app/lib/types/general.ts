@@ -1,7 +1,7 @@
 // do not import other files in this file
 
 import { IBuildingInstance, INewBuildingTemplate } from "./building";
-import { IProximityComputationRule } from "./proximityComputationRules";
+import { IProximityBuffs, IProximityComputationRule } from "./proximityComputationRules";
 
 export type ILocationIdentifier = string; // location name
 
@@ -135,6 +135,7 @@ export interface IGameData {
   colorToNameMap: ILocationIdentifierMap;
   buildingsTemplate: Record<string, INewBuildingTemplate>;
   proximityComputationRule: IProximityComputationRule;
-  countriesDataMap: Record<string, ICountryData>;
+  countriesDataMap: Record<string, ICountryData>; //TODO: move this outside of mandatory game data. Can be loaded only when needed, stored in indexedDB, and read by specific components that need it
+  countryProximityBuffsTemplate: Record<string, Partial<IProximityBuffs>> //TODO: move this outside of mandatory game data. Can be loaded only when needed, stored in indexedDB, and read by specific components that need it
   roads: RoadRecord; // base roads initialized at the start of the game
 }

@@ -1,0 +1,22 @@
+{
+  "protectTheBorderlands": {
+    "landModifier": 10,
+    "description": "Theocracy estate privilege for nobility"
+  },
+  "celestialGovernor": {
+    "landModifier": 5,
+    "description": "Middle Kingdom benefit for governor (Goryeo at the start)"
+  },
+  "coastalExpansion": {
+    "seaWithMaritimeFlatCostReduction": 5,
+    "description": "Discovery Age advance"
+  },
+  "localInfrastructure": {
+    "genericModifier": 5,
+    "description": "Renaissance Age advance - Admin focus"
+  },
+  "experienceCaptains": {
+    "portFlatCostReduction": 5,
+    "description": "Renaissance Age advance"
+  }
+}

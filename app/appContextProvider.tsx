@@ -128,6 +128,7 @@ export const AppContextProvider = ({
           adjacencyCsv,
           proximityComputationRule,
           countriesDataMap,
+          countryProximityBuffsTemplate,
           roads,
         } = gameDataFiles;
 
@@ -140,6 +141,7 @@ export const AppContextProvider = ({
           proximityComputationRule,
           countriesDataMap: {},
           roads,
+          countryProximityBuffsTemplate: {},
         };
         const indexedDBWriter = new IndexedDBWriter(
           dbName,
@@ -182,6 +184,7 @@ export const AppContextProvider = ({
           proximityComputationRule,
           countriesDataMap,
           roads,
+          countryProximityBuffsTemplate,
         });
 
         console.log(

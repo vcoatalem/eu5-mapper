@@ -7,6 +7,8 @@ import { MdAnchor } from "react-icons/md";
 import { TbListDetails } from "react-icons/tb";
 import { Modal } from "../lib/modal/modal.component";
 import { DetailedLocationListModal } from "./detailedList/detailedLocationListModal.component";
+import { CountryBuffsModal } from "@/app/components/countryBuffsModal.component";
+import { IoIosFlask } from "react-icons/io";
 
 export function MainActionsBar() {
 
@@ -17,6 +19,8 @@ export function MainActionsBar() {
 
   const [isDetailedLocationViewOpen, setIsDetailedLocationViewOpen] =
     useState(false);
+
+  const [isCountryBuffsModalOpen, setIsCountryBuffsModalOpen] = useState(false);
 
   const toggleMode = useCallback((mode: EditMode) => {
     switch (mode) {
@@ -56,12 +60,24 @@ export function MainActionsBar() {
         <TbListDetails color="white" size={24}></TbListDetails>
       </ButtonWithTooltip>
 
+      <ButtonWithTooltip className="h-10 relative" tooltip="Open country buffs view" onClick={() => setIsCountryBuffsModalOpen(true)}>
+        <IoIosFlask color="white" size={24}></IoIosFlask>
+      </ButtonWithTooltip>
+
       <Modal
         onClose={() => setIsDetailedLocationViewOpen(false)}
         isOpen={isDetailedLocationViewOpen}
       >
         <DetailedLocationListModal></DetailedLocationListModal>
       </Modal>
+
+      <Modal
+        onClose={() => setIsCountryBuffsModalOpen(false)}
+        isOpen={isCountryBuffsModalOpen}
+      >
+        <CountryBuffsModal onClose={() => setIsCountryBuffsModalOpen(false)}></CountryBuffsModal>
+      </Modal>
+
     </div>
   );
 }

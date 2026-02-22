@@ -12,19 +12,27 @@ export const readReferenceFile = async (
   countryCode: string;
   version: string;
   rulerAdministrativeAbility: number;
+  modifiers: string[];
   data: Record<ILocationIdentifier, number>;
 }> => {
   const f = await fs.readFileSync(path, "utf-8");
   const lines = f.split("\n");
   const headerLine = lines[0];
 
-  // Parse header: location,proximity,<COUNTRY_CODE>,version:<VERSION>,admin_ability:<ADMIN_ABILITY>
   const headerParts = headerLine.split(",");
   const countryCode = headerParts[2];
   const versionPart = headerParts[3]; // version:<value>
   const version = versionPart.split(":")[1];
-  const adminAbilityPart = headerParts[4]; // admin_ability:<value>
+  const fifthColumn = headerParts[4]; // admin_ability:<value>;modifiers:<mod1>|<mod2>|...
+  const [adminAbilityPart, modifiersPart] = fifthColumn.split(";");
   const rulerAdministrativeAbility = Number(adminAbilityPart.split(":")[1]);
+  const modifiersRaw = modifiersPart?.startsWith("modifiers:")
+    ? modifiersPart.slice("modifiers:".length)
+    : modifiersPart ?? "";
+  const modifiers = modifiersRaw
+    .split("|")
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   const data = lines
     .slice(1) // skip header
@@ -42,6 +50,7 @@ export const readReferenceFile = async (
     countryCode,
     version,
     rulerAdministrativeAbility,
+    modifiers,
     data,
   };
 };

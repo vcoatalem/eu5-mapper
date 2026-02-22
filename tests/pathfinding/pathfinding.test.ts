@@ -23,7 +23,7 @@ test("found reference files", () => {
 test.each(referenceFiles)(
   "should do pathfinding evaluation for reference file %s",
   async (filePath) => {
-    const { countryCode, version, rulerAdministrativeAbility, data } =
+    const { countryCode, version, rulerAdministrativeAbility, data, modifiers } =
       await readReferenceFile(filePath);
 
     const versionResolver = new VersionResolver();
@@ -41,9 +41,11 @@ test.each(referenceFiles)(
     const gameStateController = new GameStateController();
     gameStateController.init(gameData);
     gameStateController.reset(countryCode);
-    gameStateController.changeCountryValues({
-      rulerAdministrativeAbility,
-    });
+    gameStateController.changeCountryRulerAdministrativeAbility(rulerAdministrativeAbility);
+    for (const modifier of modifiers) {
+      const modifierTemplate = gameData.countryModifiersTemplate[modifier];
+      gameStateController.changeCountryModifier(modifier, { enabled: true, buff: modifierTemplate?.buff ?? {} });
+    }
 
     const gameState = gameStateController.getSnapshot();
 

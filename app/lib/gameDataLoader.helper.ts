@@ -19,7 +19,7 @@ export interface IGameDataParsedFiles {
   proximityComputationRule: IProximityComputationRule;
   countriesDataMap: Record<string, ICountryData>;
   roads: RoadRecord;
-  countryProximityBuffsTemplate: Record<string, ICountryModifierTemplate>;
+  countryModifiersTemplate: Record<string, ICountryModifierTemplate>;
 }
 
 // Node.js environment stub of fetch Response object
@@ -99,7 +99,7 @@ export class GameDataLoaderHelper {
     countriesDataMap: async (res) => {
       return (await res.json()) as Record<string, ICountryData>;
     },
-    countryProximityBuffsTemplate: async (res) => {
+    countryModifiersTemplate: async (res) => {
       const arr = (await res.json()) as ICountryModifierTemplate[];
       if (!Array.isArray(arr)) {
         throw new Error(
@@ -138,7 +138,7 @@ export class GameDataLoaderHelper {
       "adjacencyCsv",
       "proximityComputationRule",
       "countriesDataMap",
-      "countryProximityBuffsTemplate",
+      "countryModifiersTemplate",
       "roads",
     ];
 
@@ -176,7 +176,7 @@ export class GameDataLoaderHelper {
       proximityComputationRule: IProximityComputationRule;
       countriesDataMap: Record<string, ICountryData>;
       roads: RoadRecord;
-      countryProximityBuffsTemplate: Record<string, ICountryModifierTemplate>;
+      countryModifiersTemplate: Record<string, ICountryModifierTemplate>;
     };
   }
 }

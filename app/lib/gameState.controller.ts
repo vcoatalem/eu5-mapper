@@ -272,6 +272,7 @@ export class GameStateController extends Observable<IGameState> {
             landVsNaval: countryTemplate.landVsNaval,
           },
           rulerAdministrativeAbility: 50,
+          modifiers: {},
         };
       }
 

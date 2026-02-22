@@ -34,7 +34,7 @@ export type GameDataFileType =
   | "locationsImage" // images/locations.png
   | "borderLayer" // images/border_layer.png
   | "terrainLayer" // images/terrain_layer.png
-  | "countryProximityBuffsTemplate"; // buffs-template.json
+  | "countryModifiersTemplate"; // country-modifiers-templates.json
 
 /**
  * Mapping from logical file type names to actual file names/paths
@@ -50,7 +50,7 @@ export const FILE_TYPE_TO_FILENAME: Record<GameDataFileType, string> = {
   locationsImage: "images/locations.png",
   borderLayer: "images/border_layer.png",
   terrainLayer: "images/terrain_layer.png",
-  countryProximityBuffsTemplate: "buffs-template.json",
+  countryModifiersTemplate: "country-modifiers-templates.json",
 } as const;
 
 /**

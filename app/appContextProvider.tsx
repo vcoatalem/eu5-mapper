@@ -128,7 +128,7 @@ export const AppContextProvider = ({
           adjacencyCsv,
           proximityComputationRule,
           countriesDataMap,
-          countryProximityBuffsTemplate,
+          countryModifiersTemplate,
           roads,
         } = gameDataFiles;
 
@@ -184,7 +184,7 @@ export const AppContextProvider = ({
           proximityComputationRule,
           countriesDataMap,
           roads,
-          countryModifiersTemplate: countryProximityBuffsTemplate,
+          countryModifiersTemplate,
         });
 
         console.log(

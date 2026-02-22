@@ -63,9 +63,9 @@
         "path": "/0.0.11/images/terrain_layer.png"
       }
     },
-    "countryProximityBuffsTemplate": {
+    "countryModifiersTemplate": {
       "0.0.11": {
-        "path": "/0.0.11/game_data/buffs-template.json"
+        "path": "/0.0.11/game_data/country-modifiers-templates.json"
       }
     }
   }

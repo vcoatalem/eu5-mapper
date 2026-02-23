@@ -1002,4 +1002,99 @@ export async function generateIndexFile(): Promise<void> {
       console.log(`\n📑 Index file generated: ${indexPath}`);
     }
   }
+
+  // Generate root index.html linking to each version's index
+  if (versionDirs.length > 0) {
+    const sortedVersionDirs = [...versionDirs].sort((a, b) => {
+      // Sort by version: compare as "1_0_11" -> [1, 0, 11]
+      const partsA = a.split("_").map(Number);
+      const partsB = b.split("_").map(Number);
+      const len = Math.max(partsA.length, partsB.length);
+      for (let i = 0; i < len; i++) {
+        const va = partsA[i] ?? 0;
+        const vb = partsB[i] ?? 0;
+        if (va !== vb) return vb - va; // descending (newest first)
+      }
+      return 0;
+    });
+
+    const rootIndexHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pathfinding Test Reports – Versions</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    .header h1 { font-size: 2em; font-weight: 700; }
+    .content { padding: 30px; }
+    .version-list { list-style: none; }
+    .version-list li {
+      border-bottom: 1px solid #e5e7eb;
+      padding: 14px 0;
+    }
+    .version-list li:last-child { border-bottom: none; }
+    .version-link {
+      color: #2563eb;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 1.1em;
+    }
+    .version-link:hover { text-decoration: underline; }
+    .footer {
+      padding: 20px 30px;
+      background: #f9fafb;
+      text-align: center;
+      color: #6b7280;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🧭 Pathfinding Test Reports</h1>
+      <p style="margin-top: 10px; opacity: 0.9;">Select a version to view reports</p>
+    </div>
+    <div class="content">
+      <ul class="version-list">
+        ${sortedVersionDirs
+          .map(
+            (dir) =>
+              `<li><a href="${escapeHtml(dir + "/index.html")}" class="version-link">${escapeHtml(dir.replaceAll("_", "."))}</a></li>`,
+          )
+          .join("\n")}
+      </ul>
+    </div>
+    <div class="footer">
+      Generated on ${new Date().toLocaleString()}
+    </div>
+  </div>
+</body>
+</html>`;
+
+    const rootIndexPath = path.join(outputBasePath, "index.html");
+    await fsPromises.writeFile(rootIndexPath, rootIndexHtml, "utf-8");
+    console.log(`\n📑 Root index file generated: ${rootIndexPath}`);
+  }
 }

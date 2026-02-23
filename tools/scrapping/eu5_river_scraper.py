@@ -130,7 +130,7 @@ def open_console(config: dict):
 def send_enter_ahk(config: dict):
 	ahk_exe = config.get("ahk_exe_path")
 	ahk_title = config.get("ahk_window_title")
-	ahk_script = r"C:\Users\victo\Documents\VsCode\EU5MapApp\tools\send_enter.ahk"
+	ahk_script = r"C:\Users\victo\Documents\VsCode\EU5MapApp\tools\scrapping\send_enter.ahk"
 	if not ahk_exe or not os.path.exists(ahk_exe):
 		print("AHK: exe not found for Enter")
 		return
@@ -216,7 +216,7 @@ def process_location(location_name: str, output_dir: str, config: dict) -> int:
 
 def main():
 	global should_stop
-	project_root = os.path.dirname(os.path.dirname(__file__))
+	project_root = os.path.join(os.path.dirname(os.path.dirname(__file__)), '..')
 
 	config = {
 		"screen_center_x": 1290,
@@ -225,7 +225,7 @@ def main():
 		"goto_command_delay": 0.5,
 		"mouse_jiggle": 1,
 		"ahk_exe_path": r"C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe",
-		"ahk_script_path": r"C:\Users\victo\Documents\VsCode\EU5MapApp\tools\open_console.ahk",
+		"ahk_script_path": r"C:\Users\victo\Documents\VsCode\EU5MapApp\tools\scrapping\open_console.ahk",
 		"ahk_window_title": "Europa Universalis V",
 	}
 
@@ -266,11 +266,12 @@ def main():
 				f"Version {args.version} not found; using {resolved_version} for river colors"
 			)
 	templates_file = args.templates
-	output_dir = args.images or os.path.join(
+	output_dir = os.path.join(
 		os.path.dirname(__file__),
 		"scrapped_river_location_images",
 		args.version,
 	)
+	os.makedirs(output_dir, exist_ok=True)
 
 	print("EU5 River Scraper")
 	print("=" * 60)

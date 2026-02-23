@@ -94,6 +94,8 @@ export function TooltipContent(props: ITooltipContentProps) {
   const style: React.CSSProperties = {
     left: position?.x ?? 0,
     top: position?.y ?? 0,
+    border: "1px solid white",
+    boxShadow: "0 0 10px 0 rgba(0, 0, 0, 0.5)",
   };
 
   return createPortal(

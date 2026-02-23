@@ -4,10 +4,10 @@ import { gameStateController } from "@/app/lib/gameState.controller";
 import { IProximityBuffDisplayableData, IProximityBuffs } from "@/app/lib/types/proximityComputationRules";
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import buttonStyles from "@/app/styles/button.module.css";
-import { ICountryModifierTemplate, ILocationGameData } from "@/app/lib/types/general";
+import { ICountryModifierTemplate } from "@/app/lib/types/general";
 import { CountryProximityBuffs } from "@/app/components/countryBuffs/countryProximityBuffs.component";
 import { FaCheckSquare } from "react-icons/fa";
-import { FaArrowUp, FaPlus, FaSquare, FaTrash } from "react-icons/fa6";
+import { FaArrowUp, FaPlus, FaSquare } from "react-icons/fa6";
 import { ButtonWithTooltip } from "@/app/components/buttonWithTooltip.component";
 import { FiDelete } from "react-icons/fi";
 import { FoldableMenu } from "@/app/components/foldableMenu.component";
@@ -18,13 +18,15 @@ import { countryProximityBuffsDisplayableData } from "@/app/lib/classes/countryP
 import { TooltipContent } from "@/app/lib/tooltip/tooltipContent.component";
 import { TooltipTrigger } from "@/app/lib/tooltip/tooltipTrigger.component";
 import { Tooltip } from "@/app/lib/tooltip/tooltip.component";
+import { BuffDisplay } from "@/app/components/countryBuffs/buffDisplay.component";
+import formStyles from "@/app/components/countryBuffs/forms.module.css";
 
 interface ICountryBuffsModal {
   onClose: () => void;
 }
 
 interface ICreateCustomModifierForm {
-  onSubmit: () => void;
+  onSubmit: (name: string, description: string | null, buff: Partial<IProximityBuffs>) => void;
   onCancel: () => void;
 }
 
@@ -38,31 +40,33 @@ interface IBasicBuffFieldProps {
 
 function BasicBuffField(props: IBasicBuffFieldProps) {
   const labelDivRef = useRef<HTMLDivElement>(null);
-  return <div className="relative flex flex-row gap-1 border-stone-600 border-b-1">
-    <div ref={labelDivRef} className="w-52">
-      <Tooltip config={{ offset: { x: -400, y: 0 }, preferredHorizontal: "left", preferredVertical: "bottom" }}>
-        <TooltipTrigger>
-          <label className="text-sm cursor-help hover:bg-stone-700/50 rounded-md p-1"><b>{props.buffDisplayableData.label}</b></label>
-        </TooltipTrigger>
-        <TooltipContent anchor={{ type: "dom", ref: labelDivRef as React.RefObject<HTMLElement> }}>
-          <div className="max-w-96 flex flex-row items-center">
-            <span dangerouslySetInnerHTML={{ __html: props.buffDisplayableData.description }} />
-          </div>
-        </TooltipContent>
-      </Tooltip>
+  return (
+    <div className={formStyles.formRow}>
+      <div ref={labelDivRef} className={formStyles.formLabel}>
+        <Tooltip config={{ offset: { x: -400, y: 0 }, preferredHorizontal: "left", preferredVertical: "bottom" }}>
+          <TooltipTrigger>
+            <label className="cursor-help rounded-md p-1"><b>{props.buffDisplayableData.label}</b></label>
+          </TooltipTrigger>
+          <TooltipContent anchor={{ type: "dom", ref: labelDivRef as React.RefObject<HTMLElement> }}>
+            <div className="max-w-96 flex flex-row items-center">
+              <span dangerouslySetInnerHTML={{ __html: props.buffDisplayableData.description }} />
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+      <div className={formStyles.formValue}>
+        <EditableField<number>
+          value={props.buff}
+          baseValue={0}
+          placeholder={`0`}
+          validate={(raw) => validateFloatInRange(raw, 0, 100)}
+          onValidate={(value) => props.setBuff(value)}
+        >
+          <span>{props.buff}</span>
+        </EditableField>
+      </div>
     </div>
-
-
-    <EditableField<number>
-      value={props.buff}
-      baseValue={0}
-      placeholder={`Enter ${props.buffDisplayableData.label}`}
-      validate={(raw) => validateFloatInRange(raw, 0, 100)}
-      onValidate={(value) => props.setBuff(value)}
-    >
-      <span>{props.buff}</span>
-    </EditableField>
-  </div>
+  );
 }
 
 function CreateCustomModifierForm(props: ICreateCustomModifierForm) {
@@ -73,51 +77,52 @@ function CreateCustomModifierForm(props: ICreateCustomModifierForm) {
 
   const allBuffFields = Object.entries(countryProximityBuffsDisplayableData).map(([buffKeyStr, buffDisplayableData]) => {
     const buffKey = buffKeyStr as keyof IProximityBuffs;
-    if (buffKey === "topographyMultipliers") {
-      return <div key={buffKeyStr}> special handling for topography</div>
-    }
     return <BasicBuffField key={buffKey} buff={buff[buffKey] ?? 0} buffKey={buffKey} buffDisplayableData={buffDisplayableData} setBuff={(value) => setBuff((prev) => ({ ...prev, [buffKey]: value }))} />
   });
 
-  return <div className="flex flex-col gap-2 relative h-full">
-    <div className="flex flex-row-reverse items-center gap-2 relative fixed">
-      <button className={[buttonStyles.simpleButton, ""].join(" ")} disabled={!name} onClick={props.onSubmit}>Submit
-      </button>
-      <button className={[buttonStyles.simpleButton, ""].join(" ")} onClick={props.onCancel}>Cancel</button>
-      <h1 className="text-xl mr-auto"><b>Create New Modifier</b></h1>
-    </div>
-    <hr className="w-full border-stone-600 border-b-1 flex-0 mb-2"></hr>
-    <div className="flex flex-col overflow-y-auto overscroll-none pb-52">
-      <div className="sticky top-0 z-10 flex flex-row gap-1 py-2 bg-stone-900">
-        <label className="w-32"><b>Name:</b></label>
-        <EditableField<string>
-          value={name}
-          baseValue=""
-          placeholder="Enter name"
-          validate={validateNonEmptyString}
-          onValidate={(name) => setName(name.toString())}
-          className="ml-4 w-64"
-          autoFocus={true}
-        >
-          <span>{name}</span>
-        </EditableField>
+  return (
+    <div className="flex flex-col h-full min-h-0 gap-2 relative border-white border-1 px-2 py-1">
+      <div className="flex flex-row-reverse items-center gap-2 flex-none">
+        <button className={[buttonStyles.simpleButton, ""].join(" ")} disabled={!name} onClick={() => props.onSubmit(name, description, buff)}>Submit
+        </button>
+        <button className={[buttonStyles.simpleButton, ""].join(" ")} onClick={props.onCancel}>Cancel</button>
+        <h1 className="text-xl mr-auto"><b>Create New Modifier</b></h1>
+      </div>
+      <hr className="w-full border-stone-600 border-b-1 flex-none my-2" />
+      <div className="flex-1 min-h-0 flex flex-col overflow-y-auto overscroll-none">
+      <div className={`sticky top-0 z-10 bg-stone-900 ${formStyles.formRow}`}>
+        <label className={formStyles.formLabel}><b>Name:</b></label>
+        <div className={formStyles.formValue}>
+          <EditableField<string>
+            value={name}
+            baseValue=""
+            placeholder="Enter name"
+            validate={validateNonEmptyString}
+            onValidate={(name) => setName(name.toString())}
+            autoFocus={true}
+          >
+            <span>{name}</span>
+          </EditableField>
+        </div>
       </div>
 
-      <div className="relative flex flex-row gap-1  border-stone-600 border-b-1 ">
-        <label className="w-52 text-sm p-1"><b>Description</b></label>
-        <EditableField<string>
-          value={description ?? ""}
-          baseValue=""
-          placeholder="Enter description"
-          onValidate={(description) => setDescription(description.toString())}
-          className="w-64"
-        >
-          <span>{description}</span>
-        </EditableField>
+      <div className={formStyles.formRow}>
+        <label className={formStyles.formLabel}><b>Description</b></label>
+        <div className={formStyles.formValue}>
+          <EditableField<string>
+            value={description ?? ""}
+            baseValue=""
+            placeholder="Enter description"
+            onValidate={(description) => setDescription(description.toString())}
+          >
+            <span>{description}</span>
+          </EditableField>
+        </div>
       </div>
       {allBuffFields}
+      </div>
     </div>
-  </div>
+  );
 }
 interface IModifierItemProps {
   template: ICountryModifierTemplate;
@@ -203,13 +208,14 @@ export function CountryBuffsModal(props: ICountryBuffsModal) {
   const [hoveredModifier, setHoveredModifier] = useState<ICountryModifierTemplate | null>(null);
   const [createCustomModifierFormOpen, setCreateCustomModifierFormOpen] = useState(false);
 
-  const addBuff = useCallback((name: string, description: string | null, buff: Partial<IProximityBuffs>) => {
+  const addModifier = useCallback((name: string, description: string | null, buff: Partial<IProximityBuffs>) => {
     if (!gameState.country) {
       return;
     }
     gameStateController.changeCountryModifier(name, { description: description ?? "", buff: buff as IProximityBuffs, enabled: true });
     queueMicrotask(() => {
       setCountryModifiersOpen(true);
+      setSelectedModifier(null);
     });
   }, [gameState]);
 
@@ -232,6 +238,16 @@ export function CountryBuffsModal(props: ICountryBuffsModal) {
   }, [gameState]);
 
 
+  const createAndSelectCustomModifier = useCallback((name: string, description: string | null, buff: Partial<IProximityBuffs>) => {
+    if (!gameData) {
+      return;
+    }
+    const template: ICountryModifierTemplate = { name, description: description ?? "", buff: buff };
+    gameStateController.changeCountryModifier(name, { description: description ?? "", buff: buff, enabled: true });
+    queueMicrotask(() => setHoveredModifier({ name, description: description ?? "", buff: buff }));
+    queueMicrotask(() => setCreateCustomModifierFormOpen(false));
+  }, [gameState, gameData, setSelectedModifier, setCreateCustomModifierFormOpen]);
+
   const enterCreateCustomModifierForm = useCallback(() => {
     queueMicrotask(() => setSelectedModifier(null));
     queueMicrotask(() => setHoveredModifier(null));
@@ -241,8 +257,8 @@ export function CountryBuffsModal(props: ICountryBuffsModal) {
   const showcasedModifier = selectedModifier ?? hoveredModifier;
   const selectedIsAlreadyInCountry = useMemo(() => Object.keys(gameState.country?.modifiers ?? {}).includes(selectedModifier?.name ?? ""), [gameState.country?.modifiers, selectedModifier?.name]);
 
-  console.log(gameData?.countryModifiersTemplate);
-  console.log({ modifiers: gameState.country?.modifiers });
+/*   console.log(gameData?.countryModifiersTemplate);
+  console.log({ modifiers: gameState.country?.modifiers }); */
 
   if (!gameData || !gameState.country) {
     return <div>Loading...</div>;
@@ -271,7 +287,7 @@ export function CountryBuffsModal(props: ICountryBuffsModal) {
               isExpanded={countryModifiersOpen}
               onToggle={() => setCountryModifiersOpen(!countryModifiersOpen)}
             >
-              <div className="flex flex-col gap-2 px-2">
+              <div className="flex flex-col gap-2 px-2 overflow-x-hidden">
                 {Object.entries(gameState.country?.modifiers ?? {}).map(([name, { buff, enabled }]) => {
                   return <ModifierItem key={name}
                     template={{ name, description: null, buff }}
@@ -304,7 +320,7 @@ export function CountryBuffsModal(props: ICountryBuffsModal) {
               <ButtonWithTooltip
                 tooltip={selectedModifier ? (selectedIsAlreadyInCountry ? "This modifier is already in country" : "Add modifier") : "Select a modifier to add it"}
                 disabled={!selectedModifier || Object.keys(gameState.country?.modifiers ?? {}).includes(selectedModifier.name)}
-                onClick={() => selectedModifier && addBuff(selectedModifier.name, selectedModifier.description, selectedModifier.buff) && setSelectedModifier(null)}
+                onClick={() => selectedModifier && addModifier(selectedModifier.name, selectedModifier.description, selectedModifier.buff) && setSelectedModifier(null)}
               >
                 <FaArrowUp size={16} color="white"></FaArrowUp>
               </ButtonWithTooltip>
@@ -329,14 +345,15 @@ export function CountryBuffsModal(props: ICountryBuffsModal) {
           </div>
         </div>
         {/* RIGHT SIDE: DETAILS OF THE SELECTED BUFF + BUFF TEMPLATES */}
-        <div className="w-[55%] h-full p-2 flex flex-col">
+        <div className="w-[55%] h-full min-h-0 p-2 flex flex-col">
 
           {/* SELECTED BUFF DETAILS + CREATE NEW MODIFIER FORM */}
-          <div className="flex flex-col h-[50%] border-stone-600 border-1 p-2">
-
+          <div
+            className={`flex flex-col min-h-0 border-stone-600 border-1 p-2 overflow-hidden ${createCustomModifierFormOpen ? "flex-1" : "flex-[0_0_50%]"}`}
+          >
             {
               (createCustomModifierFormOpen && (
-                <CreateCustomModifierForm onCancel={() => setCreateCustomModifierFormOpen(false)} onSubmit={() => { }} />
+                <CreateCustomModifierForm onCancel={() => setCreateCustomModifierFormOpen(false)} onSubmit={(name, description, buff) => createAndSelectCustomModifier(name, description, buff)} />
               )) || (
                 showcasedModifier && (
                   <>
@@ -344,20 +361,24 @@ export function CountryBuffsModal(props: ICountryBuffsModal) {
                     {showcasedModifier.description != null && (
                       <p className="text-stone-400 text-sm">{showcasedModifier.description}</p>
                     )}
-                    {showcasedModifier.buff && Object.entries(showcasedModifier.buff).map(([buffKey, buffData]) =>
-                      <span key={buffKey}>{buffKey}: {String(buffData)}</span>
+                    {showcasedModifier.buff && Object.entries(showcasedModifier.buff).map(([buffKeyStr, buffData]) => {
+                      const buffKey = buffKeyStr as keyof IProximityBuffs;
+                      if (!buffKey) return;
+                      return <BuffDisplay key={buffKey} buffKey={buffKey} buffValue={buffData} />
+                    }
                     )}
                   </>
                 )) || <></>
             }
-
           </div>
-          {/* COUNTRY BUFFS BREAKDOWN */}
-          <div className="flex-1 border-stone-600 border-1 p-2 h-[50%]">
-            <h1><b>Country Buffs Breakdown</b></h1>
-            <hr className="w-full border-stone-600 border-b-1 flex-0 my-2"></hr>
-            <CountryProximityBuffs country={gameState.country}></CountryProximityBuffs>
-          </div>
+          {/* COUNTRY BUFFS BREAKDOWN - hidden when creating a new modifier */}
+          {!createCustomModifierFormOpen && (
+            <div className="flex-1 min-h-0 border-stone-600 border-1 p-2 flex flex-col overflow-hidden">
+              <h1><b>Country Buffs Breakdown</b></h1>
+              <hr className="w-full border-stone-600 border-b-1 flex-0 my-2"></hr>
+              <CountryProximityBuffs country={gameState.country}></CountryProximityBuffs>
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,0 +1,42 @@
+
+:root {
+  --form-hover-color: var(--color-stone-700);
+}
+
+
+.formRow {
+  display: flex;
+  flex-direction: row;
+  gap: 0.25rem;
+  align-items: center;
+  border-bottom: 1px solid var(--form-hover-color);
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.formLabel {
+  position: relative;
+  width: 13rem;
+  flex: none;
+  font-size: 0.875rem;
+  text-align: left;
+
+  &:hover {
+    background-color: var(--form-hover-color);
+  }
+}
+
+.formLabel::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -2;
+  bottom: 0;
+  width: 1px;
+}
+
+.formValue {
+  flex: 1 1 0%;
+  margin-left: 0.5rem;
+  margin-right: 0.5rem;
+}

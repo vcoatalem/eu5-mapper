@@ -317,7 +317,7 @@ export class GameStateController extends Observable<IGameState> {
     this.notifyListeners();
   }
 
-  public changeCountryModifier(name: string, toUpdate: {description?: string, buff?: IProximityBuffs, enabled?: boolean}): void {
+  public changeCountryModifier(name: string, toUpdate: {description?: string, buff?: Partial<IProximityBuffs>, enabled?: boolean}): void {
     if (!this.subject.country?.modifiers) {
       return;
     }

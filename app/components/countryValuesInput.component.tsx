@@ -1,6 +1,7 @@
 import { gameStateController } from "@/app/lib/gameState.controller";
-import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ICountryInstance } from "../lib/types/general";
+import formStyles from "@/app/components/countryBuffs/forms.module.css";
 
 function CountryValueInput({
   valueKey,
@@ -48,18 +49,19 @@ function CountryValueInput({
     });
   }, [value, valueKey]);
   return (
-    <div className="flex flex-row gap-2 items-center">
+    <div className="flex flex-row gap-2 items-center border-b border-stone-600 pb-2">
       <select
         value={currentValueSide}
         onChange={changeValueSide}
-        className="w-full"
+        className={[formStyles.formLabel, "cursor-pointer"].join(" ")}
+        style={{ border: "none" }}
       >
         <option value="min">{labelMinFormatted}</option>
         <option value="max">{labelMaxFormatted}</option>
       </select>
       <input
         type="number"
-        className="ml-auto flex-none"
+        className={formStyles.formValue}
         min={0}
         max={100}
         value={inputValue}
@@ -71,6 +73,7 @@ function CountryValueInput({
 
 function RulerAdministrativeSkillInput({ value }: { value: number }) {
   const [inputValue, setInputValue] = useState<string>(value.toString());
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setInputValue(value.toString());
@@ -92,11 +95,13 @@ function RulerAdministrativeSkillInput({ value }: { value: number }) {
   );
 
   return (
-    <div className="flex flex-row gap-2 items-center px-1">
-      <span className="w-full">Administrative skill</span>
+    <div className="flex flex-row gap-2 items-center">
+      <button onClick={() => inputRef.current?.focus()} className={[formStyles.formLabel, "cursor-pointer"].join(" ")}>
+        <span className="pl-1">Administrative skill</span></button>
       <input
+        ref={inputRef}
         type="number"
-        className="ml-auto flex-none"
+        className={formStyles.formValue}
         min={0}
         max={100}
         value={inputValue}
@@ -108,7 +113,7 @@ function RulerAdministrativeSkillInput({ value }: { value: number }) {
 
 export function CountryValuesInput({ country }: { country: ICountryInstance }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1 px-2">
       <CountryValueInput
         valueKey={"landVsNaval"}
         value={country.values.landVsNaval ?? 0}

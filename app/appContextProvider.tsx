@@ -6,6 +6,7 @@ import { createContext, useEffect, useState } from "react";
 import { IndexedDBWriter } from "./lib/indexeddb/indexeddb-writer";
 import {
   dbAdjacencyDataStoreName,
+  dbCountryModifiersTemplatesStoreName,
   dbDataKey,
   dbGameDataStoreName,
   dbName,
@@ -128,7 +129,6 @@ export const AppContextProvider = ({
           adjacencyCsv,
           proximityComputationRule,
           countriesDataMap,
-          countryModifiersTemplate,
           roads,
         } = gameDataFiles;
 
@@ -141,7 +141,6 @@ export const AppContextProvider = ({
           proximityComputationRule,
           countriesDataMap: {},
           roads,
-          countryModifiersTemplate: {},
         };
         const indexedDBWriter = new IndexedDBWriter(
           dbName,
@@ -149,30 +148,39 @@ export const AppContextProvider = ({
           dbStoreNames,
         );
 
-        console.log("clear previous indexeddb data");
+        console.log("[AppContextProvider] clear previous indexeddb data");
         await Promise.all([
           indexedDBWriter.clearStore(dbGameDataStoreName),
           indexedDBWriter.clearStore(dbAdjacencyDataStoreName),
-        ]);
+          indexedDBWriter.clearStore(dbCountryModifiersTemplatesStoreName),
+      ]);
 
-        console.log("fill indexeddb");
+        console.log("[AppContextProvider] fill indexeddb");
         await indexedDBWriter
           .put(dbGameDataStoreName, dbDataKey, toBePersistedGameData)
           .then(
-            () => console.log("persisted game data to indexedDB"),
+            () => console.log("[AppContextProvider] persisted game data to indexedDB"),
             (err) =>
-              console.error("could not persist game data to indexedDB", err),
+              console.error("[AppContextProvider] could not persist game data to indexedDB", err),
           );
 
         await indexedDBWriter
           .put(dbAdjacencyDataStoreName, dbDataKey, adjacencyCsv)
           .then(
-            () => console.log("persisted adjacency data to indexedDB"),
+            () => console.log("[AppContextProvider] persisted adjacency data to indexedDB"),
             (err) =>
               console.error(
-                "could not persist adjacency data to indexedDB",
+                "[AppContextProvider] could not persist adjacency data to indexedDB",
                 err,
               ),
+          );
+
+        await indexedDBWriter
+          .put(dbCountryModifiersTemplatesStoreName, dbDataKey, {})
+          .then(
+            () => console.log("[AppContextProvider] created store entry for templates to indexedDB"),
+            (err) =>
+              console.error("[AppContextProvider] could not persist country modifiers templates to indexedDB", err),
           );
 
         // indexedDB operations have to be done before setGameData to ensure this happens before worldmap component initializes
@@ -184,7 +192,7 @@ export const AppContextProvider = ({
           proximityComputationRule,
           countriesDataMap,
           roads,
-          countryModifiersTemplate,
+          /* countryModifiersTemplate, */
         });
 
         console.log(

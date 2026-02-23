@@ -20,6 +20,9 @@ import { TooltipTrigger } from "@/app/lib/tooltip/tooltipTrigger.component";
 import { Tooltip } from "@/app/lib/tooltip/tooltip.component";
 import { BuffDisplay } from "@/app/components/countryBuffs/buffDisplay.component";
 import formStyles from "@/app/components/countryBuffs/forms.module.css";
+import { useParams } from "next/navigation";
+import { Loader } from "@/app/components/loader.component";
+import { countryModifiersTemplatesController } from "@/app/lib/countryModifiers.controller";
 
 interface ICountryBuffsModal {
   onClose: () => void;
@@ -74,6 +77,8 @@ function CreateCustomModifierForm(props: ICreateCustomModifierForm) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState<string | null>(null);
   const [buff, setBuff] = useState<Partial<IProximityBuffs>>({});
+
+
 
   const allBuffFields = Object.entries(countryProximityBuffsDisplayableData).map(([buffKeyStr, buffDisplayableData]) => {
     const buffKey = buffKeyStr as keyof IProximityBuffs;
@@ -204,6 +209,20 @@ export function CountryBuffsModal(props: ICountryBuffsModal) {
     () => gameStateController.getSnapshot(),
   );
 
+  const countryModifierTemplates = useSyncExternalStore(
+    countryModifiersTemplatesController.subscribe.bind(countryModifiersTemplatesController),
+    () => countryModifiersTemplatesController.getSnapshot(),
+  );
+
+  const version = useParams().version as string;
+
+  useEffect(() => {
+    if (!version) {
+      throw new Error("[CreateCustomModifierForm] version not found");
+    }
+    countryModifiersTemplatesController.init(version);
+  }, [version]);
+
   const [countryModifiersOpen, setCountryModifiersOpen] = useState(false);
   const [countryValuesOpen, setCountryValuesOpen] = useState(false);
   const [selectedModifier, setSelectedModifier] = useState<ICountryModifierTemplate | null>(null);
@@ -245,6 +264,7 @@ export function CountryBuffsModal(props: ICountryBuffsModal) {
       return;
     }
     const template: ICountryModifierTemplate = { name, description: description ?? "", buff: buff };
+    countryModifiersTemplatesController.addModifierTemplate(template);
     gameStateController.changeCountryModifier(name, { description: description ?? "", buff: buff, enabled: true });
     queueMicrotask(() => setHoveredModifier({ name, description: description ?? "", buff: buff }));
     queueMicrotask(() => setCreateCustomModifierFormOpen(false));
@@ -318,24 +338,31 @@ export function CountryBuffsModal(props: ICountryBuffsModal) {
 
           {/* BUFF TEMPLATES */}
           <div className="relative flex flex-col max-h-[50%] flex-1 border-stone-600 border-1 overflow-y-auto overflow-x-hidden overscroll-none">
-            <div className="flex flex-row-reverse items-center gap-2 sticky top-0 left-0 right-0 z-10 bg-black border-stone-600 border-b-1">
 
-              <ButtonWithTooltip
-                tooltip={selectedModifier ? (selectedIsAlreadyInCountry ? "This modifier is already in country" : "Add modifier") : "Select a modifier to add it"}
-                disabled={!selectedModifier || Object.keys(gameState.country?.modifiers ?? {}).includes(selectedModifier.name)}
-                onClick={() => selectedModifier && addModifier(selectedModifier.name, selectedModifier.description, selectedModifier.buff) && setSelectedModifier(null)}
-              >
-                <FaArrowUp size={16} color="white"></FaArrowUp>
-              </ButtonWithTooltip>
+            {countryModifierTemplates.isLoadingCountryModifiersTemplate ? (
+              <div className="flex flex-col items-center justify-center flex-1">
+                <Loader size={52} />
+              </div>
+            ) : (
+              <div className="flex flex-row-reverse items-center gap-2 sticky top-0 left-0 right-0 z-10 bg-black border-stone-600 border-b-1">
 
-              <ButtonWithTooltip disabled={createCustomModifierFormOpen} className="ml-auto" tooltip="Create new modifier" onClick={enterCreateCustomModifierForm}>
-                <FaPlus size={16} color="white" />
-              </ButtonWithTooltip>
+                <ButtonWithTooltip
+                  tooltip={selectedModifier ? (selectedIsAlreadyInCountry ? "This modifier is already in country" : "Add modifier") : "Select a modifier to add it"}
+                  disabled={!selectedModifier || Object.keys(gameState.country?.modifiers ?? {}).includes(selectedModifier.name)}
+                  onClick={() => selectedModifier && addModifier(selectedModifier.name, selectedModifier.description, selectedModifier.buff) && setSelectedModifier(null)}
+                >
+                  <FaArrowUp size={16} color="white"></FaArrowUp>
+                </ButtonWithTooltip>
 
-              <h2 className="mr-auto px-2 py-1"><b>Template Library</b></h2>
-            </div>
+                <ButtonWithTooltip disabled={createCustomModifierFormOpen} className="ml-auto" tooltip="Create new modifier" onClick={enterCreateCustomModifierForm}>
+                  <FaPlus size={16} color="white" />
+                </ButtonWithTooltip>
 
-            {Object.entries(gameData.countryModifiersTemplate).map(([, template]) => {
+                <h2 className="mr-auto px-2 py-1"><b>Template Library</b></h2>
+              </div>
+            )}
+
+            {countryModifierTemplates.countryModifiersTemplates && Object.entries(countryModifierTemplates.countryModifiersTemplates).map(([, template]) => {
               return <ModifierItem
                 key={template.name}
                 template={template}

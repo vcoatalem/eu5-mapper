@@ -53,10 +53,12 @@
   var dbVersion = 1;
   var dbGameDataStoreName = "gameData";
   var dbAdjacencyDataStoreName = "adjacencyData";
+  var dbCountryModifiersTemplatesStoreName = "countryModifiersTemplates";
   var dbDataKey = "main";
   var dbStoreNames = [
     dbGameDataStoreName,
-    dbAdjacencyDataStoreName
+    dbAdjacencyDataStoreName,
+    dbCountryModifiersTemplatesStoreName
   ];
 
   // app/lib/graph.ts
@@ -422,34 +424,6 @@
     }
   };
 
-  // app/lib/classes/countryProximityBuffs.const.ts
-  var countryProximityBuffsDisplayableData = {
-    genericModifier: {
-      label: "Generic proximity modifier",
-      description: "% modifier applied to proximity over any kind of terrain or connection"
-    },
-    landModifier: {
-      label: "Land proximity modifier",
-      description: "% modifier applied to proximity over land and rivers"
-    },
-    seaWithMaritimeFlatCostReduction: {
-      label: "Proximity cost with maritime presence",
-      description: `<p>This is a flat reduction to the base proximity cost of a sea edge with a maritime presence of 100.<br/>Total flat cost of traveling on sea edge is obtained through formula:<br/> <code>costWithMaritimePresence * maritimePresence / 100 + costWithoutMaritimePresence * (1 - maritimePresence / 100)</code></p>`
-    },
-    seaWithoutMaritimeFlatCostReduction: {
-      label: "Proximity cost without maritime presence",
-      description: `<p>This is a flat reduction to the base proximity cost of a sea edge without a maritime presence of 0.<br/>Total flat cost of traveling on sea edge is obtained through formula:<br/> <code>costWithMaritimePresence * maritimePresence / 100 + costWithoutMaritimePresence * (1 - maritimePresence / 100)</code></p>`
-    },
-    portFlatCostReduction: {
-      label: "Port proximity modifier",
-      description: "Flat reduction applied to proximity going in and out of a harbor, with or without river. Note: not all land <-> sea connections are harbor."
-    },
-    topographyMultipliers: {
-      label: "Topography multipliers",
-      description: "Multipliers applied at the end of the proximity computation, based on the topography of the source location."
-    }
-  };
-
   // app/lib/classes/countryProximityBuffs.ts
   var ProximityBuffsRecord = class {
     constructor(rule, country) {
@@ -498,7 +472,7 @@
         "seaWithMaritimeFlatCostReduction",
         "seaWithoutMaritimeFlatCostReduction",
         "portFlatCostReduction",
-        "topographyMultipliers"
+        "mountainsHillsPlateauxMultiplier"
       ];
       for (const key of Object.keys(buffToApply)) {
         if (!allowedKeys.includes(key)) {
@@ -512,45 +486,20 @@
           );
           continue;
         }
-        if (key === "topographyMultipliers") {
-          const source = buffToApply.topographyMultipliers;
-          if (!source) {
-            continue;
-          }
-          const topographyBuffs = {};
-          for (const topographyKey of Object.keys(source)) {
-            const topographyValue = source[topographyKey];
-            if (typeof topographyValue === "number") {
-              topographyBuffs[topographyKey] = topographyValue * impactFactor;
-            }
-          }
-          if (Object.keys(topographyBuffs).length > 0) {
-            res.topographyMultipliers = topographyBuffs;
-          }
-        } else {
-          const numericKey = key;
-          const buffToApplyValue = buffToApply[numericKey];
-          if (typeof buffToApplyValue === "number") {
-            res[numericKey] = buffToApplyValue * impactFactor;
-          }
+        const buffToApplyValue = buffToApply[key];
+        if (typeof buffToApplyValue === "number") {
+          res[key] = buffToApplyValue * impactFactor;
         }
       }
       return res;
     }
-    getBuffsOfType(type, topography) {
+    getBuffsOfType(type) {
       const buffRecord = Object.fromEntries(
         Object.entries(this.countryProximityBuffs).map(
           ([buffName, buffEffects]) => {
             const buffEffect = buffEffects[type];
-            switch (typeof buffEffect) {
-              case "number":
-                return [buffName, buffEffect];
-              case "object":
-                const topographyBuff = buffEffect[topography ?? "unknown"] ?? 0;
-                return [buffName, topographyBuff];
-              default:
-                return [buffName, 0];
-            }
+            const value = typeof buffEffect === "number" ? buffEffect : 0;
+            return [buffName, value];
           }
         )
       );
@@ -560,18 +509,13 @@
       };
     }
     getBuffsToDisplay() {
-      const buffs = Object.entries(this.countryProximityBuffs).reduce((acc, [, buffEffects]) => {
+      return Object.entries(this.countryProximityBuffs).reduce((acc, [, buffEffects]) => {
         const newSet = new Set(acc);
         for (const buffKey of Object.keys(buffEffects)) {
           newSet.add(buffKey);
         }
         return newSet;
       }, /* @__PURE__ */ new Set());
-      const res = {};
-      for (const buffKey of buffs) {
-        res[buffKey] = countryProximityBuffsDisplayableData[buffKey];
-      }
-      return res;
     }
   };
 

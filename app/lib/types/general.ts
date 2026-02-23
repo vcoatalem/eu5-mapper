@@ -143,6 +143,5 @@ export interface IGameData {
   buildingsTemplate: Record<string, INewBuildingTemplate>;
   proximityComputationRule: IProximityComputationRule;
   countriesDataMap: Record<string, ICountryData>; //TODO: move this outside of mandatory game data. Can be loaded only when needed, stored in indexedDB, and read by specific components that need it
-  countryModifiersTemplate: Record<string, ICountryModifierTemplate>; //TODO: move this outside of mandatory game data. Can be loaded only when needed, stored in indexedDB, and read by specific components that need it
   roads: RoadRecord; // base roads initialized at the start of the game
 }

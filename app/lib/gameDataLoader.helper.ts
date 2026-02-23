@@ -138,7 +138,7 @@ export class GameDataLoaderHelper {
       "adjacencyCsv",
       "proximityComputationRule",
       "countriesDataMap",
-      "countryModifiersTemplate",
+      /* "countryModifiersTemplate", */ // voluntarily removed - load by CountryModifiersTemplatesController on demand
       "roads",
     ];
 

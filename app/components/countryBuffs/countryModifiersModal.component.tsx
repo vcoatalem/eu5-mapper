@@ -1,134 +1,27 @@
 import { AppContext } from "@/app/appContextProvider";
-import { CountryStats } from "@/app/components/countryStatsComponent";
-import { gameStateController } from "@/app/lib/gameState.controller";
-import { IProximityBuffDisplayableData, IProximityBuffs } from "@/app/lib/types/proximityComputationRules";
-import { useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import buttonStyles from "@/app/styles/button.module.css";
-import { ICountryModifierTemplate } from "@/app/lib/types/general";
-import { CountryProximityBuffs } from "@/app/components/countryBuffs/countryProximityBuffs.component";
-import { FaCheckSquare } from "react-icons/fa";
-import { FaArrowUp, FaPlus, FaSquare } from "react-icons/fa6";
 import { ButtonWithTooltip } from "@/app/components/buttonWithTooltip.component";
-import { FiDelete } from "react-icons/fi";
-import { FoldableMenu } from "@/app/components/foldableMenu.component";
-import { CountryValuesInput } from "@/app/components/countryValuesInput.component";
-import { EditableField } from "@/app/components/editableField.component";
-import { validateFloatInRange, validateNonEmptyString } from "@/app/lib/utils/editableFieldValidation.helper";
-import { countryProximityBuffsDisplayableData } from "@/app/lib/classes/countryProximityBuffs.const";
-import { TooltipContent } from "@/app/lib/tooltip/tooltipContent.component";
-import { TooltipTrigger } from "@/app/lib/tooltip/tooltipTrigger.component";
-import { Tooltip } from "@/app/lib/tooltip/tooltip.component";
 import { BuffDisplay } from "@/app/components/countryBuffs/buffDisplay.component";
-import formStyles from "@/app/components/countryBuffs/forms.module.css";
-import { useParams } from "next/navigation";
+import { CountryProximityBuffs } from "@/app/components/countryBuffs/countryProximityBuffs.component";
+import { CreateCustomModifierForm } from "@/app/components/countryBuffs/createCustomModifierForm.component";
+import { CountryStats } from "@/app/components/countryStatsComponent";
+import { CountryValuesInput } from "@/app/components/countryValuesInput.component";
+import { FoldableMenu } from "@/app/components/foldableMenu.component";
 import { Loader } from "@/app/components/loader.component";
 import { countryModifiersTemplatesController } from "@/app/lib/countryModifiers.controller";
+import { gameStateController } from "@/app/lib/gameState.controller";
+import { ICountryModifierTemplate } from "@/app/lib/types/general";
+import { IProximityBuffs } from "@/app/lib/types/proximityComputationRules";
+import buttonStyles from "@/app/styles/button.module.css";
+import { useParams } from "next/navigation";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { FaCheckSquare } from "react-icons/fa";
+import { FaArrowUp, FaPlus, FaSquare } from "react-icons/fa6";
+import { FiDelete } from "react-icons/fi";
 
-interface ICountryBuffsModal {
+interface ICountryModifiersModal {
   onClose: () => void;
 }
 
-interface ICreateCustomModifierForm {
-  onSubmit: (name: string, description: string | null, buff: Partial<IProximityBuffs>) => void;
-  onCancel: () => void;
-}
-
-
-interface IBasicBuffFieldProps {
-  buff: number;
-  buffKey: keyof IProximityBuffs;
-  buffDisplayableData: IProximityBuffDisplayableData;
-  setBuff: (value: number) => void;
-}
-
-function BasicBuffField(props: IBasicBuffFieldProps) {
-  const labelDivRef = useRef<HTMLDivElement>(null);
-  return (
-    <div className={formStyles.formRow}>
-      <div ref={labelDivRef} className={formStyles.formLabel}>
-        <Tooltip config={{ offset: { x: -400, y: 0 }, preferredHorizontal: "left", preferredVertical: "bottom" }}>
-          <TooltipTrigger>
-            <label className="cursor-help rounded-md p-1"><b>{props.buffDisplayableData.label}</b></label>
-          </TooltipTrigger>
-          <TooltipContent anchor={{ type: "dom", ref: labelDivRef as React.RefObject<HTMLElement> }}>
-            <div className="max-w-96 flex flex-row items-center">
-              <span dangerouslySetInnerHTML={{ __html: props.buffDisplayableData.description }} />
-            </div>
-          </TooltipContent>
-        </Tooltip>
-      </div>
-      <div className={formStyles.formValue}>
-        <EditableField<number>
-          value={props.buff}
-          baseValue={0}
-          placeholder={`0`}
-          validate={(raw) => validateFloatInRange(raw, 0, 100)}
-          onValidate={(value) => props.setBuff(value)}
-        >
-          <span>{props.buff}</span>
-        </EditableField>
-      </div>
-    </div>
-  );
-}
-
-function CreateCustomModifierForm(props: ICreateCustomModifierForm) {
-
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState<string | null>(null);
-  const [buff, setBuff] = useState<Partial<IProximityBuffs>>({});
-
-
-
-  const allBuffFields = Object.entries(countryProximityBuffsDisplayableData).map(([buffKeyStr, buffDisplayableData]) => {
-    const buffKey = buffKeyStr as keyof IProximityBuffs;
-    return <BasicBuffField key={buffKey} buff={buff[buffKey] ?? 0} buffKey={buffKey} buffDisplayableData={buffDisplayableData} setBuff={(value) => setBuff((prev) => ({ ...prev, [buffKey]: value }))} />
-  });
-
-  return (
-    <div className="flex flex-col h-full min-h-0 gap-2 relative border-white border-1 px-2 py-1 overflow-hidden">
-      <div className="flex flex-row-reverse items-center gap-2 flex-none mt-1 shrink-0">
-        <button className={[buttonStyles.simpleButton, ""].join(" ")} disabled={!name} onClick={() => props.onSubmit(name, description, buff)}>Submit
-        </button>
-        <button className={[buttonStyles.simpleButton, ""].join(" ")} onClick={props.onCancel}>Cancel</button>
-        <h1 className="text-xl mr-auto"><b>Create New Modifier</b></h1>
-      </div>
-      <hr className="w-full border-stone-600 border-b-1 flex-none mb-1 shrink-0" />
-      <div className="flex-1 min-h-0 flex flex-col overflow-y-auto overscroll-none shrink min-w-0">
-        <div className={`sticky top-0 z-10 bg-stone-900 ${formStyles.formRow}`}>
-          <label className={formStyles.formLabel}><b>Name:</b></label>
-          <div className={formStyles.formValue}>
-            <EditableField<string>
-              value={name}
-              baseValue=""
-              placeholder="Enter name"
-              validate={validateNonEmptyString}
-              onValidate={(name) => setName(name.toString())}
-              autoFocus={true}
-            >
-              <span>{name}</span>
-            </EditableField>
-          </div>
-        </div>
-
-        <div className={formStyles.formRow}>
-          <label className={formStyles.formLabel}><b>Description</b></label>
-          <div className={formStyles.formValue}>
-            <EditableField<string>
-              value={description ?? ""}
-              baseValue=""
-              placeholder="Enter description"
-              onValidate={(description) => setDescription(description.toString())}
-            >
-              <span>{description}</span>
-            </EditableField>
-          </div>
-        </div>
-        {allBuffFields}
-      </div>
-    </div>
-  );
-}
 interface IModifierItemProps {
   template: ICountryModifierTemplate;
   onHover: (template: ICountryModifierTemplate | null) => void;
@@ -202,7 +95,7 @@ function ModifierItem({ template, onHover, isSelected, onSelect, isEnabled = nul
   </div>
 }
 
-export function CountryBuffsModal(props: ICountryBuffsModal) {
+export function CountryModifiersModal(props: ICountryModifiersModal) {
   const { gameData } = useContext(AppContext);
   const gameState = useSyncExternalStore(
     gameStateController.subscribe.bind(gameStateController),
@@ -279,9 +172,7 @@ export function CountryBuffsModal(props: ICountryBuffsModal) {
 
   const showcasedModifier = selectedModifier ?? hoveredModifier;
   const selectedIsAlreadyInCountry = useMemo(() => Object.keys(gameState.country?.modifiers ?? {}).includes(selectedModifier?.name ?? ""), [gameState.country?.modifiers, selectedModifier?.name]);
-
-  /*   console.log(gameData?.countryModifiersTemplate);
-    console.log({ modifiers: gameState.country?.modifiers }); */
+  const countryModifiersCount = useMemo(() => Object.entries(gameState.country?.modifiers ?? {}).length, [gameState.country?.modifiers]);
 
   if (!gameData || !gameState.country) {
     return <div>Loading...</div>;
@@ -292,8 +183,11 @@ export function CountryBuffsModal(props: ICountryBuffsModal) {
 
       {/* HEADER */}
       <div className="h-12 w-full flex flex-row items-center flex-0">
-        <h1 className="flex-1"><b>Country Buffs</b></h1>
-        <CountryStats className="ml-auto flex-1" ownedLocations={gameState.ownedLocations}></CountryStats>
+        <div className="flex flex-col flex-1 text-left">
+          <h1 className="flex-1"><b>Country Modifiers</b></h1>
+          <span className="text-stone-400 text-sm text-left">Advances and other modifiers affecting proximity calculations</span>
+        </div>
+        <CountryStats className="ml-auto mr-2" ownedLocations={gameState.ownedLocations}></CountryStats>
         <button className={["ml-auto flex-0", buttonStyles.simpleButton].join(" ")} onClick={() => props.onClose()}>Close</button>
       </div>
 
@@ -306,7 +200,8 @@ export function CountryBuffsModal(props: ICountryBuffsModal) {
           {/* COUNTRY MODIFIERS */}
           <div className="flex flex-col h-[50%] gap-2 border-stone-600 border-1 overflow-y-scroll">
             <FoldableMenu
-              title={<><b>Country Modifiers</b> ({Object.entries(gameState.country?.modifiers ?? {}).length})</>}
+              title={<><b>Country Modifiers</b> ({countryModifiersCount})</>}
+              disabled={countryModifiersCount === 0}
               isExpanded={countryModifiersOpen}
               onToggle={() => setCountryModifiersOpen(!countryModifiersOpen)}
             >

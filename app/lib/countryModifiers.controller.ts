@@ -79,6 +79,8 @@ class CountryModifiersTemplatesController extends Observable<ICountryModifiersTe
         return;
       }
       else {
+        this.subject.isLoadingCountryModifiersTemplate = false;
+        this.notifyListeners();
         throw new Error("[CountryModifiersController] Could not set templates");
       }
     }

@@ -111,22 +111,4 @@ export class VersionResolver {
 
     return closestMatch;
   };
-
-
 }
-
-
-
-
- 
-
-
-
-/* export async function getFilePath(
-  fileName: string,
-  targetVersion: string
-): Promise<string> {
-  const manifest = await loadVersionsManifest();
-  const resolvedVersion = await resolveFileVersion(fileName, targetVersion);
-  return manifest.files[fileName][resolvedVersion].path;
-} */

@@ -66,6 +66,9 @@
     "countryModifiersTemplate": {
       "1.0.11": {
         "path": "/1.0.11/game_data/country-modifiers-templates.json"
+      },
+      "1.1.4": {
+        "path": "/1.1.4/game_data/country-modifiers-templates.json"
       }
     }
   }

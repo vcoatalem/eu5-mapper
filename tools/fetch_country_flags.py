@@ -44,7 +44,7 @@ def fetch_flag_url(country_code: str) -> Optional[str]:
     return None
 
 
-def main(version: str = "0.0.11", output_dir: Optional[str] = None) -> None:
+def main(version: str, output_dir: Optional[str] = None) -> None:
     script_dir = os.path.dirname(os.path.abspath(__file__))
     if output_dir is None:
         output_dir = os.path.join(script_dir, "output", version)
@@ -83,6 +83,9 @@ def main(version: str = "0.0.11", output_dir: Optional[str] = None) -> None:
 
 if __name__ == "__main__":
     import sys
-    version = sys.argv[1] if len(sys.argv) > 1 else "0.0.11"
+    if len(sys.argv) < 2:
+        print("Usage: python fetch_country_flags.py <version> [output_dir]", file=sys.stderr)
+        raise SystemExit(1)
+    version = sys.argv[1]
     output_dir = sys.argv[2] if len(sys.argv) > 2 else None
     main(version, output_dir)

@@ -17,7 +17,7 @@ Usage:
     python3 generate_location_centers.py <version> [--no-cache]
 
 Examples:
-    python3 generate_location_centers.py 0.0.11
+    python3 generate_location_centers.py 1.0.11
     python3 generate_location_centers.py 0.1 --no-cache
 """
 
@@ -41,7 +41,7 @@ def parse_arguments() -> Tuple[str, bool]:
     """
     if len(sys.argv) < 2:
         print("Usage: python generate_location_centers.py <version> [--no-cache]")
-        print("Example: python generate_location_centers.py 0.0.11")
+        print("Example: python generate_location_centers.py 1.0.11")
         sys.exit(1)
 
     version = sys.argv[1]

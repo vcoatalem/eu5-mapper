@@ -131,7 +131,7 @@ export class ProximityComputationHelper {
       .map(
         (b) =>
           Math.abs(b.template.modifiers.localProximityCostModifier ?? 0) *
-          100 * // O.0.11 effects are negative floats, 0.1.0 positive - we might need to change this formula if there are buildings giving negative local prox in the future
+          100 * // O.0.11 effects are negative floats, 1.1.4 positive - we might need to change this formula if there are buildings giving negative local prox in the future
           b.level,
       )
       .reduce((a, b) => a + b, 0);

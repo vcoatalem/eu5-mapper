@@ -309,8 +309,8 @@ def main():
 	parser = argparse.ArgumentParser(description="Classify river layer images via OCR")
 	parser.add_argument(
 		"--version",
-		default="0.0.11",
-		help="Game data version (e.g., 0.0.11)",
+		required=True,
+		help="Game data version (e.g., 1.0.11)",
 	)
 	parser.add_argument(
 		"--input",

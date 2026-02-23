@@ -14,7 +14,7 @@ import os
 import sys
 from typing import Dict, List, Optional
 
-from game_data_loader import GameDataLoader
+from game_data_loader import GameDataLoader, GameDataFiles
 from game_data_utils import parse_game_data_file
 
 
@@ -68,22 +68,19 @@ def extract_numeric(value: object) -> Optional[float]:
     return None
 
 
-def build_templates_from_files(files) -> Dict[str, dict]:
+def build_templates_from_files(files: GameDataFiles) -> Dict[str, dict]:
     templates: Dict[str, dict] = {}
     obsolete_links: Dict[str, str] = {}
 
-    building_file_fields = [
-        'capital_buildings',
-        'common_buildings',
-        'port_buildings',
-        'rural_buildings',
-        'town_buildings',
-        'unique_buildings',
+    building_file_paths = [
+        files.capital_buildings,
+        files.common_buildings,
+        files.port_buildings,
+        files.rural_buildings,
+        files.town_buildings,
+        files.unique_buildings,
     ]
-    for field in building_file_fields:
-        file_path = getattr(files, field, None)
-        if not file_path:
-            continue
+    for file_path in building_file_paths:
         parsed = parse_game_data_file(file_path)
         if not isinstance(parsed, dict):
             continue
@@ -212,7 +209,10 @@ def generate_buildings_template(
 
 
 def main() -> None:
-    version = sys.argv[1] if len(sys.argv) > 1 else "0.0.11"
+    if len(sys.argv) < 2:
+        print("Usage: python generate_buildings_template.py <version> [output_dir]", file=sys.stderr)
+        raise SystemExit(1)
+    version = sys.argv[1]
     if len(sys.argv) > 2:
         output_dir = sys.argv[2]
     else:

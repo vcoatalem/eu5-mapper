@@ -16,6 +16,7 @@ import csv
 from typing import Dict, List, Set, Optional
 from dataclasses import asdict
 from game_data_loader import GameDataLoader
+from generate_buildings_template import generate_buildings_template
 from game_data_utils import (
     parse_pops_file,
     parse_roads_file,
@@ -212,7 +213,7 @@ def compute_location_development(
 
 
 def generate_game_data_json(
-    version: str = "0.0.11",
+    version: str,
     output_dir: str = None,
     source: str = "app",
     game_root_path: Optional[str] = None
@@ -285,7 +286,7 @@ def generate_game_data_json(
     )
 
     whitelisted_buildings = set(buildings_template_map.keys())
-    print(f"found {len(whitelisted_buildings)} unique buildings from template generation")
+    print(f"found {len(whitelisted_buildings)} distinct buildings from template generation")
     print("")
     location_ranks, location_buildings = parse_cities_and_buildings_file(
         files.cities_buildings_file,
@@ -499,8 +500,11 @@ def generate_game_data_json(
 if __name__ == "__main__":
     import sys
     
-    version = sys.argv[1] if len(sys.argv) > 1 else "0.0.11"
-    
+    if len(sys.argv) < 2:
+        print("Usage: python generate_static_game_data.py <version> [output_dir]", file=sys.stderr)
+        raise SystemExit(1)
+    version = sys.argv[1]
+
     # Default output directory: tools/output/{version}/
     if len(sys.argv) > 2:
         output_dir = sys.argv[2]

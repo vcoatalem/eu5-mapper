@@ -59,9 +59,9 @@ def parse_arguments():
     """Parse command line arguments."""
     if len(sys.argv) < 2:
         print("Usage: python create-adjacency-data.py <version> [--game-data-path <path>] [--no-cache]")
-        print("Example: python create-adjacency-data.py 0.0.11")
-        print("         python create-adjacency-data.py 0.0.11 --game-data-path /custom/path/to/game_data")
-        print("         python create-adjacency-data.py 0.0.11 --no-cache")
+        print("Example: python create-adjacency-data.py 1.0.11")
+        print("         python create-adjacency-data.py 1.0.11 --game-data-path /custom/path/to/game_data")
+        print("         python create-adjacency-data.py 1.0.11 --no-cache")
         sys.exit(1)
     
     version = sys.argv[1]

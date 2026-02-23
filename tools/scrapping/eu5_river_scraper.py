@@ -232,8 +232,8 @@ def main():
 	parser = argparse.ArgumentParser(description="Scrape river tooltip images")
 	parser.add_argument(
 		"--version",
-		default="0.0.11",
-		help="Game data version (e.g., 0.0.11)",
+		required=True,
+		help="Game data version (e.g., 1.0.11)",
 	)
 	parser.add_argument(
 		"--river-colors",

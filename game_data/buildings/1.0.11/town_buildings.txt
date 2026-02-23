@@ -1,4 +1,7 @@
-﻿temple = {
+﻿
+
+
+temple = {
 	is_foreign = no
 	max_levels = 1
 	pop_type = clergy
@@ -31,6 +34,8 @@
 	}
 
 }
+
+
 
 cathedral = {
 	is_foreign = no
@@ -77,12 +82,12 @@ cathedral = {
 
 }
 
+
 construction_center = {
 
 	is_foreign = no
 	max_levels = construction_center_max_level 
 	pop_type = laborers
-	forbidden_for_estates = yes
 
 	employment_size = construction_employment
 
@@ -114,6 +119,7 @@ construction_center = {
 	}
 
 }
+
 
 counting_house = {
 	is_foreign = no
@@ -156,7 +162,6 @@ minting_office = {
 	is_foreign = no
 	max_levels = 1
 	pop_type = burghers
-	forbidden_for_estates = yes
 
 
 	category = government_category
@@ -182,6 +187,7 @@ minting_office = {
 	}
 
 }
+
 
 granary = {
 	is_foreign = no
@@ -221,7 +227,6 @@ granary = {
 }
 
 fortress_granary = { #https://en.wikipedia.org/wiki/Agadir_(granary)
-	is_special = yes
 	is_foreign = no
 	max_levels = 1
 	pop_type = peasants
@@ -351,6 +356,8 @@ fortress_granary = { #https://en.wikipedia.org/wiki/Agadir_(granary)
 	}
 }
 
+
+
 wharf = {
 	is_foreign = no
 	max_levels = 1
@@ -392,7 +399,6 @@ wharf = {
 		local_merchant_capacity = 0.1
 		can_build_ships_in_this_location = yes
 		harbor_suitability = 0.1
-		local_repair_speed = 0.01
 	}
 }
 
@@ -589,7 +595,6 @@ slave_market = {
 
 	modifier = {
 		building_enslavement_power = 0.02
-		local_slave_pop_satisfaction = -0.025
 	}
 
 

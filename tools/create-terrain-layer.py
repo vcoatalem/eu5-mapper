@@ -11,9 +11,9 @@ Usage:
   python3 create-terrain-layer.py <version> [--game-data-path <path>] [--output <file>] [--river-map <river.png>]
 
 Example:
-  python3 create-terrain-layer.py 0.0.11
-  python3 create-terrain-layer.py 0.0.11 --river-map ../game_data/river_map/0.0.11/rivers.png
-  python3 create-terrain-layer.py 0.0.11 --output terrain_with_rivers.png
+  python3 create-terrain-layer.py 1.0.11
+  python3 create-terrain-layer.py 1.0.11 --river-map ../game_data/river_map/1.0.11/rivers.png
+  python3 create-terrain-layer.py 1.0.11 --output terrain_with_rivers.png
 """
 
 import os
@@ -36,8 +36,8 @@ def parse_arguments():
     """Parse command line arguments."""
     if len(sys.argv) < 2:
         print("Usage: python create-terrain-layer.py <version> [--game-data-path <path>] [--output <file>]")
-        print("Example: python create-terrain-layer.py 0.0.11")
-        print("         python create-terrain-layer.py 0.0.11 --output terrain_with_rivers.png")
+        print("Example: python create-terrain-layer.py 1.0.11")
+        print("         python create-terrain-layer.py 1.0.11 --output terrain_with_rivers.png")
         sys.exit(1)
     
     version = sys.argv[1]

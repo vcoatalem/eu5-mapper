@@ -77,7 +77,7 @@ export class VersionResolver {
   }
 
   /**
-   * @param availableVersions list of available semver versions (ex: 0.0.11, 0.1.0, 0.1.1, 1.0.0)
+   * @param availableVersions list of available semver versions (ex: 1.0.11, 1.1.4, 0.1.1, 1.0.0)
    * @returns the targetVersion if found, the closest previous version otherwise
    */
   private getClosestVersion = (
@@ -111,22 +111,4 @@ export class VersionResolver {
 
     return closestMatch;
   };
-
-
 }
-
-
-
-
- 
-
-
-
-/* export async function getFilePath(
-  fileName: string,
-  targetVersion: string
-): Promise<string> {
-  const manifest = await loadVersionsManifest();
-  const resolvedVersion = await resolveFileVersion(fileName, targetVersion);
-  return manifest.files[fileName][resolvedVersion].path;
-} */

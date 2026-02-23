@@ -305,12 +305,12 @@ def log_ocr_text(location: str, text: str):
 
 
 def main():
-	project_root = os.path.dirname(os.path.dirname(__file__))
+	project_root = os.path.join(os.path.dirname(__file__), '..', '..')
 	parser = argparse.ArgumentParser(description="Classify river layer images via OCR")
 	parser.add_argument(
 		"--version",
-		default="0.0.11",
-		help="Game data version (e.g., 0.0.11)",
+		required=True,
+		help="Game data version (e.g., 1.0.11)",
 	)
 	parser.add_argument(
 		"--input",
@@ -322,17 +322,14 @@ def main():
 		default=None,
 		help="Folder containing <location>-river_layer_image.png files",
 	)
-	parser.add_argument(
-		"--output",
-		default=os.path.join(os.path.dirname(__file__), "river_classification_output", "river_layer_classification.csv"),
-		help="Output CSV path",
-	)
+
 	parser.add_argument(
 		"--templates",
 		default=r"C:\Program Files (x86)\Steam\steamapps\common\Europa Universalis V\game\in_game\map_data\location_templates.txt",
 		help="Path to location_templates.txt",
 	)
 	args = parser.parse_args()
+
 
 	if not args.input:
 		args.input, resolved_version = resolve_versioned_file(
@@ -350,6 +347,14 @@ def main():
 			"scrapped_river_location_images",
 			args.version,
 		)
+
+	args.output = os.path.join(
+		os.path.dirname(__file__),
+		"river_classification_output",
+		args.version,
+		"river_layer_classification.csv",
+	)
+	os.makedirs(os.path.dirname(args.output), exist_ok=True)
 
 	locations, templates, land_locations = read_river_image_locations(args.input, args.templates)
 	land_river_locations = set(locations)

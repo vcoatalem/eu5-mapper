@@ -21,7 +21,7 @@ from generate_static_game_data import generate_game_data_json
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Compare app vs game data outputs")
-    parser.add_argument("version", help="Game data version (e.g., 0.0.11)")
+    parser.add_argument("version", help="Game data version (e.g., 1.0.11)")
     parser.add_argument(
         "--game-root",
         required=True,

@@ -122,7 +122,7 @@ export function EditableField<TValue extends { toString: () => string }>(props: 
           <TooltipTrigger>
             {editingRaw !== null ? (
               <input
-                id={"editable-field-input"}
+                placeholder={props.placeholder}                id={"editable-field-input"}
                 className={[
                   "w-full min-w-0",
                   (hasValidationError ? "ring-2 ring-red-500 outline-none" : ""),

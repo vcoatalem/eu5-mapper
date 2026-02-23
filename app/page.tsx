@@ -8,7 +8,7 @@ export default function Home() {
 
   useEffect(() => {
     // Redirect to default version
-    router.replace("/0.0.11");
+    router.replace("/1.0.11");
   }, [router]);
 
   return (

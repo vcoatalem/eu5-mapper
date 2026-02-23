@@ -72,8 +72,8 @@ def main():
     """Main execution function."""
     if len(sys.argv) < 2:
         print("Usage: python generate_all_data.py <version> [--game-data-path <path>]")
-        print("Example: python generate_all_data.py 0.0.11")
-        print("         python generate_all_data.py 0.0.11 --game-data-path /path/to/game_data")
+        print("Example: python generate_all_data.py 1.0.11")
+        print("         python generate_all_data.py 1.0.11 --game-data-path /path/to/game_data")
         sys.exit(1)
     
     version = sys.argv[1]

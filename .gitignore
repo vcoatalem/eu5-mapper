@@ -57,6 +57,7 @@ tests/pathfinding/output/*
 tools/**/*.png
 
 tools/scrapping/classification_logs
+tools/scrapping/river_classification_output/
 tools/scrapping/ocr_logs
 tools/output_compare/*
 

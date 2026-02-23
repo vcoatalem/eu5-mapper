@@ -1,4 +1,4 @@
-import { ILocationGameData, RoadType } from "./general";
+import { RoadType } from "./general";
 
 export interface IProximityBuffs {
   genericModifier?: number;
@@ -6,9 +6,9 @@ export interface IProximityBuffs {
   seaWithMaritimeFlatCostReduction?: number
   seaWithoutMaritimeFlatCostReduction?: number;
   portFlatCostReduction?: number;
-  topographyMultipliers?: Partial<
-    Record<ILocationGameData["topography"], number>
-  >;
+  mountainsMultiplier?: number;
+  plateauMultiplier?: number;
+  hillsMultiplier?: number;
 }
 
 export interface IProximityBuffDisplayableData {

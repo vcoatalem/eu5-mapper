@@ -1,12 +1,9 @@
-import { countryProximityBuffsDisplayableData } from "@/app/lib/classes/countryProximityBuffs.const";
 import {
   ICountryValues,
   IGameData,
   IGameState,
-  ILocationGameData,
-  Topography,
 } from "../types/general";
-import { IProximityBuffDisplayableData, IProximityBuffs } from "../types/proximityComputationRules";
+import { IProximityBuffs } from "../types/proximityComputationRules";
 
 export class ProximityBuffsRecord {
   private countryProximityBuffs: Record<string, IProximityBuffs> = {};
@@ -67,18 +64,13 @@ export class ProximityBuffsRecord {
     const impactFactor = Math.abs(value) / 100;
     const res: Partial<IProximityBuffs> = {};
 
-    type NumericBuffKey = Exclude<
-      keyof IProximityBuffs,
-      "topographyMultipliers"
-    >;
-
     const allowedKeys: Array<keyof IProximityBuffs> = [
       "genericModifier",
       "landModifier",
       "seaWithMaritimeFlatCostReduction",
       "seaWithoutMaritimeFlatCostReduction",
       "portFlatCostReduction",
-      "topographyMultipliers",
+      "mountainsHillsPlateauxMultiplier",
     ];
 
     for (const key of Object.keys(buffToApply) as Array<
@@ -96,39 +88,16 @@ export class ProximityBuffsRecord {
         continue;
       }
 
-      if (key === "topographyMultipliers") {
-        const source = buffToApply.topographyMultipliers;
-        if (!source) {
-          continue;
-        }
-
-        const topographyBuffs: Partial<Record<Topography, number>> = {};
-        for (const topographyKey of Object.keys(source) as Topography[]) {
-          const topographyValue = source[topographyKey];
-          if (typeof topographyValue === "number") {
-            topographyBuffs[topographyKey] = topographyValue * impactFactor;
-          }
-        }
-
-        if (Object.keys(topographyBuffs).length > 0) {
-          res.topographyMultipliers = topographyBuffs;
-        }
-      } else {
-        const numericKey = key as NumericBuffKey;
-        const buffToApplyValue = buffToApply[numericKey];
-        if (typeof buffToApplyValue === "number") {
-          res[numericKey] = buffToApplyValue * impactFactor;
-        }
+      const buffToApplyValue = buffToApply[key];
+      if (typeof buffToApplyValue === "number") {
+        res[key] = buffToApplyValue * impactFactor;
       }
     }
 
     return res;
   }
 
-  public getBuffsOfType(
-    type: keyof IProximityBuffs,
-    topography?: ILocationGameData["topography"],
-  ): {
+  public getBuffsOfType(type: keyof IProximityBuffs): {
     buffRecord: Record<string, number>;
     sum: number;
   } {
@@ -136,15 +105,8 @@ export class ProximityBuffsRecord {
       Object.entries(this.countryProximityBuffs).map(
         ([buffName, buffEffects]) => {
           const buffEffect = buffEffects[type];
-          switch (typeof buffEffect) {
-            case "number":
-              return [buffName, buffEffect];
-            case "object":
-              const topographyBuff = buffEffect[topography ?? "unknown"] ?? 0;
-              return [buffName, topographyBuff];
-            default:
-              return [buffName, 0];
-          }
+          const value = typeof buffEffect === "number" ? buffEffect : 0;
+          return [buffName, value];
         },
       ),
     );
@@ -154,18 +116,13 @@ export class ProximityBuffsRecord {
     };
   }
 
-  public getBuffsToDisplay(): Partial<Record<keyof IProximityBuffs, IProximityBuffDisplayableData>> {
-    const buffs = Object.entries(this.countryProximityBuffs).reduce((acc, [,buffEffects]) => {
+  public getBuffsToDisplay(): Set<keyof IProximityBuffs> {
+    return Object.entries(this.countryProximityBuffs).reduce((acc, [,buffEffects]) => {
       const newSet = new Set(acc);
       for (const buffKey of Object.keys(buffEffects) as Array<keyof IProximityBuffs>) {
         newSet.add(buffKey);
       }
       return newSet;
     }, new Set<keyof IProximityBuffs>())
-    const res: Partial<Record<keyof IProximityBuffs, IProximityBuffDisplayableData>> = {};
-    for (const buffKey of buffs) {
-      res[buffKey] = countryProximityBuffsDisplayableData[buffKey];
-    }
-    return res;
   }
 }

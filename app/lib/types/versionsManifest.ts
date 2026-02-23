@@ -12,7 +12,7 @@ export interface FileVersionInfo {
 
 /**
  * Manifest entry for a single file type
- * Keys are version strings (e.g., "0.0.11", "0.1.0")
+ * Keys are version strings (e.g., "1.0.11", "1.1.4")
  * If a version doesn't exist for this file, the key is simply omitted
  */
 export interface FileManifest {

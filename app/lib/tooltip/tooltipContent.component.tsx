@@ -36,7 +36,7 @@ export function TooltipContent(props: ITooltipContentProps) {
 
   useLayoutEffect(() => {
     if (!tooltipInstanceContext.isOpen || !contentRef.current) {
-      setPosition(null);
+      queueMicrotask(() => setPosition(null));
       return;
     }
 

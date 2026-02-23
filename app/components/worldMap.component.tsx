@@ -850,16 +850,16 @@ export function WorldMapComponent() {
           {/* z-50 here is so that dropdowns from header show above of other guiElement */}
           <HeaderComponent />
         </GuiElement>
-        <div className="fixed left-5 top-16 flex flex-col gap-2 z-50 max-h-[85vh] min-h-0">
+        <div className="fixed left-5 top-16 flex flex-col gap-2 z-50 max-h-[80vh] min-h-0">
           {hasOwnedLocations && (
             <>
-              <GuiElement className="min-h-0 shrink w-72 overflow-y-scroll">
+              <GuiElement className="flex-none w-72 overflow-y-scroll overflow-x-hidden">
                 <CountryOverview />
               </GuiElement>
               <GuiElement className="h-content py-2 flex-none">
                 <MainActionsBar></MainActionsBar>
               </GuiElement>
-              <GuiElement className="min-h-0 w-72 max-h-[60vh] shrink overflow-y-scroll">
+              <GuiElement className="min-h-0 w-72 max-h-[60vh] shrink overflow-hidden flex flex-col">
                 {roadBuilderState.isModeEnabled ? (
                   <RoadList />
                 ) : (

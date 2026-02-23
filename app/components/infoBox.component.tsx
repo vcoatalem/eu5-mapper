@@ -112,7 +112,7 @@ const Container = memo(function Container(props: { children: React.ReactNode, mo
     return "";
   }, [props.mode]);
   return (
-    <div className={[styles.infoBoxContainer, "h-12 bg-black/80 text-stone-400 px-4 flex items-center", stripes].join(" ")}>
+    <div className={[styles.infoBoxContainer, "h-10 bg-black/80 text-stone-400 px-4 flex items-center", stripes].join(" ")}>
       {props.children}
     </div>
   );

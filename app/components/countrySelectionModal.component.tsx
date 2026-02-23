@@ -65,7 +65,7 @@ export function CountrySelectionModal() {
             : ""}
         </div>
 
-        <div className="w-full flex flex-center items-center text-stone-500">
+        <div className="w-full flex flex-center items-center text-stone-500 block">
           {selectedCountry && countryHasFlag ? (
             flagLoaded ? (
               <img
@@ -74,7 +74,7 @@ export function CountrySelectionModal() {
                 className="block w-full justify-self-center"
               ></img>
             ) : (
-              <Loader size={50}></Loader>
+              <Loader className="mx-auto" size={50}></Loader>
             )
           ) : (
             <span className="text-stone-500 w-full text-center justify-self-center block h-full">

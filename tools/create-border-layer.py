@@ -6,8 +6,8 @@ Usage:
   python3 create-border-layer.py <version> [--game-data-path <path>] [--output <file>]
 
 Example:
-  python3 create-border-layer.py 0.0.11
-  python3 create-border-layer.py 0.0.11 --output custom_borders.png
+  python3 create-border-layer.py 1.0.11
+  python3 create-border-layer.py 1.0.11 --output custom_borders.png
 """
 
 import os
@@ -24,8 +24,8 @@ def parse_arguments():
     """Parse command line arguments."""
     if len(sys.argv) < 2:
         print("Usage: python create-border-layer.py <version> [--game-data-path <path>] [--output <file>]")
-        print("Example: python create-border-layer.py 0.0.11")
-        print("         python create-border-layer.py 0.0.11 --output custom_borders.png")
+        print("Example: python create-border-layer.py 1.0.11")
+        print("         python create-border-layer.py 1.0.11 --output custom_borders.png")
         sys.exit(1)
     
     version = sys.argv[1]

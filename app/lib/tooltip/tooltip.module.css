@@ -3,5 +3,7 @@
 @layer components {
   .tooltip {
     @apply shadow-md fixed z-100 bg-black/80 text-white text-sm rounded px-2 py-1 pointer-events-none;
+    @apply border-white border-1 backdrop-blur-sm;
+    box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.5);
   }
 }

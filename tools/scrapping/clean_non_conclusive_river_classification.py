@@ -75,14 +75,14 @@ def remove_images(locations: List[str], images_dir: str) -> Tuple[int, int]:
 
 
 def main():
-	project_root = os.path.dirname(os.path.dirname(__file__))
+	project_root = os.path.dirname(__file__)
 	parser = argparse.ArgumentParser(
 		description="Remove non conclusive rows and delete associated images"
 	)
 	parser.add_argument(
 		"--version",
-		default="0.0.11",
-		help="Game data version (e.g., 0.0.11)",
+		required=True,
+		help="Game data version (e.g., 1.0.11)",
 	)
 	parser.add_argument(
 		"--csv",
@@ -104,8 +104,7 @@ def main():
 	if not args.csv:
 		args.csv = os.path.join(
 			project_root,
-			"game_data",
-			"computed_river_classification",
+			"river_classification_output",
 			args.version,
 			"river_layer_classification.csv",
 		)

@@ -1,8 +1,7 @@
 import { AppContext } from "@/app/appContextProvider";
-import { BuffDisplay } from "@/app/components/countryBuffs/buffDisplay.component";
+import { ModifierBuffDisplay } from "@/app/components/countryBuffs/modifierBuffDisplay.component";
 import { ProximityBuffsRecord } from "@/app/lib/classes/countryProximityBuffs";
 import { IGameState } from "@/app/lib/types/general";
-import { IProximityBuffs } from "@/app/lib/types/proximityComputationRules";
 import { useContext, useEffect, useState } from "react";
 
 interface ICountryProximityBuffsProps {
@@ -31,11 +30,9 @@ export function CountryProximityBuffs(props: ICountryProximityBuffsProps) {
   return (
     <div className={[props.className].join(" ")}>
       <div className="flex flex-col gap-1">
-        {Object.entries(buffRecord.getBuffsToDisplay()).map(([buffKeyString, buffDisplayableData]) => {
-            const buffKey = buffKeyString as keyof IProximityBuffs;
-            return <BuffDisplay key={buffKey} buffKey={buffKey} buffValue={buffRecord.getBuffsOfType(buffKey)} buffDisplayableData={buffDisplayableData} />
-          }
-        )}
+        {Array.from(buffRecord.getBuffsToDisplay()).map((buffKey) => (
+          <ModifierBuffDisplay key={buffKey} buffKey={buffKey} buffValue={buffRecord.getBuffsOfType(buffKey)} />
+        ))}
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ import { useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncE
 import { FaCheckSquare } from "react-icons/fa";
 import { FaArrowUp, FaPlus, FaSquare } from "react-icons/fa6";
 import { FiDelete } from "react-icons/fi";
+import posthog from 'posthog-js'
 
 interface ICountryModifiersModal {
   onClose: () => void;
@@ -157,6 +158,7 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
       return;
     }
     const template: ICountryModifierTemplate = { name, description: description ?? "", buff: buff };
+    posthog.capture('custom_modifier_created', { name, description, buff });
     countryModifiersTemplatesController.addModifierTemplate(template);
     gameStateController.changeCountryModifier(name, { description: description ?? "", buff: buff, enabled: true });
     queueMicrotask(() => setHoveredModifier({ name, description: description ?? "", buff: buff }));

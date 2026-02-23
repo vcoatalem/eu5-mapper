@@ -70,7 +70,9 @@ export class ProximityBuffsRecord {
       "seaWithMaritimeFlatCostReduction",
       "seaWithoutMaritimeFlatCostReduction",
       "portFlatCostReduction",
-      "mountainsHillsPlateauxMultiplier",
+      "mountainsMultiplier",
+      "hillsMultiplier",
+      "plateauMultiplier"
     ];
 
     for (const key of Object.keys(buffToApply) as Array<

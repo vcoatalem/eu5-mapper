@@ -50,12 +50,14 @@ jobs:
         run: |
           COMMIT_SHA="${{ github.sha }}"
           S3_BUCKET="eu5-mapapp"
+          AWS_REGION="eu-west-1"
           S3_PREFIX="test-results/${COMMIT_SHA}"
+          RESULTS_URL="http://${S3_BUCKET}.s3-website-${AWS_REGION}.amazonaws.com/${S3_PREFIX}/"
           
           # Upload all HTML files from tests/pathfinding/output
           if [ -d "tests/pathfinding/output" ]; then
             aws s3 sync tests/pathfinding/output s3://${S3_BUCKET}/${S3_PREFIX}/ --exclude "*" --include "*.html" --include "*.json" --delete
-            echo "✅ Uploaded test results to s3://${S3_BUCKET}/${S3_PREFIX}/"
+            echo "✅ Test results available at: ${RESULTS_URL}"
           else
             echo "⚠️ No test results directory found"
           fi

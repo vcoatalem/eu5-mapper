@@ -36,7 +36,7 @@ export function TooltipContent(props: ITooltipContentProps) {
 
   useLayoutEffect(() => {
     if (!tooltipInstanceContext.isOpen || !contentRef.current) {
-      setPosition(null);
+      queueMicrotask(() => setPosition(null));
       return;
     }
 
@@ -94,9 +94,6 @@ export function TooltipContent(props: ITooltipContentProps) {
   const style: React.CSSProperties = {
     left: position?.x ?? 0,
     top: position?.y ?? 0,
-    border: "1px solid white",
-    boxShadow: "0 0 10px 0 rgba(0, 0, 0, 0.5)",
-    backdropFilter: "blur(2px)",
   };
 
   return createPortal(

@@ -24,6 +24,9 @@ export interface IShortestPathResult {
 }
 
 class ShortestPatchController extends Observable<IShortestPathResult> {
+  private unsubscribeWorkerManager: (() => void) | null = null;
+  private unsubscribeGameState: (() => void) | null = null;
+
   public constructor() {
     super();
     this.subject = {
@@ -33,7 +36,12 @@ class ShortestPatchController extends Observable<IShortestPathResult> {
   }
 
   public init(): void {
-    workerManager.subscribe(({ lastCompletedTask }) => {
+    this.unsubscribeWorkerManager?.();
+    this.unsubscribeGameState?.();
+    this.unsubscribeWorkerManager = null;
+    this.unsubscribeGameState = null;
+
+    this.unsubscribeWorkerManager = workerManager.subscribe(({ lastCompletedTask }) => {
       if (!lastCompletedTask) return;
       if (lastCompletedTask.type !== "computeShortestPathFromProximitySource")
         return;
@@ -67,7 +75,7 @@ class ShortestPatchController extends Observable<IShortestPathResult> {
       this.notifyListeners();
     });
 
-    gameStateController.subscribe(() => {
+    this.unsubscribeGameState = gameStateController.subscribe(() => {
       let changed = false;
       for (const locationName in this.subject.result) {
         const currentStatus = this.subject.result[locationName].status;

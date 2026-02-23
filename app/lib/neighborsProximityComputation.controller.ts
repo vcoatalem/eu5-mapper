@@ -18,6 +18,8 @@ type NeighborsProximityComputationResults = {
 class NeighborProximityComputationController extends Observable<NeighborsProximityComputationResults> {
 
   private lastCompletedTaskId: string | null = null;
+  private unsubscribeWorkerManager: (() => void) | null = null;
+  private unsubscribeGameState: (() => void) | null = null;
 
   constructor() {
     super();
@@ -27,7 +29,12 @@ class NeighborProximityComputationController extends Observable<NeighborsProximi
   }
 
   public init(): void {
-    workerManager.subscribe(({ lastCompletedTask }) => {
+    this.unsubscribeWorkerManager?.();
+    this.unsubscribeGameState?.();
+    this.unsubscribeWorkerManager = null;
+    this.unsubscribeGameState = null;
+
+    this.unsubscribeWorkerManager = workerManager.subscribe(({ lastCompletedTask }) => {
       if (!lastCompletedTask) return;
       if (lastCompletedTask.type !== "computeNeighbors") return;
       if (lastCompletedTask.taskId === this.lastCompletedTaskId) return;
@@ -44,7 +51,7 @@ class NeighborProximityComputationController extends Observable<NeighborsProximi
       this.notifyListeners();
     });
 
-    gameStateController.subscribe(() => {
+    this.unsubscribeGameState = gameStateController.subscribe(() => {
       // invalidate all results
       this.subject = {
         computationResults: Object.entries(

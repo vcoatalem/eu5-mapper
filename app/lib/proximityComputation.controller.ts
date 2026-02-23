@@ -10,18 +10,26 @@ export interface IProximityComputationResults {
 }
 
 export class ProximityComputationController extends Observable<IProximityComputationResults> {
+  private unsubscribeWorkerManager: (() => void) | null = null;
+  private unsubscribeGameState: (() => void) | null = null;
+
   constructor() {
     super();
   }
 
   public init(): void {
     console.log("[proximityComputationController] init");
+    this.unsubscribeWorkerManager?.();
+    this.unsubscribeGameState?.();
+    this.unsubscribeWorkerManager = null;
+    this.unsubscribeGameState = null;
+
     this.subject = {
       result: {},
       status: "pending",
     };
     this.notifyListeners();
-    workerManager.subscribe((workerManagerStatus) => {
+    this.unsubscribeWorkerManager = workerManager.subscribe((workerManagerStatus) => {
       const stats = (
         workerManagerStatus.lastCompletedTask?.data as {
           graphStats: GraphStats;
@@ -57,7 +65,7 @@ export class ProximityComputationController extends Observable<IProximityComputa
         this.notifyListeners();
       }
     });
-    debouncedGameStateController.subscribe((gameState) => {
+    this.unsubscribeGameState = debouncedGameStateController.subscribe((gameState) => {
       this.subject.status = "updating";
       this.notifyListeners();
       workerManager.queueTask({

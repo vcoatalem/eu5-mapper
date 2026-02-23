@@ -14,6 +14,7 @@ export class ColorSearchController extends Observable<IColorSearchResult> {
   private mapConfig: typeof worldMapConfig = worldMapConfig;
   private gameData: IGameData | null = null;
   private queriedLocationsColor: Set<ILocationIdentifier> = new Set();
+  private unsubscribeWorkerManager: (() => void) | null = null;
 
   constructor() {
     super();
@@ -21,10 +22,13 @@ export class ColorSearchController extends Observable<IColorSearchResult> {
   }
 
   public init(mapConfig: typeof worldMapConfig, gameData: IGameData): void {
+    this.unsubscribeWorkerManager?.();
+    this.unsubscribeWorkerManager = null;
+
     this.mapConfig = mapConfig;
     this.gameData = gameData;
 
-    workerManager.subscribe(({ lastCompletedTask }) => {
+    this.unsubscribeWorkerManager = workerManager.subscribe(({ lastCompletedTask }) => {
       if (!lastCompletedTask) {
         return;
       }

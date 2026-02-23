@@ -90,36 +90,36 @@ function CreateCustomModifierForm(props: ICreateCustomModifierForm) {
       </div>
       <hr className="w-full border-stone-600 border-b-1 flex-none mb-1 shrink-0" />
       <div className="flex-1 min-h-0 flex flex-col overflow-y-auto overscroll-none shrink min-w-0">
-      <div className={`sticky top-0 z-10 bg-stone-900 ${formStyles.formRow}`}>
-        <label className={formStyles.formLabel}><b>Name:</b></label>
-        <div className={formStyles.formValue}>
-          <EditableField<string>
-            value={name}
-            baseValue=""
-            placeholder="Enter name"
-            validate={validateNonEmptyString}
-            onValidate={(name) => setName(name.toString())}
-            autoFocus={true}
-          >
-            <span>{name}</span>
-          </EditableField>
+        <div className={`sticky top-0 z-10 bg-stone-900 ${formStyles.formRow}`}>
+          <label className={formStyles.formLabel}><b>Name:</b></label>
+          <div className={formStyles.formValue}>
+            <EditableField<string>
+              value={name}
+              baseValue=""
+              placeholder="Enter name"
+              validate={validateNonEmptyString}
+              onValidate={(name) => setName(name.toString())}
+              autoFocus={true}
+            >
+              <span>{name}</span>
+            </EditableField>
+          </div>
         </div>
-      </div>
 
-      <div className={formStyles.formRow}>
-        <label className={formStyles.formLabel}><b>Description</b></label>
-        <div className={formStyles.formValue}>
-          <EditableField<string>
-            value={description ?? ""}
-            baseValue=""
-            placeholder="Enter description"
-            onValidate={(description) => setDescription(description.toString())}
-          >
-            <span>{description}</span>
-          </EditableField>
+        <div className={formStyles.formRow}>
+          <label className={formStyles.formLabel}><b>Description</b></label>
+          <div className={formStyles.formValue}>
+            <EditableField<string>
+              value={description ?? ""}
+              baseValue=""
+              placeholder="Enter description"
+              onValidate={(description) => setDescription(description.toString())}
+            >
+              <span>{description}</span>
+            </EditableField>
+          </div>
         </div>
-      </div>
-      {allBuffFields}
+        {allBuffFields}
       </div>
     </div>
   );
@@ -248,7 +248,8 @@ export function CountryBuffsModal(props: ICountryBuffsModal) {
     gameStateController.changeCountryModifier(name, { description: description ?? "", buff: buff, enabled: true });
     queueMicrotask(() => setHoveredModifier({ name, description: description ?? "", buff: buff }));
     queueMicrotask(() => setCreateCustomModifierFormOpen(false));
-  }, [gameState, gameData, setSelectedModifier, setCreateCustomModifierFormOpen]);
+    queueMicrotask(() => setCountryModifiersOpen(true));
+  }, [gameData, setCreateCustomModifierFormOpen, setCountryModifiersOpen, setHoveredModifier]);
 
   const enterCreateCustomModifierForm = useCallback(() => {
     queueMicrotask(() => setSelectedModifier(null));
@@ -259,8 +260,8 @@ export function CountryBuffsModal(props: ICountryBuffsModal) {
   const showcasedModifier = selectedModifier ?? hoveredModifier;
   const selectedIsAlreadyInCountry = useMemo(() => Object.keys(gameState.country?.modifiers ?? {}).includes(selectedModifier?.name ?? ""), [gameState.country?.modifiers, selectedModifier?.name]);
 
-/*   console.log(gameData?.countryModifiersTemplate);
-  console.log({ modifiers: gameState.country?.modifiers }); */
+  /*   console.log(gameData?.countryModifiersTemplate);
+    console.log({ modifiers: gameState.country?.modifiers }); */
 
   if (!gameData || !gameState.country) {
     return <div>Loading...</div>;

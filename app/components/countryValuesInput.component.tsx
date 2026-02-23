@@ -113,7 +113,7 @@ function RulerAdministrativeSkillInput({ value }: { value: number }) {
 
 export function CountryValuesInput({ country }: { country: ICountryInstance }) {
   return (
-    <div className="flex flex-col gap-1 px-2">
+    <div className="flex flex-col gap-1 mb-1">
       <CountryValueInput
         valueKey={"landVsNaval"}
         value={country.values.landVsNaval ?? 0}

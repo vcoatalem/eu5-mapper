@@ -172,7 +172,7 @@ export function CountrySelectionMinimap(props: ICountrySelectionMinimapProps) {
         </canvas>
         {!terrainRendered && (
           <div className="absolute inset-0 flex items-center justify-center z-2 bg-stone-900/80">
-            <Loader size={32} />
+            <Loader className="mx-auto" size={32} />
           </div>
         )}
       </div>

@@ -6,7 +6,9 @@ export interface IProximityBuffs {
   seaWithMaritimeFlatCostReduction?: number
   seaWithoutMaritimeFlatCostReduction?: number;
   portFlatCostReduction?: number;
-  mountainsHillsPlateauxMultiplier?: number;
+  mountainsMultiplier?: number;
+  plateauMultiplier?: number;
+  hillsMultiplier?: number;
 }
 
 export interface IProximityBuffDisplayableData {

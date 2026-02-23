@@ -23,9 +23,6 @@ export function CountryProximityBuffs(props: ICountryProximityBuffsProps) {
     queueMicrotask(() => setBuffRecord(buffRecord));
   }, [gameData, countrySignature]);
 
-
-
-  console.log("[CountryProximityBuffs] got country:", props.country, " and buff record:", buffRecord);
   if (!gameData || !buffRecord) {
     return <div>Loading...</div>;
   }

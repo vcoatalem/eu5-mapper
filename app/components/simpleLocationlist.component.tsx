@@ -111,7 +111,7 @@ export function SimpleLocationList() {
   }
 
   return (
-    <div>
+    <div className="flex flex-col h-full min-h-0">
       {noOwnedLoactions ? (
         <div className="text-stone-400 text-italic">
           No locations selected - either select a country above, or create your
@@ -129,8 +129,8 @@ export function SimpleLocationList() {
               style={{ outline: "none" }}
             />
           </div>
-          <hr className="w-full my-2"></hr>
-          <div className="flex-1 min-h-0 overflow-x-hidden">
+          <hr className="w-full my-2 shrink-0" />
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-none">
             <FoldableMenu
               title={`Owned Locations (${Object.keys(gameState.ownedLocations).length})`}
               isExpanded={ownedLocationsExpanded}

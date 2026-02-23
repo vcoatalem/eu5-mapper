@@ -81,15 +81,15 @@ function CreateCustomModifierForm(props: ICreateCustomModifierForm) {
   });
 
   return (
-    <div className="flex flex-col h-full min-h-0 gap-2 relative border-white border-1 px-2 py-1">
-      <div className="flex flex-row-reverse items-center gap-2 flex-none">
+    <div className="flex flex-col h-full min-h-0 gap-2 relative border-white border-1 px-2 py-1 overflow-hidden">
+      <div className="flex flex-row-reverse items-center gap-2 flex-none mt-1 shrink-0">
         <button className={[buttonStyles.simpleButton, ""].join(" ")} disabled={!name} onClick={() => props.onSubmit(name, description, buff)}>Submit
         </button>
         <button className={[buttonStyles.simpleButton, ""].join(" ")} onClick={props.onCancel}>Cancel</button>
         <h1 className="text-xl mr-auto"><b>Create New Modifier</b></h1>
       </div>
-      <hr className="w-full border-stone-600 border-b-1 flex-none my-2" />
-      <div className="flex-1 min-h-0 flex flex-col overflow-y-auto overscroll-none">
+      <hr className="w-full border-stone-600 border-b-1 flex-none mb-1 shrink-0" />
+      <div className="flex-1 min-h-0 flex flex-col overflow-y-auto overscroll-none shrink min-w-0">
       <div className={`sticky top-0 z-10 bg-stone-900 ${formStyles.formRow}`}>
         <label className={formStyles.formLabel}><b>Name:</b></label>
         <div className={formStyles.formValue}>
@@ -132,9 +132,10 @@ interface IModifierItemProps {
   preventSelect?: boolean;
   isEnabled?: boolean | null;
   onDelete?: (template: ICountryModifierTemplate) => void;
+  className?: string;
 }
 
-function ModifierItem({ template, onHover, isSelected, onSelect, isEnabled = null, onDelete }: IModifierItemProps) {
+function ModifierItem({ template, onHover, isSelected, onSelect, isEnabled = null, onDelete, className }: IModifierItemProps) {
 
   const divRef = useRef<HTMLDivElement>(null);
 
@@ -164,8 +165,9 @@ function ModifierItem({ template, onHover, isSelected, onSelect, isEnabled = nul
     "group",
     "flex flex-row items-center gap-1 rounded-md p-1 h-8",
     isSelected ? "bg-stone-700 hover:bg-stone-700/50" : "hover:bg-stone-700/50",
-    onSelect && "cursor-pointer"
-  ].join(" ")}
+    onSelect && "cursor-pointer",
+    className
+  ].filter(Boolean).join(" ")}
     onClick={() => onSelect && (!isSelected ? onSelect(template) : onSelect(null))}>
     {
       isEnabled !== null && (
@@ -277,9 +279,9 @@ export function CountryBuffsModal(props: ICountryBuffsModal) {
       <hr className="w-full border-stone-600 border-b-1 flex-0 my-2"></hr>
 
       {/* BODY */}
-      <div className="flex flex-row items-center align-stretch h-full">
+      <div className="flex flex-row items-stretch flex-1 min-h-0 overflow-hidden">
         {/* LEFT SIDE: LIST OF BUFFS FOR THE COUNTRY + TEMPLATE LIBRARY */}
-        <div className="w-[45%] h-full border-stone-600 border-r-1 p-2 flex flex-col gap-2">
+        <div className="w-[45%] h-full min-h-0 border-stone-600 border-r-1 p-2 flex flex-col gap-2 shrink-0">
           {/* COUNTRY MODIFIERS */}
           <div className="flex flex-col h-[50%] gap-2 border-stone-600 border-1 overflow-y-scroll">
             <FoldableMenu
@@ -314,8 +316,8 @@ export function CountryBuffsModal(props: ICountryBuffsModal) {
 
 
           {/* BUFF TEMPLATES */}
-          <div className="relative flex flex-col max-h-[50%] flex-1 border-stone-600 border-1 p-2 overflox-y-scroll overflow-x-hidden">
-            <div className="flex flex-row-reverse items-center gap-2">
+          <div className="relative flex flex-col max-h-[50%] flex-1 border-stone-600 border-1 overflow-y-auto overflow-x-hidden overscroll-none">
+            <div className="flex flex-row-reverse items-center gap-2 sticky top-0 left-0 right-0 z-10 bg-black border-stone-600 border-b-1">
 
               <ButtonWithTooltip
                 tooltip={selectedModifier ? (selectedIsAlreadyInCountry ? "This modifier is already in country" : "Add modifier") : "Select a modifier to add it"}
@@ -329,10 +331,9 @@ export function CountryBuffsModal(props: ICountryBuffsModal) {
                 <FaPlus size={16} color="white" />
               </ButtonWithTooltip>
 
-              <h2 className="mr-auto"><b>Template Library</b></h2>
+              <h2 className="mr-auto px-2 py-1"><b>Template Library</b></h2>
             </div>
 
-            <hr className="w-full border-stone-600 border-b-1 flex-0 my-2"></hr>
             {Object.entries(gameData.countryModifiersTemplate).map(([, template]) => {
               return <ModifierItem
                 key={template.name}
@@ -340,16 +341,17 @@ export function CountryBuffsModal(props: ICountryBuffsModal) {
                 onHover={setHoveredModifier}
                 onSelect={setSelectedModifier}
                 isSelected={selectedModifier?.name === template.name}
+                className={"px-2 mx-1"}
               />
             })}
           </div>
         </div>
         {/* RIGHT SIDE: DETAILS OF THE SELECTED BUFF + BUFF TEMPLATES */}
-        <div className="w-[55%] h-full min-h-0 p-2 flex flex-col">
+        <div className="w-[55%] h-full min-h-0 min-w-0 p-2 flex flex-col">
 
           {/* SELECTED BUFF DETAILS + CREATE NEW MODIFIER FORM */}
           <div
-            className={`flex flex-col min-h-0 border-stone-600 border-1 p-2 overflow-hidden ${createCustomModifierFormOpen ? "flex-1" : "flex-[0_0_50%]"}`}
+            className={`flex flex-col min-h-0 min-w-0 border-stone-600 border-1 p-2 overflow-hidden shrink ${createCustomModifierFormOpen ? "flex-1" : "flex-[0_0_50%]"}`}
           >
             {
               (createCustomModifierFormOpen && (
@@ -361,6 +363,7 @@ export function CountryBuffsModal(props: ICountryBuffsModal) {
                     {showcasedModifier.description != null && (
                       <p className="text-stone-400 text-sm">{showcasedModifier.description}</p>
                     )}
+                    <hr className="w-full border-stone-600 border-b-1 flex-0 my-2"></hr>
                     {showcasedModifier.buff && Object.entries(showcasedModifier.buff).map(([buffKeyStr, buffData]) => {
                       const buffKey = buffKeyStr as keyof IProximityBuffs;
                       if (!buffKey) return;

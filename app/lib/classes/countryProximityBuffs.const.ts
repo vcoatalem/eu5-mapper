@@ -21,8 +21,16 @@ export const countryProximityBuffsDisplayableData: Record<keyof IProximityBuffs,
     label: "Port proximity modifier",
     description: "Flat reduction applied to proximity going in and out of a harbor, with or without river. Note: not all land <-> sea connections are harbor.",
   },
-  mountainsHillsPlateauxMultiplier: {
-    label: "Mountains / hills / plateaux multiplier",
-    description: "Multiplier applied to proximity cost when the source location is mountains, hills or plateaux."
-  }
+  mountainsMultiplier: {
+    label: "Mountains multiplier",
+    description: "Final multiplier applied to proximity cost when the source location is mountains."
+  },
+  plateauMultiplier: {
+    label: "Plateau multiplier",
+    description: "Final multiplier applied to proximity cost when the source location is plateau."
+  },
+  hillsMultiplier: {
+    label: "Hills multiplier",
+    description: "Final multiplier applied to proximity cost when the source location is hills."
+  },
 }

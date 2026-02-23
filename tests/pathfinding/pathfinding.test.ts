@@ -33,17 +33,20 @@ test.each(referenceFiles)(
       await GameDataLoaderHelper.loadGameDataFilesForVersion(
         version,
         versionResolver,
+        [...GameDataLoaderHelper.defaultGameDataFileTypes, "countryModifiersTemplate"]
       );
     const gameData: IGameData = {
       ...gameDataFiles,
     };
+    const countryModifiersTemplates = gameDataFiles.countryModifiersTemplate;
+
     const adjGraph = ParserHelper.parseAdjacencyCSV(gameDataFiles.adjacencyCsv);
     const gameStateController = new GameStateController();
     gameStateController.init(gameData);
     gameStateController.reset(countryCode);
     gameStateController.changeCountryRulerAdministrativeAbility(rulerAdministrativeAbility);
     for (const modifier of modifiers) {
-      const modifierTemplate = gameData.countryModifiersTemplate[modifier];
+      const modifierTemplate = countryModifiersTemplates[modifier];
       gameStateController.changeCountryModifier(modifier, { enabled: true, buff: modifierTemplate?.buff ?? {} });
     }
 
@@ -98,7 +101,6 @@ test.each(referenceFiles)(
       ) {
         // TODO: figure out exactly the cases we want to measure here.
         // location belonging to country has evaluation > 0 but is not in ref file
-
         differences[location] = {
           expected: -1,
           actual: ProximityComputationHelper.evaluationToProximity(

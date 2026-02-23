@@ -127,20 +127,21 @@ export class GameDataLoaderHelper {
     },
   };
 
+  public static readonly defaultGameDataFileTypes: GameDataFileType[] = [
+    "locationDataMap",
+    "colorToNameMap",
+    "buildingsTemplate",
+    "adjacencyCsv",
+    "proximityComputationRule",
+    "countriesDataMap",
+    "roads",
+  ];
+
   public static async loadGameDataFilesForVersion(
     version: string,
     resolver: VersionResolver,
+    gameDataFileTypes: GameDataFileType[] = GameDataLoaderHelper.defaultGameDataFileTypes,
   ): Promise<IGameDataParsedFiles> {
-    const gameDataFileTypes: GameDataFileType[] = [
-      "locationDataMap",
-      "colorToNameMap",
-      "buildingsTemplate",
-      "adjacencyCsv",
-      "proximityComputationRule",
-      "countriesDataMap",
-      /* "countryModifiersTemplate", */ // voluntarily removed - load by CountryModifiersTemplatesController on demand
-      "roads",
-    ];
 
     const entries = await Promise.all(
       gameDataFileTypes.map(async (fileType) => {

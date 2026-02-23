@@ -2,26 +2,50 @@
   {
     "name": "protectTheBorderlands",
     "description": "Theocracy estate privilege for nobility",
-    "buff": { "landModifier": 10 }
+    "buff": {
+      "landModifier": 10
+    }
   },
   {
     "name": "celestialGovernor",
     "description": "Middle Kingdom benefit for governor (Goryeo at the start)",
-    "buff": { "landModifier": 5 }
+    "buff": {
+      "landModifier": 5
+    }
   },
   {
     "name": "coastalExpansion",
     "description": "Discovery Age advance",
-    "buff": { "seaWithMaritimeFlatCostReduction": 5 }
+    "buff": {
+      "seaWithMaritimeFlatCostReduction": 5
+    }
   },
   {
     "name": "localInfrastructure",
     "description": "Renaissance Age advance - Admin focus",
-    "buff": { "genericModifier": 5 }
+    "buff": {
+      "genericModifier": 5
+    }
   },
   {
     "name": "experienceCaptains",
     "description": "Renaissance Age advance",
-    "buff": { "portFlatCostReduction": 5 }
+    "buff": {
+      "portFlatCostReduction": 5
+    }
+  },
+  {
+    "name": "aPermanentCapital",
+    "description": "Discovery Age advance for Ethiopia",
+    "buff": {
+      "genericModifier": 5
+    }
+  },
+  {
+    "name": "expertMountainers",
+    "description": "Renaissance Age advance for Austria / Tyrol / Styria",
+    "buff": {
+      "genericModifier": 5
+    }
   }
 ]

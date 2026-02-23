@@ -233,10 +233,11 @@ class GameDataLoader:
             if not os.path.exists(folder_path):
                 raise FileNotFoundError(f"Game data folder not found: {folder_path}")
 
-            # Get available versions in this folder
+            file_name = self.FILE_NAMES[key]
             versions_available = [
                 d for d in os.listdir(folder_path)
                 if os.path.isdir(os.path.join(folder_path, d))
+                and os.path.exists(os.path.join(folder_path, d, file_name))
             ]
 
             if not versions_available:
@@ -266,5 +267,11 @@ class GameDataLoader:
             folder_path = os.path.join(self.folder_path, base_folder_name, version)
             file_path = os.path.join(folder_path, filename)
             game_files[key] = file_path
+
+        print("\nLoaded game data files:")
+        for key, path in game_files.items():
+            base_folder = self.BASE_FOLDER_NAMES.get(key, "")
+            rel_path = os.path.relpath(path, os.path.join(self.folder_path, base_folder))
+            print(f"  {key:<30}: {rel_path}")
         
         return GameDataFiles(**game_files)        

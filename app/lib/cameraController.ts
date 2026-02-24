@@ -50,6 +50,19 @@ export class CameraController extends Observable<IZoomState> {
     resolve?: () => void;
   } | null = null;
 
+  private panEndListeners: Array<() => void> = [];
+
+  /**
+   * Subscribe to be notified when a pan animation completes. Use this to trigger side effects at the end of camera panning (e.g recomputing tooltip position)
+  **/
+  public subscribePanEnd(callback: () => void): () => void {
+    this.panEndListeners.push(callback);
+    return () => {
+      const i = this.panEndListeners.indexOf(callback);
+      if (i >= 0) this.panEndListeners.splice(i, 1);
+    };
+  }
+
   constructor() {
     super();
     this.currentZoomIndex = zoomSteps.indexOf(1);
@@ -315,6 +328,9 @@ export class CameraController extends Observable<IZoomState> {
         } else {
           const state = this.panAnimationState;
           this.panAnimationState = null;
+          for (const notify of this.panEndListeners) {
+            notify();
+          }
           if (state && state.resolve) {
             state.resolve();
           }
@@ -463,7 +479,7 @@ export class CameraController extends Observable<IZoomState> {
       return mx >= left && mx <= right && my >= top && my <= bottom;
     };
 
-    let chosen = candidates.find(
+    const chosen = candidates.find(
       (c) =>
         fitsInViewport(c.panelLeft, c.panelTop) &&
         !overlapsMouse(c.panelLeft, c.panelTop),
@@ -512,10 +528,9 @@ export class CameraController extends Observable<IZoomState> {
 
     const x = panelLeft;
     const y = panelTop;
-
     return { x, y };
   }
-
+  
   /**
    * Tooltip placement when the anchor is expressed in game/map coordinates
    * (affected by camera zoom and pan).

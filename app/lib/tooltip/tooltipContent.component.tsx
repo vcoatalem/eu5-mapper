@@ -1,4 +1,4 @@
-import { useContext, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { TooltipInstanceContext } from "./tooltip.component";
 import { TooltipProviderContext } from "./tooltip.provider";
 import { createPortal } from "react-dom";
@@ -34,32 +34,21 @@ export function TooltipContent(props: ITooltipContentProps) {
     throw new Error("[TooltipContent] must be used within a TooltipProvider");
   }
 
-  useLayoutEffect(() => {
-    if (!tooltipInstanceContext.isOpen || !contentRef.current) {
-      queueMicrotask(() => setPosition(null));
-      return;
-    }
-
+  const recomputePosition = useCallback(() => {
+    console.log("[TooltipContent] recomputePosition", tooltipInstanceContext.isOpen, contentRef.current);
+    if (!tooltipInstanceContext.isOpen || !contentRef.current) return;
     const contentRect = contentRef.current.getBoundingClientRect();
     const contentWidth = contentRect.width;
     const contentHeight = contentRect.height;
-
     let placement: ICoordinate | null = null;
-
     if (props.anchor.type === "dom") {
       const anchorRect = props.anchor.ref.current?.getBoundingClientRect();
       const anchorCoordinate: ICoordinate = anchorRect
         ? {
-            // Use the visual center of the anchor element as the anchor point
             x: anchorRect.left + anchorRect.width / 2,
             y: anchorRect.top + anchorRect.height / 2,
           }
-        : {
-            // If we can't measure the anchor, fall back to top-left of tooltip itself
-            x: contentRect.left,
-            y: contentRect.top,
-          };
-
+        : { x: contentRect.left, y: contentRect.top };
       placement = cameraController.getTooltipScreenPositionForScreenCoordinate(
         anchorCoordinate,
         tooltipInstanceContext.config.offset,
@@ -67,7 +56,6 @@ export function TooltipContent(props: ITooltipContentProps) {
         tooltipInstanceContext.mouseCoordinates,
       );
     } else {
-      // props.anchor.type === "coordinate" (game/map coordinates)
       placement = cameraController.getTooltipScreenPositionForLocation(
         props.anchor.coordinate,
         tooltipInstanceContext.config.offset,
@@ -75,13 +63,35 @@ export function TooltipContent(props: ITooltipContentProps) {
         tooltipInstanceContext.mouseCoordinates,
       );
     }
-
     setPosition(placement);
   }, [
     props.anchor,
     tooltipInstanceContext.config.offset,
     tooltipInstanceContext.isOpen,
+    tooltipInstanceContext.mouseCoordinates,
   ]);
+
+  useLayoutEffect(() => {
+    if (!tooltipInstanceContext.isOpen || !contentRef.current) {
+      queueMicrotask(() => setPosition(null));
+      return;
+    }
+    queueMicrotask(() => recomputePosition());
+  }, [
+    props.anchor,
+    tooltipInstanceContext.config.offset,
+    tooltipInstanceContext.isOpen,
+    recomputePosition,
+  ]);
+
+  useEffect(() => {
+    if (props.anchor.type !== "coordinate") return;
+    const unsubscribe = cameraController.subscribePanEnd(() => {
+      recomputePosition();
+    });
+    // When the camera pans, the map moves, making tooltip position invalid. Need recomputing
+    return unsubscribe;
+  }, [props.anchor.type, recomputePosition]);
 
   if (!tooltipInstanceContext.isOpen) {
     return null;
@@ -94,6 +104,7 @@ export function TooltipContent(props: ITooltipContentProps) {
   const style: React.CSSProperties = {
     left: position?.x ?? 0,
     top: position?.y ?? 0,
+    visibility: position ? "visible" : "hidden",
   };
 
   return createPortal(

@@ -54,11 +54,13 @@
   var dbGameDataStoreName = "gameData";
   var dbAdjacencyDataStoreName = "adjacencyData";
   var dbCountryModifiersTemplatesStoreName = "countryModifiersTemplates";
+  var dbLocationHierarchyStoreName = "locationHierarchy";
   var dbDataKey = "main";
   var dbStoreNames = [
     dbGameDataStoreName,
     dbAdjacencyDataStoreName,
-    dbCountryModifiersTemplatesStoreName
+    dbCountryModifiersTemplatesStoreName,
+    dbLocationHierarchyStoreName
   ];
 
   // app/lib/graph.ts
@@ -472,7 +474,9 @@
         "seaWithMaritimeFlatCostReduction",
         "seaWithoutMaritimeFlatCostReduction",
         "portFlatCostReduction",
-        "mountainsHillsPlateauxMultiplier"
+        "mountainsMultiplier",
+        "hillsMultiplier",
+        "plateauMultiplier"
       ];
       for (const key of Object.keys(buffToApply)) {
         if (!allowedKeys.includes(key)) {

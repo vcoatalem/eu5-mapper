@@ -9,10 +9,12 @@ import {
   dbCountryModifiersTemplatesStoreName,
   dbDataKey,
   dbGameDataStoreName,
+  dbLocationHierarchyStoreName,
   dbName,
   dbStoreNames,
   dbVersion,
 } from "./lib/indexeddb/indexeddb.const";
+import { LocationHierarchyService } from "./lib/locationHierarchy.service";
 import { IGameData } from "./lib/types/general";
 import { GameDataFileType } from "./lib/types/versionsManifest";
 import { VersionResolver } from "./lib/versionResolver";
@@ -153,7 +155,8 @@ export const AppContextProvider = ({
           indexedDBWriter.clearStore(dbGameDataStoreName),
           indexedDBWriter.clearStore(dbAdjacencyDataStoreName),
           indexedDBWriter.clearStore(dbCountryModifiersTemplatesStoreName),
-      ]);
+          indexedDBWriter.clearStore(dbLocationHierarchyStoreName),
+        ]);
 
         console.log("[AppContextProvider] fill indexeddb");
         await indexedDBWriter
@@ -182,6 +185,8 @@ export const AppContextProvider = ({
             (err) =>
               console.error("[AppContextProvider] could not persist country modifiers templates to indexedDB", err),
           );
+
+        await LocationHierarchyService.persistToIndexedDB(locationDataMap);
 
         // indexedDB operations have to be done before setGameData to ensure this happens before worldmap component initializes
         setImagePaths(resolvedImagePaths);

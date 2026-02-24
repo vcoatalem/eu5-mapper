@@ -73,6 +73,21 @@ export class GameStateController extends Observable<IGameState> {
     return !storedLocation;
   }
 
+  public toggleLocationsOwnership(
+    locationNames: ILocationIdentifier[],
+  ): void {
+    if (!this.subject) return;
+
+    const toAcquire = locationNames.filter((locationName) => !this.subject.ownedLocations[locationName]);
+    if (toAcquire.length === 0) {
+      this.abandonLocations(locationNames);
+    }
+    else {
+      this.acquireLocations(toAcquire, false);
+      this.notifyListeners();
+    }
+  }
+
   public acquireLocations(
     locationNames: ILocationIdentifier[],
     notify: boolean = true,
@@ -121,6 +136,17 @@ export class GameStateController extends Observable<IGameState> {
     if (this.subject.capitalLocation === locationName) {
       this.subject.capitalLocation =
         Object.keys(this.subject.ownedLocations)?.[0] ?? null;
+    }
+    this.notifyListeners();
+  }
+
+  public abandonLocations(locationNames: ILocationIdentifier[]): void {
+    if (!this.subject) return;
+    for (const locationName of locationNames) {
+      delete this.subject.ownedLocations[locationName];
+    }
+    if (this.subject.capitalLocation && !this.subject.ownedLocations[this.subject.capitalLocation]) {
+      this.subject.capitalLocation = Object.keys(this.subject.ownedLocations)?.[0] ?? null;
     }
     this.notifyListeners();
   }

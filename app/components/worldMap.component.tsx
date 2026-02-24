@@ -28,6 +28,7 @@ import { neighborsProximityComputationController } from "../lib/neighborsProximi
 import { NeighborsPanelComponent } from "./neighborsPanel.component";
 import { HeaderComponent } from "./header.component";
 import { CountryOverview } from "./countryOverview.component";
+import { LocationHierarchyService } from "@/app/lib/locationHierarchy.service";
 import { locationSearchController } from "@/app/lib/locationSearchController";
 import { actionEventDispatcher } from "../lib/actionEventDispatcher";
 import { IWorkerTaskInitWithImagePayload } from "@/workers/types/workerTypes";
@@ -158,7 +159,6 @@ export function WorldMapComponent() {
     return;
   };
 
-  // Memoize layers array to prevent recreation on every render
   const layers = useMemo<
     Array<{
       name: string;
@@ -602,16 +602,28 @@ export function WorldMapComponent() {
             if (!editModeController.isLocationEligibleForCapital(locationData)) {
               return;
             }
-            return editModeController.askForConfirmation(locationData.name);
-          case locationData &&
-            type === "acquire" && mapEditModeState.modeEnabled === null:
-            return gameStateController.toggleLocationOwnership(locationData.name);
+            return editModeController.askForConfirmation("capital", locationData.name);
+          case locationData && type === "acquire" && mapEditModeState.modeEnabled === "acquire":
+            const brushSize = mapEditModeState.acquireLocations.brushSize;
+            if (brushSize === 'location') {
+              return gameStateController.toggleLocationOwnership(locationData.name);
+            }
+            else {
+              const hierarchyValue = locationData.hierarchy[brushSize];
+              LocationHierarchyService.getAllLocationsInHierarchy(
+                brushSize,
+                hierarchyValue,
+              ).then((locations) => {
+                gameStateController.toggleLocationsOwnership(locations);
+              });
+            }
+            break;
           case locationData && mapEditModeState.modeEnabled === 'road':
             if (!editModeController.isLocationEligibleForRoad(locationData)) {
               return;
             }
             setSelectedLocation(null);
-            editModeController.selectLocationForBuildingRoad(locationData.name);
+            editModeController.selectLocation("road", locationData.name);
             cameraController
               .panToCoordinate(locationData?.centerCoordinates, 300, {
                 x: -25,
@@ -628,12 +640,13 @@ export function WorldMapComponent() {
             }
             if (mapEditModeState.maritime.selectedLocation === locationData.name) {
               setSelectedLocation(null);
-              return editModeController.clearLocationForEditing();
+              return editModeController.clearLocation("maritime");
             }
             else {
               setSelectedLocation(location);
-              return editModeController.selectLocationForEditing(locationData.name);
+              return editModeController.selectLocation("maritime", locationData.name);
             }
+            break;
           case location && type === "goto":
             const coordinates =
               gameData.locationDataMap[location]?.centerCoordinates;
@@ -856,7 +869,7 @@ export function WorldMapComponent() {
               <GuiElement className="flex-none w-72 overflow-y-scroll overflow-x-hidden">
                 <CountryOverview />
               </GuiElement>
-              <GuiElement className="h-content py-2 flex-none">
+              <GuiElement className="h-content py-2 flex-none z-51"> {/* z-51 here is so that main actions bar and its popovers shows above of other guiElement in this div */}
                 <MainActionsBar></MainActionsBar>
               </GuiElement>
               <GuiElement className="min-h-0 w-72 max-h-[60vh] shrink overflow-hidden flex flex-col">

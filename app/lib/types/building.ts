@@ -5,7 +5,8 @@ export type PlacementRestrictions =
   | "has_river"
   | "is_adjacent_to_lake"
   | "has_road"
-  | "is_capital";
+  | "is_capital"
+  | "is_not_capital";
 
 export type PlacementRestrictionCondition =
   | PlacementRestrictions

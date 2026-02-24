@@ -1,5 +1,6 @@
 "use client";
 
+import { LocationHierarchyService } from "@/app/lib/locationHierarchy.service";
 import { Observable } from "./observable";
 import {
   IGameData,
@@ -40,101 +41,7 @@ export class LocationSearchController extends Observable<ILocationSearchResult> 
     (window as any).__latestGameData = gameData;
   }
 
-  private buildHierarchyGroups(): Record<
-    keyof ILocationGameData["hierarchy"],
-    Map<
-      string,
-      {
-        hierarchy: ILocationGameData["hierarchy"];
-        locations: ILocationIdentifier[];
-      }
-    >
-  > {
-    const groups = {} as Record<
-      keyof ILocationGameData["hierarchy"],
-      Map<
-        string,
-        {
-          hierarchy: ILocationGameData["hierarchy"];
-          locations: ILocationIdentifier[];
-        }
-      >
-    >;
-
-    if (!this.gameData) return groups;
-
-    for (const [locationName, { hierarchy }] of Object.entries(
-      this.gameData.locationDataMap,
-    )) {
-      for (const hierarchyType of Object.keys(hierarchy) as Array<
-        keyof ILocationGameData["hierarchy"]
-      >) {
-        const value = hierarchy[hierarchyType];
-        if (!value) continue;
-
-        let typeMap = groups[hierarchyType];
-        if (!typeMap) {
-          typeMap = new Map();
-          groups[hierarchyType] = typeMap;
-        }
-
-        let entry = typeMap.get(value);
-        if (!entry) {
-          entry = {
-            hierarchy,
-            locations: [],
-          };
-          typeMap.set(value, entry);
-        }
-        entry.locations.push(locationName);
-      }
-    }
-
-    return groups;
-  }
-
-  private getNonProvinceHierarchyMatches(
-    query: string,
-  ): ILocationSearchResult[] {
-    if (!this.gameData) return [];
-    const nonProvinceHierarchyMatches: ILocationSearchResult[] = [];
-    const lowerQuery = query.toLowerCase();
-    const groups = this.buildHierarchyGroups();
-
-    for (const [hierarchyType, typeMap] of Object.entries(groups) as [
-      keyof ILocationGameData["hierarchy"],
-      Map<
-        string,
-        {
-          hierarchy: ILocationGameData["hierarchy"];
-          locations: ILocationIdentifier[];
-        }
-      >,
-    ][]) {
-      for (const [value, { hierarchy, locations }] of typeMap.entries()) {
-        if (!value.toLowerCase().includes(lowerQuery)) continue;
-
-        nonProvinceHierarchyMatches.push({
-          locations: [
-            {
-              name: value,
-              hierarchyType,
-              hierarchy,
-              locationsInHierarchy: locations,
-            },
-          ],
-        });
-
-        if (nonProvinceHierarchyMatches.length >= 3) {
-          return nonProvinceHierarchyMatches;
-        }
-      }
-    }
-
-    return nonProvinceHierarchyMatches;
-  }
-
-  public search(query: string): void {
+  public async search(query: string): Promise<void> {
     if (!this.gameData) {
       throw new Error("[LocationSearchController] Not initialized");
     }
@@ -147,7 +54,7 @@ export class LocationSearchController extends Observable<ILocationSearchResult> 
       this.gameData.locationDataMap,
     )
       .map(([name, data]) => ({
-        name: name, //StringHelper.formatLocationName(name),
+        name: name,
         hierarchyType: "location" as const,
         hierarchy: data.hierarchy,
         locationsInHierarchy: [name],
@@ -155,12 +62,11 @@ export class LocationSearchController extends Observable<ILocationSearchResult> 
       .filter(({ name }) => name.toLowerCase().includes(query.toLowerCase()))
       .slice(0, this.maxResults);
 
-    if (locations.length < 3) {
-      // add other hierarchy matches
-      const nonProvinceHierarchyMatches =
-        this.getNonProvinceHierarchyMatches(query);
+    if (locations.length < 5) {
+      const nonLocationHierarchyMatches =
+        await LocationHierarchyService.getNonLocationHierarchyMatches(query);
       locations.push(
-        ...nonProvinceHierarchyMatches.flatMap((match) => match.locations),
+        ...nonLocationHierarchyMatches.flatMap((match) => match.locations),
       );
     }
     this.subject = { locations };

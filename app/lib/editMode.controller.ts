@@ -3,48 +3,48 @@ import { Observable } from "./observable";
 import { Subject } from "./subject";
 import { ILocationGameData, ILocationIdentifier } from "./types/general";
 
-export type EditMode = "capital" | "road" | "maritime";
+export type EditMode = "acquire" | "capital" | "road" | "maritime";
+const defaultMode: EditMode = "acquire";
 
-/** Slice shape emitted to subscribers (includes derived isModeEnabled). */
 export interface IEditModeSlice {
   isModeEnabled: boolean;
   selectedLocation: ILocationIdentifier | null;
+}
+export interface IAcquireLocationSlice extends IEditModeSlice {
+  brushSize: keyof ILocationGameData["hierarchy"] | 'location';
 }
 
 export interface IChangeCapitalSlice extends IEditModeSlice {
   askConfirmationForLocation?: ILocationIdentifier | null;
 }
 
-interface ICapitalSliceBase {
-  selectedLocation: ILocationIdentifier | null;
-  askConfirmationForLocation?: ILocationIdentifier | null;
-}
 
-interface IRoadSliceBase {
-  selectedLocation: ILocationIdentifier | null;
-}
-
-interface IMaritimeSliceBase {
-  selectedLocation: ILocationIdentifier | null;
-}
+type Base<T extends IEditModeSlice> = Omit<T, 'isModeEnabled'>;
 
 export interface IEditModeState {
-  modeEnabled: EditMode | null;
-  capital: ICapitalSliceBase;
-  road: IRoadSliceBase;
-  maritime: IMaritimeSliceBase;
+  modeEnabled: EditMode;
+  capital: Base<IChangeCapitalSlice>;
+  road: Base<IEditModeSlice>;
+  maritime: Base<IEditModeSlice>;
+  acquireLocations: Base<IAcquireLocationSlice>;
 }
 
-const baseCapitalSlice: ICapitalSliceBase = {
+const baseAcquireLocationsSlice: Base<IAcquireLocationSlice> = {
+  selectedLocation: null,
+  brushSize: 'location',
+
+}
+
+const baseCapitalSlice: Base<IChangeCapitalSlice> = {
   selectedLocation: null,
   askConfirmationForLocation: null,
 };
 
-const baseRoadSlice: IRoadSliceBase = {
+const baseRoadSlice: Base<IEditModeSlice> = {
   selectedLocation: null,
 };
 
-const baseMaritimeSlice: IMaritimeSliceBase = {
+const baseMaritimeSlice: Base<IEditModeSlice> = {
   selectedLocation: null,
 };
 
@@ -52,10 +52,12 @@ class EditModeController extends Observable<IEditModeState> {
   private readonly capitalSliceSubject = new Subject<IChangeCapitalSlice>();
   private readonly roadSliceSubject = new Subject<IEditModeSlice>();
   private readonly maritimeSliceSubject = new Subject<IEditModeSlice>();
+  private readonly acquireLocationSliceSubject = new Subject<IAcquireLocationSlice>();
 
   public readonly capitalSlice: Observable<IChangeCapitalSlice> = this.capitalSliceSubject;
   public readonly roadSlice: Observable<IEditModeSlice> = this.roadSliceSubject;
   public readonly maritimeSlice: Observable<IEditModeSlice> = this.maritimeSliceSubject;
+  public readonly acquireLocationSlice: Observable<IAcquireLocationSlice> = this.acquireLocationSliceSubject;
 
   constructor() {
     super();
@@ -83,122 +85,169 @@ class EditModeController extends Observable<IEditModeState> {
     });
   }
 
+   private emitAcquireLocationSlice(): void {
+    this.acquireLocationSliceSubject.emit({
+      ...this.subject.acquireLocations,
+      isModeEnabled: this.subject.modeEnabled === "acquire",
+    });
+  }
+
   private emitAll(): void {
     this.emitCapitalSlice();
     this.emitRoadSlice();
     this.emitMaritimeSlice();
+    this.emitAcquireLocationSlice();
     this.notifyListeners();
   }
 
-  private setModeEnabled(mode: EditMode | null): void {
+  private setModeEnabled(mode: EditMode): void {
     this.subject = { ...this.subject, modeEnabled: mode };
     this.emitAll();
   }
 
-  private setCapitalState(value: ICapitalSliceBase): void {
+  private setCapitalState(value: Base<IChangeCapitalSlice>): void {
     this.subject = { ...this.subject, capital: value };
     this.emitCapitalSlice();
     this.notifyListeners();
   }
 
-  private setRoadState(value: IRoadSliceBase): void {
+  private setRoadState(value: Base<IEditModeSlice>): void {
     this.subject = { ...this.subject, road: value };
     this.emitRoadSlice();
     this.notifyListeners();
   }
 
-  private setMaritimeState(value: IMaritimeSliceBase): void {
+  private setMaritimeState(value: Base<IEditModeSlice>): void {
     this.subject = { ...this.subject, maritime: value };
     this.emitMaritimeSlice();
     this.notifyListeners();
   }
 
-  private deactivateOtherModes(except: EditMode | null): void {
+  private setAcquireLocationState(value: Base<IAcquireLocationSlice>): void {
+    this.subject = { ...this.subject, acquireLocations: value };
+    this.emitAcquireLocationSlice();
+    this.notifyListeners();
+  }
+
+  private deactivateOtherModes(except: EditMode): void {
     if (except !== "capital") this.setCapitalState({ ...baseCapitalSlice });
     if (except !== "road") this.setRoadState({ ...baseRoadSlice });
     if (except !== "maritime") this.setMaritimeState({ ...baseMaritimeSlice });
+    if (except !== "acquire") this.setAcquireLocationState({ ...baseAcquireLocationsSlice });
+  }
+
+
+  private deactivateIfEnabled(mode: EditMode): boolean {
+    if (this.subject.modeEnabled === mode) {
+      this.setModeEnabled(defaultMode);
+      return true;
+    }
+    this.deactivateOtherModes(mode);
+    return false;
+  }
+  
+  public enableAcquireMode(): void {
+    this.deactivateOtherModes("acquire");
+    this.setModeEnabled("acquire");
+/*     this.setAcquireLocationState({ ...baseAcquireLocationsSlice }); */
   }
 
   public toggleCapitalMode(): void {
-    if (this.subject.modeEnabled === "capital") {
-      this.setModeEnabled(null);
-      this.setCapitalState({ ...baseCapitalSlice });
-      return;
-    }
-    this.deactivateOtherModes("capital");
+    const deactivated = this.deactivateIfEnabled("capital");
+    if (deactivated) return;
     this.setModeEnabled("capital");
     this.setCapitalState({ ...baseCapitalSlice });
   }
 
   public toggleRoadMode(): void {
-    if (this.subject.modeEnabled === "road") {
-      this.setModeEnabled(null);
-      this.setRoadState({ ...baseRoadSlice });
-      return;
-    }
-    this.deactivateOtherModes("road");
+    const deactivated = this.deactivateIfEnabled("road");
+    if (deactivated) return;
     this.setModeEnabled("road");
     this.setRoadState({ ...baseRoadSlice });
   }
 
   public toggleMaritimeMode(): void {
-    if (this.subject.modeEnabled === "maritime") {
-      this.setModeEnabled(null);
-      this.setMaritimeState({ ...baseMaritimeSlice });
-      return;
-    }
-    this.deactivateOtherModes("maritime");
+    const deactivated = this.deactivateIfEnabled("maritime");
+    if (deactivated) return;
     this.setModeEnabled("maritime");
     this.setMaritimeState({ ...baseMaritimeSlice });
   }
 
-  public askForConfirmation(location: ILocationIdentifier): void {
-    this.deactivateOtherModes("capital");
-    this.setCapitalState({
-      ...this.subject.capital,
-      askConfirmationForLocation: location,
-    });
+  public askForConfirmation(mode: EditMode, location: ILocationIdentifier): void {
+    switch (mode) {
+      case "capital":
+        this.setCapitalState({ ...this.subject.capital, askConfirmationForLocation: location });
+        break;
+      default:
+        // no handling for other modes
+        return;
+    }
   }
 
   public confirmChangeCapital(): void {
     const loc = this.subject.capital.askConfirmationForLocation;
     if (this.subject.modeEnabled !== "capital" || !loc) return;
     gameStateController.changeCapital(loc);
-    this.setModeEnabled(null);
+    this.setModeEnabled(defaultMode);
     this.setCapitalState({ ...baseCapitalSlice });
   }
 
-  public selectLocationForBuildingRoad(location: ILocationIdentifier): void {
-    if (this.subject.modeEnabled !== "road") return;
-    this.setRoadState({ ...this.subject.road, selectedLocation: location });
+  public selectLocation(mode: EditMode, location: ILocationIdentifier): void {
+    switch (mode) {
+      case "maritime":
+        this.setMaritimeState({ ...this.subject.maritime, selectedLocation: location });
+        break;
+      case "road":
+        this.setRoadState({ ...this.subject.road, selectedLocation: location });
+        break;
+      case "capital":
+        this.setCapitalState({ ...this.subject.capital, selectedLocation: location });
+        break;
+      default:
+        // no handling for other modes
+        return;
+    }
   }
 
-  public selectLocationForEditing(location: ILocationIdentifier): void {
-    if (this.subject.modeEnabled !== "maritime") return;
-    this.setMaritimeState({ ...this.subject.maritime, selectedLocation: location });
+  public clearLocation(mode: EditMode): void {
+    switch (mode) {
+      case "maritime":
+        this.setMaritimeState({ ...this.subject.maritime, selectedLocation: null });
+        break;
+      case "road":
+        this.setRoadState({ ...this.subject.road, selectedLocation: null });
+        break;
+      case "capital":
+        this.setCapitalState({ ...this.subject.capital, selectedLocation: null });
+        break;
+      default:
+        // no handling for other modes
+        return;
+    }
   }
 
-  public clearLocationForEditing(): void {
-    if (this.subject.modeEnabled !== "maritime") return;
-    this.setMaritimeState({ ...this.subject.maritime, selectedLocation: null });
+  public setBrushSize(mode: EditMode, size: 'location' | 'province' | 'area'): void {
+    switch (mode) {
+      case "acquire":
+        this.setAcquireLocationState({ ...this.subject.acquireLocations, brushSize: size });
+        break;
+      default:
+        // no handling for other modes
+        return;
+    }
   }
 
   public init(): void {
-    this.subject = {
-      modeEnabled: null,
-      capital: { ...baseCapitalSlice },
-      road: { ...baseRoadSlice },
-      maritime: { ...baseMaritimeSlice },
-    };
-    this.emitAll();
+   this.reset();
   }
 
   public reset(): void {
     this.subject = {
-      modeEnabled: null,
+      modeEnabled: defaultMode,
       capital: { ...baseCapitalSlice },
       road: { ...baseRoadSlice },
       maritime: { ...baseMaritimeSlice },
+      acquireLocations: { ...baseAcquireLocationsSlice },
     };
     this.emitAll();
   }

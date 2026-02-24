@@ -33,7 +33,7 @@ export class IndexedDBWriter {
     });
   }
 
-  async put(storeName: string, key: IDBValidKey, value: any): Promise<void> {
+  async put(storeName: string, key: IDBValidKey, value: unknown): Promise<void> {
     const db = await this.open();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(storeName, 'readwrite');

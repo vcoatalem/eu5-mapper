@@ -203,7 +203,7 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
     if (!gameData || !gameState) {
       return -1;
     }
-    /* console.log("[NeighborsPanelComponent] locationMaritimePresence", gameData?.locationDataMap[locationName], gameState.temporaryLocationData[locationName]); */
+    /* console.log("[NeighborsPanelCom-nent] locationMaritimePresence", gameData?.locationDataMap[locationName], gameState.temporaryLocationData[locationName]); */
     if (!gameData.locationDataMap[locationName]) {
       return -1;
     }
@@ -235,7 +235,7 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
           </span>
         )}
         {
-          editModeState.modeEnabled && (
+          editModeState.modeEnabled !== "acquire" && (
             <button
               className={[styles.simpleButton, "ml-auto"].join(" ")}
               onClick={() => editModeController.reset()}

@@ -1,9 +1,10 @@
 import { Tooltip } from "@/app/lib/tooltip/tooltip.component";
+import { TooltipProviderContext } from "@/app/lib/tooltip/tooltip.provider";
 import { TooltipContent } from "@/app/lib/tooltip/tooltipContent.component";
 import { TooltipTrigger } from "@/app/lib/tooltip/tooltipTrigger.component";
 import styles from "@/app/styles/button.module.css";
 import posthog, { DisplaySurveyType } from "posthog-js";
-import { useRef } from "react";
+import { useContext, useRef } from "react";
 import { PiChatCircleTextLight } from "react-icons/pi";
 
 const FEEDBACK_SURVEY_ID =
@@ -17,6 +18,8 @@ export function PosthogSurveyButton({
   surveyId?: string;
 }) {
   const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const tooltipContext = useContext(TooltipProviderContext);
 
   const handleOpenSurvey = () => {
     if (!surveyId) return;
@@ -32,17 +35,16 @@ export function PosthogSurveyButton({
       ref={buttonRef}
       className={[styles.iconButton, className].filter(Boolean).join(" ")}
       onClick={handleOpenSurvey}
-      type="button"
       disabled={!surveyId}
     >
-      <Tooltip>
+      {tooltipContext && (<Tooltip>
         <TooltipTrigger>
           <PiChatCircleTextLight color="white" size={24}></PiChatCircleTextLight>
         </TooltipTrigger>
         <TooltipContent anchor={{ type: "dom", ref: buttonRef as React.RefObject<HTMLElement> }}>
-          <span>reach out ! :)</span>
+          <span>open contact form</span>
         </TooltipContent>
-      </Tooltip>
+      </Tooltip>) || <span>Reach out !</span>}
     </button>
   );
 }

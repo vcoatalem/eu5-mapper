@@ -67,7 +67,7 @@ const NeighborPanelListItem = memo(function NeighborPanelListItem({
   }, [road, baseLocation, neighborLocation]);
 
   return (
-    <ActionSource locations={() => neighborLocation} hover={{}}>
+    <ActionSource locations={() => [neighborLocation]} hover={{}}>
       <div
         key={neighborLocation}
         className={
@@ -75,7 +75,7 @@ const NeighborPanelListItem = memo(function NeighborPanelListItem({
         }
       >
         <ActionSource
-          locations={() => neighborLocation}
+          locations={() => [neighborLocation]}
           click={{ type: "goto" }}
         >
           <span
@@ -250,7 +250,7 @@ export function NeighborsPanelComponent({ locationName }: NeighborsPanelProps) {
         <>
           <div className="flex flex-row items-center gap-2 relative flex-1">⚓ Maritime Presence:
             <EditableField<number>
-              className="w-12"
+              className="w-16"
               key={locationName}
               autoFocus={maritimePresenceEditState.isModeEnabled && maritimePresenceEditState.selectedLocation === locationName}
               value={locationMaritimePresence}

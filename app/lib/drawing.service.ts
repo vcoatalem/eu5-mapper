@@ -26,7 +26,6 @@ import { Subject } from "./subject";
 import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
 import { editModeController } from "@/app/lib/editMode.controller";
 import { colorSearchController } from "@/app/lib/colorSeach.controller";
-import { LocationHierarchyService } from "@/app/lib/locationHierarchy.service";
 
 
 const canvasNames = ["areas", "constructibles", "roads", "indicators", "maritimePresences"] as const;
@@ -103,42 +102,28 @@ export class DrawingService {
       actionEventDispatcher.hoveredLocation,
       editModeController.roadSlice,
       editModeController.maritimeSlice,
-      editModeController.acquireLocationSlice,
     ]).subscribe(
       ({
-        values: [prolongedHoverLocation, hoveredLocation, roadBuilderState, maritimePresenceEditState, acquireLocationEditState],
+        values: [
+          prolongedHoverLocation,
+          hoveredLocation,
+          roadBuilderState,
+          maritimePresenceEditState,
+        ],
       }) => {
-
-
-        const baseToHighlight = [
+        const toHighlight = [
           ...(roadBuilderState?.selectedLocation
             ? [roadBuilderState.selectedLocation]
             : []),
-          ...(maritimePresenceEditState.selectedLocation ? [maritimePresenceEditState.selectedLocation] : []),
-        ]
-
-        if (hoveredLocation?.locations?.[0] && acquireLocationEditState.brushSize !== 'location') {
-          LocationHierarchyService.getAllLocationsInHierarchy(acquireLocationEditState.brushSize, gameData.locationDataMap[hoveredLocation.locations[0]].hierarchy[acquireLocationEditState.brushSize]).then((locations) => {
-            const toHighlight = [
-              ...baseToHighlight,
-              ...locations,
-            ]
-            console.log("[DrawingService] will draw highlighted with paint brush:", acquireLocationEditState.brushSize, toHighlight);
-            this.drawingCallbackBuffer["indicators"] = () =>
-              this.drawHighlighted(toHighlight);
-            this.reDraw.emit(new Date());
-          })
-        }
-        else {
-          const toHighlight = [
-            ...baseToHighlight,
-            ...(hoveredLocation?.locations ?? []),
-            ...(prolongedHoverLocation?.locations ?? []),
-          ]
-          this.drawingCallbackBuffer["indicators"] = () =>
-            this.drawHighlighted(toHighlight);
-          this.reDraw.emit(new Date());
-        }
+          ...(maritimePresenceEditState?.selectedLocation
+            ? [maritimePresenceEditState.selectedLocation]
+            : []),
+          ...(hoveredLocation?.locations ?? []),
+          ...(prolongedHoverLocation?.locations ?? []),
+        ];
+        this.drawingCallbackBuffer["indicators"] = () =>
+          this.drawHighlighted(toHighlight);
+        this.reDraw.emit(new Date());
       },
     );
 

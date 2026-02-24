@@ -424,6 +424,22 @@
       const defaultMaritimePresence = this.getDefaultMaritimePresence(locationData);
       return locationTemporaryData?.maritimePresence ?? defaultMaritimePresence;
     }
+    static getLocationPopulation(locationIdentifier, locationDataMap, gameState) {
+      if (!(locationIdentifier in locationDataMap)) {
+        return 0;
+      }
+      const locationData = locationDataMap[locationIdentifier];
+      const temporaryData = gameState.temporaryLocationData[locationIdentifier] ?? null;
+      return temporaryData?.population ?? locationData.population;
+    }
+    static getLocationDevelopment(locationIdentifier, locationDataMap, gameState) {
+      if (!(locationIdentifier in locationDataMap)) {
+        return 0;
+      }
+      const locationData = locationDataMap[locationIdentifier];
+      const temporaryData = gameState.temporaryLocationData[locationIdentifier] ?? null;
+      return temporaryData?.development ?? locationData.development;
+    }
   };
 
   // app/lib/classes/countryProximityBuffs.ts

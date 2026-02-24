@@ -10,7 +10,10 @@ import type { ILocationIdentifier } from "./types/general";
 
 export type LocationsInput = (
   e?: MouseEvent,
-) => ILocationIdentifier | ILocationIdentifier[] | null;
+) =>
+  | ILocationIdentifier[]
+  | Promise<ILocationIdentifier[] | null>
+  | null;
 
 export type HoverConfig = {
   type?: HoverActionType;
@@ -73,13 +76,7 @@ export const ActionSource = React.forwardRef(function ActionSource<
     if (click) {
       actionEventDispatcher.registerClickActionSource(
         el,
-        (e) => {
-          const result = locations(e);
-          if (Array.isArray(result)) {
-            return result[0] ?? null;
-          }
-          return result;
-        },
+        (e) => Promise.resolve(locations(e)).then((r) => r ?? []),
         click.type ?? null,
       );
     }

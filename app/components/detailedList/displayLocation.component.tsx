@@ -73,7 +73,7 @@ export function DisplayLocation(props: {
       key={"goto-btn-" + props.data.baseLocationGameData.name}
       showOnHover={true}
       tooltip={<span>See location</span>}
-      onClick={() => { modalControls.close(); actionEventDispatcher.dispatchClickAction("goto", props.data.baseLocationGameData.name, null); actionEventDispatcher.dispatchHoverAction("search", [props.data.baseLocationGameData.name], null); }}
+      onClick={() => { modalControls.close(); actionEventDispatcher.dispatchClickAction("goto", [props.data.baseLocationGameData.name], null); actionEventDispatcher.dispatchHoverAction("search", [props.data.baseLocationGameData.name], null); }}
     >
       <FaRegEye color="white" size={16}></FaRegEye>
     </ButtonWithTooltip>

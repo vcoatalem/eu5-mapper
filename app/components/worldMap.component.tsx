@@ -481,22 +481,39 @@ export function WorldMapComponent() {
     console.log({ topLayerRefForCreate: topLayerRef });
 
     if (topLayerRef.current) {
+      const getLocationsAtPointer = (
+        e: MouseEvent,
+      ): ILocationIdentifier[] | Promise<ILocationIdentifier[]> => {
+        const locationName = cameraController.getLocationAtPointer(e);
+        if (!locationName) return [];
+        const state = editModeController.getSnapshot();
+        if (
+          state.modeEnabled === "acquire" &&
+          state.acquireLocations?.brushSize !== "location"
+        ) {
+          const brushSize = state.acquireLocations.brushSize;
+          const hierarchyValue =
+            gameData.locationDataMap[locationName]?.hierarchy?.[brushSize];
+          if (hierarchyValue) {
+            return LocationHierarchyService.getAllLocationsInHierarchy(
+              brushSize,
+              hierarchyValue,
+            );
+          }
+        }
+        return [locationName];
+      };
+
       actionEventDispatcher.registerHoverActionSource(
         topLayerRef.current,
-        (e) => {
-          const locationName = cameraController.getLocationAtPointer(e);
-          return locationName ?? null;
-        },
+        getLocationsAtPointer,
         null,
         800,
       );
 
       actionEventDispatcher.registerClickActionSource(
         topLayerRef.current,
-        (e) => {
-          const locationName = cameraController.getLocationAtPointer(e);
-          return locationName ?? null;
-        },
+        getLocationsAtPointer,
         "acquire",
       );
     }
@@ -586,7 +603,7 @@ export function WorldMapComponent() {
     const clickedLocationUnsubscribe = clickObserver.subscribe(
       ({
         values: [
-          { location, type, mouseCoordinate },
+          { locations, type, mouseCoordinate },
           mapEditModeState,
         ],
         changedIndex,
@@ -596,29 +613,24 @@ export function WorldMapComponent() {
           return;
         }
         setLastKnownMouseCoordinate(mouseCoordinate);
-        const locationData = gameData.locationDataMap[location ?? ""] ?? null;
+        const primaryLocation = locations?.[0] ?? null;
+        const locationData =
+          gameData.locationDataMap[primaryLocation ?? ""] ?? null;
         switch (true) {
-          case locationData && mapEditModeState.modeEnabled === 'capital':
+          case locationData &&
+            mapEditModeState.modeEnabled === "capital":
             if (!editModeController.isLocationEligibleForCapital(locationData)) {
               return;
             }
-            return editModeController.askForConfirmation("capital", locationData.name);
-          case locationData && type === "acquire" && mapEditModeState.modeEnabled === "acquire":
-            const brushSize = mapEditModeState.acquireLocations.brushSize;
-            if (brushSize === 'location') {
-              return gameStateController.toggleLocationOwnership(locationData.name);
-            }
-            else {
-              const hierarchyValue = locationData.hierarchy[brushSize];
-              LocationHierarchyService.getAllLocationsInHierarchy(
-                brushSize,
-                hierarchyValue,
-              ).then((locations) => {
-                gameStateController.toggleLocationsOwnership(locations);
-              });
-            }
-            break;
-          case locationData && mapEditModeState.modeEnabled === 'road':
+            return editModeController.askForConfirmation(
+              "capital",
+              locationData.name,
+            );
+          case locations.length > 0 &&
+            type === "acquire" &&
+            mapEditModeState.modeEnabled === "acquire":
+            return gameStateController.toggleLocationsOwnership(locations);
+          case locationData && mapEditModeState.modeEnabled === "road":
             if (!editModeController.isLocationEligibleForRoad(locationData)) {
               return;
             }
@@ -630,26 +642,27 @@ export function WorldMapComponent() {
                 y: 25,
               })
               .then(() => {
-                setSelectedLocation(location);
+                setSelectedLocation(primaryLocation);
               });
             break;
-          case locationData && mapEditModeState.modeEnabled === 'maritime':
-            console.log("[WorldMapComponent] clicked location in maritime presence edit mode", location);
+          case locationData && mapEditModeState.modeEnabled === "maritime":
             if (!editModeController.isLocationEligibleForMaritime(locationData)) {
               return;
             }
-            if (mapEditModeState.maritime.selectedLocation === locationData.name) {
+            if (
+              mapEditModeState.maritime.selectedLocation === locationData.name
+            ) {
               setSelectedLocation(null);
               return editModeController.clearLocation("maritime");
             }
-            else {
-              setSelectedLocation(location);
-              return editModeController.selectLocation("maritime", locationData.name);
-            }
-            break;
-          case location && type === "goto":
+            setSelectedLocation(primaryLocation);
+            return editModeController.selectLocation(
+              "maritime",
+              locationData.name,
+            );
+          case primaryLocation && type === "goto":
             const coordinates =
-              gameData.locationDataMap[location]?.centerCoordinates;
+              gameData.locationDataMap[primaryLocation]?.centerCoordinates;
             if (coordinates) {
               cameraController.panToCoordinate(coordinates, 600);
             }

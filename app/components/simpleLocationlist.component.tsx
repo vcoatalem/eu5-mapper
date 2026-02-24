@@ -42,7 +42,7 @@ const SimpleLocationListItem = React.memo(function SimpleLocationListItem({
           <span className="mr-1">★</span>
         )}
         <ActionSource
-          locations={() => location}
+          locations={() => [location]}
           hover={{}}
           click={{ type: "goto" }}
         >

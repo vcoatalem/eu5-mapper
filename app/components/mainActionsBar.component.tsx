@@ -73,7 +73,7 @@ export function MainActionsBar() {
 
 
       <Popover renderTrigger={({ isOpen, toggle }) => (
-        <ButtonWithTooltip disabled={editModeState.modeEnabled !== 'acquire'} className={["h-10 relative", isOpen ? buttonStyles.buttonActive : ""].join(" ")} tooltip={"Land acquisition brush size (currently: " + editModeState.acquireLocations.brushSize + ")"} onClick={() => { toggleMode("acquire"); toggle(); }}>
+        <ButtonWithTooltip disabled={editModeState.modeEnabled !== 'acquire'} isActive={isOpen} className={["h-10 relative rounded-md"].join(" ")} tooltip={"Land acquisition brush size (currently: " + editModeState.acquireLocations.brushSize + ")"} onClick={() => { toggleMode("acquire"); toggle(); }}>
           <BsBrush color="white" size={24}></BsBrush> 
         </ButtonWithTooltip>
       )}>

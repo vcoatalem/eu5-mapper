@@ -77,8 +77,7 @@ export class GameStateController extends Observable<IGameState> {
     locationNames: ILocationIdentifier[],
   ): void {
     if (!this.subject) return;
-
-    const toAcquire = locationNames.filter((locationName) => !this.subject.ownedLocations[locationName]);
+    const toAcquire = locationNames.filter((locationName) => !this.subject.ownedLocations[locationName] && this.gameData?.locationDataMap[locationName]?.ownable);
     if (toAcquire.length === 0) {
       this.abandonLocations(locationNames);
     }

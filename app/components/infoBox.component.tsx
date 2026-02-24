@@ -8,19 +8,20 @@ import { StringHelper } from "@/app/lib/utils/string.helper";
 import styles from "@/app/styles/Gui.module.css";
 import { memo, useContext, useMemo, useSyncExternalStore } from "react";
 import { AppContext } from "../appContextProvider";
-import { IGameState, ILocationGameData, ITemporaryLocationData } from "../lib/types/general";
+import { ILocationGameData, ILocationIdentifier } from "../lib/types/general";
 
 function LocationInfoBox(
   props: {
-    locationData: ILocationGameData,
-    temporaryData: ITemporaryLocationData,
-    gameState: IGameState,
+    locationName: ILocationIdentifier,
     mode: EditMode | null,
   }
 ) {
-  const { locationData, gameState, mode, temporaryData } = props;
-
-  const owned = useMemo(() => gameState.ownedLocations[locationData?.name ?? ""], [gameState.ownedLocations, locationData?.name]);
+  const { locationName, mode } = props;
+  const gameState = useSyncExternalStore(gameStateController.subscribe.bind(gameStateController), () => gameStateController.getSnapshot());
+  const { gameData } = useContext(AppContext);
+  const locationData = gameData?.locationDataMap?.[locationName ?? ""];
+  const temporaryData = gameState.temporaryLocationData[locationName ?? ""] ?? null;
+  const owned = gameState.ownedLocations[locationData?.name ?? ""];
 
   const cta = useMemo<{ label: string, active: boolean }>(() => {
     if (mode === "road") {
@@ -30,13 +31,13 @@ function LocationInfoBox(
       return { label: "Click to change capital location", active: true };
     }
     if (mode === "maritime") {
-      if (locationData.isSea || locationData.isLake) {
+      if (locationData?.isSea || locationData?.isLake) {
         return { label: "Click to edit maritime presence", active: true };
       }
       return { label: "Not Maritime Location", active: false };
     }
     else {
-      if (props.locationData.ownable) {
+      if (locationData?.ownable) {
         if (owned) {
           return { label: "Click to release this location", active: true };
         }
@@ -46,19 +47,14 @@ function LocationInfoBox(
         return { label: "Not Ownable", active: false };
       }
     }
-  }, [mode, locationData.ownable, owned]);
+  }, [mode, locationData?.ownable, owned]);
 
-  const harborCapacity = useMemo(() => LocationsHelper.getLocationHarborSuitability(locationData, gameState.ownedLocations[locationData.name]), [locationData, gameState.ownedLocations]);
-
-
-  if (!locationData || !gameState.ownedLocations) {
-    // can happen with HMR
-    return <></>
-  }
+  const harborCapacity = useMemo(() => locationData ? LocationsHelper.getLocationHarborSuitability(locationData, gameState.ownedLocations[locationData?.name ?? ""]) : 0, [locationData, gameState.ownedLocations]);
 
   if (!locationData) {
     return <span>No data available</span>;
   }
+
   return (
     <div className="flex flex-row items-center gap-6 px-4 w-full">
       <div className="flex items-center gap-2 flex-1">
@@ -95,6 +91,45 @@ function LocationInfoBox(
   );
 };
 
+function HierarchyInfoBox(props: { locationNames: ILocationIdentifier[] }) {
+
+  const gameState = useSyncExternalStore(gameStateController.subscribe.bind(gameStateController), () => gameStateController.getSnapshot());
+  const gameData = useContext(AppContext)?.gameData;
+  const editModeAcquire = useSyncExternalStore(editModeController.acquireLocationSlice.subscribe.bind(editModeController.acquireLocationSlice), () => editModeController.acquireLocationSlice.getSnapshot());
+  const isAcquireMode = editModeAcquire.isModeEnabled;
+  const hierarchyType = editModeAcquire.brushSize;
+
+  const locationsLength = useMemo(() => props.locationNames.length, [props.locationNames]);
+  const cta = useMemo<{ label: string, active: boolean } | null>(() => {
+    if (isAcquireMode) {
+      return { label: `Click to toggle ownership of ${locationsLength} locations`, active: true };
+    }
+    else {
+      return null;
+    }
+  }, [locationsLength, isAcquireMode]);
+  const hierarchyData = useMemo(() => gameData?.locationDataMap?.[props.locationNames[0]]?.hierarchy[hierarchyType as keyof ILocationGameData["hierarchy"]] ?? null, [gameData, props.locationNames, hierarchyType]);
+  const hierarchyTotalPop = useMemo(() => props.locationNames.reduce((acc, locationName) => acc + LocationsHelper.getLocationPopulation(locationName, gameData?.locationDataMap ?? {}, gameState), 0), [props.locationNames, gameData, gameState]);
+  const hierarchyAverageDevelopment = useMemo(() => props.locationNames.reduce((acc, locationName) => acc + LocationsHelper.getLocationDevelopment(locationName, gameData?.locationDataMap ?? {}, gameState), 0) / locationsLength, [props.locationNames, gameData, gameState, locationsLength]);
+
+  if (!hierarchyData) {
+    return <span>No data available</span>;
+  }
+
+  return (
+    <div className="flex flex-row items-center gap-6 px-4 w-full">
+      <span className="font-bold text-base text-white shrink-0">{StringHelper.formatLocationName(hierarchyData)}</span>
+      <span className="text-stone-400 text-sm max-w-[50%] overflow-hidden text-ellipsis whitespace-nowrap">Locations: {props.locationNames.map((locationName) => StringHelper.formatLocationName(locationName)).join(", ")}</span>
+
+      <span className="text-stone-400 text-sm shrink-0">Total Pop: {NumbersHelper.formatWithSymbol(hierarchyTotalPop)}</span>
+      <span className="text-stone-400 text-sm shrink-0">Average Dev: {hierarchyAverageDevelopment.toFixed(2)}</span>
+      {cta && <span className={["ml-auto text-right shrink-0 ", (cta.active ? "text-yellow-500" : "text-stone-400")].join(" ")} >
+        {cta.label}
+      </span>}
+    </div>
+  )
+}
+
 
 
 const Container = memo(function Container(props: { children: React.ReactNode, mode: EditMode | null }) {
@@ -119,11 +154,6 @@ const Container = memo(function Container(props: { children: React.ReactNode, mo
 });
 
 export function InfoBoxComponent() {
-
-  const gameLogic = useSyncExternalStore(
-    gameStateController.subscribe.bind(gameStateController),
-    () => gameStateController.getSnapshot()
-  );
 
   const hoveredLocation = useSyncExternalStore(
     actionEventDispatcher.hoveredLocation.subscribe.bind(
@@ -151,18 +181,12 @@ export function InfoBoxComponent() {
     </Container>;
   }
 
-  const primaryLocation = hoveredLocations[0];
-  const locationData =
-    gameData.locationDataMap?.[primaryLocation ?? ""];
-  const temporaryData = gameLogic.temporaryLocationData[primaryLocation ?? ""] ?? null;
-  if (!locationData) {
-    console.warn(
-      `[InfoBoxComponent] No location data found for location: ${primaryLocation}`,
-    );
-    return <Container mode={mapEditMode.modeEnabled ?? null}>
-      Hover or select a location to view details
-    </Container>;
+  if (hoveredLocations.length === 1) {
+    return <Container mode={mapEditMode.modeEnabled ?? null}><LocationInfoBox locationName={hoveredLocations[0]} mode={mapEditMode.modeEnabled ?? null}></LocationInfoBox></Container>;
+  }
+  else {
+    return <Container mode={mapEditMode.modeEnabled ?? null}><HierarchyInfoBox locationNames={hoveredLocations}></HierarchyInfoBox></Container>;
   }
 
-  return <Container mode={mapEditMode.modeEnabled ?? null}><LocationInfoBox locationData={locationData} temporaryData={temporaryData} gameState={gameLogic} mode={mapEditMode.modeEnabled ?? null}></LocationInfoBox></Container>;
+
 }

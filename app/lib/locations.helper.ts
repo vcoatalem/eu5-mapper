@@ -1,4 +1,4 @@
-import { IConstructibleLocation, ILocationGameData, ILocationIdentifier, ITemporaryLocationData, RoadRecord } from "./types/general";
+import { IConstructibleLocation, IGameData, IGameState, ILocationDataMap, ILocationGameData, ILocationIdentifier, ITemporaryLocationData, RoadRecord } from "./types/general";
 
 export class LocationsHelper {
   public static locationHasRoad(
@@ -40,4 +40,24 @@ export class LocationsHelper {
     const defaultMaritimePresence = this.getDefaultMaritimePresence(locationData);
     return locationTemporaryData?.maritimePresence ?? defaultMaritimePresence;
   }
+
+  public static getLocationPopulation(locationIdentifier: ILocationIdentifier, locationDataMap: ILocationDataMap, gameState: IGameState): number {
+    if (!(locationIdentifier in locationDataMap)) {
+      return 0;
+    }
+    const locationData = locationDataMap[locationIdentifier];
+    const temporaryData = gameState.temporaryLocationData[locationIdentifier] ?? null;
+    return temporaryData?.population ?? locationData.population;
+  }
+
+  public static getLocationDevelopment(locationIdentifier: ILocationIdentifier, locationDataMap: ILocationDataMap, gameState: IGameState): number {
+    if (!(locationIdentifier in locationDataMap)) {
+      return 0;
+    }
+    const locationData = locationDataMap[locationIdentifier];
+    const temporaryData = gameState.temporaryLocationData[locationIdentifier] ?? null;
+    return temporaryData?.development ?? locationData.development;
+  }
+
+
 }

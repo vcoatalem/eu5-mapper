@@ -8,7 +8,7 @@ type HoverEventPayload = {
 };
 
 type ClickEventPayload = {
-  location: ILocationIdentifier | null;
+  locations: ILocationIdentifier[];
   type: "acquire" | "goto" | null; // add more types as needed
   mouseCoordinate: ICoordinate | null;
 };
@@ -30,14 +30,17 @@ export class ActionEventDispatcher {
   public init() {
     this.hoveredLocation.emit({ locations: [], type: null, mouseCoordinate: null });
     this.prolongedHoverLocation.emit({ locations: [], type: null, mouseCoordinate: null });
-    this.clickedLocationSource.emit({ location: null, type: null, mouseCoordinate: null });
+    this.clickedLocationSource.emit({ locations: [], type: null, mouseCoordinate: null });
   }
 
+  private static arraysEqual(a: ILocationIdentifier[], b: ILocationIdentifier[]): boolean {
+    return a.length === b.length && a.every((loc, i) => loc === b[i]);
+  }
 
   private clickedMouseDownLocation: {
-    location: ILocationIdentifier | null;
+    locations: ILocationIdentifier[];
     coordinate: ICoordinate | null;
-  } = { location: null, coordinate: null };
+  } = { locations: [], coordinate: null };
   private hoverTimer: NodeJS.Timeout | null = null;
 
   // Map to track registered event handlers for each element
@@ -49,18 +52,14 @@ export class ActionEventDispatcher {
     element: HTMLElement,
     locationNameFn: (
       e: MouseEvent,
-    ) => ILocationIdentifier | ILocationIdentifier[] | null,
+    ) => ILocationIdentifier[] | Promise<ILocationIdentifier[] | null> | null,
     type: "search" | null = null,
     prolongedHoverDelay: number = 1500,
   ) {
-    const mouseMoveHandler = (e: MouseEvent) => {
+    const mouseMoveHandler = async (e: MouseEvent) => {
       const coordinate: ICoordinate = { x: e.clientX, y: e.clientY };
-      const locationResult = locationNameFn(e);
-      const locationNames = Array.isArray(locationResult)
-        ? locationResult
-        : locationResult !== null
-          ? [locationResult]
-          : [];
+      const locationResult = await Promise.resolve(locationNameFn(e));
+      const locationNames = locationResult ?? [];
 
       const currentLocations =
         this.hoveredLocation.getSnapshot()?.locations ?? [];
@@ -108,17 +107,13 @@ export class ActionEventDispatcher {
         });
       }, prolongedHoverDelay);
     };
-    const mouseOutHandler = (e: MouseEvent) => {
+    const mouseOutHandler = async (e: MouseEvent) => {
       if (this.hoverTimer) {
         clearTimeout(this.hoverTimer);
         this.hoverTimer = null;
       }
-      const locationResult = locationNameFn(e);
-      const locationNames = Array.isArray(locationResult)
-        ? locationResult
-        : locationResult !== null
-          ? [locationResult]
-          : [];
+      const locationResult = await Promise.resolve(locationNameFn(e));
+      const locationNames = locationResult ?? [];
 
       const currentLocations =
         this.hoveredLocation.getSnapshot()?.locations ?? [];
@@ -168,35 +163,40 @@ export class ActionEventDispatcher {
 
   public registerClickActionSource(
     element: HTMLElement,
-    locationNameFn: (e: MouseEvent) => ILocationIdentifier | null,
+    locationNameFn: (
+      e: MouseEvent,
+    ) =>
+      | ILocationIdentifier[]
+      | Promise<ILocationIdentifier[]>,
     type: "acquire" | "goto" | null = null, // TODO: add more actions as needed
   ) {
     const maximumClickDistance = 5; // pixels
-    const mouseDownHandler = (e: MouseEvent) => {
+    const mouseDownHandler = async (e: MouseEvent) => {
+      const locations = await Promise.resolve(locationNameFn(e));
       this.clickedMouseDownLocation = {
-        location: locationNameFn(e),
+        locations: Array.isArray(locations) ? locations : [],
         coordinate: { x: e.clientX, y: e.clientY },
       };
     };
-    const mouseUpHandler = (e: MouseEvent) => {
-      const locationName = locationNameFn(e);
+    const mouseUpHandler = async (e: MouseEvent) => {
+      const locations = await Promise.resolve(locationNameFn(e));
+      const locs = Array.isArray(locations) ? locations : [];
+      const prev = this.clickedMouseDownLocation;
+      const distance =
+        Math.abs(e.clientX - (prev.coordinate?.x ?? 0)) +
+        Math.abs(e.clientY - (prev.coordinate?.y ?? 0));
       if (
-        this.clickedMouseDownLocation &&
-        this.clickedMouseDownLocation?.location === locationName &&
-        Math.abs(
-          e.clientX -
-            (this.clickedMouseDownLocation.coordinate?.x ?? 0) +
-            e.clientY -
-            (this.clickedMouseDownLocation.coordinate?.y ?? 0),
-        ) <= maximumClickDistance
+        prev.locations.length >= 0 &&
+        ActionEventDispatcher.arraysEqual(prev.locations, locs) &&
+        distance <= maximumClickDistance
       ) {
         this.clickedLocationSource.emit({
-          location: locationName ?? null,
+          locations: locs,
           type,
           mouseCoordinate: { x: e.clientX, y: e.clientY },
         });
       }
-      this.clickedMouseDownLocation = { location: null, coordinate: null };
+      this.clickedMouseDownLocation = { locations: [], coordinate: null };
     };
     element.addEventListener("mousedown", mouseDownHandler);
     element.addEventListener("mouseup", mouseUpHandler);
@@ -232,8 +232,12 @@ export class ActionEventDispatcher {
     }
   }
 
-  public dispatchClickAction(type: ClickActionType, location: ILocationIdentifier | null, mouseCoordinate: ICoordinate | null) {
-    this.clickedLocationSource.emit({ location, type, mouseCoordinate });
+  public dispatchClickAction(
+    type: ClickActionType,
+    locations: ILocationIdentifier[],
+    mouseCoordinate: ICoordinate | null,
+  ) {
+    this.clickedLocationSource.emit({ locations, type, mouseCoordinate });
   }
 
   public dispatchHoverAction(type: HoverActionType, locations: ILocationIdentifier[], mouseCoordinate: ICoordinate | null) {

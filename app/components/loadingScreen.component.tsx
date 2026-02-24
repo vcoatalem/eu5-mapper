@@ -1,3 +1,4 @@
+import { CopyrightNotice } from "@/app/components/copyrightNotice.component";
 import { useEffect, useState, useRef } from "react";
 
 interface LoadingScreenProps {
@@ -61,8 +62,8 @@ export function LoadingScreenComponent({
   }, [progress]);
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black z-50">
-      <div className="flex flex-col items-center gap-6 w-full max-w-md px-8">
+    <div className="fixed inset-0 flex items-center justify-center bg-black z-50 font-mono">
+      <div className="flex flex-col items-center gap-6 w-full max-w-md px-8 mt-[30%]">
         {/* Progress Bar Container */}
         {progress !== undefined && (
           <div className="w-full">
@@ -96,6 +97,12 @@ export function LoadingScreenComponent({
             Try Again
           </button>
         )}
+
+          {/* Copyright Notice */}
+          <div className="mt-8">
+            <CopyrightNotice />
+          </div>
+
       </div>
     </div>
   );

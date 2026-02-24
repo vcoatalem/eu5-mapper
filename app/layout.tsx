@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EU5 Map App",
+  title: "EU5 Mapper",
   description: "Interactive map for Europa Universalis 5",
 };
 

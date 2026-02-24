@@ -150,43 +150,40 @@ export const AppContextProvider = ({
           dbStoreNames,
         );
 
-        console.log("[AppContextProvider] clear previous indexeddb data");
-        await Promise.all([
-          indexedDBWriter.clearStore(dbGameDataStoreName),
-          indexedDBWriter.clearStore(dbAdjacencyDataStoreName),
-          indexedDBWriter.clearStore(dbCountryModifiersTemplatesStoreName),
-          indexedDBWriter.clearStore(dbLocationHierarchyStoreName),
-        ]);
+        try {
+          await Promise.all([
+            indexedDBWriter.clearStore(dbGameDataStoreName),
+            indexedDBWriter.clearStore(dbAdjacencyDataStoreName),
+            indexedDBWriter.clearStore(dbCountryModifiersTemplatesStoreName),
+            indexedDBWriter.clearStore(dbLocationHierarchyStoreName),
+          ]);
 
-        console.log("[AppContextProvider] fill indexeddb");
-        await indexedDBWriter
-          .put(dbGameDataStoreName, dbDataKey, toBePersistedGameData)
-          .then(
-            () => console.log("[AppContextProvider] persisted game data to indexedDB"),
-            (err) =>
-              console.error("[AppContextProvider] could not persist game data to indexedDB", err),
+          console.log("[AppContextProvider] fill indexeddb");
+          await indexedDBWriter.put(
+            dbGameDataStoreName,
+            dbDataKey,
+            toBePersistedGameData,
           );
-
-        await indexedDBWriter
-          .put(dbAdjacencyDataStoreName, dbDataKey, adjacencyCsv)
-          .then(
-            () => console.log("[AppContextProvider] persisted adjacency data to indexedDB"),
-            (err) =>
-              console.error(
-                "[AppContextProvider] could not persist adjacency data to indexedDB",
-                err,
-              ),
+          await indexedDBWriter.put(
+            dbAdjacencyDataStoreName,
+            dbDataKey,
+            adjacencyCsv,
           );
-
-        await indexedDBWriter
-          .put(dbCountryModifiersTemplatesStoreName, dbDataKey, {})
-          .then(
-            () => console.log("[AppContextProvider] created store entry for templates to indexedDB"),
-            (err) =>
-              console.error("[AppContextProvider] could not persist country modifiers templates to indexedDB", err),
+          await indexedDBWriter.put(
+            dbCountryModifiersTemplatesStoreName,
+            dbDataKey,
+            {},
           );
-
-        await LocationHierarchyService.persistToIndexedDB(locationDataMap);
+          await LocationHierarchyService.persistToIndexedDB(locationDataMap);
+        } catch (dbErr) {
+          console.error(
+            "[AppContext] IndexedDB error, dropping DB and reloading",
+            dbErr,
+          );
+          indexedDB.deleteDatabase(dbName);
+          window.location.reload();
+          return;
+        }
 
         // indexedDB operations have to be done before setGameData to ensure this happens before worldmap component initializes
         setImagePaths(resolvedImagePaths);

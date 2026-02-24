@@ -19,12 +19,10 @@ from game_data_utils import parse_game_data_file
 
 
 WHITELISTED_MODIFIERS = {
-    "global_distance_from_capital_speed_propagation": "globalProximityCostModifier",
     "local_distance_from_capital_speed_propagation": "localProximityCostModifier",
     "harbor_suitability": "harborSuitability",
     "local_proximity_source": "localProximitySource",
     "local_distance_from_capital_cost_modifier": "localProximityCostModifier",
-    "global_distance_from_capital_cost_modifier": "globalProximityCostModifier",
 }
 
 
@@ -32,17 +30,23 @@ def parse_yes_no(value: Optional[str]) -> bool:
     return str(value).lower() == "yes"
 
 
-def infer_buildability(props: Dict[str, object]) -> bool:
-    #print("infer buildability for props:", props)
-    country_potential = props.get("country_potential")
-    #print("country_potential:", country_potential)
-    if country_potential:
-        return False # for now, dont handle buildings specific to certain countries
-    allow = props.get("allow")
-    #print("allow block:", allow)
-    if not allow:
-        return True
-    return parse_yes_no(allow.get("always"))
+
+BUILDABLE_EXCLUDED: frozenset[str] = frozenset({
+    "kilwan_shipwrights",
+    "copenhagen_dockyard",
+    "hanseatic_shipwright_guild",
+    "lieutenancy",
+    "viceroyalty",
+    "barcelona_royal_shipyard",
+    "ostrog",
+    "kings_manor",
+    "seljuk_mint",
+})
+
+
+def infer_buildability(building_name: str) -> bool:
+    """All buildings are buildable unless explicitly excluded."""
+    return building_name not in BUILDABLE_EXCLUDED
 
 def infer_building_type(props: Dict[str, object]) -> str:
     is_rural = parse_yes_no(props.get("rural_settlement"))
@@ -118,26 +122,28 @@ def build_templates_from_files(files: GameDataFiles) -> Dict[str, dict]:
                 "num_roads": "has_road",
                 "is_capital": "is_capital",
             }
+
             def extract_conditions(block):
-                #print("Extracting conditions from block:", block)
                 conditions = []
                 for k, v in block.items():
                     mapped = restriction_map.get(k)
-                    #print(mapped)
                     if mapped:
-                        if (isinstance(v, str) and v.lower() == "yes") or (isinstance(v, (int, float)) and v > 0):
+                        if k == "is_capital": # special handling for capital, as we want to output a different restriction depending on yes / no
+                            if (isinstance(v, str) and v.lower() == "no") or (v == 0):
+                                conditions.append("is_not_capital")
+                            elif (isinstance(v, str) and v.lower() == "yes") or (isinstance(v, (int, float)) and v > 0):
+                                conditions.append("is_capital")
+                        elif (isinstance(v, str) and v.lower() == "yes") or (isinstance(v, (int, float)) and v > 0):
                             conditions.append(mapped)
+                    elif k == "!" and v == "this": # special handling for the weird notation used ("owner.capital != this") for local governors
+                        conditions.append("is_not_capital")
                     elif isinstance(v, dict):
-                        # Nested AND/OR
-                        #print(f"Found nested block: {k} with value {v}")
                         if k == "OR":
                             or_conditions = extract_conditions(v)
-                            #print("got OR conditions:", or_conditions)
                             if or_conditions:
                                 conditions.append({"op": "OR", "conditions": sorted(list(set(or_conditions)))})
                         elif k == "AND":
                             and_conditions = extract_conditions(v)
-                            #print("got AND conditions:", and_conditions)
                             if and_conditions:
                                 conditions.extend(and_conditions)
                 return conditions
@@ -166,7 +172,7 @@ def build_templates_from_files(files: GameDataFiles) -> Dict[str, dict]:
                 "cap": cap,
                 "modifiers": modifiers,
                 "placementRestriction": placementRestriction,
-                "buildable": infer_buildability(props),
+                "buildable": infer_buildability(building_name),
             }
 
             obsolete = props.get("obsolete")
@@ -179,12 +185,6 @@ def build_templates_from_files(files: GameDataFiles) -> Dict[str, dict]:
         if obsolete in templates:
             templates[obsolete]["upgrade"] = building_name
 
-
-    # special override for kilwan_shipwrights, as their data seem to be structured differently
-    if "kilwan_shipwrights" in templates:
-        templates["kilwan_shipwrights"]["buildable"] = False
-    if "copenhagen_dockyard" in templates:
-        templates["copenhagen_dockyard"]["buildable"] = False
 
     return templates
 

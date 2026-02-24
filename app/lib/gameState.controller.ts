@@ -8,7 +8,7 @@ import {
   INewBuildingTemplate,
 } from "@/app/lib/types/building";
 import { cameraController } from "./cameraController";
-import { ConstructibleHelper } from "./constructible.helper";
+import { RoadsHelper } from "./roads.helper";
 import { Observable } from "./observable";
 import {
   IConstructibleLocation,
@@ -352,7 +352,7 @@ export class GameStateController extends Observable<IGameState> {
     for (const loc of Object.keys(this.subject.roads)) {
       roadsCopy[loc] = [...this.subject.roads[loc]];
     }
-    ConstructibleHelper.applyRoadTypeChange(roadsCopy, key, type);
+    RoadsHelper.applyRoadTypeChange(roadsCopy, key, type);
     this.subject.roads = roadsCopy;
     this.notifyListeners();
   }
@@ -365,14 +365,14 @@ export class GameStateController extends Observable<IGameState> {
       roads[loc] = [...this.subject.roads[loc]];
     }
     for (const { key, type } of changes) {
-      ConstructibleHelper.applyRoadTypeChange(roads, key, type);
+      RoadsHelper.applyRoadTypeChange(roads, key, type);
     }
     this.subject.roads = roads;
     this.notifyListeners();
   }
 
   public changeAllOwnedRoadsToType(type: RoadType): void {
-    const roads = ConstructibleHelper.getOwnedRoads(
+    const roads = RoadsHelper.getOwnedRoads(
       this.subject.ownedLocations,
       this.subject.roads,
     );

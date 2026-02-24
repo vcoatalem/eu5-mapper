@@ -1,6 +1,6 @@
 import React, { useMemo, useSyncExternalStore } from "react";
 import { gameStateController } from "@/app/lib/gameState.controller";
-import { ConstructibleHelper } from "../lib/constructible.helper";
+import { RoadsHelper } from "../lib/roads.helper";
 import { StringHelper } from "../lib/utils/string.helper";
 import { RoadType } from "../lib/types/general";
 import { getGuiImage } from "../lib/drawing/namedGuiImagesMap.const";
@@ -126,7 +126,7 @@ export function RoadList(props: IRoadListProps) {
   const [search, setSearch] = React.useState<string | null>(null);
 
   const filteredRoadsEntries = useMemo(() => {
-    const entries = ConstructibleHelper.getOwnedRoads(
+    const entries = RoadsHelper.getOwnedRoads(
       gameState?.ownedLocations ?? {},
       gameState?.roads ?? {},
     );
@@ -155,10 +155,10 @@ export function RoadList(props: IRoadListProps) {
 
   const areAllRoadsOfType: Record<RoadType, boolean> = useMemo(() => {
     return {
-      gravel_road: ConstructibleHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, gameState.roads, "gravel_road"),
-      paved_road: ConstructibleHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, gameState.roads, "paved_road"),
-      modern_road: ConstructibleHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, gameState.roads, "modern_road"),
-      rail_road: ConstructibleHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, gameState.roads, "rail_road"),
+      gravel_road: RoadsHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, gameState.roads, "gravel_road"),
+      paved_road: RoadsHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, gameState.roads, "paved_road"),
+      modern_road: RoadsHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, gameState.roads, "modern_road"),
+      rail_road: RoadsHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, gameState.roads, "rail_road"),
     }
   }, [gameState.ownedLocations, gameState.roads]);
 

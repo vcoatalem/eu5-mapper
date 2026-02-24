@@ -8,8 +8,13 @@
     "modifiers": {
       "localProximitySource": 80.0
     },
-    "placementRestriction": null,
-    "buildable": false
+    "placementRestriction": {
+      "op": "AND",
+      "conditions": [
+        "is_not_capital"
+      ]
+    },
+    "buildable": true
   },
   "naval_governor": {
     "name": "naval_governor",
@@ -26,7 +31,7 @@
         "is_coastal"
       ]
     },
-    "buildable": false
+    "buildable": true
   },
   "bridge_infrastructure": {
     "name": "bridge_infrastructure",
@@ -255,7 +260,7 @@
         "is_coastal"
       ]
     },
-    "buildable": false
+    "buildable": true
   },
   "copenhagen_dockyard": {
     "name": "copenhagen_dockyard",
@@ -322,7 +327,8 @@
     "placementRestriction": {
       "op": "AND",
       "conditions": [
-        "has_river"
+        "has_river",
+        "is_not_capital"
       ]
     },
     "buildable": false

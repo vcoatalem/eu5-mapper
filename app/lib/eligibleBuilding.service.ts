@@ -14,6 +14,7 @@ export class EligibleBuildingService {
 
   constructor(gameData: IGameData) {
     this.locationDataMap = gameData.locationDataMap;
+    console.log("[EligibleBuildingService] initializing with building templates:", Object.values(gameData.buildingsTemplate));
     this.buildingTemplateMapping = {};
     const getLocationData = (id: ILocationIdentifier) => this.locationDataMap[id];
     for (const [templateName, templateData] of Object.entries(gameData.buildingsTemplate)) {
@@ -74,6 +75,8 @@ export class EligibleBuildingService {
         return gameState.capitalLocation === location.name;
       case "has_road":
         return LocationsHelper.locationHasRoad(location.name, gameState.roads);
+      case "is_not_capital":
+        return gameState.capitalLocation !== location.name;
     }
   }
 

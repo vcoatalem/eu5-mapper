@@ -6,7 +6,7 @@ import {
   RoadType,
 } from "./types/general";
 
-export class ConstructibleHelper {
+export class RoadsHelper {
 
   public static getOwnedRoads(
     ownedLocations: IGameState["ownedLocations"],

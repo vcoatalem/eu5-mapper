@@ -237,7 +237,7 @@
         "is_capital"
       ]
     },
-    "buildable": false
+    "buildable": true
   },
   "copenhagen_dockyard": {
     "name": "copenhagen_dockyard",
@@ -304,7 +304,8 @@
     "placementRestriction": {
       "op": "AND",
       "conditions": [
-        "has_river"
+        "has_river",
+        "is_not_capital"
       ]
     },
     "buildable": false

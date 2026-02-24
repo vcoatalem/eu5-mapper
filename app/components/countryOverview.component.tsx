@@ -56,6 +56,7 @@ export function CountryOverview() {
           <CountryStats
             align={true}
             ownedLocations={gameState.ownedLocations}
+            className="mb-2"
           ></CountryStats>
         )) || (
             <div className="text-stone-400 text-italic">

@@ -63,18 +63,18 @@ export function MainActionsBar() {
       </ButtonWithTooltip>
 
       <ButtonWithTooltip disabled={editModeState.modeEnabled !== 'acquire'} className="h-10 relative" tooltip="Open detailed location view" onClick={() => setIsDetailedLocationViewOpen(true)}>
-        <TbListDetails color="white" size={24}></TbListDetails>
+        <Image src="/gui/icons/locations.png" alt="Open detailed location view" width={24} height={24} />
       </ButtonWithTooltip>
 
       <ButtonWithTooltip disabled={editModeState.modeEnabled !== 'acquire'} className="h-10 relative" tooltip="Open country buffs view" onClick={() => setIsCountryBuffsModalOpen(true)}>
-        <IoIosFlask color="white" size={24}></IoIosFlask>
+        <Image src="/gui/icons/research.png" alt="Open country modifiers view" width={24} height={24} />
       </ButtonWithTooltip>
 
 
 
       <Popover renderTrigger={({ isOpen, toggle }) => (
         <ButtonWithTooltip disabled={editModeState.modeEnabled !== 'acquire'} isActive={isOpen} className={["h-10 relative rounded-md"].join(" ")} tooltip={"Land acquisition brush size (currently: " + editModeState.acquireLocations.brushSize + ")"} onClick={() => { toggleMode("acquire"); toggle(); }}>
-          <BsBrush color="white" size={24}></BsBrush> 
+          <Image src="/gui/icons/acquire.png" alt="Choose land acquisition brush size" width={24} height={24} />
         </ButtonWithTooltip>
       )}>
         <div className="flex flex-col gap-2">

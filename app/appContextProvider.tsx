@@ -194,7 +194,6 @@ export const AppContextProvider = ({
           proximityComputationRule,
           countriesDataMap,
           roads,
-          /* countryModifiersTemplate, */
         });
 
         console.log(

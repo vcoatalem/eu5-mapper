@@ -16,10 +16,12 @@ export function GameVersionSelector() {
     return <></>;
   }
   return (
-    <div>
-      <select value={currentVersion} className="bg-stone-800 text-white" onChange={(e) => {
+    <div className="rounded-md border-stone-400 border-1 p-1 flex flex-row items-center gap-1">
+      <span className="text-stone-400 text-sm">Game Version:</span>
+      <select value={currentVersion} className="hover:bg-stone-600 cursor-pointer text-white" onChange={(e) => {
         window.open(`/${e.target.value}`, "_blank");
       }}>
+        
         {manifest.versions.map((version) => (
           <option key={version} value={version} >{version}</option>
         ))}

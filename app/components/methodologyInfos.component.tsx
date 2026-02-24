@@ -33,7 +33,7 @@ export function MethodologyInfos({ className = "" }: { className?: string }) {
             className="flex items-center h-full w-full gap-1"
           >
             <AiOutlineQuestionCircle size={16} color="white" />
-            <span className="text-sm">Methodology</span>
+            <span className="text-sm">Help</span>
           </a>
         </TooltipTrigger>
         <TooltipContent

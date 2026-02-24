@@ -1,4 +1,4 @@
-import { ModalInstanceContext, useModal } from "@/app/lib/modal/modal.component";
+import { ModalInstanceContext } from "@/app/lib/modal/modal.component";
 import styles from "@/app/styles/button.module.css";
 import { useContext } from "react";
 

@@ -12,6 +12,8 @@ import { gameStateController } from "../lib/gameState.controller";
 import { Modal } from "../lib/modal/modal.component";
 import styles from "../styles/Gui.module.css";
 import buttonStyles from "../styles/button.module.css";
+import { PosthogSurveyButton } from "@/app/components/posthogSurveyButton.component";
+import { PosthogHelper } from "@/app/lib/utils/posthog.helper";
 
 function RegularHeader() {
   const gameState = useSyncExternalStore(
@@ -55,7 +57,9 @@ function RegularHeader() {
         <CountrySelectionModal></CountrySelectionModal>
       </Modal>
 
+
       <div className="ml-auto w-fit flex flex-row gap-2 items-center relative">
+        {PosthogHelper.isPosthogEnabled() && <PosthogSurveyButton className="" />}
         <ButtonWithTooltip tooltip="show copyright notice" isActive={showCopyrightNotice} onClick={() => setShowCopyrightNotice((prev) => !prev)}>
           <PiCopyrightLight color="white" size={24}></PiCopyrightLight>
         </ButtonWithTooltip>
@@ -65,7 +69,6 @@ function RegularHeader() {
         >
           <CopyrightNotice />
         </Modal>
-
         <ImportExportGameState />
       </div>
 

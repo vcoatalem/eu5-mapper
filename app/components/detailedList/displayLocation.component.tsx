@@ -2,13 +2,12 @@ import { ButtonWithTooltip } from "@/app/components/buttonWithTooltip.component"
 import { IDetailedLocationListProps } from "@/app/components/detailedList/detailedList.config";
 import { ILocationDetailedViewData } from "@/app/components/detailedList/detailedLocationListModal.component";
 import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
-import { ActionSource } from "@/app/lib/actionSource.component";
 import { gameStateController } from "@/app/lib/gameState.controller";
 import { useModal } from "@/app/lib/modal/modal.component";
 import { StringHelper } from "@/app/lib/utils/string.helper";
+import Image from "next/image";
 import { useMemo } from "react";
 import { FaRegEye } from "react-icons/fa6";
-import { IoStarSharp } from "react-icons/io5";
 import { TiPinOutline } from "react-icons/ti";
 
 export function DisplayLocation(props: {
@@ -47,7 +46,7 @@ export function DisplayLocation(props: {
       showOnHover={true}
       className="ml-auto"
     >
-      <IoStarSharp color="white" size={16}></IoStarSharp>
+      <Image src="/gui/icons/city_capital.png" alt="Capital" width={16} height={16} />
     </ButtonWithTooltip>
   );
   const pinBtn = (

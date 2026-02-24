@@ -45,7 +45,7 @@ function LocationExtensiveViewModalHeader(props: {
       <>
         <span>Locations</span>
         {props.countryName && (
-          <span className="ml-1">
+          <span className="ml-1 shrink-0">
             {" "}
             of{" "}
             <span className="text-yellow-500 text-bold">

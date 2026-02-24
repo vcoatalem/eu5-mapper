@@ -9,6 +9,10 @@ import styles from "@/app/styles/Gui.module.css";
 import { memo, useContext, useMemo, useSyncExternalStore } from "react";
 import { AppContext } from "../appContextProvider";
 import { ILocationGameData, ILocationIdentifier } from "../lib/types/general";
+import { MaritimePresenceIcon } from "@/app/components/indicatorsIcons/maritimePresenceIcon.component";
+import { HarborSuitabilityIcon } from "@/app/components/indicatorsIcons/harborSuitabilityIcon.component";
+import { PopulationIcon } from "@/app/components/indicatorsIcons/populationIcon.component";
+import { DevelopmentIcon } from "@/app/components/indicatorsIcons/developmentIcon.component";
 
 function LocationInfoBox(
   props: {
@@ -66,8 +70,8 @@ function LocationInfoBox(
         {locationData.ownable && (
           <>
             {locationData.vegetation && <span>🌿 {locationData.vegetation}</span>}
-            <span>📈 {locationData.development}</span>
-            <span>👥 {NumbersHelper.formatWithSymbol(locationData.population)}</span>
+            <span className="flex items-center gap-1"><DevelopmentIcon size={24} /> {locationData.development}</span>
+            <span className="flex items-center gap-1"><PopulationIcon size={24} /> {NumbersHelper.formatWithSymbol(locationData.population)}</span>
             {locationData.hierarchy && (
               <div className="flex flex-col items-center gap-1 text-xs text-stone-300 ml-auto">
                 <span>{locationData.hierarchy.province}</span>
@@ -77,8 +81,8 @@ function LocationInfoBox(
           </>
 
         )}
-        {locationData.isCoastal && locationData.ownable && <span className="text-white text-md">⚓ Harbor Suitability: <span style={{ color: ColorHelper.rgbToHex(...ColorHelper.getHarborSuitabilityColor(harborCapacity)) }}>{harborCapacity.toFixed(2)}</span></span>}
-        {(locationData.isSea || locationData.isLake) && <span className="text-white text-md">⚓ Maritime Presence: <span style={{ color: ColorHelper.rgbToHex(...ColorHelper.getMaritimePresenceColor(LocationsHelper.getLocationMaritimePresence(locationData, temporaryData))) }}>{LocationsHelper.getLocationMaritimePresence(locationData, temporaryData).toFixed(2)}</span></span>}
+        {locationData.isCoastal && locationData.ownable && <span className="text-white text-md flex flex-items items-center gap-1"><HarborSuitabilityIcon size={24} /> <span style={{ color: ColorHelper.rgbToHex(...ColorHelper.getHarborSuitabilityColor(harborCapacity)) }}>{harborCapacity.toFixed(2)}</span></span>}
+        {(locationData.isSea || locationData.isLake) && <span className="text-white text-md flex items-center gap-1"><MaritimePresenceIcon size={24} /> <span style={{ color: ColorHelper.rgbToHex(...ColorHelper.getMaritimePresenceColor(LocationsHelper.getLocationMaritimePresence(locationData, temporaryData))) }}>{LocationsHelper.getLocationMaritimePresence(locationData, temporaryData).toFixed(2)}</span></span>}
       </div>
 
 
@@ -121,8 +125,18 @@ function HierarchyInfoBox(props: { locationNames: ILocationIdentifier[] }) {
       <span className="font-bold text-base text-white shrink-0">{StringHelper.formatLocationName(hierarchyData)}</span>
       <span className="text-stone-400 text-sm max-w-[50%] overflow-hidden text-ellipsis whitespace-nowrap">Locations: {props.locationNames.map((locationName) => StringHelper.formatLocationName(locationName)).join(", ")}</span>
 
-      <span className="text-stone-400 text-sm shrink-0">Total Pop: {NumbersHelper.formatWithSymbol(hierarchyTotalPop)}</span>
-      <span className="text-stone-400 text-sm shrink-0">Average Dev: {hierarchyAverageDevelopment.toFixed(2)}</span>
+      {(hierarchyTotalPop ?? 0) > 0 && ( // no population in the case of maritime areas
+        <>
+          <span className="text-sm shrink-0 flex flex-row items-center gap-1"><PopulationIcon size={24} />
+          <span>{NumbersHelper.formatWithSymbol(hierarchyTotalPop)}</span>
+          </span>
+          <span className="text-sm shrink-0 flex flex-row items-center gap-1"><DevelopmentIcon size={24} />
+          <span>{hierarchyAverageDevelopment.toFixed(2)}</span>
+          <span>(average) {hierarchyAverageDevelopment.toFixed(2)}</span>
+          </span>
+        </>
+      )}
+
       {cta && <span className={["ml-auto text-right shrink-0 ", (cta.active ? "text-yellow-500" : "text-stone-400")].join(" ")} >
         {cta.label}
       </span>}

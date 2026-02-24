@@ -45,7 +45,7 @@ export function MainActionsBar() {
   return (
     <div className="flex flex-row gap-2 items-center">
       <ButtonWithTooltip className="h-10 relative" tooltip="Toggle capital location edition" isActive={editModeState.modeEnabled === 'capital'} onClick={() => toggleMode("capital")}>
-        <IoStarSharp color="white" size={24}></IoStarSharp>
+        <Image src="/gui/icons/city_capital.png" alt="Enter capital location edition mode" width={24} height={24} />
       </ButtonWithTooltip>
 
       <ButtonWithTooltip className="h-10 relative" tooltip="Toggle road building edition" isActive={editModeState.modeEnabled === 'road'} onClick={() => toggleMode("road")}>
@@ -54,12 +54,12 @@ export function MainActionsBar() {
           alt="Enter build road mode"
           width={24}
           height={24}
-          style={{ filter: 'grayscale(100%)' }}
         ></Image>
       </ButtonWithTooltip>
 
       <ButtonWithTooltip className="h-10 relative" tooltip="Toggle maritime presence edition" isActive={editModeState.modeEnabled === 'maritime'} onClick={() => toggleMode("maritime")}>
-        <MdAnchor color="white" size={24}></MdAnchor>
+        <Image src="/gui/icons/maritime_presence.png" alt="Enter maritime presence edition mode" width={24} height={24} />
+        {/* <MdAnchor color="white" size={24}></MdAnchor> */}
       </ButtonWithTooltip>
 
       <ButtonWithTooltip disabled={editModeState.modeEnabled !== 'acquire'} className="h-10 relative" tooltip="Open detailed location view" onClick={() => setIsDetailedLocationViewOpen(true)}>

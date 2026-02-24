@@ -27,7 +27,7 @@
 
   .simpleButton.buttonActive > :first-child,
   .iconButton.buttonActive > :first-child {
-    @apply invert; /* revert icon color to be visible on top of background */
+    filter: brightness(0%);
   }
 
   .buttonActive {

@@ -19,7 +19,7 @@ PROXIMITY_HEADER = "Proximity is improved towards the following Locations:"
 NO_RIVER_TEXT = "No river flows through this Location."
 
 # Log OCR text for these locations (lowercase names)
-LOG_OCR_LOCATIONS = {"aalst", "abadan", "abiy_addi", "aaboukingon", "wycombe", "zimapan"}
+LOG_OCR_LOCATIONS = {"aalst", "abadan", "abiy_addi", "aaboukingon", "wycombe", "zimapan", "dulgalaax_trail", "yinjiang"}
 
 
 def preprocess_for_ocr(img: Image.Image) -> Image.Image:
@@ -232,6 +232,8 @@ def classify_location(text: str, templates_by_first: dict, location: str, land_r
 		return "picture is of another location", []
 	if re.search(r"\bseazone\b", text, re.IGNORECASE):
 		return "seazone", []
+	if re.search(r"\bcorridor\b", text, re.IGNORECASE):
+		return "corridor", []
 	if re.search(r"\bimpassable\b", text, re.IGNORECASE):
 		return "", []
 	if NO_RIVER_TEXT.lower() in text.lower():

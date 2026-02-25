@@ -36,6 +36,7 @@ def read_locations_from_river_colors_json(file_path: str) -> List[str]:
     return sorted([key for key in data.keys() if key])
 
 
+
 def read_locations_from_templates(file_path: str) -> Tuple[List[str], Set[str]]:
     """Read location_templates and return (all_locations, land_locations_with_culture)."""
     locations: List[str] = []
@@ -49,10 +50,9 @@ def read_locations_from_templates(file_path: str) -> Tuple[List[str], Set[str]]:
             if not name_part:
                 continue
             locations.append(name_part)
-            if re.search(r"\bculture\s*=", line):
+            if re.search(r"\bculture\s*=", line) and not "_trail" in name_part and not "_corrider" in name_part:
                 land_locations.add(name_part)
     return locations, land_locations
-
 
 def read_river_image_locations(river_colors_path: str, templates_path: str) -> Tuple[List[str], List[str], Set[str]]:
     """Return (land_river_locations, template_locations, land_locations_with_culture)."""

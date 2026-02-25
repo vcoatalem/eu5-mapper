@@ -196,11 +196,7 @@ def process_location(location_name: str, output_dir: str, config: dict) -> int:
 	screen_center_x = config["screen_center_x"]
 	screen_center_y = config["screen_center_y"]
 	move_to(screen_center_x, screen_center_y, duration=0.3)
-	jiggle = config.get("mouse_jiggle", 6)
-	move_to(screen_center_x + jiggle, screen_center_y + jiggle, duration=0.1)
-	move_to(screen_center_x - jiggle, screen_center_y - jiggle, duration=0.1)
-	move_to(screen_center_x, screen_center_y, duration=0.1)
-	time.sleep(0.5)
+	time.sleep(config.get("goto_command_delay", 0.5))
 
 	tooltip_img = capture_tooltip_image_near_cursor()
 	os.makedirs(output_dir, exist_ok=True)
@@ -219,11 +215,10 @@ def main():
 	project_root = os.path.join(os.path.dirname(os.path.dirname(__file__)), '..')
 
 	config = {
-		"screen_center_x": 1290,
-		"screen_center_y": 703,
+		"screen_center_x": 1659,
+		"screen_center_y": 833,
 		"goto_command_prefix": "goto ",
 		"goto_command_delay": 0.5,
-		"mouse_jiggle": 1,
 		"ahk_exe_path": r"C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe",
 		"ahk_script_path": r"C:\Users\victo\Documents\VsCode\EU5MapApp\tools\scrapping\open_console.ahk",
 		"ahk_window_title": "Europa Universalis V",

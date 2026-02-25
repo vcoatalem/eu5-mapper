@@ -1,6 +1,6 @@
-import { RoadType } from "./general";
+import { RoadType, Topography, Vegetation } from "./general";
 
-export interface IProximityBuffs {
+export interface ICountryProximityBuffs {
   genericModifier?: number;
   landModifier?: number;
   seaWithMaritimeFlatCostReduction?: number
@@ -11,42 +11,38 @@ export interface IProximityBuffs {
   hillsMultiplier?: number;
 }
 
-export interface IProximityBuffDisplayableData {
+export interface ICountryProximityBuffsMetadata {
   label: string;
-  description: string;
+  valueDefinition: IBuffValueDescriptor;
 }
 
+type IBuffValueDescriptor = { type: "flat" | "percentage"; description: string };
+type IBuffPercentageValue = { type: "percentage"; value: number };
+type IBuffFlatValue = { type: "flat"; value: number };
+
+export type IBuffValue =
+  | IBuffPercentageValue
+  | IBuffFlatValue;
+
 export interface IProximityComputationRule {
-  proximityModifiersStackingMode: "additive" | "multiplicative";
+  proximityPercentageModifierType: "proximityCostReduction" | "proximitySpeedIncrease"; 
+  // this is the value that additive percentage modifiers are summing up to.
+  // proximityCostReduction is the additive modifier that was used in 1.0.11
+  // proximitySpeedIncrease is the multiplicative modifier that is used since 1.1.0
+  throughSeaEdgeCountedAsLandProximity: boolean;
   baseCost: number;
   baseRiverCost: number;
   baseCostWithMaritimePresence: number;
   baseCostWithoutMaritimePresence: number;
-  proximityCostIncreasePercentage: {
-    topography: {
-      flatland: number;
-      hills: number;
-      wetlands: number;
-      mountains: number;
-      plateau: number;
-    };
-    vegetation: {
-      forest: number;
-      woods: number;
-      jungle: number;
-      desert: number;
-      farmland: number;
-      sparse: number;
-      grasslands: number;
-    };
-  };
-  developmentImpact: number;
-  harborCapacityImpact: number;
+  topography: Record<Topography, IBuffValue>;
+  vegetation: Record<Exclude<Vegetation, null>, IBuffValue>;
+  developmentImpact: IBuffValue;
+  harborSuitabilityImpact: IBuffPercentageValue;
+  harborSuitabilityIsMultiplicative: boolean;
   valuesImpact: {
-    landVsNaval: [IProximityBuffs, IProximityBuffs];
-    centralizationVsDecentralization: [IProximityBuffs, IProximityBuffs];
+    landVsNaval: [ICountryProximityBuffs, ICountryProximityBuffs];
+    centralizationVsDecentralization: [ICountryProximityBuffs, ICountryProximityBuffs];
   };
-  rulerAdministrativeAbilityImpact: number;
-  roadProximityCostReduction: Record<RoadType, number>;
-  throughSeaEdgeCountedAsLandProximity: boolean;
+  rulerAdministrativeAbilityImpact: IBuffValue;
+  roadProximityCostReduction: Record<RoadType, IBuffValue>;
 }

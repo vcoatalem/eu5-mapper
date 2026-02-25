@@ -1,51 +1,38 @@
 {
-  "proximityModifiersStackingMode": "multiplicative",
+  "proximityPercentageModifierType": "proximitySpeedIncrease",
+  "throughSeaEdgeCountedAsLandProximity": false,
   "baseCost": 40,
-  "baseRiverCost": 10,
+  "baseRiverCost": 12,
   "baseCostWithMaritimePresence": 5,
   "baseCostWithoutMaritimePresence": 30,
-  "proximityCostIncreasePercentage": {
-    "topography": {
-      "flatland": 0,
-      "hills": 25,
-      "wetlands": 25,
-      "mountains": 50,
-      "plateau": 12.5
-    },
-    "vegetation": {
-      "forest": 25,
-      "woods": 12.5,
-      "jungle": 50,
-      "desert": 5,
-      "farmland": 5,
-      "sparse": 5,
-      "grasslands": 0
-    }
+  "topography": {
+    "flatland": { "type": "percentage", "value": 0 },
+    "hills": { "type": "percentage", "value": -25 },
+    "wetlands": { "type": "percentage", "value": -25 },
+    "mountains": { "type": "percentage", "value": -50 },
+    "plateau": { "type": "percentage", "value": -12.5 }
   },
-  "developmentImpact": 0.2,
-  "harborCapacityImpact": 0.75,
+  "vegetation": {
+    "forest": { "type": "percentage", "value": -25 },
+    "woods": { "type": "percentage", "value": -12.5 },
+    "jungle": { "type": "percentage", "value": -50 },
+    "desert": { "type": "percentage", "value": -5 },
+    "farmland": { "type": "percentage", "value": -5 },
+    "sparse": { "type": "percentage", "value": -5 },
+    "grasslands": { "type": "percentage", "value": 0 }
+  },
+  "developmentImpact": { "type": "percentage", "value": 0.5 },
+  "harborSuitabilityImpact": { "type": "percentage", "value": -0.5 },
+  "harborSuitabilityIsMultiplicative": true,
   "valuesImpact": {
-    "landVsNaval": [
-      {
-        "landModifier": 20
-      },
-      {
-        "seaWithMaritimeFlatCostReduction": 1
-      }
-    ],
-    "centralizationVsDecentralization": [
-      {
-        "genericModifier": 20
-      },
-      {}
-    ]
+    "landVsNaval": [{ "landModifier": 20 }, { "seaWithMaritimeFlatCostReduction": 1 }],
+    "centralizationVsDecentralization": [{ "genericModifier": 20 }, {}]
   },
-  "rulerAdministrativeAbilityImpact": 0.1,
+  "rulerAdministrativeAbilityImpact": { "type": "percentage", "value": 0.1 },
   "roadProximityCostReduction": {
-    "gravel_road": 20,
-    "paved_road": 25,
-    "modern_road": 30,
-    "rail_road": 35
-  },
-  "throughSeaEdgeCountedAsLandProximity": false
+    "gravel_road": { "type": "flat", "value": 20 },
+    "paved_road": { "type": "flat", "value": 25 },
+    "modern_road": { "type": "flat", "value": 30 },
+    "rail_road": { "type": "flat", "value": 35 }
+  }
 }

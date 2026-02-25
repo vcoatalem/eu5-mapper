@@ -10,7 +10,7 @@ import { Loader } from "@/app/components/loader.component";
 import { countryModifiersTemplatesController } from "@/app/lib/countryModifiers.controller";
 import { gameStateController } from "@/app/lib/gameState.controller";
 import { ICountryModifierTemplate } from "@/app/lib/types/general";
-import { IProximityBuffs } from "@/app/lib/types/proximityComputationRules";
+import { ICountryProximityBuffs } from "@/app/lib/types/proximityComputationRules";
 import buttonStyles from "@/app/styles/button.module.css";
 import { useParams } from "next/navigation";
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
@@ -123,11 +123,11 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
   const [hoveredModifier, setHoveredModifier] = useState<ICountryModifierTemplate | null>(null);
   const [createCustomModifierFormOpen, setCreateCustomModifierFormOpen] = useState(false);
 
-  const addModifier = useCallback((name: string, description: string | null, buff: Partial<IProximityBuffs>) => {
+  const addModifier = useCallback((name: string, description: string | null, buff: Partial<ICountryProximityBuffs>) => {
     if (!gameState.country) {
       return;
     }
-    gameStateController.changeCountryModifier(name, { description: description ?? "", buff: buff as IProximityBuffs, enabled: true });
+    gameStateController.changeCountryModifier(name, { description: description ?? "", buff: buff as ICountryProximityBuffs, enabled: true });
     queueMicrotask(() => {
       setCountryModifiersOpen(true);
       setSelectedModifier(null);
@@ -153,7 +153,7 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
   }, [gameState]);
 
 
-  const createAndSelectCustomModifier = useCallback((name: string, description: string | null, buff: Partial<IProximityBuffs>) => {
+  const createAndSelectCustomModifier = useCallback((name: string, description: string | null, buff: Partial<ICountryProximityBuffs>) => {
     if (!gameData) {
       return;
     }
@@ -290,7 +290,7 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
                     )}
                     <hr className="w-full border-stone-600 border-b-1 flex-0 my-2"></hr>
                     {showcasedModifier.buff && Object.entries(showcasedModifier.buff).map(([buffKeyStr, buffData]) => {
-                      const buffKey = buffKeyStr as keyof IProximityBuffs;
+                      const buffKey = buffKeyStr as keyof ICountryProximityBuffs;
                       if (!buffKey) return;
                       return <BuffDisplay key={buffKey} buffKey={buffKey} buffValue={buffData} />
                     }

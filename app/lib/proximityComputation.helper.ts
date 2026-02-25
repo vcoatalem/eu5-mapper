@@ -1,3 +1,4 @@
+import { BuffsHelper } from "@/app/lib/buffs.helper";
 import { LocationsHelper } from "@/app/lib/locations.helper";
 import { ProximityBuffsRecord } from "./classes/countryProximityBuffs";
 import { CompactGraph } from "./graph";
@@ -16,7 +17,16 @@ import {
   PathFindingOptions,
   PathfindingResult,
 } from "./types/pathfinding";
-import { IProximityBuffs, IProximityComputationRule } from "./types/proximityComputationRules";
+import {
+  IBuffValue,
+  ICountryProximityBuffs,
+  IProximityComputationRule,
+} from "./types/proximityComputationRules";
+
+/** Only this key is applied as percentageMultiplier (cost *= 1 + value/100); all other percentage modifiers are additive (percentageIncrease). */
+const HARBOR_CAPACITY_MODIFIER_KEY = "harborCapacityImpact";
+
+
 
 /**
  * Unified logging utility for proximity computation methods
@@ -51,6 +61,46 @@ const logProximityComputation = (
     options.logMethod(logMessage, mergedData);
   }
 };
+
+/**
+ * Result of reducing proximity modifiers by type.
+ * - flatCostReduction: subtract from base cost first (positive = lower cost).
+ * - percentageMultiplier: applied after cost reduction. As of 1.1.4, only harbor suitability is concernted 
+ * - percentageIncrease: all other percentage modifiers summed
+ */
+export type ReducedProximityModifiers = {
+  flatCostReduction: number;
+  percentageMultiplier: number;
+  percentageIncrease: number;
+};
+
+
+/*
+* divide modifiers into flat, percentage multiplier and percentage increase
+*/
+export function reduceBuffValuesToEffective(
+  modifiers: Record<string, IBuffValue>,
+  rule: IProximityComputationRule,
+): ReducedProximityModifiers {
+  let flatCostReduction = 0;
+  let percentageMultiplier = 1;
+  let percentageIncrease = 0;
+
+  for (const [key, v] of Object.entries(modifiers)) {
+    if (v.type === "flat") {
+      flatCostReduction += v.value;
+      continue;
+    }
+    if (key === HARBOR_CAPACITY_MODIFIER_KEY && rule.harborSuitabilityIsMultiplicative) {
+      percentageMultiplier *= 1 + v.value / 100;
+    } else {
+      percentageIncrease += v.value;
+    }
+  }
+
+  return { flatCostReduction, percentageMultiplier, percentageIncrease };
+}
+
 export class ProximityComputationHelper {
   public static getEnvironmentalProximityCostIncreasePercentage = (
     location: ILocationGameData,
@@ -58,65 +108,39 @@ export class ProximityComputationHelper {
     proximityBuffs: ProximityBuffsRecord,
     discardVegetationModifiers: boolean,
     options: PathFindingOptions,
-  ): number => {
+  ): Record<string, IBuffValue> => {
     const rule = gameData.proximityComputationRule;
+    const result: Record<string, IBuffValue> = {};
 
-    if (
-      !Object.keys(rule.proximityCostIncreasePercentage.topography).includes(
-        location.topography,
-      )
-    ) {
-      console.warn(
-        "[ProximityComputationController] Missing topography proximity cost increase percentage for ",
-        location.topography,
-      );
+    const baseTopography = rule.topography[location.topography];
+    let topographyValue = baseTopography?.value ?? 0;
+    const buffKey = `${location.topography}Multiplier`;
+    if (["mountainsMultiplier", "plateauMultiplier", "hillsMultiplier"].includes(buffKey)) {
+      const buffs = proximityBuffs.getBuffsOfType(buffKey as keyof ICountryProximityBuffs);
+      if (Object.keys(buffs).length > 0) {
+        const buffSum = BuffsHelper.sumBuffs(Object.values(buffs)) ?? 1;
+        topographyValue *= Math.min(1, buffSum / 100);
+      }
     }
-    let topographyCostIncreasePercentage =
-      rule.proximityCostIncreasePercentage.topography?.[
-        location.topography as keyof IProximityComputationRule["proximityCostIncreasePercentage"]["topography"]
-      ] ?? 0;
-    
-      const buffKey = `${location.topography}Multiplier`;
-      if (["mountainsMultiplier", "plateauMultiplier", "hillsMultiplier"].includes(buffKey)) {
-        const buffs = proximityBuffs.getBuffsOfType(buffKey as keyof IProximityBuffs);
-        const multipliers = Object.values(buffs.buffRecord).reduce((a, b) => a * b, 1);
-        topographyCostIncreasePercentage *= multipliers;
-    }
+    result[`topography_${location.topography}`] = { ...baseTopography, value: topographyValue }
 
-    if (
-      location.vegetation &&
-      !Object.keys(rule.proximityCostIncreasePercentage.vegetation).includes(
-        location?.vegetation,
-      )
-    ) {
-      console.warn(
-        "[ProximityComputationController] Missing vegetation proximity cost increase percentage for ",
-        location.vegetation,
-      );
-    }
+    if (location.vegetation && !discardVegetationModifiers) {
+      const vegetation = rule.vegetation[location.vegetation];
+      if (vegetation?.value) {
+        result[`vegetation_${location.vegetation}`] = vegetation;
+      }
 
-    const vegetationCostIncreasePercentage =
-      location.vegetation && !discardVegetationModifiers
-        ? (rule.proximityCostIncreasePercentage.vegetation?.[
-            location.vegetation as keyof IProximityComputationRule["proximityCostIncreasePercentage"]["vegetation"]
-          ] ?? 0)
-        : 0;
+
+    }
 
     logProximityComputation(
       location.name,
       options,
       "Environmental proximity cost increase percentage",
-      {
-        topographyCostIncreasePercentage,
-        vegetationCostIncreasePercentage,
-        discardVegetationModifiers,
-      },
+      { modifiers: result, discardVegetationModifiers },
     );
 
-    const totalEnvironmentalCostIncrease =
-      topographyCostIncreasePercentage + vegetationCostIncreasePercentage;
-
-    return totalEnvironmentalCostIncrease;
+    return result;
   };
 
   public static getLandLocationProximityModifiers = (
@@ -130,55 +154,57 @@ export class ProximityComputationHelper {
     },
     proximityBuffs: ProximityBuffsRecord,
     options: PathFindingOptions,
-  ): number => {
+  ): Record<string, IBuffValue> => {
     if (location.isSea || location.isLake || !location.ownable) {
-      return 0;
+      return {};
     }
-    const buildings = locationConstructibleData?.buildings ?? []; // for unowned location, consider an empty array
-    const totalBuildingsCostReduction = Object.values(buildings)
+    const rule = gameData.proximityComputationRule;
+    const buildings = locationConstructibleData?.buildings ?? [];
+    const totalBuildingModifier = Object.values(buildings)
       .map(
         (b) =>
           Math.abs(b.template.modifiers.localProximityCostModifier ?? 0) *
-          100 * // O.0.11 effects are negative floats, 1.1.4 positive - we might need to change this formula if there are buildings giving negative local prox in the future
+          100 *
           b.level,
       )
       .reduce((a, b) => a + b, 0);
 
-    const environmentalProximityCostIncreasePercentage =
-      behaviour.discardVegetationAndTopographyModifiers
-        ? 0
-        : ProximityComputationHelper.getEnvironmentalProximityCostIncreasePercentage(
-            location,
-            gameData,
-            proximityBuffs,
-            behaviour.discardVegetationModifiers, // road
-            options,
-          );
+    const environmental = behaviour.discardVegetationAndTopographyModifiers
+      ? {}
+      : ProximityComputationHelper.getEnvironmentalProximityCostIncreasePercentage(
+        location,
+        gameData,
+        proximityBuffs,
+        behaviour.discardVegetationModifiers,
+        options,
+      );
 
     const development = locationTemporaryData?.development ?? location.development;
-    const developmentCostReduction =
-      development * gameData.proximityComputationRule.developmentImpact;
-    const landModifierFromBuffs = proximityBuffs.getBuffsOfType("landModifier");
+    const developmentValue = development * rule.developmentImpact.value;
+    const landModifiersFromBuffs = proximityBuffs.getBuffsOfType("landModifier");
+
+    const result: Record<string, IBuffValue> = {
+      ...environmental,
+      developmentImpact:
+        rule.developmentImpact.type === "percentage"
+          ? { type: "percentage", value: developmentValue }
+          : { type: "flat", value: developmentValue },
+      ...landModifiersFromBuffs,
+    };
+    if (totalBuildingModifier > 0) {
+      result.buildingsLocalProximityCostReduction = {
+        type: "percentage",
+        value: totalBuildingModifier,
+      };
+    }
 
     logProximityComputation(
       location.name,
       options,
       "Land location proximity modifiers",
-      {
-        totalBuildingsCostReduction,
-        landModifierFromBuffs,
-        developmentCostReduction,
-        environmentalProximityCostIncreasePercentage,
-      },
+      { modifiers: result },
     );
-    const total =
-      // positive proximity (cost reduction)
-      totalBuildingsCostReduction +
-      landModifierFromBuffs.sum +
-      developmentCostReduction -
-      // negative proximity (cost increase)
-      environmentalProximityCostIncreasePercentage;
-    return total;
+    return result;
   };
 
   public static getLocalProximitySourceLocations(
@@ -224,27 +250,34 @@ export class ProximityComputationHelper {
         edgeType === "through-sea");
 
     if (edgeType === "port") {
-      const portFlatCostReduction =
-        proximityBuffs.getBuffsOfType("portFlatCostReduction").sum ?? 0;
+      const portBuffs = proximityBuffs.getBuffsOfType("portFlatCostReduction");
+      const portFlatCostReduction = BuffsHelper.sumBuffs(Object.values(portBuffs)) ?? 0;
       return baseCost - portFlatCostReduction;
     }
     if (!isNaval) {
       const roadFlatCostReduction =
         isImpactedByRoad && roadToDestination
-          ? rule.roadProximityCostReduction[roadToDestination]
+          ? rule.roadProximityCostReduction[roadToDestination]?.value ?? 0
           : 0;
       return baseCost - roadFlatCostReduction;
     } else {
-      // Normalize maritimePresence to [0,1]
-      const normalizedMaritimePresence = Math.max(0, Math.min(1, maritimePresence / 100));
+      const normalizedMaritimePresence = Math.max(
+        0,
+        Math.min(1, maritimePresence / 100),
+      );
+      const seaWithout = proximityBuffs.getBuffsOfType(
+        "seaWithoutMaritimeFlatCostReduction",
+      );
+      const seaWith = proximityBuffs.getBuffsOfType(
+        "seaWithMaritimeFlatCostReduction",
+      );
       const costWithoutMaritimePresence =
         rule.baseCostWithoutMaritimePresence -
-        (proximityBuffs.getBuffsOfType("seaWithoutMaritimeFlatCostReduction")
-          .sum ?? 0);
+        BuffsHelper.sumBuffs(Object.values(seaWithout));
       const costWithMaritimePresence =
         rule.baseCostWithMaritimePresence -
-        (proximityBuffs.getBuffsOfType("seaWithMaritimeFlatCostReduction")
-          .sum ?? 0);
+        BuffsHelper.sumBuffs(Object.values(seaWith));
+
       return (
         costWithoutMaritimePresence * (1 - normalizedMaritimePresence) +
         costWithMaritimePresence * normalizedMaritimePresence
@@ -261,7 +294,7 @@ export class ProximityComputationHelper {
     roadType: RoadType | null,
     proximityBuffs: ProximityBuffsRecord,
     options: PathFindingOptions,
-  ): number {
+  ): Record<string, IBuffValue> {
     switch (transportationMode) {
       case "land":
         if (from in gameState.ownedLocations || options.allowUnownedLocations) {
@@ -277,51 +310,51 @@ export class ProximityComputationHelper {
             proximityBuffs,
             options,
           );
-        } else {
-          return 0;
         }
-      case "harbor":
+        return {};
+      case "harbor": {
+        const rule = gameData.proximityComputationRule;
         const toLocation = gameData.locationDataMap[to];
         const fromLocation = gameData.locationDataMap[from];
         const locationWithHarbor = toLocation.isSea ? from : to;
-        const harborCapacity =
-          LocationsHelper.getLocationHarborSuitability(
-            gameData.locationDataMap[locationWithHarbor],
-            gameState.ownedLocations[locationWithHarbor],
-          );
-        const harborImpact =
-          gameData.proximityComputationRule.harborCapacityImpact;
+        const harborCapacity = LocationsHelper.getLocationHarborSuitability(
+          gameData.locationDataMap[locationWithHarbor],
+          gameState.ownedLocations[locationWithHarbor],
+        );
+        const harborImpact = rule.harborSuitabilityImpact.value;
+        const harborValue = harborCapacity * harborImpact * 100;
+        const harborMod: Record<string, IBuffValue> = {
+          [HARBOR_CAPACITY_MODIFIER_KEY]:
+            { ...rule.harborSuitabilityImpact, value: harborValue }
 
-        const harborCapacityModifier = harborCapacity * harborImpact * 100;
+        };
 
         if (fromLocation.isSea) {
-          return harborCapacityModifier;
-        } else {
-          // when going OUT from harbor, also apply land location proximity modifiers
-          const harborLocationProximityModifiers =
-            ProximityComputationHelper.getLandLocationProximityModifiers(
-              gameData.locationDataMap[locationWithHarbor],
-              gameState.ownedLocations[locationWithHarbor],
-              gameState.temporaryLocationData[locationWithHarbor] ?? null,
-              gameData,
-              {
-                discardVegetationAndTopographyModifiers: true,
-                discardVegetationModifiers: true,
-              },
-              proximityBuffs,
-              options,
-            );
-          logProximityComputation(
-            locationWithHarbor,
-            options,
-            "Summing Harbor Modifiers",
-            { harborLocationProximityModifiers, harborCapacityModifier },
-          );
-          return harborLocationProximityModifiers + harborCapacityModifier;
+          return harborMod;
         }
+        const landModifiers = ProximityComputationHelper.getLandLocationProximityModifiers(
+          gameData.locationDataMap[locationWithHarbor],
+          gameState.ownedLocations[locationWithHarbor],
+          gameState.temporaryLocationData[locationWithHarbor] ?? null,
+          gameData,
+          {
+            discardVegetationAndTopographyModifiers: true,
+            discardVegetationModifiers: true,
+          },
+          proximityBuffs,
+          options,
+        );
+        logProximityComputation(
+          locationWithHarbor,
+          options,
+          "Harbor modifiers",
+          { harborMod, landModifiers },
+        );
+        return { ...harborMod, ...landModifiers };
+      }
       case "naval":
       case "coastal":
-        return 0;
+        return {};
     }
   }
 
@@ -334,47 +367,36 @@ export class ProximityComputationHelper {
     proximityBuffs: ProximityBuffsRecord,
     options: PathFindingOptions,
     roadType: RoadType | null,
-  ): number {
+  ): Record<string, IBuffValue> {
     const rule = gameData.proximityComputationRule;
 
     const toLocationData = gameData.locationDataMap[to];
     const isNaval = toLocationData.isSea || toLocationData.isLake;
 
-    // Check for port/port-river edges first, as they need harbor modifiers regardless of destination
     const transportationMode =
       edgeType === "port" || edgeType === "port-river"
         ? "harbor"
         : isNaval ||
-            (!rule.throughSeaEdgeCountedAsLandProximity &&
-              edgeType === "through-sea")
+          (!rule.throughSeaEdgeCountedAsLandProximity &&
+            edgeType === "through-sea")
           ? "naval"
           : edgeType === "coastal"
             ? "coastal"
             : "land";
 
-    const modifiers = [
-      this.getTransportationModeProximityCostModifiers(
-        from,
-        to,
-        transportationMode,
-        gameData,
-        gameState,
-        roadType,
-        proximityBuffs,
-        options,
-      ),
-      proximityBuffs.getBuffsOfType("genericModifier").sum ?? 0,
-    ];
-
-    logProximityComputation([from, to], options, "Proximity cost modifiers", {
+    const transportationModifiers = this.getTransportationModeProximityCostModifiers(
       from,
       to,
-      isNaval,
-      transporationModeModifiersSummed: modifiers[0],
-      genericModifierSummed: modifiers[1],
-    });
+      transportationMode,
+      gameData,
+      gameState,
+      roadType,
+      proximityBuffs,
+      options,
+    );
+    const genericModifiers = proximityBuffs.getBuffsOfType("genericModifier");
 
-    return modifiers.reduce((a, b) => a + b, 0);
+    return { ...transportationModifiers, ...genericModifiers };
   }
 
   public static getProximityCostFunction(
@@ -405,7 +427,7 @@ export class ProximityComputationHelper {
         from = throughSeaLocation;
       }
 
-      const maritimePresence =  LocationsHelper.getLocationMaritimePresence(gameData.locationDataMap[from], gameState.temporaryLocationData[from] ?? null);
+      const maritimePresence = LocationsHelper.getLocationMaritimePresence(gameData.locationDataMap[from], gameState.temporaryLocationData[from] ?? null);
       const baseCost = this.getFlatProximityCost(
         edgeType,
         rule,
@@ -436,7 +458,7 @@ export class ProximityComputationHelper {
         return { cost: 100, through: edgeType };
       }
 
-      const proximityModifiersSummed = this.getPercentageProximityCostModifiers(
+      const proximityModifiers = this.getPercentageProximityCostModifiers(
         from,
         to,
         edgeType,
@@ -447,28 +469,40 @@ export class ProximityComputationHelper {
         road?.type ?? null,
       );
 
+      logProximityComputation([from, to], options, "Proximity cost modifiers", {
+        proximityModifiers,
+      });
+      const proximityModifiersReduced = reduceBuffValuesToEffective(proximityModifiers, rule);
 
-      const modifiedCostWithAdditiveModifiers = baseCost * (1 - proximityModifiersSummed / 100); // pre 1.1
-      const modifiedCostWithMultiplicativeModifiers = baseCost / (1 + proximityModifiersSummed / 100); // post 1.1
-      /* console.log("modified cost", { baseCost, modifiedCostWithAdditiveModifiers, modifiedCostWithMultiplicativeModifiers}); */
-
-      const modifiedCost = Math.max(
-        0.1,
-        rule.proximityModifiersStackingMode === "additive" ? 
-          modifiedCostWithAdditiveModifiers
-          : modifiedCostWithMultiplicativeModifiers,
-      );
+      // Legacy additive (1.0.11): all percentage modifiers summed, then one application. New: flat, then harbor multiplicative, then rest additive.
+      let cost = Math.max(0, baseCost - proximityModifiersReduced.flatCostReduction);
+/*       if (rule.proximityModifiersStackingMode === "additive") {
+        const effectivePercentageSum =
+          (1 - proximityModifiersReduced.percentageMultiplier) * 100 +
+          proximityModifiersReduced.percentageIncrease;
+        cost *= Math.max(0, 1 - effectivePercentageSum / 100);
+      } else { */
+        cost *= proximityModifiersReduced.percentageMultiplier;
+        if (rule.proximityPercentageModifierType === "proximityCostReduction") {
+          cost *= 1 - proximityModifiersReduced.percentageIncrease / 100;
+        } else {
+          cost /= 1 + 0.01 * proximityModifiersReduced.percentageIncrease;
+        }
+/*       } */
+      const finalCost = Math.max(0.1, cost);
 
       logProximityComputation([from, to], options, "Final proximity cost", {
         from,
         to,
         edgeType,
-        modifiedCost,
-        proximityModifiersSummed,
+        baseCost: baseCost,
+        finalCost: finalCost,
+        proximityModifiers,
+        proximityModifiersReduced,
       });
 
       return {
-        cost: modifiedCost,
+        cost: finalCost,
         through: edgeType,
       };
     };

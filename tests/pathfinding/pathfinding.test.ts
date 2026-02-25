@@ -13,7 +13,7 @@ import { GameDataLoaderHelper } from "@/app/lib/gameDataLoader.helper";
 
 const referenceFiles = getAllReferenceFilePaths(
   "tests/pathfinding/references/",
-)/* .filter((filePath) => filePath.includes("1_1_4")); */
+);/* .filter((filePath) => filePath.includes("eng") && filePath.includes('1_1_4'));// && filePath.includes('1_0_11')); */
 
 test("found reference files", () => {
   console.log("referenceFiles", referenceFiles);
@@ -55,7 +55,6 @@ test.each(referenceFiles)(
     }
 
     const countryModifiersTemplates = gameDataFiles.countryModifiersTemplate;
-    console.log("countryModifiersTemplates: ", countryModifiersTemplates);
     for (const modifier of modifiers) {
       const modifierTemplate = countryModifiersTemplates[modifier];
       if (!modifierTemplate) {
@@ -71,7 +70,7 @@ test.each(referenceFiles)(
       gameData,
       {
         allowUnownedLocations: true,
-       /*  logForLocations: ["ankober"], */
+        logForLocations: [],
         logMethod: (message: string, data?: Record<string, unknown>) => {
           console.log(message, data);
         },

@@ -1,7 +1,7 @@
 // do not import other files in this file
 
 import { IBuildingInstance, INewBuildingTemplate } from "./building";
-import { IProximityBuffs, IProximityComputationRule } from "./proximityComputationRules";
+import { ICountryProximityBuffs, IProximityComputationRule } from "./proximityComputationRules";
 
 export type ILocationIdentifier = string; // location name
 
@@ -123,7 +123,7 @@ export interface ICountryInstance {
   templateData: ICountryData | null;
   values: ICountryValues;
   rulerAdministrativeAbility: number; // from 0 to 100, higher means more impact of proximity on the country
-  modifiers: Record<string, {buff: IProximityBuffs, description: string, enabled: boolean;}>;
+  modifiers: Record<string, {buff: ICountryProximityBuffs, description: string, enabled: boolean;}>;
 }
 
 export interface ICountryValues {
@@ -135,7 +135,7 @@ export interface ICountryValues {
 export interface ICountryModifierTemplate {
   name: string;
   description: string | null;
-  buff: Partial<IProximityBuffs>;
+  buff: Partial<ICountryProximityBuffs>;
 }
 export interface IGameData {
   locationDataMap: ILocationDataMap;

@@ -20,7 +20,7 @@ import {
   ITemporaryLocationData,
   RoadType,
 } from "./types/general";
-import { IProximityBuffs } from "@/app/lib/types/proximityComputationRules";
+import { ICountryProximityBuffs } from "@/app/lib/types/proximityComputationRules";
 
 const baseCountryValues: ICountryInstance = {
   templateData: null,
@@ -342,7 +342,7 @@ export class GameStateController extends Observable<IGameState> {
     this.notifyListeners();
   }
 
-  public changeCountryModifier(name: string, toUpdate: {description?: string, buff?: Partial<IProximityBuffs>, enabled?: boolean}): void {
+  public changeCountryModifier(name: string, toUpdate: {description?: string, buff?: Partial<ICountryProximityBuffs>, enabled?: boolean}): void {
     if (!this.subject.country?.modifiers) {
       return;
     }

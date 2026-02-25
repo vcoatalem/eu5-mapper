@@ -35,7 +35,6 @@ export function TooltipContent(props: ITooltipContentProps) {
   }
 
   const recomputePosition = useCallback(() => {
-    console.log("[TooltipContent] recomputePosition", tooltipInstanceContext.isOpen, contentRef.current);
     if (!tooltipInstanceContext.isOpen || !contentRef.current) return;
     const contentRect = contentRef.current.getBoundingClientRect();
     const contentWidth = contentRect.width;

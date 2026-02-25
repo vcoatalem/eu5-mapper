@@ -517,11 +517,13 @@
       const buffRecord = Object.fromEntries(
         Object.entries(this.countryProximityBuffs).map(
           ([buffName, buffEffects]) => {
-            const buffEffect = buffEffects[type];
-            const value = typeof buffEffect === "number" ? buffEffect : 0;
-            return [buffName, value];
+            if (type in buffEffects) {
+              return [buffName, buffEffects[type]];
+            } else {
+              return null;
+            }
           }
-        )
+        ).filter((entry) => entry !== null)
       );
       return {
         buffRecord,
@@ -673,7 +675,8 @@
         from,
         to,
         isNaval,
-        modifiers
+        transporationModeModifiersSummed: modifiers[0],
+        genericModifierSummed: modifiers[1]
       });
       return modifiers.reduce((a, b) => a + b, 0);
     }
@@ -720,9 +723,11 @@
           options,
           road?.type ?? null
         );
+        const modifiedCostWithAdditiveModifiers = baseCost * (1 - proximityModifiersSummed / 100);
+        const modifiedCostWithMultiplicativeModifiers = baseCost / (1 + proximityModifiersSummed / 100);
         const modifiedCost = Math.max(
           0.1,
-          baseCost * (1 - proximityModifiersSummed / 100)
+          rule.proximityModifiersStackingMode === "additive" ? modifiedCostWithAdditiveModifiers : modifiedCostWithMultiplicativeModifiers
         );
         logProximityComputation([from, to], options, "Final proximity cost", {
           from,
@@ -784,7 +789,7 @@
       return Number(proximity);
     }
   };
-  _ProximityComputationHelper.getEnvironmentalProximityCostIncreasePercentage = (location, gameData2, discardVegetationModifiers, options) => {
+  _ProximityComputationHelper.getEnvironmentalProximityCostIncreasePercentage = (location, gameData2, proximityBuffs, discardVegetationModifiers, options) => {
     const rule = gameData2.proximityComputationRule;
     if (!Object.keys(rule.proximityCostIncreasePercentage.topography).includes(
       location.topography
@@ -794,7 +799,13 @@
         location.topography
       );
     }
-    const topographyCostIncreasePercentage = rule.proximityCostIncreasePercentage.topography?.[location.topography] ?? 0;
+    let topographyCostIncreasePercentage = rule.proximityCostIncreasePercentage.topography?.[location.topography] ?? 0;
+    const buffKey = `${location.topography}Multiplier`;
+    if (["mountainsMultiplier", "plateauMultiplier", "hillsMultiplier"].includes(buffKey)) {
+      const buffs = proximityBuffs.getBuffsOfType(buffKey);
+      const multipliers = Object.values(buffs.buffRecord).reduce((a, b) => a * b, 1);
+      topographyCostIncreasePercentage *= multipliers;
+    }
     if (location.vegetation && !Object.keys(rule.proximityCostIncreasePercentage.vegetation).includes(
       location?.vegetation
     )) {
@@ -829,6 +840,7 @@
     const environmentalProximityCostIncreasePercentage = behaviour.discardVegetationAndTopographyModifiers ? 0 : _ProximityComputationHelper.getEnvironmentalProximityCostIncreasePercentage(
       location,
       gameData2,
+      proximityBuffs,
       behaviour.discardVegetationModifiers,
       // road
       options

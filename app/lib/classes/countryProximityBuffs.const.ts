@@ -23,14 +23,14 @@ export const countryProximityBuffsDisplayableData: Record<keyof IProximityBuffs,
   },
   mountainsMultiplier: {
     label: "Mountains multiplier",
-    description: "Final multiplier applied to proximity cost when the source location is mountains."
+    description: "Multiplier applied to proximity cost penalty applied when the source location is mountains."
   },
   plateauMultiplier: {
     label: "Plateau multiplier",
-    description: "Final multiplier applied to proximity cost when the source location is plateau."
+    description: "Multiplier applied to proximity cost penalty applied when the source location is plateau."
   },
   hillsMultiplier: {
     label: "Hills multiplier",
-    description: "Final multiplier applied to proximity cost when the source location is hills."
+    description: "Multiplier applied to proximity cost penalty applied when the source location is hills."
   },
 }

@@ -13,7 +13,7 @@ import { GameDataLoaderHelper } from "@/app/lib/gameDataLoader.helper";
 
 const referenceFiles = getAllReferenceFilePaths(
   "tests/pathfinding/references/",
-);
+)/* .filter((filePath) => filePath.includes("1_1_4")); */
 
 test("found reference files", () => {
   console.log("referenceFiles", referenceFiles);
@@ -23,8 +23,14 @@ test("found reference files", () => {
 test.each(referenceFiles)(
   "should do pathfinding evaluation for reference file %s",
   async (filePath) => {
-    const { countryCode, version, rulerAdministrativeAbility, data, modifiers } =
-      await readReferenceFile(filePath);
+    const {
+      countryCode,
+      version,
+      rulerAdministrativeAbility,
+      data,
+      modifiers,
+      countryValuesOverrides,
+    } = await readReferenceFile(filePath);
 
     const versionResolver = new VersionResolver();
     await versionResolver.loadVersionsManifest();
@@ -38,15 +44,23 @@ test.each(referenceFiles)(
     const gameData: IGameData = {
       ...gameDataFiles,
     };
-    const countryModifiersTemplates = gameDataFiles.countryModifiersTemplate;
 
     const adjGraph = ParserHelper.parseAdjacencyCSV(gameDataFiles.adjacencyCsv);
     const gameStateController = new GameStateController();
     gameStateController.init(gameData);
     gameStateController.reset(countryCode);
     gameStateController.changeCountryRulerAdministrativeAbility(rulerAdministrativeAbility);
+    if (Object.keys(countryValuesOverrides).length > 0) {
+      gameStateController.changeCountryValues(countryValuesOverrides);
+    }
+
+    const countryModifiersTemplates = gameDataFiles.countryModifiersTemplate;
+    console.log("countryModifiersTemplates: ", countryModifiersTemplates);
     for (const modifier of modifiers) {
       const modifierTemplate = countryModifiersTemplates[modifier];
+      if (!modifierTemplate) {
+        throw new Error(`Modifier template not found for modifier: ${modifier}`);
+      }
       gameStateController.changeCountryModifier(modifier, { enabled: true, buff: modifierTemplate?.buff ?? {} });
     }
 
@@ -57,7 +71,7 @@ test.each(referenceFiles)(
       gameData,
       {
         allowUnownedLocations: true,
-        /* logForLocations: ["strait_of_dover"], */
+       /*  logForLocations: ["ankober"], */
         logMethod: (message: string, data?: Record<string, unknown>) => {
           console.log(message, data);
         },
@@ -129,7 +143,6 @@ test.each(referenceFiles)(
       });
     }
 
-    // Default sort: by expected value (descending), then by absolute difference (ascending)
     results.sort((a, b) => {
       const expectedDiff = b.expected - a.expected;
       if (expectedDiff !== 0) return expectedDiff;
@@ -155,10 +168,11 @@ test.each(referenceFiles)(
       results,
       toleratedDifference,
       unrecognisedLocations,
-    );
-
-    const badResults = results.filter(
-      (r) => Math.abs(r.difference) > toleratedDifference,
+      {
+        rulerAdministrativeAbility,
+        modifiers,
+        countryValuesOverrides,
+      },
     );
 
     const successRate = goodResults.length / Object.keys(data).length;

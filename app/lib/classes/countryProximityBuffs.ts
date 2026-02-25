@@ -106,11 +106,13 @@ export class ProximityBuffsRecord {
     const buffRecord: Record<string, number> = Object.fromEntries(
       Object.entries(this.countryProximityBuffs).map(
         ([buffName, buffEffects]) => {
-          const buffEffect = buffEffects[type];
-          const value = typeof buffEffect === "number" ? buffEffect : 0;
-          return [buffName, value];
+          if (type in buffEffects) {
+            return [buffName, buffEffects[type]];
+          } else {
+            return null;
+          }
         },
-      ),
+      ).filter((entry): entry is [string, number] => entry !== null),
     );
     return {
       buffRecord,

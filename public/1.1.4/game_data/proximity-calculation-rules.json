@@ -27,7 +27,7 @@
   "valuesImpact": {
     "landVsNaval": [
       {
-        "landModifier": 10
+        "landModifier": 20
       },
       {
         "seaWithMaritimeFlatCostReduction": 1
@@ -35,7 +35,7 @@
     ],
     "centralizationVsDecentralization": [
       {
-        "genericModifier": 10
+        "genericModifier": 20
       },
       {}
     ]

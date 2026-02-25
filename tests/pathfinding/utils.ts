@@ -1,10 +1,40 @@
 import { CompactGraph } from "@/app/lib/graph";
 import { ParserHelper } from "@/app/lib/parser.helper";
-import { ILocationIdentifier } from "@/app/lib/types/general";
+import {
+  ICountryValues,
+  ILocationIdentifier,
+} from "@/app/lib/types/general";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import crypto from "crypto";
+
+const COUNTRY_VALUE_KEYS: Array<keyof ICountryValues> = [
+  "landVsNaval",
+  "centralizationVsDecentralization",
+];
+
+export interface ReferenceSettings {
+  rulerAdministrativeAbility: number;
+  modifiers: string[];
+  countryValuesOverrides: Partial<ICountryValues>;
+}
+
+function parseCountryValuesOverrides(valuesRaw: string): Partial<ICountryValues> {
+  const overrides: Partial<ICountryValues> = {};
+  const pairs = valuesRaw.split("|").map((s) => s.trim()).filter(Boolean);
+  for (const pair of pairs) {
+    const colonIndex = pair.indexOf(":");
+    if (colonIndex <= 0) continue;
+    const key = pair.slice(0, colonIndex).trim() as keyof ICountryValues;
+    const valueStr = pair.slice(colonIndex + 1).trim();
+    if (!COUNTRY_VALUE_KEYS.includes(key)) continue;
+    const value = Number(valueStr);
+    if (!Number.isFinite(value) || value < -100 || value > 100) continue;
+    overrides[key] = value;
+  }
+  return overrides;
+}
 
 export const readReferenceFile = async (
   path: string,
@@ -13,6 +43,7 @@ export const readReferenceFile = async (
   version: string;
   rulerAdministrativeAbility: number;
   modifiers: string[];
+  countryValuesOverrides: Partial<ICountryValues>;
   data: Record<ILocationIdentifier, number>;
 }> => {
   const f = await fs.readFileSync(path, "utf-8");
@@ -23,16 +54,26 @@ export const readReferenceFile = async (
   const countryCode = headerParts[2];
   const versionPart = headerParts[3]; // version:<value>
   const version = versionPart.split(":")[1];
-  const fifthColumn = headerParts[4]; // admin_ability:<value>;modifiers:<mod1>|<mod2>|...
-  const [adminAbilityPart, modifiersPart] = fifthColumn.split(";");
-  const rulerAdministrativeAbility = Number(adminAbilityPart.split(":")[1]);
-  const modifiersRaw = modifiersPart?.startsWith("modifiers:")
-    ? modifiersPart.slice("modifiers:".length)
-    : modifiersPart ?? "";
-  const modifiers = modifiersRaw
-    .split("|")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const fifthColumn = headerParts[4]; // adminAbility:<value>;modifiers:<mod1>|<mod2>|...;values:key1:val1|key2:val2
+  let rulerAdministrativeAbility = 50;
+  let modifiers: string[] = [];
+  let countryValuesOverrides: Partial<ICountryValues> = {};
+
+  for (const segment of fifthColumn.split(";").map((s) => s.trim())) {
+    if (segment.startsWith("adminAbility:")) {
+      rulerAdministrativeAbility = Number(segment.slice("adminAbility:".length));
+    } else if (segment.startsWith("modifiers:")) {
+      const modifiersRaw = segment.slice("modifiers:".length);
+      modifiers = modifiersRaw
+        .split("|")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    } else if (segment.startsWith("values:")) {
+      countryValuesOverrides = parseCountryValuesOverrides(
+        segment.slice("values:".length),
+      );
+    }
+  }
 
   const data = lines
     .slice(1) // skip header
@@ -51,6 +92,7 @@ export const readReferenceFile = async (
     version,
     rulerAdministrativeAbility,
     modifiers,
+    countryValuesOverrides,
     data,
   };
 };
@@ -108,6 +150,7 @@ export async function generateHtmlReport(
   }>,
   toleratedDifference: number,
   unrecognisedLocations: ILocationIdentifier[] = [],
+  settings?: ReferenceSettings,
 ): Promise<void> {
   const totalCount = results.length;
 
@@ -353,6 +396,25 @@ export async function generateHtmlReport(
       color: #6b7280;
     }
     
+    .report-settings {
+      margin: 20px 30px;
+      padding: 14px 18px;
+      background: #f3f4f6;
+      border-radius: 8px;
+      font-size: 0.9em;
+      color: #4b5563;
+    }
+    
+    .report-settings-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #374151;
+    }
+    
+    .report-settings-content {
+      line-height: 1.6;
+    }
+    
     .footer {
       padding: 20px 30px;
       background: #f9fafb;
@@ -537,7 +599,31 @@ export async function generateHtmlReport(
         </table>
       </div>
     </div>
-    
+    ${
+      settings
+        ? `
+    <div class="report-settings">
+      <div class="report-settings-title">Reference settings</div>
+      <div class="report-settings-content">
+        Admin ability: ${escapeHtml(String(settings.rulerAdministrativeAbility))}<br>
+        ${
+          settings.modifiers.length > 0
+            ? `Modifiers: ${escapeHtml(settings.modifiers.join(", "))}<br>`
+            : ""
+        }
+        ${
+          settings.countryValuesOverrides &&
+          Object.keys(settings.countryValuesOverrides).length > 0
+            ? `Values: ${(Object.entries(settings.countryValuesOverrides) as Array<[keyof ICountryValues, number]>)
+                .map(([k, v]) => `${escapeHtml(k)}: ${v}`)
+                .join("; ")}`
+            : ""
+        }
+      </div>
+    </div>
+    `
+        : ""
+    }
     <div class="footer">
       Generated on ${new Date().toLocaleString()} | 
       Click any column header to sort. Default view is sorted by expected value (descending).
@@ -630,7 +716,7 @@ export async function generateHtmlReport(
 
   // Generate metadata JSON file for index generation
   const metadataPath = path.join(outputFolder, `${country.toLowerCase()}.json`);
-  const metadata = {
+  const metadata: ReportMetadata = {
     country,
     version,
     totalCount,
@@ -642,13 +728,12 @@ export async function generateHtmlReport(
         ? results.reduce((sum, r) => sum + Math.abs(r.difference), 0) /
           totalCount
         : 0,
-    // How often proximity is correct within tolerance
     proximityCorrectCount: goodCount,
-    // How often sign bucket (zero/unreachable vs > 0) is correct
     signCorrectCount,
     signAccuracy: parseFloat(signAccuracyStr),
     unrecognisedCount: unrecognisedLocations.length,
     reportPath: `${country.toLowerCase()}.html`,
+    ...(settings && { settings }),
   };
   await fsPromises.writeFile(
     metadataPath,
@@ -668,7 +753,7 @@ function escapeHtml(text: string): string {
   return text.replace(/[&<>"']/g, (m) => map[m]);
 }
 
-interface ReportMetadata {
+export interface ReportMetadata {
   country: string;
   version: string;
   totalCount: number;
@@ -681,6 +766,7 @@ interface ReportMetadata {
   signAccuracy: number;
   unrecognisedCount: number;
   reportPath: string;
+  settings?: ReferenceSettings;
 }
 
 export async function generateIndexFile(): Promise<void> {
@@ -742,6 +828,7 @@ export async function generateIndexFile(): Promise<void> {
         signCorrectCount: report.signCorrectCount,
         signAccuracy: report.signAccuracy,
         unrecognisedCount: report.unrecognisedCount,
+        settings: report.settings,
       }));
 
       const hash = crypto

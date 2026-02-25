@@ -16,7 +16,7 @@ import {
   PathFindingOptions,
   PathfindingResult,
 } from "./types/pathfinding";
-import { IProximityComputationRule } from "./types/proximityComputationRules";
+import { IProximityBuffs, IProximityComputationRule } from "./types/proximityComputationRules";
 
 /**
  * Unified logging utility for proximity computation methods
@@ -55,6 +55,7 @@ export class ProximityComputationHelper {
   public static getEnvironmentalProximityCostIncreasePercentage = (
     location: ILocationGameData,
     gameData: IGameData,
+    proximityBuffs: ProximityBuffsRecord,
     discardVegetationModifiers: boolean,
     options: PathFindingOptions,
   ): number => {
@@ -70,10 +71,17 @@ export class ProximityComputationHelper {
         location.topography,
       );
     }
-    const topographyCostIncreasePercentage =
+    let topographyCostIncreasePercentage =
       rule.proximityCostIncreasePercentage.topography?.[
         location.topography as keyof IProximityComputationRule["proximityCostIncreasePercentage"]["topography"]
       ] ?? 0;
+    
+      const buffKey = `${location.topography}Multiplier`;
+      if (["mountainsMultiplier", "plateauMultiplier", "hillsMultiplier"].includes(buffKey)) {
+        const buffs = proximityBuffs.getBuffsOfType(buffKey as keyof IProximityBuffs);
+        const multipliers = Object.values(buffs.buffRecord).reduce((a, b) => a * b, 1);
+        topographyCostIncreasePercentage *= multipliers;
+    }
 
     if (
       location.vegetation &&
@@ -142,6 +150,7 @@ export class ProximityComputationHelper {
         : ProximityComputationHelper.getEnvironmentalProximityCostIncreasePercentage(
             location,
             gameData,
+            proximityBuffs,
             behaviour.discardVegetationModifiers, // road
             options,
           );
@@ -361,7 +370,8 @@ export class ProximityComputationHelper {
       from,
       to,
       isNaval,
-      modifiers,
+      transporationModeModifiersSummed: modifiers[0],
+      genericModifierSummed: modifiers[1],
     });
 
     return modifiers.reduce((a, b) => a + b, 0);
@@ -437,9 +447,16 @@ export class ProximityComputationHelper {
         road?.type ?? null,
       );
 
+
+      const modifiedCostWithAdditiveModifiers = baseCost * (1 - proximityModifiersSummed / 100); // pre 1.1
+      const modifiedCostWithMultiplicativeModifiers = baseCost / (1 + proximityModifiersSummed / 100); // post 1.1
+      /* console.log("modified cost", { baseCost, modifiedCostWithAdditiveModifiers, modifiedCostWithMultiplicativeModifiers}); */
+
       const modifiedCost = Math.max(
         0.1,
-        baseCost * (1 - proximityModifiersSummed / 100),
+        rule.proximityModifiersStackingMode === "additive" ? 
+          modifiedCostWithAdditiveModifiers
+          : modifiedCostWithMultiplicativeModifiers,
       );
 
       logProximityComputation([from, to], options, "Final proximity cost", {

@@ -39,17 +39,24 @@
     "description": "Discovery Age advance for Ethiopia",
     "buff": {
       "genericModifier": 10,
-      "mountainMultiplier": 0.66,
-      "plateauMultiplier": 0.66
+      "mountainsMultiplier": 0.666666,
+      "plateauMultiplier": 0.666666
     }
   },
   {
     "name": "expertMountainers",
     "description": "Renaissance Age advance for Austria / Tyrol / Styria",
     "buff": {
-      "mountainMultiplier": 0.5,
-      "plateauMultiplier": 0.5,
-      "hillsMultiplier": 0.5
+      "mountainsMultiplier": 0.5,
+      "hillsMultiplier": 0.5,
+      "plateauMultiplier": 0.5
+    }
+  },
+  {
+    "name": "initerantCourt",
+    "description": "Monarchy policy for Royal Court Custom law",
+    "buff": {
+      "landModifier": 5
     }
   }
 ]

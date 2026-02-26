@@ -16,11 +16,19 @@ interface IShortestPathComponentProps {
 }
 
 function ShortestPathDisplay(props: {
+  location: ILocationIdentifier;
   proximityResult: NonNullable<
     IShortestPathResult["result"][ILocationIdentifier]["proximityResult"]
   >;
 }) {
   const { proximityResult } = props;
+  if (proximityResult.sourceLocation === props.location) {
+    return (
+      <span>{StringHelper.formatLocationName(props.location)} is a proximity source (<FormatedProximity
+        proximity={proximityResult.proximity}
+      ></FormatedProximity>)</span>
+    )
+  }
   return (
     <div>
       <span className="text-md">
@@ -32,13 +40,12 @@ function ShortestPathDisplay(props: {
       <div className="flex flex-col gap-2">
         {proximityResult.path.map((step, index) => (
           <span key={index} className="flex flex-row items-center gap-1">
-            {index === 0 ? proximityResult.sourceLocation : proximityResult.path[index - 1].throughLocation}
-            →
-            {step.throughLocation} (
-            <FormatedProximityCost
+            {StringHelper.formatLocationName(index === 0 ? proximityResult.sourceLocation : proximityResult.path[index - 1].throughLocation)}
+            {" → "}
+            {StringHelper.formatLocationName(step.throughLocation)}
+            (<FormatedProximityCost
               proximityCost={step.cost}
-            ></FormatedProximityCost>{" "}
-            via {step.through})
+            ></FormatedProximityCost> via {step.through})
           </span>
         ))}
       </div>
@@ -77,6 +84,7 @@ export function ShortestPathComponent(props: IShortestPathComponentProps) {
         locationResult.status === "completed" &&
         locationResult.proximityResult && (
           <ShortestPathDisplay
+            location={props.location}
             proximityResult={locationResult.proximityResult}
           />
         )}

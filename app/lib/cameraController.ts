@@ -386,11 +386,21 @@ export class CameraController extends Observable<IZoomState> {
   baseScreenOffset = { left: 60, top: 40, bottom: 5, right: 0 };
 
   /**
+   * Preferred placement for tooltip (vertical + horizontal). Used to try that quadrant first.
+   */
+  private static preferredToPlacementName(
+    preferred: { horizontal: "left" | "right"; vertical: "top" | "bottom" },
+  ): "bottom-right" | "top-right" | "top-left" | "bottom-left" {
+    return `${preferred.vertical}-${preferred.horizontal}` as "bottom-right" | "top-right" | "top-left" | "bottom-left";
+  }
+
+  /**
    * Core tooltip placement algorithm operating in screen-space.
    *
    * @param baseX Screen-space x coordinate of the anchor point (in pixels).
    * @param baseY Screen-space y coordinate of the anchor point (in pixels).
    * @param containerRect Bounding rect of the camera container (used as viewport).
+   * @param preferredPlacement If set, this quadrant is tried first when fitting the tooltip.
    */
   private computeTooltipScreenPosition(
     baseX: number,
@@ -400,6 +410,7 @@ export class CameraController extends Observable<IZoomState> {
     tooltipSize: ICoordinate = { x: 200, y: 200 },
     screenOffset = this.baseScreenOffset,
     mouseCoordinate: ICoordinate = { x: 0, y: 0 },
+    preferredPlacement?: { horizontal: "left" | "right"; vertical: "top" | "bottom" },
   ): ICoordinate | null {
     const rawLeft = containerRect.left;
     const rawRight = containerRect.right;
@@ -423,40 +434,34 @@ export class CameraController extends Observable<IZoomState> {
       return { x, y };
     }
 
-    // Try to place the tooltip fully within the viewport in this order:
-    // 1) bottom-right, 2) top-right, 3) top-left, 4) bottom-left of the anchor.
+    // Try to place the tooltip fully within the viewport. Order: preferred first (if any), then default order.
     type PlacementName =
       | "bottom-right"
       | "top-right"
       | "top-left"
       | "bottom-left";
 
-    const candidates: Array<{
+    const allCandidates: Array<{
       name: PlacementName;
       panelLeft: number;
       panelTop: number;
     }> = [
-      {
-        name: "bottom-right",
-        panelLeft: baseX + marginX,
-        panelTop: baseY + marginY,
-      },
-      {
-        name: "top-right",
-        panelLeft: baseX + marginX,
-        panelTop: baseY - marginY - tooltipHeight,
-      },
-      {
-        name: "top-left",
-        panelLeft: baseX - marginX - tooltipWidth,
-        panelTop: baseY - marginY - tooltipHeight,
-      },
-      {
-        name: "bottom-left",
-        panelLeft: baseX - marginX - tooltipWidth,
-        panelTop: baseY + marginY,
-      },
+      { name: "bottom-right", panelLeft: baseX + marginX, panelTop: baseY + marginY },
+      { name: "top-right", panelLeft: baseX + marginX, panelTop: baseY - marginY - tooltipHeight },
+      { name: "top-left", panelLeft: baseX - marginX - tooltipWidth, panelTop: baseY - marginY - tooltipHeight },
+      { name: "bottom-left", panelLeft: baseX - marginX - tooltipWidth, panelTop: baseY + marginY },
     ];
+
+    const preferredName = preferredPlacement
+      ? CameraController.preferredToPlacementName(preferredPlacement)
+      : null;
+    const candidates =
+      preferredName != null
+        ? [
+            ...allCandidates.filter((c) => c.name === preferredName),
+            ...allCandidates.filter((c) => c.name !== preferredName),
+          ]
+        : allCandidates;
 
     const fitsInViewport = (left: number, top: number): boolean => {
       const right = left + tooltipWidth;
@@ -539,6 +544,7 @@ export class CameraController extends Observable<IZoomState> {
     offset: ICoordinate = { x: 0, y: 0 },
     tooltipSize: ICoordinate,
     mouseCoordinate?: ICoordinate,
+    preferredPlacement?: { horizontal: "left" | "right"; vertical: "top" | "bottom" },
   ): ICoordinate | null {
     if (!this.colorCanvas || !this.container) return null;
     const colorCanvas = this.colorCanvas.current;
@@ -560,7 +566,8 @@ export class CameraController extends Observable<IZoomState> {
       offset,
       tooltipSize,
       this.baseScreenOffset,
-      mouseCoordinate,
+      mouseCoordinate ?? { x: 0, y: 0 },
+      preferredPlacement,
     );
   }
 
@@ -573,6 +580,7 @@ export class CameraController extends Observable<IZoomState> {
     offset: ICoordinate = { x: 0, y: 0 },
     tooltipSize: ICoordinate,
     mouseCoordinate: ICoordinate,
+    preferredPlacement?: { horizontal: "left" | "right"; vertical: "top" | "bottom" },
   ): ICoordinate | null {
     if (!this.container) return null;
     const container = this.container.current;
@@ -590,6 +598,7 @@ export class CameraController extends Observable<IZoomState> {
       tooltipSize,
       this.baseScreenOffset,
       mouseCoordinate,
+      preferredPlacement,
     );
   }
 }

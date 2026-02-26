@@ -1,6 +1,6 @@
 import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
 import { ColorHelper } from "@/app/lib/drawing/color.helper";
-import { EditMode, editModeController } from "@/app/lib/editMode.controller";
+import { acquireLocationSliceFromState, EditMode, editModeController } from "@/app/lib/editMode.controller";
 import { gameStateController } from "@/app/lib/gameState.controller";
 import { LocationsHelper } from "@/app/lib/locations.helper";
 import { NumbersHelper } from "@/app/lib/utils/numbers.helper";
@@ -13,6 +13,8 @@ import { MaritimePresenceIcon } from "@/app/components/indicatorsIcons/maritimeP
 import { HarborSuitabilityIcon } from "@/app/components/indicatorsIcons/harborSuitabilityIcon.component";
 import { PopulationIcon } from "@/app/components/indicatorsIcons/populationIcon.component";
 import { DevelopmentIcon } from "@/app/components/indicatorsIcons/developmentIcon.component";
+import Image from "next/image";
+import { getTopographyIcon, getVegetationIcon } from "@/app/lib/drawing/getImages";
 
 function LocationInfoBox(
   props: {
@@ -66,10 +68,10 @@ function LocationInfoBox(
       </div>
 
       <div className="flex items-center gap-4 text-sm">
-        <span>🏔️ {locationData.topography}</span>
+        <span className="flex items-center gap-1 min-w-12 text-sm text-stone-400"> <Image className="min-w-6" src={getTopographyIcon(locationData.topography)} alt={locationData.topography} width={24} height={24} /> {locationData.topography}</span>
         {locationData.ownable && (
           <>
-            {locationData.vegetation && <span>🌿 {locationData.vegetation}</span>}
+            {locationData.vegetation && <span className="flex items-center gap-1 min-w-12 text-sm text-stone-400"> <Image className="min-w-6" src={getVegetationIcon(locationData.vegetation)} alt={locationData.vegetation} width={24} height={24} /> {locationData.vegetation}</span>}
             <span className="flex items-center gap-1"><DevelopmentIcon size={24} /> {locationData.development}</span>
             <span className="flex items-center gap-1"><PopulationIcon size={24} /> {NumbersHelper.formatWithSymbol(locationData.population)}</span>
             {locationData.hierarchy && (
@@ -99,7 +101,8 @@ function HierarchyInfoBox(props: { locationNames: ILocationIdentifier[] }) {
 
   const gameState = useSyncExternalStore(gameStateController.subscribe.bind(gameStateController), () => gameStateController.getSnapshot());
   const gameData = useContext(AppContext)?.gameData;
-  const editModeAcquire = useSyncExternalStore(editModeController.acquireLocationSlice.subscribe.bind(editModeController.acquireLocationSlice), () => editModeController.acquireLocationSlice.getSnapshot());
+  const editModeState = useSyncExternalStore(editModeController.subscribe.bind(editModeController), () => editModeController.getSnapshot());
+  const editModeAcquire = useMemo(() => acquireLocationSliceFromState(editModeState), [editModeState]);
   const isAcquireMode = editModeAcquire.isModeEnabled;
   const hierarchyType = editModeAcquire.brushSize;
 

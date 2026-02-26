@@ -1,20 +1,18 @@
-import React, { useContext, useMemo, useSyncExternalStore } from "react";
 import { AppContext } from "@/app/appContextProvider";
+import { RoadStepper } from "@/app/components/roads/roadStepper.component";
 import { gameStateController } from "@/app/lib/gameState.controller";
-import { RoadsHelper } from "../lib/roads.helper";
-import { StringHelper } from "../lib/utils/string.helper";
-import { getGuiImage } from "../lib/drawing/namedGuiImagesMap.const";
-import { ActionSource } from "../lib/actionSource.component";
-import Image from "next/image";
-import { Tooltip } from "../lib/tooltip/tooltip.component";
-import { TooltipTrigger } from "../lib/tooltip/tooltipTrigger.component";
-import { TooltipContent } from "../lib/tooltip/tooltipContent.component";
-import buttonStyles from "../styles/button.module.css";
-import { IoSearch } from "react-icons/io5";
-import { FaAnglesDown, FaAnglesUp } from 'react-icons/fa6';
-import { Popover } from "@/app/lib/popover/popover.component";
 import { ObjectHelper } from "@/app/lib/object.helper";
+import { Popover } from "@/app/lib/popover/popover.component";
 import { allRoadTypes, asRoadKey, RoadKey, RoadType } from "@/app/lib/types/roads";
+import React, { useContext, useMemo, useSyncExternalStore } from "react";
+import { IoSearch } from "react-icons/io5";
+import { ActionSource } from "../../lib/actionSource.component";
+import { RoadsHelper } from "../../lib/roads.helper";
+import { Tooltip } from "../../lib/tooltip/tooltip.component";
+import { TooltipContent } from "../../lib/tooltip/tooltipContent.component";
+import { TooltipTrigger } from "../../lib/tooltip/tooltipTrigger.component";
+import { StringHelper } from "../../lib/utils/string.helper";
+import buttonStyles from "@/app/styles/button.module.css";
 
 const RoadItem = React.memo(function RoadItem({
   roadKey,
@@ -25,30 +23,7 @@ const RoadItem = React.memo(function RoadItem({
 }) {
   const spanRef = React.useRef<HTMLSpanElement>(null);
   const [from, to] = roadKey.split("-");
-  const upgradeType = useMemo(() => {
-    switch (type) {
-      case "gravel_road":
-        return "paved_road";
-      case "paved_road":
-        return "modern_road";
-      case "modern_road":
-        return "rail_road";
-      case "rail_road":
-        return null;
-    }
-  }, [type]);
-  const downgradeType = useMemo(() => {
-    switch (type) {
-      case "gravel_road":
-        return null;
-      case "paved_road":
-        return "gravel_road";
-      case "modern_road":
-        return "paved_road";
-      case "rail_road":
-        return "modern_road";
-    }
-  }, [type]);
+ 
 
   if (!from || !to) {
     return <></>;
@@ -84,40 +59,13 @@ const RoadItem = React.memo(function RoadItem({
       </span>
 
 
-      {(
-        <button
-          className={buttonStyles.iconButton}
-          disabled={!downgradeType}
-          onClick={() =>
-            gameStateController.changeRoadType(roadKey, downgradeType)
-          }
-        >
-          <FaAnglesDown color="white" size={24}></FaAnglesDown>
-        </button>
-      )}
-
-      <span className="col-span-1">
-        <Image src={getGuiImage(type) ?? ""} alt={type} width={24} height={24} />
-      </span>
-
-      <div className="flex flex-none flex-row gap-1">
-        {(
-          <button
-            className={buttonStyles.iconButton}
-            disabled={!upgradeType}
-            onClick={() =>
-              gameStateController.changeRoadType(roadKey, upgradeType)
-            }
-          >
-            <FaAnglesUp color="white" size={24}></FaAnglesUp>
-          </button>
-        )}
-      </div>
+      <RoadStepper roadKey={roadKey} roadType={type} />
+     
     </div>
   );
 });
 
-export function RoadList() {
+export function RoadList({ className }: { className?: string }) {
   const { gameData } = useContext(AppContext);
   const gameState = useSyncExternalStore(
     gameStateController.subscribe.bind(gameStateController),
@@ -169,7 +117,7 @@ export function RoadList() {
 
   if (!filteredRoadsEntries) return null;
   return (
-    <div>
+    <div className={[className, " "].filter(Boolean).join(" ")}>
       <div className="shrink-0 flex flex-row pt-1">
         <IoSearch color="white" size={24}></IoSearch>
         <input
@@ -196,7 +144,7 @@ export function RoadList() {
         </Popover>
       </div>
       <hr className="mt-2 mb-1"></hr>
-      <div>
+      <div className="flex flex-col gap-1 overflow-y-scroll max-h-[60vh] pb-16"> {/* // max height is set here to avoid overflow of the list in the context of the gui. Find something */} 
         {ObjectHelper.getTypedEntries(filteredRoadsEntries)
           .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
           .map(([key, type]) => (

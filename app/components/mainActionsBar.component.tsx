@@ -63,7 +63,7 @@ export function MainActionsBar() {
       </ButtonWithTooltip>
 
       <ButtonWithTooltip disabled={editModeState.modeEnabled !== 'acquire'} className="h-10 relative" tooltip="Open detailed location view" onClick={() => setIsDetailedLocationViewOpen(true)}>
-        <Image src="/gui/icons/locations.png" alt="Open detailed location view" width={24} height={24} />
+        <Image src="/gui/icons/building.png" alt="Open detailed location view" width={24} height={24} />
       </ButtonWithTooltip>
 
       <ButtonWithTooltip disabled={editModeState.modeEnabled !== 'acquire'} className="h-10 relative" tooltip="Open country buffs view" onClick={() => setIsCountryBuffsModalOpen(true)}>
@@ -96,6 +96,38 @@ export function MainActionsBar() {
         isOpen={isCountryBuffsModalOpen}
       >
         <CountryModifiersModal onClose={() => setIsCountryBuffsModalOpen(false)}></CountryModifiersModal>
+      </Modal>
+
+      <Modal
+        isOpen={!!editModeState.capital.askConfirmationForLocation}
+        onClose={() => editModeController.toggleCapitalMode()}
+      >
+        <div
+          className={
+            "min-w-64 min-h-32 flex flex-col gap-4 items-center justify-center p-4"
+          }
+        >
+          <span className="text-lg">
+            Change capital to{" "}
+            <span className="text-yellow-500 font-bold">
+              {editModeState.capital.askConfirmationForLocation} ?
+            </span>
+          </span>
+          <div className="w-full flex flex-row gap-2 items-center justify-center">
+            <button
+              className="bg-yellow-400 hover:bg-yellow-500 rounded-md px-2 py-1 min-w-16 text-black font-bold"
+              onClick={() => editModeController.confirmChangeCapital()}
+            >
+              Yes
+            </button>
+            <button
+              onClick={() => editModeController.toggleCapitalMode()}
+              className="border border white px-2 py-1 min-w-16 hover:bg-stone-600 text-white rounded-md font-bold"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       </Modal>
 
     </div>

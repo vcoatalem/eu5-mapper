@@ -356,13 +356,12 @@
     }
     static getRoads(baseRoads, stateRoads) {
       const result = {};
-      for (const [key, type] of ObjectHelper.getTypedEntries(stateRoads)) {
-        if (type != null)
-          result[key] = type;
-      }
       for (const [key, type] of ObjectHelper.getTypedEntries(baseRoads)) {
         if (!(key in result))
           result[key] = type;
+      }
+      for (const [key, type] of ObjectHelper.getTypedEntries(stateRoads)) {
+        result[key] = type;
       }
       return result;
     }
@@ -529,6 +528,15 @@
         return null;
       }
       return name;
+    }
+    static isLocationEligibleForCapital(location) {
+      return !!location.ownable && !location.isSea && !location.isLake;
+    }
+    static isLocationEligibleForRoad(location) {
+      return !!location.ownable && !location.isSea && !location.isLake;
+    }
+    static isLocationEligibleForMaritime(location) {
+      return !!location && (!!location.isSea || !!location.isLake);
     }
   };
 

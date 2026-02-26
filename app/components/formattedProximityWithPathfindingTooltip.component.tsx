@@ -19,7 +19,7 @@ export function FormattedProximityWithPathfindingTooltip(
 
   return (
     <div ref={divRef} className="col-span-1">
-      <Tooltip>
+      <Tooltip config={{ preferredVertical: "top" }}>
         <TooltipTrigger>
           <FormatedProximity
             proximity={props.proximity}

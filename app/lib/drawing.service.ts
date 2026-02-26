@@ -24,7 +24,7 @@ import {
 } from "./drawing/color.helper";
 import { Subject } from "./subject";
 import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
-import { editModeController } from "@/app/lib/editMode.controller";
+import { editModeController, maritimeSliceFromState, roadSliceFromState } from "@/app/lib/editMode.controller";
 import { colorSearchController } from "@/app/lib/colorSeach.controller";
 import { ObjectHelper } from "@/app/lib/object.helper";
 import { RoadsHelper } from "@/app/lib/roads.helper";
@@ -110,23 +110,23 @@ export class DrawingService {
     new ObservableCombiner([
       actionEventDispatcher.prolongedHoverLocation,
       actionEventDispatcher.hoveredLocation,
-      editModeController.roadSlice,
-      editModeController.maritimeSlice,
+      editModeController,
     ]).subscribe(
       ({
         values: [
           prolongedHoverLocation,
           hoveredLocation,
-          roadBuilderState,
-          maritimePresenceEditState,
+          editModeState,
         ],
       }) => {
+        const roadSlice = roadSliceFromState(editModeState);
+        const maritimeSlice = maritimeSliceFromState(editModeState);
         const toHighlight = [
-          ...(roadBuilderState?.selectedLocation
-            ? [roadBuilderState.selectedLocation]
+          ...(roadSlice.isModeEnabled && roadSlice.selectedLocation
+            ? [roadSlice.selectedLocation]
             : []),
-          ...(maritimePresenceEditState?.selectedLocation
-            ? [maritimePresenceEditState.selectedLocation]
+          ...(maritimeSlice.isModeEnabled && maritimeSlice.selectedLocation
+            ? [maritimeSlice.selectedLocation]
             : []),
           ...(hoveredLocation?.locations ?? []),
           ...(prolongedHoverLocation?.locations ?? []),
@@ -276,7 +276,7 @@ export class DrawingService {
     );
 
     const resolvedRoads = RoadsHelper.getRoads(this.gameData.roads, gameState.roads);
-    const roadsToDraw = ObjectHelper.getTypedEntries(resolvedRoads);
+    const roadsToDraw = ObjectHelper.getTypedEntries(resolvedRoads).filter(([, type]) => type != null);
 
     const drawCallbacks: Array<() => void> = [
       () => this.canvasRecord["roads"].beginPath(),

@@ -11,7 +11,7 @@ export type Topography =
   | "hills"
   | "wetlands"
   | "mountains"
-  | "flatlands"
+  | "flatland"
   | "lakes"
   | "plateau"
   | "ocean"

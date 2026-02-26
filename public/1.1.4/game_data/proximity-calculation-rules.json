@@ -18,7 +18,7 @@
     "jungle": { "type": "percentage", "value": -50 },
     "desert": { "type": "percentage", "value": -5 },
     "farmland": { "type": "percentage", "value": -5 },
-    "sparse": { "type": "percentage", "value": -5 },
+    "sparse": { "type": "percentage", "value": 0 },
     "grasslands": { "type": "percentage", "value": 0 }
   },
   "developmentImpact": { "type": "percentage", "value": 0.5 },

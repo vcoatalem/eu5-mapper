@@ -103,4 +103,16 @@ export class LocationsHelper {
     return name;
   }
 
+
+  public static isLocationEligibleForCapital(location: ILocationGameData): boolean {
+    return !!location.ownable && !location.isSea && !location.isLake;
+  }
+  
+  public static isLocationEligibleForRoad(location: ILocationGameData): boolean {
+    return !!location.ownable && !location.isSea && !location.isLake;
+  }
+  
+  public static isLocationEligibleForMaritime(location: ILocationGameData): boolean {
+    return !!location && (!!location.isSea || !!location.isLake);
+  }
 }

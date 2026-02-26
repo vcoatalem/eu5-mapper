@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { TooltipInstanceContext } from "./tooltip.component";
 import { TooltipProviderContext } from "./tooltip.provider";
 import { createPortal } from "react-dom";
@@ -34,6 +34,21 @@ export function TooltipContent(props: ITooltipContentProps) {
     throw new Error("[TooltipContent] must be used within a TooltipProvider");
   }
 
+  const preferredPlacement = useMemo(
+    () =>
+      tooltipInstanceContext.config.preferredHorizontal != null &&
+      tooltipInstanceContext.config.preferredVertical != null
+        ? {
+            horizontal: tooltipInstanceContext.config.preferredHorizontal,
+            vertical: tooltipInstanceContext.config.preferredVertical,
+          }
+        : undefined,
+    [
+      tooltipInstanceContext.config.preferredHorizontal,
+      tooltipInstanceContext.config.preferredVertical,
+    ],
+  );
+
   const recomputePosition = useCallback(() => {
     if (!tooltipInstanceContext.isOpen || !contentRef.current) return;
     const contentRect = contentRef.current.getBoundingClientRect();
@@ -53,6 +68,7 @@ export function TooltipContent(props: ITooltipContentProps) {
         tooltipInstanceContext.config.offset,
         { x: contentWidth, y: contentHeight },
         tooltipInstanceContext.mouseCoordinates,
+        preferredPlacement,
       );
     } else {
       placement = cameraController.getTooltipScreenPositionForLocation(
@@ -60,6 +76,7 @@ export function TooltipContent(props: ITooltipContentProps) {
         tooltipInstanceContext.config.offset,
         { x: contentWidth, y: contentHeight },
         tooltipInstanceContext.mouseCoordinates,
+        preferredPlacement,
       );
     }
     setPosition(placement);
@@ -68,6 +85,7 @@ export function TooltipContent(props: ITooltipContentProps) {
     tooltipInstanceContext.config.offset,
     tooltipInstanceContext.isOpen,
     tooltipInstanceContext.mouseCoordinates,
+    preferredPlacement,
   ]);
 
   useLayoutEffect(() => {

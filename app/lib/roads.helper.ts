@@ -24,12 +24,15 @@ export class RoadsHelper {
     stateRoads: RoadRecord,
   ): BaseRoadRecord {
     const result: BaseRoadRecord = {};
-    for (const [key, type] of ObjectHelper.getTypedEntries(stateRoads)) {
-      if (type != null) result[key] = type;
-    }
+
     for (const [key, type] of ObjectHelper.getTypedEntries(baseRoads)) {
       if (!(key in result)) result[key] = type;
     }
+
+    for (const [key, type] of ObjectHelper.getTypedEntries(stateRoads)) {
+      result[key] = type;
+    }
+
     return result;
   }
 

@@ -21,6 +21,7 @@ import {
   ICountryProximityBuffs,
   IProximityComputationRule,
 } from "./types/proximityComputationRules";
+import { RoadsHelper } from "@/app/lib/roads.helper";
 import { RoadType } from "@/app/lib/types/roads";
 
 /** Only this key is applied as percentageMultiplier (cost *= 1 + value/100); all other percentage modifiers are additive (percentageIncrease). */
@@ -411,9 +412,7 @@ export class ProximityComputationHelper {
       throughSeaLocation?: string, // special handling for "through_sea" edges
     ) => {
       const rule = gameData.proximityComputationRule;
-      const road = gameState.roads[from]?.find(
-        ({ to: roadTo }) => roadTo === to,
-      );
+      const road = RoadsHelper.getRoad(from, to, gameData.roads, gameState.roads);
       const countryProximityBuffs = new ProximityBuffsRecord(
         rule,
         gameState.country,
@@ -432,7 +431,7 @@ export class ProximityComputationHelper {
         edgeType,
         rule,
         maritimePresence,
-        road?.type ?? null,
+        road,
         countryProximityBuffs,
       );
 
@@ -466,7 +465,7 @@ export class ProximityComputationHelper {
         gameState,
         countryProximityBuffs,
         options,
-        road?.type ?? null,
+        road,
       );
 
       logProximityComputation([from, to], options, "Proximity cost modifiers", {

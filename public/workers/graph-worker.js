@@ -333,6 +333,70 @@
     }
   };
 
+  // app/lib/types/roads.ts
+  function asRoadKey(s) {
+    if (!/^.+-.+$/.test(s))
+      throw new Error(`Invalid RoadKey format: ${s}`);
+    return s;
+  }
+
+  // app/lib/object.helper.ts
+  var ObjectHelper = class {
+    static getTypedEntries(obj) {
+      return Object.entries(obj);
+    }
+  };
+
+  // app/lib/roads.helper.ts
+  var RoadsHelper = class {
+    static buildOrderedRoadKey(fromLocation, toLocation) {
+      return asRoadKey(
+        fromLocation.localeCompare(toLocation) < 0 ? `${fromLocation}-${toLocation}` : `${toLocation}-${fromLocation}`
+      );
+    }
+    static getRoads(baseRoads, stateRoads) {
+      const result = {};
+      for (const [key, type] of ObjectHelper.getTypedEntries(stateRoads)) {
+        if (type != null)
+          result[key] = type;
+      }
+      for (const [key, type] of ObjectHelper.getTypedEntries(baseRoads)) {
+        if (!(key in result))
+          result[key] = type;
+      }
+      return result;
+    }
+    static getOwnedRoads(ownedLocations, baseRoads, stateRoads) {
+      const resolved = this.getRoads(baseRoads, stateRoads);
+      const ownedRoads = {};
+      for (const [key, type] of ObjectHelper.getTypedEntries(resolved)) {
+        const [from, to] = key.split("-");
+        if (!(from in ownedLocations) || !(to in ownedLocations))
+          continue;
+        ownedRoads[key] = type;
+      }
+      return ownedRoads;
+    }
+    static areAllOwnedRoadsOfType(ownedLocations, baseRoads, stateRoads, type) {
+      const ownedRoads = this.getOwnedRoads(
+        ownedLocations,
+        baseRoads,
+        stateRoads
+      );
+      const types = Object.values(ownedRoads);
+      if (types.length === 0)
+        return false;
+      return types.every((t) => t === type);
+    }
+    static getRoad(fromLocation, toLocation, baseRoads, stateRoads) {
+      const key = this.buildOrderedRoadKey(fromLocation, toLocation);
+      const stateType = stateRoads[key];
+      if (stateType !== void 0)
+        return stateType;
+      return baseRoads[key] ?? null;
+    }
+  };
+
   // app/lib/parser.helper.ts
   var ParserHelper = class {
     /**
@@ -371,27 +435,11 @@
       }
       return graph2;
     }
-    // jsonContent should be an array of [from, to] pairs
+    // jsonContent should be an array of [from, to] pairs. One canonical key per road (buildOrderedRoadKey).
     static parseRoadFile(jsonContent) {
       const roadRecord = {};
-      for (const roadEntry of jsonContent) {
-        const [from, to] = roadEntry;
-        if (roadRecord[from] === void 0) {
-          roadRecord[from] = [];
-        }
-        if (roadRecord[to] === void 0) {
-          roadRecord[to] = [];
-        }
-        roadRecord[from].push({
-          to,
-          type: "gravel_road",
-          createdByUser: false
-        });
-        roadRecord[to].push({
-          to: from,
-          type: "gravel_road",
-          createdByUser: false
-        });
+      for (const [from, to] of jsonContent) {
+        roadRecord[RoadsHelper.buildOrderedRoadKey(from, to)] = "gravel_road";
       }
       return roadRecord;
     }
@@ -415,8 +463,11 @@
 
   // app/lib/locations.helper.ts
   var LocationsHelper = class {
-    static locationHasRoad(location, roads) {
-      return !!roads[location] && roads[location].length > 0;
+    static locationHasRoad(location, baseRoads, stateRoads) {
+      const resolved = RoadsHelper.getRoads(baseRoads, stateRoads);
+      return ObjectHelper.getTypedEntries(resolved).some(
+        ([key]) => key.split("-")[0] === location || key.split("-")[1] === location
+      );
     }
     static getLocationHarborSuitability(locationData, locationConstructibleData) {
       if (!locationData.isCoastal) {
@@ -744,9 +795,7 @@
     static getProximityCostFunction(gameState, gameData2, options) {
       return (from, to, edgeType, throughSeaLocation) => {
         const rule = gameData2.proximityComputationRule;
-        const road = gameState.roads[from]?.find(
-          ({ to: roadTo }) => roadTo === to
-        );
+        const road = RoadsHelper.getRoad(from, to, gameData2.roads, gameState.roads);
         const countryProximityBuffs = new ProximityBuffsRecord(
           rule,
           gameState.country
@@ -759,7 +808,7 @@
           edgeType,
           rule,
           maritimePresence,
-          road?.type ?? null,
+          road,
           countryProximityBuffs
         );
         logProximityComputation([from, to], options, "Base proximity cost", {
@@ -782,7 +831,7 @@
           gameState,
           countryProximityBuffs,
           options,
-          road?.type ?? null
+          road
         );
         logProximityComputation([from, to], options, "Proximity cost modifiers", {
           proximityModifiers

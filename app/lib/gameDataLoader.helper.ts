@@ -1,11 +1,11 @@
 import { ParserHelper } from "@/app/lib/parser.helper";
 import { INewBuildingTemplate } from "@/app/lib/types/building";
 import {
+  BaseRoadRecord,
   ICountryData,
   ICountryModifierTemplate,
   ILocationDataMap,
   ILocationIdentifierMap,
-  RoadRecord,
 } from "@/app/lib/types/general";
 import { IProximityComputationRule } from "@/app/lib/types/proximityComputationRules";
 import { GameDataFileType } from "@/app/lib/types/versionsManifest";
@@ -18,7 +18,7 @@ export interface IGameDataParsedFiles {
   adjacencyCsv: string;
   proximityComputationRule: IProximityComputationRule;
   countriesDataMap: Record<string, ICountryData>;
-  roads: RoadRecord;
+  roads: BaseRoadRecord;
   countryModifiersTemplate: Record<string, ICountryModifierTemplate>;
 }
 
@@ -123,7 +123,7 @@ export class GameDataLoaderHelper {
             `Value: ${JSON.stringify(roadsJson).substring(0, 100)}`,
         );
       }
-      return ParserHelper.parseRoadFile(roadsJson) as RoadRecord;
+      return ParserHelper.parseRoadFile(roadsJson);
     },
   };
 
@@ -176,7 +176,7 @@ export class GameDataLoaderHelper {
       adjacencyCsv: string;
       proximityComputationRule: IProximityComputationRule;
       countriesDataMap: Record<string, ICountryData>;
-      roads: RoadRecord;
+      roads: BaseRoadRecord;
       countryModifiersTemplate: Record<string, ICountryModifierTemplate>;
     };
   }

@@ -1,81 +1,78 @@
-
 import { asRoadKey, RoadKey, RoadType } from "@/app/lib/types/roads";
 import {
+  BaseRoadRecord,
   IGameState,
+  ILocationIdentifier,
   RoadRecord,
 } from "./types/general";
+import { ObjectHelper } from "@/app/lib/object.helper";
 
 export class RoadsHelper {
+  public static buildOrderedRoadKey(
+    fromLocation: ILocationIdentifier,
+    toLocation: ILocationIdentifier,
+  ): RoadKey {
+    return asRoadKey(
+      fromLocation.localeCompare(toLocation) < 0
+        ? `${fromLocation}-${toLocation}`
+        : `${toLocation}-${fromLocation}`,
+    );
+  }
+
+  public static getRoads(
+    baseRoads: BaseRoadRecord,
+    stateRoads: RoadRecord,
+  ): BaseRoadRecord {
+    const result: BaseRoadRecord = {} as BaseRoadRecord;
+    for (const [key, type] of ObjectHelper.getTypedEntries(stateRoads)) {
+      if (type != null) result[key] = type;
+    }
+    for (const [key, type] of ObjectHelper.getTypedEntries(baseRoads)) {
+      if (!(key in result)) result[key] = type;
+    }
+    return result;
+  }
 
   public static getOwnedRoads(
     ownedLocations: IGameState["ownedLocations"],
-    roads: RoadRecord,
+    baseRoads: BaseRoadRecord,
+    stateRoads: RoadRecord,
   ): Record<RoadKey, RoadType> {
+    const resolved = this.getRoads(baseRoads, stateRoads);
     const ownedRoads: Record<RoadKey, RoadType> = {};
-    for (const [fromLocation] of Object.entries(ownedLocations)) {
-      const fromRoads = roads[fromLocation];
-      if (!fromRoads || fromRoads.length === 0) continue;
-      for (const { to: toLocation, type } of fromRoads) {
-        const key = asRoadKey(
-          fromLocation < toLocation
-            ? `${fromLocation}-${toLocation}`
-            : `${toLocation}-${fromLocation}`,
-        );
-        ownedRoads[key] = type;
-      }
+    for (const [key, type] of ObjectHelper.getTypedEntries(resolved)) {
+      const [from, to] = key.split("-");
+      if (!(from in ownedLocations) || !(to in ownedLocations)) continue;
+      ownedRoads[key] = type;
     }
     return ownedRoads;
   }
 
   public static areAllOwnedRoadsOfType(
     ownedLocations: IGameState["ownedLocations"],
-    roads: RoadRecord,
+    baseRoads: BaseRoadRecord,
+    stateRoads: RoadRecord,
     type: RoadType,
   ): boolean {
-    const ownedRoads = this.getOwnedRoads(ownedLocations, roads);
+    const ownedRoads = this.getOwnedRoads(
+      ownedLocations,
+      baseRoads,
+      stateRoads,
+    );
     const types = Object.values(ownedRoads);
     if (types.length === 0) return false;
     return types.every((t) => t === type);
   }
 
-  public static applyRoadTypeChange(
-    roads: RoadRecord,
-    key: RoadKey,
-    type: RoadType | null,
-  ): void {
-    const [locationA, locationB] = key.split("-");
-    if (!locationA || !locationB) {
-      throw new Error(`Invalid road key: ${key}`);
-    }
-    if (!type) {
-      const filteredA = (roads[locationA] ?? []).filter(
-        (road) => road.to !== locationB,
-      );
-      const filteredB = (roads[locationB] ?? []).filter(
-        (road) => road.to !== locationA,
-      );
-
-      if (filteredA.length > 0) {
-        roads[locationA] = filteredA;
-      } else {
-        delete roads[locationA];
-      }
-
-      if (filteredB.length > 0) {
-        roads[locationB] = filteredB;
-      } else {
-        delete roads[locationB];
-      }
-      return;
-    } else {
-      roads[locationA] = [
-        ...(roads[locationA] ?? []).filter((road) => road.to !== locationB),
-        { to: locationB, type, createdByUser: true },
-      ];
-      roads[locationB] = [
-        ...(roads[locationB] ?? []).filter((road) => road.to !== locationA),
-        { to: locationA, type, createdByUser: true },
-      ];
-    }
+  public static getRoad(
+    fromLocation: ILocationIdentifier,
+    toLocation: ILocationIdentifier,
+    baseRoads: BaseRoadRecord,
+    stateRoads: RoadRecord,
+  ): RoadType | null {
+    const key = this.buildOrderedRoadKey(fromLocation, toLocation);
+    const stateType = stateRoads[key];
+    if (stateType !== undefined) return stateType;
+    return baseRoads[key] ?? null;
   }
 }

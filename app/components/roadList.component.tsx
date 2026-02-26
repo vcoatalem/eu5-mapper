@@ -1,4 +1,5 @@
-import React, { useMemo, useSyncExternalStore } from "react";
+import React, { useContext, useMemo, useSyncExternalStore } from "react";
+import { AppContext } from "@/app/appContextProvider";
 import { gameStateController } from "@/app/lib/gameState.controller";
 import { RoadsHelper } from "../lib/roads.helper";
 import { StringHelper } from "../lib/utils/string.helper";
@@ -117,6 +118,7 @@ const RoadItem = React.memo(function RoadItem({
 });
 
 export function RoadList() {
+  const { gameData } = useContext(AppContext);
   const gameState = useSyncExternalStore(
     gameStateController.subscribe.bind(gameStateController),
     () => gameStateController.getSnapshot(),
@@ -124,10 +126,14 @@ export function RoadList() {
 
   const [search, setSearch] = React.useState<string | null>(null);
 
+  const baseRoads = gameData?.roads ?? {};
+  const stateRoads = gameState?.roads ?? {};
+
   const filteredRoadsEntries = useMemo(() => {
     const entries = RoadsHelper.getOwnedRoads(
       gameState?.ownedLocations ?? {},
-      gameState?.roads ?? {},
+      baseRoads,
+      stateRoads,
     );
     if (!search) {
       return entries;
@@ -150,16 +156,16 @@ export function RoadList() {
       }
     }
     return entries;
-  }, [search, gameState.ownedLocations, gameState.roads]);
+  }, [search, gameState?.ownedLocations, baseRoads, stateRoads]);
 
   const areAllRoadsOfType: Record<RoadType, boolean> = useMemo(() => {
     return {
-      gravel_road: RoadsHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, gameState.roads, "gravel_road"),
-      paved_road: RoadsHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, gameState.roads, "paved_road"),
-      modern_road: RoadsHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, gameState.roads, "modern_road"),
-      rail_road: RoadsHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, gameState.roads, "rail_road"),
-    }
-  }, [gameState.ownedLocations, gameState.roads]);
+      gravel_road: RoadsHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, baseRoads, stateRoads, "gravel_road"),
+      paved_road: RoadsHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, baseRoads, stateRoads, "paved_road"),
+      modern_road: RoadsHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, baseRoads, stateRoads, "modern_road"),
+      rail_road: RoadsHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, baseRoads, stateRoads, "rail_road"),
+    };
+  }, [gameState.ownedLocations, baseRoads, stateRoads]);
 
   if (!filteredRoadsEntries) return null;
   return (

@@ -1,11 +1,27 @@
-import { IConstructibleLocation, IGameData, IGameState, ILocationDataMap, ILocationGameData, ILocationIdentifier, ITemporaryLocationData, RoadRecord } from "./types/general";
+import { RoadsHelper } from "@/app/lib/roads.helper";
+import { ObjectHelper } from "@/app/lib/object.helper";
+import {
+  BaseRoadRecord,
+  IConstructibleLocation,
+  IGameState,
+  ILocationDataMap,
+  ILocationGameData,
+  ILocationIdentifier,
+  ITemporaryLocationData,
+  RoadRecord,
+} from "./types/general";
 
 export class LocationsHelper {
   public static locationHasRoad(
     location: ILocationIdentifier,
-    roads: RoadRecord,
+    baseRoads: BaseRoadRecord,
+    stateRoads: RoadRecord,
   ): boolean {
-    return !!roads[location] && roads[location].length > 0; // this works as long as RoadRecord stores both ways mapping
+    const resolved = RoadsHelper.getRoads(baseRoads, stateRoads);
+    return ObjectHelper.getTypedEntries(resolved).some(
+      ([key]) =>
+        key.split("-")[0] === location || key.split("-")[1] === location,
+    );
   }
 
   public static getLocationHarborSuitability(

@@ -1,11 +1,8 @@
-// do not import other files in this file
-
-import { RoadType } from "@/app/lib/types/roads";
+import { RoadKey, RoadType } from "@/app/lib/types/roads";
 import { IBuildingInstance, INewBuildingTemplate } from "./building";
 import { ICountryProximityBuffs, IProximityComputationRule } from "./proximityComputationRules";
 
 export type ILocationIdentifier = string; // location name
-
 
 export type LocationRank = "rural" | "town" | "city";
 
@@ -67,11 +64,9 @@ export interface IConstructibleLocation {
   buildings: Record<INewBuildingTemplate["name"], IBuildingInstance>;
 }
 
-export type RoadRecord = Record<
-  ILocationIdentifier,
-  Array<{ to: ILocationIdentifier; type: RoadType; createdByUser: boolean }>
->;
 
+export type BaseRoadRecord = Record<RoadKey, RoadType>;
+export type RoadRecord = Record<RoadKey, RoadType | null>;
 export interface ITemporaryLocationData {
   development?: number;
   population?: number;
@@ -140,5 +135,5 @@ export interface IGameData {
   buildingsTemplate: Record<string, INewBuildingTemplate>;
   proximityComputationRule: IProximityComputationRule;
   countriesDataMap: Record<string, ICountryData>; //TODO: move this outside of mandatory game data. Can be loaded only when needed, stored in indexedDB, and read by specific components that need it
-  roads: RoadRecord; // base roads initialized at the start of the game
+  roads: BaseRoadRecord; // base roads from parser; gameState.roads holds overrides (and null = deleted)
 }

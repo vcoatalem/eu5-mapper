@@ -26,6 +26,8 @@ import { Subject } from "./subject";
 import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
 import { editModeController } from "@/app/lib/editMode.controller";
 import { colorSearchController } from "@/app/lib/colorSeach.controller";
+import { ObjectHelper } from "@/app/lib/object.helper";
+import { RoadsHelper } from "@/app/lib/roads.helper";
 
 
 const canvasNames = ["areas", "constructibles", "roads", "indicators", "maritimePresences"] as const;
@@ -128,10 +130,10 @@ export class DrawingService {
     );
 
     this.reDraw.debounce(5).subscribe(() => {
-      for (const [canvasName, callback] of Object.entries(this.drawingCallbackBuffer)) {
+      for (const [canvasName, callback] of ObjectHelper.getTypedEntries(this.drawingCallbackBuffer)) {
         const missingCoordinates = callback() as ILocationIdentifier[];
         if (!missingCoordinates?.length) {
-          delete this.drawingCallbackBuffer[canvasName as CanvasName];     
+          delete this.drawingCallbackBuffer[canvasName];
         } else {
           this.reDraw.emit(new Date());
         }
@@ -253,6 +255,11 @@ export class DrawingService {
   }
 
   private drawRoads(gameState: IGameState): null {
+
+    if (!this.gameData) {
+      return null;
+    }
+
     this.canvasRecord["roads"].clearRect(
       0,
       0,
@@ -260,29 +267,27 @@ export class DrawingService {
       this.mapInfos.height,
     );
 
-    const allRoads = gameState.roads;
+    const resolvedRoads = RoadsHelper.getRoads(this.gameData.roads, gameState.roads);
+    const roadsToDraw = ObjectHelper.getTypedEntries(resolvedRoads);
 
     const drawCallbacks: Array<() => void> = [
       () => this.canvasRecord["roads"].beginPath(),
     ];
-    for (const [from, toLocations] of Object.entries(allRoads)) {
-      for (const { to, type } of toLocations) {
-        const fromCoordinates =
-          this.gameData?.locationDataMap[from].centerCoordinates;
-        const toCoordinates =
-          this.gameData?.locationDataMap[to].centerCoordinates;
-
-        if (fromCoordinates && toCoordinates) {
-          const roadColor = ColorHelper.getRoadHexColor(type);
-          drawCallbacks.push(() =>
-            DrawingHelper.drawLine(this.canvasRecord["roads"], {
-              canvasCoordFrom: fromCoordinates,
-              canvasCoordTo: toCoordinates,
-              lineWidth: 1,
-              color: roadColor,
-            }),
-          );
-        }
+    for (const [key, type] of roadsToDraw) {
+      const [from, to] = key.split("-");
+      const fromCoordinates =
+        this.gameData.locationDataMap[from].centerCoordinates;
+      const toCoordinates =
+        this.gameData.locationDataMap[to].centerCoordinates;
+      if (fromCoordinates && toCoordinates) {
+        const roadColor = ColorHelper.getRoadHexColor(type);
+        drawCallbacks.push(() =>
+          DrawingHelper.drawLine(this.canvasRecord["roads"], {
+            canvasCoordFrom: fromCoordinates,
+            canvasCoordTo: toCoordinates,
+            lineWidth: 1,
+            color: roadColor,
+          }));
       }
     }
     DrawingHelper.draw([this.canvasRecord["roads"]], drawCallbacks);

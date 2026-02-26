@@ -33,6 +33,14 @@ const baseCountryValues: ICountryInstance = {
   modifiers: {},
 };
 
+const baseGameState: IGameState = {
+  countryCode: null,
+  country: baseCountryValues,
+  roads: {},
+  ownedLocations: {},
+  temporaryLocationData: {},
+};
+
 export class GameStateController extends Observable<IGameState> {
   private gameData: IGameData | null = null;
 
@@ -44,11 +52,8 @@ export class GameStateController extends Observable<IGameState> {
   public init(gameData: IGameData): void {
     this.gameData = gameData;
     this.subject = {
-      countryCode: null,
+      ...baseGameState,
       country: baseCountryValues,
-      roads: gameData.roads,
-      ownedLocations: {},
-      temporaryLocationData: {},
     };
     this.notifyListeners();
   }
@@ -269,7 +274,7 @@ export class GameStateController extends Observable<IGameState> {
     this.subject = {
       countryCode: null,
       country: baseCountryValues,
-      roads: this.gameData?.roads || {},
+      roads: {},
       ownedLocations: {},
       temporaryLocationData: {},
     };
@@ -373,37 +378,39 @@ export class GameStateController extends Observable<IGameState> {
     this.notifyListeners();
   }
 
-  public changeRoadType(key: RoadKey, type: RoadType | null): void {
-    const roadsCopy: IGameState["roads"] = {};
-    for (const [loc] of Object.keys(this.subject.roads)) {
-      roadsCopy[loc] = [...this.subject.roads[loc]];
+  public changeRoadType(key: RoadKey, type: RoadType | null, notify: boolean = true): void {
+    const [from, to] = key.split("-");
+    const canonicalKey = RoadsHelper.buildOrderedRoadKey(from, to);
+    this.subject.roads = { ...this.subject.roads, [canonicalKey]: type };
+    if (notify) {
+      this.notifyListeners();
     }
-    RoadsHelper.applyRoadTypeChange(roadsCopy, key, type);
-    this.subject.roads = roadsCopy;
-    this.notifyListeners();
   }
 
   public changeRoadTypeBulk(
-    changes: Array<{ key: RoadKey; type: RoadType | null }>,
+    changes:  Array<{ key: RoadKey; type: RoadType | null }>,
   ): void {
-    const roads: IGameState["roads"] = {};
-    for (const loc of Object.keys(this.subject.roads)) {
-      roads[loc] = [...this.subject.roads[loc]];
-    }
+    const roads: IGameState["roads"] = { ...this.subject.roads };
     for (const { key, type } of changes) {
-      RoadsHelper.applyRoadTypeChange(roads, key, type);
+      const [from, to] = key.split("-");
+      roads[RoadsHelper.buildOrderedRoadKey(from, to)] = type;
     }
     this.subject.roads = roads;
     this.notifyListeners();
   }
 
   public changeAllOwnedRoadsToType(type: RoadType): void {
-    const roads = RoadsHelper.getOwnedRoads(
+    const baseRoads = this.gameData?.roads ?? ({} as IGameData["roads"]);
+    const ownedRoads = RoadsHelper.getOwnedRoads(
       this.subject.ownedLocations,
+      baseRoads,
       this.subject.roads,
     );
     this.changeRoadTypeBulk(
-      ObjectHelper.getTypedEntries(roads).map(([key, type]) => ({ key, type })),
+      ObjectHelper.getTypedEntries(ownedRoads).map(([key]) => ({
+        key,
+        type,
+      })),
     );
   }
 

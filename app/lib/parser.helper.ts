@@ -1,5 +1,6 @@
 import { CompactGraph } from "./graph";
-import { RoadRecord } from "./types/general";
+import { RoadsHelper } from "./roads.helper";
+import { BaseRoadRecord, ILocationIdentifier } from "./types/general";
 import { EdgeType } from "./types/pathfinding";
 
 export class ParserHelper {
@@ -47,29 +48,12 @@ export class ParserHelper {
     return graph;
   }
 
-  // jsonContent should be an array of [from, to] pairs
-  static parseRoadFile(jsonContent: any): RoadRecord {
-    const roadRecord: RoadRecord = {};
+  // jsonContent should be an array of [from, to] pairs. One canonical key per road (buildOrderedRoadKey).
+  static parseRoadFile(jsonContent: any): BaseRoadRecord {
+    const roadRecord: BaseRoadRecord = {} as BaseRoadRecord;
 
-    for (const roadEntry of jsonContent) {
-      const [from, to] = roadEntry;
-      if (roadRecord[from] === undefined) {
-        roadRecord[from] = [];
-      }
-      if (roadRecord[to] === undefined) {
-        // doubling the size of the road record allows us to have O(1) lookups for both directions
-        roadRecord[to] = [];
-      }
-      roadRecord[from].push({
-        to: to,
-        type: "gravel_road",
-        createdByUser: false,
-      });
-      roadRecord[to].push({
-        to: from,
-        type: "gravel_road",
-        createdByUser: false,
-      });
+    for (const [from, to] of jsonContent as [ILocationIdentifier, ILocationIdentifier][]) {
+      roadRecord[RoadsHelper.buildOrderedRoadKey(from, to)] = "gravel_road";
     }
     return roadRecord;
   }

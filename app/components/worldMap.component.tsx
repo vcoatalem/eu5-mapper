@@ -912,7 +912,7 @@ export function WorldMapComponent() {
             }}
           >
             <div className="pointer-events-auto">
-              <NeighborsPanelComponent locationName={selectedLocation!} />
+              <NeighborsPanelComponent baseLocation={selectedLocation!} />
             </div>
           </TooltipContent>
         </Tooltip>

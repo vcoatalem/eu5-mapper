@@ -9,20 +9,20 @@ import { useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncE
 
 const CANVAS_WIDTH = 400;
 const CANVAS_HEIGHT = 200;
-const VIEW_W = 1200;
-const VIEW_H = 600;
 
 /** Transforms a world map coordinate to canvas pixel. Returns null if outside the minimap viewport. */
 function worldToCanvas(
   worldX: number,
   worldY: number,
   capitalX: number,
-  capitalY: number
+  capitalY: number,
+  viewW: number,
+  viewH: number,
 ): { x: number; y: number } | null {
-  const sx = capitalX - VIEW_W / 2;
-  const sy = capitalY - VIEW_H / 2;
-  const px = ((worldX - sx) / VIEW_W) * CANVAS_WIDTH;
-  const py = ((worldY - sy) / VIEW_H) * CANVAS_HEIGHT;
+  const sx = capitalX - viewW / 2;
+  const sy = capitalY - viewH / 2;
+  const px = ((worldX - sx) / viewW) * CANVAS_WIDTH;
+  const py = ((worldY - sy) / viewH) * CANVAS_HEIGHT;
   if (px < 0 || px >= CANVAS_WIDTH || py < 0 || py >= CANVAS_HEIGHT) {
     return null;
   }
@@ -33,6 +33,8 @@ interface ICountrySelectionMinimapProps {
   capitalLocation: ILocationIdentifier;
   countryLocations: ILocationIdentifier[];
   className?: string;
+  viewW: number;
+  viewH: number;
 }
 
 export function CountrySelectionMinimap(props: ICountrySelectionMinimapProps) {
@@ -84,8 +86,7 @@ export function CountrySelectionMinimap(props: ICountrySelectionMinimapProps) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const viewW = 1200;
-    const viewH = 600;
+    const { viewW, viewH } = props;
 
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -113,7 +114,7 @@ export function CountrySelectionMinimap(props: ICountrySelectionMinimapProps) {
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(img, srcX, srcY, srcW, srcH, dstX, dstY, dstW, dstH);
-  }, [capitalCoordinates]);
+  }, [capitalCoordinates, props]);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -156,12 +157,12 @@ export function CountrySelectionMinimap(props: ICountrySelectionMinimapProps) {
     const { x: cx, y: cy } = capitalCoordinates;
     ctx.fillStyle = "#ffffff";
     for (const coord of coordinatesToColor) {
-      const pixel = worldToCanvas(coord.x, coord.y, cx, cy);
+      const pixel = worldToCanvas(coord.x, coord.y, cx, cy, props.viewW, props.viewH);
       if (pixel) {
         ctx.fillRect(pixel.x, pixel.y, 1, 1);
       }
     }
-  }, [coordinatesToColor, capitalCoordinates]);
+  }, [coordinatesToColor, capitalCoordinates, props.viewW, props.viewH]);
 
   return (
     <div className={`${props.className} block relative`} style={{ width: `${CANVAS_WIDTH}px`, height: `${CANVAS_HEIGHT}px` }}>

@@ -36,7 +36,7 @@ export function CountrySelectionModal() {
     );
   }, [selectedCountry, gameData?.countriesDataMap]);
 
-  useEffect(() => { 
+  useEffect(() => {
     setFlagLoaded(false);
     const flagImg = new Image();
     flagImg.onload = () => {
@@ -58,13 +58,7 @@ export function CountrySelectionModal() {
           modal.close();
         }}
       ></CountrySelectionList>
-      <div className="w-full py-1 flex flex-col h-full items-center max-w-[400px] ml-auto mr-8 mt-4">
-        <div className="w-full text-center text-lg font-bold rounded-md">
-          {selectedCountry
-            ? gameData?.countriesDataMap[selectedCountry]?.name
-            : ""}
-        </div>
-
+      <div className="w-full py-1 flex flex-col h-full items-center max-w-[400px] mt-4 mx-auto">
         <div className="w-full flex flex-center items-center text-stone-500 block">
           {selectedCountry && countryHasFlag ? (
             flagLoaded ? (
@@ -84,11 +78,22 @@ export function CountrySelectionModal() {
         </div>
 
         {capitalLocation && (
-          <CountrySelectionMinimap
-            className="w-full bg-black py-2 justify-self-center mx-auto"
-            capitalLocation={capitalLocation}
-            countryLocations={countryLocations}
-          ></CountrySelectionMinimap>
+          <>
+            <CountrySelectionMinimap
+              className="w-full bg-black py-2 justify-self-center mx-auto"
+              capitalLocation={capitalLocation}
+              countryLocations={countryLocations}
+              viewW={3600}
+              viewH={1800}
+            ></CountrySelectionMinimap>
+            <CountrySelectionMinimap
+              className="w-full bg-black py-2 justify-self-center mx-auto"
+              capitalLocation={capitalLocation}
+              countryLocations={countryLocations}
+              viewW={1200}
+              viewH={600}
+            ></CountrySelectionMinimap>
+          </>
         )}
       </div>
     </div>

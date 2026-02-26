@@ -265,8 +265,6 @@ export function NeighborsPanelComponent({ baseLocation }: NeighborsPanelProps) {
   }, [gameData, gameState, baseLocation]);
 
 
-  console.log("[NeighborsPanelComponent] editModeState", editModeState);
-
   if (!gameData) {
     return null;
   }

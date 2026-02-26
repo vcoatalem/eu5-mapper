@@ -94,7 +94,7 @@ export const ActionSource = React.forwardRef(function ActionSource<
     ref?: React.Ref<T>;
   }>;
   const combinedRef = mergeRefs(
-    (child as any).ref as React.Ref<T> | undefined,
+    child.props.ref as React.Ref<T> | undefined,
     internalRef,
     ref as React.Ref<T>,
   );

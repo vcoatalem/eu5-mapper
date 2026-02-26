@@ -65,8 +65,6 @@ const NeighborPanelListItemRoadMode = memo(function NeighborPanelListItemBuildMo
     return null;
   }
 
-  const neighborVegetation = gameData.locationDataMap[neighborLocation]?.vegetation ?? null;
-  const vegetationProximityModifier = gameData.proximityComputationRule.vegetation?.[neighborVegetation as Exclude<Vegetation, null>]?.value ?? 0;
 
   return (
 
@@ -74,7 +72,7 @@ const NeighborPanelListItemRoadMode = memo(function NeighborPanelListItemBuildMo
       <div
         key={neighborLocation}
         className={
-          " grid grid-cols-3 items-center justify-between py-1 px-2 hover:bg-stone-800/50 rounded "
+          " flex flex-row items-center justify-between py-1 px-2 hover:bg-stone-800/50 rounded "
         }
       >
         <ActionSource
@@ -83,21 +81,11 @@ const NeighborPanelListItemRoadMode = memo(function NeighborPanelListItemBuildMo
         >
           <span
             className={
-              " truncate col-span-1 cursor-pointer flex flex-row items-center gap-1 "
+              " truncate shrink-0 cursor-pointer flex flex-row items-center gap-1 "
             }
             ref={spanRef}
           >
             {StringHelper.formatLocationName(neighborLocation)}
-            {vegetationProximityModifier ? (
-              <Tooltip config={{ preferredHorizontal: "left", preferredVertical: "bottom" }}>
-                <TooltipTrigger>
-                  <Image src={getVegetationIcon(neighborVegetation)} alt={neighborVegetation ?? ""} width={16} height={16} />
-                </TooltipTrigger>
-                <TooltipContent anchor={{ type: "dom", ref: spanRef }}>
-                  <p className="max-w-54"><b>{neighborVegetation}</b> in <b>{StringHelper.formatLocationName(neighborLocation)}</b> adds a {vegetationProximityModifier}% proximity modifier unless a road is built towards it.</p>
-                </TooltipContent>
-              </Tooltip>
-            ) : <></>}
             {through === "river" ? (
               <Tooltip config={{ preferredHorizontal: "left", preferredVertical: "bottom" }}>
                 <TooltipTrigger>
@@ -105,14 +93,14 @@ const NeighborPanelListItemRoadMode = memo(function NeighborPanelListItemBuildMo
                   </BiWater>
                 </TooltipTrigger>
                 <TooltipContent anchor={{ type: "dom", ref: spanRef }}>
-                  <p className="max-w-54"><b>{StringHelper.formatLocationName(baseLocation)}</b> and <b>{StringHelper.formatLocationName(neighborLocation)}</b> are connected by a river. <br/>Roads do not impact the flat cost of transportation between them.</p>
+                  <p className="max-w-54"><b>{StringHelper.formatLocationName(baseLocation)}</b> and <b>{StringHelper.formatLocationName(neighborLocation)}</b> are connected by a river. <br />Roads do not impact the flat cost of transportation between them.</p>
                 </TooltipContent>
               </Tooltip>
             ) : <></>}
           </span>
         </ActionSource>
 
-        <span className="ml-2 col-span-1">
+        <span className="ml-auto">
           {["pending", "needs_update"].includes(computationStatus) && <Loader size={10}></Loader>}
           {computationStatus === "error" && "error"}
           {computationStatus === "completed" && (
@@ -120,9 +108,7 @@ const NeighborPanelListItemRoadMode = memo(function NeighborPanelListItemBuildMo
           )}
         </span>
 
-        <span className="col-span-1 pl-2">
-          <RoadStepper roadKey={RoadsHelper.buildOrderedRoadKey(baseLocation, neighborLocation)} roadType={road} />
-        </span>
+        <RoadStepper className="" roadKey={RoadsHelper.buildOrderedRoadKey(baseLocation, neighborLocation)} roadType={road} />
 
       </div>
     </ActionSource>
@@ -182,6 +168,7 @@ interface NeighborsPanelProps {
 export function NeighborsPanelComponent({ baseLocation }: NeighborsPanelProps) {
 
   const gameData = useContext(AppContext).gameData;
+  const locationNameRef = useRef<HTMLDivElement>(null);
   const { computationResults } = useSyncExternalStore(
     debouncedNeighborsProximityComputationController.subscribe.bind(
       debouncedNeighborsProximityComputationController,
@@ -269,6 +256,9 @@ export function NeighborsPanelComponent({ baseLocation }: NeighborsPanelProps) {
     return null;
   }
 
+  const vegetationAtLocation = gameData.locationDataMap[baseLocation]?.vegetation ?? null;
+  const vegetationProximityModifier = vegetationAtLocation ? gameData.proximityComputationRule.vegetation?.[vegetationAtLocation]?.value ?? 0 : 0;
+
   return (
     <div
       className={
@@ -277,7 +267,8 @@ export function NeighborsPanelComponent({ baseLocation }: NeighborsPanelProps) {
       }
     >
       <div className="w-full flex flex-row items-center mb-2">
-        <div className="font-semibold text-stone-300">{baseLocation ? StringHelper.formatLocationName(baseLocation) : ""}</div>
+        <div ref={locationNameRef} className="font-semibold text-stone-300">{baseLocation ? StringHelper.formatLocationName(baseLocation) : ""}</div>
+
         {baseLocation in globalProximityResult.result && (
           <span className="ml-4">
             {["pending", "updating"].includes(globalProximityResult.status) && <Loader size={10}></Loader>}
@@ -291,6 +282,16 @@ export function NeighborsPanelComponent({ baseLocation }: NeighborsPanelProps) {
             )}
           </span>
         )}
+        {vegetationProximityModifier && roadEditState.isModeEnabled ? (
+          <Tooltip config={{ preferredHorizontal: "left", preferredVertical: "bottom" }}>
+            <TooltipTrigger>
+              <Image className="ml-2" src={getVegetationIcon(vegetationAtLocation)} alt={vegetationAtLocation ?? ""} width={16} height={16} />
+            </TooltipTrigger>
+            <TooltipContent anchor={{ type: "dom", ref: locationNameRef }}>
+              <p className="max-w-54"><b>{vegetationAtLocation}</b> in <b>{StringHelper.formatLocationName(baseLocation)}</b> adds a {vegetationProximityModifier}% proximity modifier to destinations not connected by a road.</p>
+            </TooltipContent>
+          </Tooltip>
+        ) : <></>}
         {
           editModeState.modeEnabled !== "acquire" && (
             <button

@@ -53,6 +53,7 @@ export function RoadStepper({ roadKey, roadType, className }: IRoadStepperProps)
     >
 
         <ButtonWithTooltip
+          className="ml-auto"
           disabled={roadType === null}
           tooltip={downgradeType ? "Downgrade road to " + downgradeType : "destroy road"}
           onClick={() =>

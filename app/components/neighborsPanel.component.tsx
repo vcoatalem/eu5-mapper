@@ -17,7 +17,7 @@ import { ActionSource } from "../lib/actionSource.component";
 import { getGuiImage } from "../lib/drawing/namedGuiImagesMap.const";
 import { debouncedProximityComputationController } from "../lib/proximityComputation.controller";
 import { ProximityComputationHelper } from "../lib/proximityComputation.helper";
-import { ILocationIdentifier, RoadType } from "../lib/types/general";
+import { ILocationIdentifier } from "../lib/types/general";
 import { EdgeType } from "../lib/types/pathfinding";
 import { FormatedProximityCost } from "./formatedProximityCost.component";
 import { Loader } from "./loader.component";
@@ -29,6 +29,7 @@ import { validateFloatInRange } from "@/app/lib/utils/editableFieldValidation.he
 import styles from "@/app/styles/button.module.css";
 import { ColorHelper } from "@/app/lib/drawing/color.helper";
 import { FormattedProximityWithPathfindingTooltip } from "@/app/components/formattedProximityWithPathfindingTooltip.component";
+import { asRoadKey, RoadType } from "@/app/lib/types/roads";
 
 const NeighborPanelListItem = memo(function NeighborPanelListItem({
   baseLocation,
@@ -50,16 +51,11 @@ const NeighborPanelListItem = memo(function NeighborPanelListItem({
   isRoadBuildingMode: boolean;
 }) {
   const handleRoadChange = useCallback(() => {
+    const key = asRoadKey(`${baseLocation}-${neighborLocation}`);
     if (road) {
-      gameStateController.changeRoadType(
-        `${baseLocation}-${neighborLocation}`,
-        null,
-      );
+      gameStateController.changeRoadType(key, null);
     } else {
-      gameStateController.changeRoadType(
-        `${baseLocation}-${neighborLocation}`,
-        "gravel_road",
-      );
+      gameStateController.changeRoadType(key, "gravel_road");
     }
     neighborsProximityComputationController.launchGetNeighborsProximity(
       baseLocation,

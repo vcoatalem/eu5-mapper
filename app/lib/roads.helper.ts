@@ -1,9 +1,8 @@
 
+import { asRoadKey, RoadKey, RoadType } from "@/app/lib/types/roads";
 import {
   IGameState,
-  ILocationIdentifier,
   RoadRecord,
-  RoadType,
 } from "./types/general";
 
 export class RoadsHelper {
@@ -11,17 +10,17 @@ export class RoadsHelper {
   public static getOwnedRoads(
     ownedLocations: IGameState["ownedLocations"],
     roads: RoadRecord,
-  ): Record<string, RoadType> {
-    // key is `${ILocationIdentifierFrom}-${ILocationIdentifierTo}`
-    const ownedRoads: Record<ILocationIdentifier, RoadType> = {};
+  ): Record<RoadKey, RoadType> {
+    const ownedRoads: Record<RoadKey, RoadType> = {};
     for (const [fromLocation] of Object.entries(ownedLocations)) {
       const fromRoads = roads[fromLocation];
       if (!fromRoads || fromRoads.length === 0) continue;
       for (const { to: toLocation, type } of fromRoads) {
-        const key =
+        const key = asRoadKey(
           fromLocation < toLocation
             ? `${fromLocation}-${toLocation}`
-            : `${toLocation}-${fromLocation}`;
+            : `${toLocation}-${fromLocation}`,
+        );
         ownedRoads[key] = type;
       }
     }
@@ -41,7 +40,7 @@ export class RoadsHelper {
 
   public static applyRoadTypeChange(
     roads: RoadRecord,
-    key: string,
+    key: RoadKey,
     type: RoadType | null,
   ): void {
     const [locationA, locationB] = key.split("-");

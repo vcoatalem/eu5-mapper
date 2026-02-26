@@ -1,4 +1,5 @@
 import { AppContext } from "@/app/appContextProvider";
+import { ObjectHelper } from "@/app/lib/object.helper";
 import { IBuildingInstance } from "@/app/lib/types/building";
 import { useContext } from "react";
 
@@ -22,7 +23,7 @@ export function BuildingDescription(props: BuildingDescriptionProps) {
       <hr></hr>
       <p>This building yields the following modifiers to this location:</p>
       <ul>
-        {Object.entries(buildingTemplate.modifiers).map(([modKey, modValue]) => {
+        {ObjectHelper.getTypedEntries(buildingTemplate.modifiers).map(([modKey, modValue]) => {
           return (
             <li key={modKey}>
               <span className="font-bold">{modKey}:</span>

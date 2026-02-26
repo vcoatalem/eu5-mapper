@@ -9,7 +9,6 @@ import {
   ILocationGameData,
   ILocationIdentifier,
   ITemporaryLocationData,
-  RoadType,
 } from "./types/general";
 import {
   CostFunction,
@@ -22,6 +21,7 @@ import {
   ICountryProximityBuffs,
   IProximityComputationRule,
 } from "./types/proximityComputationRules";
+import { RoadType } from "@/app/lib/types/roads";
 
 /** Only this key is applied as percentageMultiplier (cost *= 1 + value/100); all other percentage modifiers are additive (percentageIncrease). */
 const HARBOR_CAPACITY_MODIFIER_KEY = "harborCapacityImpact";

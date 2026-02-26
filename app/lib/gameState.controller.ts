@@ -18,9 +18,10 @@ import {
   IGameState,
   ILocationIdentifier,
   ITemporaryLocationData,
-  RoadType,
 } from "./types/general";
 import { ICountryProximityBuffs } from "@/app/lib/types/proximityComputationRules";
+import { ObjectHelper } from "@/app/lib/object.helper";
+import { RoadKey, RoadType } from "@/app/lib/types/roads";
 
 const baseCountryValues: ICountryInstance = {
   templateData: null,
@@ -372,9 +373,9 @@ export class GameStateController extends Observable<IGameState> {
     this.notifyListeners();
   }
 
-  public changeRoadType(key: string, type: RoadType | null): void {
+  public changeRoadType(key: RoadKey, type: RoadType | null): void {
     const roadsCopy: IGameState["roads"] = {};
-    for (const loc of Object.keys(this.subject.roads)) {
+    for (const [loc] of Object.keys(this.subject.roads)) {
       roadsCopy[loc] = [...this.subject.roads[loc]];
     }
     RoadsHelper.applyRoadTypeChange(roadsCopy, key, type);
@@ -383,7 +384,7 @@ export class GameStateController extends Observable<IGameState> {
   }
 
   public changeRoadTypeBulk(
-    changes: Array<{ key: string; type: RoadType | null }>,
+    changes: Array<{ key: RoadKey; type: RoadType | null }>,
   ): void {
     const roads: IGameState["roads"] = {};
     for (const loc of Object.keys(this.subject.roads)) {
@@ -402,7 +403,7 @@ export class GameStateController extends Observable<IGameState> {
       this.subject.roads,
     );
     this.changeRoadTypeBulk(
-      Object.entries(roads).map(([key]) => ({ key, type })),
+      ObjectHelper.getTypedEntries(roads).map(([key, type]) => ({ key, type })),
     );
   }
 

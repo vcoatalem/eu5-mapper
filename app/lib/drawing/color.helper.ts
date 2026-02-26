@@ -1,4 +1,4 @@
-import { RoadType } from "../types/general";
+import { RoadType } from "@/app/lib/types/roads";
 import { greenToRedGradient } from "./greenToRedGradient.const";
 
 export const defaultAreaColor = "#d0d0d0";

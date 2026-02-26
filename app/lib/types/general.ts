@@ -1,16 +1,13 @@
 // do not import other files in this file
 
+import { RoadType } from "@/app/lib/types/roads";
 import { IBuildingInstance, INewBuildingTemplate } from "./building";
 import { ICountryProximityBuffs, IProximityComputationRule } from "./proximityComputationRules";
 
 export type ILocationIdentifier = string; // location name
 
+
 export type LocationRank = "rural" | "town" | "city";
-export type RoadType =
-  | "gravel_road"
-  | "paved_road"
-  | "modern_road"
-  | "rail_road";
 
 export type Topography =
   | "unknown"

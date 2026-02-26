@@ -18,6 +18,8 @@ import { FaCheckSquare } from "react-icons/fa";
 import { FaArrowUp, FaPlus, FaSquare } from "react-icons/fa6";
 import { FiDelete } from "react-icons/fi";
 import posthog from 'posthog-js'
+import { BuffsHelper } from "@/app/lib/buffs.helper";
+import { ObjectHelper } from "@/app/lib/object.helper";
 
 interface ICountryModifiersModal {
   onClose: () => void;
@@ -127,7 +129,7 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
     if (!gameState.country) {
       return;
     }
-    gameStateController.changeCountryModifier(name, { description: description ?? "", buff: buff as ICountryProximityBuffs, enabled: true });
+    gameStateController.changeCountryModifier(name, { description: description ?? "", buff, enabled: true });
     queueMicrotask(() => {
       setCountryModifiersOpen(true);
       setSelectedModifier(null);
@@ -289,12 +291,9 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
                       <p className="text-stone-400 text-sm">{showcasedModifier.description}</p>
                     )}
                     <hr className="w-full border-stone-600 border-b-1 flex-0 my-2"></hr>
-                    {showcasedModifier.buff && Object.entries(showcasedModifier.buff).map(([buffKeyStr, buffData]) => {
-                      const buffKey = buffKeyStr as keyof ICountryProximityBuffs;
-                      if (!buffKey) return;
+                    {showcasedModifier.buff && ObjectHelper.getTypedEntries(showcasedModifier.buff).map(([buffKey, buffData]) => {
                       return <BuffDisplay key={buffKey} buffKey={buffKey} buffValue={buffData} />
-                    }
-                    )}
+                    })}
                   </>
                 )) || <></>
             }

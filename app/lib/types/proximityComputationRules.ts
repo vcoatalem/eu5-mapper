@@ -1,4 +1,5 @@
-import { RoadType, Topography, Vegetation } from "./general";
+import { RoadType } from "@/app/lib/types/roads";
+import { Topography, Vegetation } from "./general";
 
 export interface ICountryProximityBuffs {
   genericModifier?: number;

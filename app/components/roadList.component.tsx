@@ -2,7 +2,6 @@ import React, { useMemo, useSyncExternalStore } from "react";
 import { gameStateController } from "@/app/lib/gameState.controller";
 import { RoadsHelper } from "../lib/roads.helper";
 import { StringHelper } from "../lib/utils/string.helper";
-import { RoadType } from "../lib/types/general";
 import { getGuiImage } from "../lib/drawing/namedGuiImagesMap.const";
 import { ActionSource } from "../lib/actionSource.component";
 import Image from "next/image";
@@ -13,14 +12,14 @@ import buttonStyles from "../styles/button.module.css";
 import { IoSearch } from "react-icons/io5";
 import { FaAnglesDown, FaAnglesUp } from 'react-icons/fa6';
 import { Popover } from "@/app/lib/popover/popover.component";
-
-interface IRoadListProps { }
+import { ObjectHelper } from "@/app/lib/object.helper";
+import { allRoadTypes, asRoadKey, RoadKey, RoadType } from "@/app/lib/types/roads";
 
 const RoadItem = React.memo(function RoadItem({
   roadKey,
   type,
 }: {
-  roadKey: `${string}-${string}`;
+  roadKey: RoadKey;
   type: RoadType;
 }) {
   const spanRef = React.useRef<HTMLSpanElement>(null);
@@ -117,7 +116,7 @@ const RoadItem = React.memo(function RoadItem({
   );
 });
 
-export function RoadList(props: IRoadListProps) {
+export function RoadList() {
   const gameState = useSyncExternalStore(
     gameStateController.subscribe.bind(gameStateController),
     () => gameStateController.getSnapshot(),
@@ -134,7 +133,7 @@ export function RoadList(props: IRoadListProps) {
       return entries;
     }
 
-    for (const [key] of Object.entries(entries)) {
+    for (const [key] of ObjectHelper.getTypedEntries(entries)) {
       const [from, to] = key.split("-");
       const fromContains = StringHelper.isInSearchQuery(from, search);
       const toContains = StringHelper.isInSearchQuery(to, search);
@@ -146,7 +145,7 @@ export function RoadList(props: IRoadListProps) {
       } else if (keyMatched === "to") {
         const type = entries[key];
         delete entries[key];
-        const newKey = `${to}-${from}`;
+        const newKey = asRoadKey(`${to}-${from}`);
         entries[newKey] = type;
       }
     }
@@ -185,19 +184,19 @@ export function RoadList(props: IRoadListProps) {
             </button>
           )}
         >
-          {(["gravel_road", "paved_road", "modern_road", "rail_road"] as RoadType[]).map((type) => (
+          {allRoadTypes.map((type) => (
             <button key={type} className={`${buttonStyles.simpleButton} ${areAllRoadsOfType[type] ? buttonStyles.buttonActive : ""}`} onClick={() => gameStateController.changeAllOwnedRoadsToType(type)}>{type}</button>
           ))}
         </Popover>
       </div>
       <hr className="mt-2 mb-1"></hr>
       <div>
-        {Object.entries(filteredRoadsEntries)
+        {ObjectHelper.getTypedEntries(filteredRoadsEntries)
           .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
           .map(([key, type]) => (
             <RoadItem
               key={key}
-              roadKey={key as `${string}-${string}`}
+              roadKey={key}
               type={type}
             />
           ))}

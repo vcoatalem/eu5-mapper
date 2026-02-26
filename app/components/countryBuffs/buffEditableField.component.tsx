@@ -25,7 +25,7 @@ export function IBuffEditableField(props: IBuffEditableFieldProps) {
           </TooltipTrigger>
           <TooltipContent anchor={{ type: "dom", ref: labelDivRef as React.RefObject<HTMLElement> }}>
             <div className="max-w-96 flex flex-row items-center">
-              <span dangerouslySetInnerHTML={{ __html: props.buffDisplayableData.description }} />
+              <span dangerouslySetInnerHTML={{ __html: props.buffDisplayableData.valueDefinition.description }} />
             </div>
           </TooltipContent>
         </Tooltip>

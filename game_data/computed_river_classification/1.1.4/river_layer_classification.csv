@@ -774,7 +774,7 @@ chao,good result,huacatambo|ferrol_bay
 wielun,good result,sieradz|brzeznica
 saw,good result,pakokku|pagan|salay|salin
 posio,good result,kemijarvi|korvala|yli_kitka|kuusamo
-gannata_giyorgis,good result,tadbaba|debre_libanos|dima|debra_warq
+gannata_giyorgis,good result,tadbaba|dima|debra_warq,|debre_libanos displayed as river in game but counted as land
 kaxixo,good result,cataguases|pinheiro|sabarabucu|goianas|ye
 rudrapur_kumaon,good result,champavati|kanchapur
 saalfeld,good result,gera|arnstadt
@@ -1400,7 +1400,7 @@ castelo_branco,good result,idanha|crato|portalegre
 caniapiscau,good result,mistanipi|lake_caniapiscau
 deti,good result,gana|makgadikgadi|yeyi
 khannya,good result,iyesyak
-debre_libanos,good result,gannata_giyorgis|wej|dima
+debre_libanos,good result,wej|dima,gannata_giyorgis| displayed as river in game but counted as land
 pirna,good result,dresden|decin
 wapsipinicon,good result,ahsenisiipi|pecatonica|pecatonica_wi|coiracoentanon|penaca
 casalmaggiore,good result,ye|parma|ely|guastalla|cremona
@@ -4878,7 +4878,7 @@ noto_ussuri,good result,namunka|yiman
 naococane,good result,ia|nichicun|wahemen|fez|otish_mountains|ou|ann|lake_naococane
 kirira,good result,kilemba|molundu|lake_kisale|msassa
 pop_fargana,good result,akhsikath|asht|kokand|goa
-sharka,good result,ankober|gendebelo|barara
+sharka,good result,ankober|gendebelo,|barara showed as river in game but counted as land
 garu,good result,wanuco_marka|chiquia|ou
 kahta,good result,gerger|samsat|urfa|siverek
 artanuji,good result,panaskerti|parkhali|khupati
@@ -6124,7 +6124,7 @@ hulu_kinabatangan,good result,epe|kuamut|lokan
 buriti,good result,kayapo|itapiracaba|akwen|anais
 sulomay,good result,selo_yartsevo
 lyubichi,good result,perevitska|kazari
-barara,good result,sharka|ziqwala
+barara,good result,sharka,|ziqwala displayed as river in game but counted as land
 rasyal,good result,bhimber|banihal
 tornea,good result,ranea|hienatiemi|kiemi|rovaniemi|gulf_of_bothnia
 dioumara,good result,kolokani
@@ -6380,7 +6380,7 @@ cantona,good result,mariame|aranama|ia|yojuane|abe|toho|ou|sana_tx|ath|prum
 kuchaky,good result,ia|boe|delinde|markhaya_trail
 shipastouk,good result,natastan|lake_mistassini
 tugumlepen,good result,atanagunypacam|coospacam
-gendebelo,good result,nora_eth|sharka
+gendebelo,good result,nora_eth,|sharka displayed as river in game but counted as land
 nikolsky,good result,kutarka|sernur
 benesov,good result,pisek
 ocanga,good result,cundi|cuango
@@ -7167,7 +7167,7 @@ holtalen,good result,tynset|roros|meraker|s_jamtland_wasteland
 igiugig,good result,qarr_unaq|akokpaq|kvichak_bay
 lunan,good result,xisha|luliang|yiliang
 novhorod_siverskyi,good result,verba|voronizh_chernihiv|trubchevsk
-ankober,good result,nora_eth|sharka
+ankober,good result,sharka,|nora_eth - displayed as river not counted as such
 braine,good result,soissons|roucy
 nariele,good result,ia|libonta|ia|linyanti|kaonde|ia|sekkosi
 bashukulumbwe,good result,kafuta
@@ -9709,7 +9709,7 @@ altaikha,good result,bari|ars|boe|siberian_forests_4|wa|ia
 aim_mocoylek,good result,lalek_cotaa|quisquisacate|karendo
 achaka,good result,ia|kolymskoie|omoloon|xalima|kolyma_river
 aragua,good result,ani|ye|wa|cura|ia|ia
-alexandria,good result,eso|arabi|lake_maryut|damanhur|ramsis|rashid
+alexandria,good result,arabs_gulf|lake_maryut|damanhur|ramsis|rashid
 amisk_sipi,good result,pimicaskewyashik|ia|amiskwaciwiy|amisk_sakahikan|kawatinook
 aror,good result,nawakot|bijnot|derawar|omerkot|ghotki
 akure,good result,owo|ondo|ughoton|mahin|uromi

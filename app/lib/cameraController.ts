@@ -1,9 +1,8 @@
+import { LocationsHelper } from "@/app/lib/locations.helper";
 import { RefObject } from "react";
 import { Observable } from "./observable";
-import { gameStateController } from "./gameState.controller";
-import { DrawingHelper } from "./drawing/drawing.helper";
+import type { IGameData } from "./types/general";
 import { ICoordinate, ILocationIdentifier } from "./types/general";
-import type { ILocationDataMap } from "./types/general";
 
 export const zoomLevels = {
   maxedOut: 0.1,
@@ -33,10 +32,10 @@ export class CameraController extends Observable<IZoomState> {
   private currentElement: HTMLElement | null = null;
 
   // Camera state
-  private container: RefObject<HTMLDivElement> | null = null;
-  private colorCanvas: RefObject<HTMLCanvasElement> | null = null;
+  private container: RefObject<HTMLDivElement | null> | null = null;
+  private colorCanvas: RefObject<HTMLCanvasElement | null> | null = null;
   private colorCanvasContext: CanvasRenderingContext2D | null = null;
-  private layers: Array<{ ref: RefObject<HTMLCanvasElement> }> = [];
+  private layers: Array<{ ref: RefObject<HTMLCanvasElement | null> }> = [];
 
   private panAnimationState: {
     animating: boolean;
@@ -91,9 +90,9 @@ export class CameraController extends Observable<IZoomState> {
       );
     }
 
-    this.container = container as RefObject<HTMLDivElement>;
-    this.colorCanvas = colorCanvasRef as RefObject<HTMLCanvasElement>;
-    this.layers = layers as Array<{ ref: RefObject<HTMLCanvasElement> }>;
+    this.container = container;
+    this.colorCanvas = colorCanvasRef;
+    this.layers = layers;
     this.colorCanvasContext =
       colorCanvasRef.current.getContext("2d", {
         willReadFrequently: true,
@@ -204,8 +203,8 @@ export class CameraController extends Observable<IZoomState> {
     };
   }
 
-  public getLocationAtPointer(event: MouseEvent): ILocationIdentifier | null {
-    if (!this.colorCanvas) return null;
+  public getLocationAtPointer(event: MouseEvent, gameData: IGameData): ILocationIdentifier | null {
+    if (!this.colorCanvas || !gameData) return null;
     const rect = this.colorCanvas.current?.getBoundingClientRect();
 
     const relX = event.clientX - (rect?.left ?? 0);
@@ -237,7 +236,7 @@ export class CameraController extends Observable<IZoomState> {
       b.toString(16).padStart(2, "0"),
     ].join("");
 
-    const locationName = gameStateController.findLocationName(hexStr) ?? null;
+    const locationName = LocationsHelper.findLocationName(hexStr, gameData) ?? null;
     return locationName;
   }
 
@@ -342,7 +341,7 @@ export class CameraController extends Observable<IZoomState> {
   };
 
   public applyZoomLevel = (newZoom: number, oldZoom: number) => {
-    if (!this.colorCanvas || !this.container) return;
+    if (!this.colorCanvas || !this.container || this.colorCanvas.current === null || this.container.current === null) return;
     const colorCanvas = this.colorCanvas.current;
     const container = this.container.current;
 

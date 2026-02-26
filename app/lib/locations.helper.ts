@@ -1,11 +1,29 @@
-import { IConstructibleLocation, IGameData, IGameState, ILocationDataMap, ILocationGameData, ILocationIdentifier, ITemporaryLocationData, RoadRecord } from "./types/general";
+import { RoadsHelper } from "@/app/lib/roads.helper";
+import { ObjectHelper } from "@/app/lib/object.helper";
+import {
+  BaseRoadRecord,
+  IConstructibleLocation,
+  IGameData,
+  IGameState,
+  ILocationDataMap,
+  ILocationGameData,
+  ILocationIdentifier,
+  ITemporaryLocationData,
+  LocationRank,
+  RoadRecord,
+} from "./types/general";
 
 export class LocationsHelper {
   public static locationHasRoad(
     location: ILocationIdentifier,
-    roads: RoadRecord,
+    baseRoads: BaseRoadRecord,
+    stateRoads: RoadRecord,
   ): boolean {
-    return !!roads[location] && roads[location].length > 0; // this works as long as RoadRecord stores both ways mapping
+    const resolved = RoadsHelper.getRoads(baseRoads, stateRoads);
+    return ObjectHelper.getTypedEntries(resolved).some(
+      ([key]) =>
+        key.split("-")[0] === location || key.split("-")[1] === location,
+    );
   }
 
   public static getLocationHarborSuitability(
@@ -59,5 +77,30 @@ export class LocationsHelper {
     return temporaryData?.development ?? locationData.development;
   }
 
+
+  public static getLocationRank(str: string): LocationRank {
+    switch (str) {
+      case "rural":
+        return "rural";
+      case "town":
+        return "town";
+      case "city":
+        return "city";
+      default:
+        throw new Error(`Invalid location rank: ${str}`);
+    }
+  }
+
+  public static findLocationName(hexColor: string, gameData: IGameData): string | null {
+    if (!gameData) {
+      return null;
+    }
+    const name = gameData?.colorToNameMap[hexColor];
+    if (!name) {
+      console.log("could not find name for color", hexColor);
+      return null;
+    }
+    return name;
+  }
 
 }

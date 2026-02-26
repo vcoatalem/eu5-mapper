@@ -1,16 +1,10 @@
-// do not import other files in this file
-
+import { RoadKey, RoadType } from "@/app/lib/types/roads";
 import { IBuildingInstance, INewBuildingTemplate } from "./building";
-import { IProximityBuffs, IProximityComputationRule } from "./proximityComputationRules";
+import { ICountryProximityBuffs, IProximityComputationRule } from "./proximityComputationRules";
 
 export type ILocationIdentifier = string; // location name
 
 export type LocationRank = "rural" | "town" | "city";
-export type RoadType =
-  | "gravel_road"
-  | "paved_road"
-  | "modern_road"
-  | "rail_road";
 
 export type Topography =
   | "unknown"
@@ -70,10 +64,9 @@ export interface IConstructibleLocation {
   buildings: Record<INewBuildingTemplate["name"], IBuildingInstance>;
 }
 
-export type RoadRecord = Record<
-  ILocationIdentifier,
-  Array<{ to: ILocationIdentifier; type: RoadType; createdByUser: boolean }>
->;
+
+export type BaseRoadRecord = Record<RoadKey, RoadType>;
+export type RoadRecord = Record<RoadKey, RoadType | null>;
 
 export interface ITemporaryLocationData {
   development?: number;
@@ -123,7 +116,7 @@ export interface ICountryInstance {
   templateData: ICountryData | null;
   values: ICountryValues;
   rulerAdministrativeAbility: number; // from 0 to 100, higher means more impact of proximity on the country
-  modifiers: Record<string, {buff: IProximityBuffs, description: string, enabled: boolean;}>;
+  modifiers: Record<string, {buff: ICountryProximityBuffs, description: string, enabled: boolean;}>;
 }
 
 export interface ICountryValues {
@@ -135,7 +128,7 @@ export interface ICountryValues {
 export interface ICountryModifierTemplate {
   name: string;
   description: string | null;
-  buff: Partial<IProximityBuffs>;
+  buff: Partial<ICountryProximityBuffs>;
 }
 export interface IGameData {
   locationDataMap: ILocationDataMap;
@@ -143,5 +136,5 @@ export interface IGameData {
   buildingsTemplate: Record<string, INewBuildingTemplate>;
   proximityComputationRule: IProximityComputationRule;
   countriesDataMap: Record<string, ICountryData>; //TODO: move this outside of mandatory game data. Can be loaded only when needed, stored in indexedDB, and read by specific components that need it
-  roads: RoadRecord; // base roads initialized at the start of the game
+  roads: BaseRoadRecord; // base roads from parser; gameState.roads holds overrides (and null = deleted)
 }

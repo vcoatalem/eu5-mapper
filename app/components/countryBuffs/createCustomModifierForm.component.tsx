@@ -1,14 +1,15 @@
-import { IProximityBuffs } from "@/app/lib/types/proximityComputationRules";
+import { ICountryProximityBuffs } from "@/app/lib/types/proximityComputationRules";
 import { useState } from "react";
-import { countryProximityBuffsDisplayableData } from "@/app/lib/classes/countryProximityBuffs.const";
+import { countryBuffsMetadata } from "@/app/lib/classes/countryProximityBuffs.const";
 import { IBuffEditableField } from "@/app/components/countryBuffs/buffEditableField.component";
 import buttonStyles from "@/app/styles/button.module.css";
 import { EditableField } from "@/app/components/editableField.component";
 import formStyles from "@/app/components/countryBuffs/forms.module.css";
 import { validateNonEmptyString } from "@/app/lib/utils/editableFieldValidation.helper";
+import { ObjectHelper } from "@/app/lib/object.helper";
 
 interface ICreateCustomModifierForm {
-  onSubmit: (name: string, description: string | null, buff: Partial<IProximityBuffs>) => void;
+  onSubmit: (name: string, description: string | null, buff: Partial<ICountryProximityBuffs>) => void;
   onCancel: () => void;
 }
 
@@ -16,10 +17,9 @@ export function CreateCustomModifierForm(props: ICreateCustomModifierForm) {
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState<string | null>(null);
-  const [buff, setBuff] = useState<Partial<IProximityBuffs>>({});
+  const [buff, setBuff] = useState<Partial<ICountryProximityBuffs>>({});
 
-  const allBuffFields = Object.entries(countryProximityBuffsDisplayableData).map(([buffKeyStr, buffDisplayableData]) => {
-    const buffKey = buffKeyStr as keyof IProximityBuffs;
+  const allBuffFields = ObjectHelper.getTypedEntries(countryBuffsMetadata).map(([buffKey, buffDisplayableData]) => {
     return <IBuffEditableField key={buffKey} buff={buff[buffKey] ?? 0} buffKey={buffKey} buffDisplayableData={buffDisplayableData} setBuff={(value) => setBuff((prev) => ({ ...prev, [buffKey]: value }))} />
   });
 

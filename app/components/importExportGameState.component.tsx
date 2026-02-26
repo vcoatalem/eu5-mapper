@@ -61,7 +61,7 @@ export function ImportExportGameState() {
         <div className="w-[30vw] h-[30vh] flex flex-col gap-2 items-center">
           <h1 className="font-bold text-xl">Import a Game State file</h1>
           <span className="text-stone-600 text-center">
-            You may import a JSON file exported through the "Save State" button
+            {`You may import a JSON file exported through the "Save State" button`}
           </span>
           <input
             className={

@@ -1,4 +1,4 @@
-import { IProximityBuffDisplayableData, IProximityBuffs } from "@/app/lib/types/proximityComputationRules";
+import { ICountryProximityBuffsMetadata, ICountryProximityBuffs } from "@/app/lib/types/proximityComputationRules";
 import { useRef } from "react";
 import formStyles from "@/app/components/countryBuffs/forms.module.css";
 import { Tooltip } from "@/app/lib/tooltip/tooltip.component";
@@ -9,8 +9,8 @@ import { validateFloatInRange } from "@/app/lib/utils/editableFieldValidation.he
 
 interface IBuffEditableFieldProps {
   buff: number;
-  buffKey: keyof IProximityBuffs;
-  buffDisplayableData: IProximityBuffDisplayableData;
+  buffKey: keyof ICountryProximityBuffs;
+  buffDisplayableData: ICountryProximityBuffsMetadata;
   setBuff: (value: number) => void;
 }
 
@@ -23,9 +23,9 @@ export function IBuffEditableField(props: IBuffEditableFieldProps) {
           <TooltipTrigger>
             <label className="cursor-help rounded-md p-1"><b>{props.buffDisplayableData.label}</b></label>
           </TooltipTrigger>
-          <TooltipContent anchor={{ type: "dom", ref: labelDivRef as React.RefObject<HTMLElement> }}>
+          <TooltipContent anchor={{ type: "dom", ref: labelDivRef }}>
             <div className="max-w-96 flex flex-row items-center">
-              <span dangerouslySetInnerHTML={{ __html: props.buffDisplayableData.description }} />
+              <span dangerouslySetInnerHTML={{ __html: props.buffDisplayableData.valueDefinition.description }} />
             </div>
           </TooltipContent>
         </Tooltip>

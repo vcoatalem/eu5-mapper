@@ -42,7 +42,7 @@ import { MainActionsBar } from "./mainActionsBar.component";
 import { RoadList } from "./roadList.component";
 import { WorkerStatusComponent } from "@/app/components/workerStatus.component";
 import { LocationSearchBar } from "@/app/components/locationSearchBar.component";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
@@ -64,6 +64,7 @@ export function WorldMapComponent() {
     ? !!Object.keys(gameState?.ownedLocations)?.length
     : false;
   const version = useParams().version as string;
+  const loadFileOnStart = useSearchParams().get("file") as string;
   const initializedRef = useRef(false);
   const colorCanvasRef = useRef<HTMLCanvasElement>(null);
   const terrainCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -484,7 +485,7 @@ export function WorldMapComponent() {
       const getLocationsAtPointer = (
         e: MouseEvent,
       ): ILocationIdentifier[] | Promise<ILocationIdentifier[]> => {
-        const locationName = cameraController.getLocationAtPointer(e);
+        const locationName = cameraController.getLocationAtPointer(e, gameData);
         if (!locationName) return [];
         const state = editModeController.getSnapshot();
         if (
@@ -733,8 +734,8 @@ export function WorldMapComponent() {
     shortestPathController.init();
 
     // dev mode: boot game state from public/test-gamefile.json for quick reloaded
-    if (process.env.NODE_ENV === "development") {
-      fetch("/test-gamefile.json").then((res) =>
+    if (loadFileOnStart) {
+      fetch(`/saves/${loadFileOnStart}`).then((res) =>
         res.text().then((txt) => gameStateController.loadFile(txt, version)),
       );
     }
@@ -911,7 +912,7 @@ export function WorldMapComponent() {
             }}
           >
             <div className="pointer-events-auto">
-              <NeighborsPanelComponent locationName={selectedLocation!} />
+              <NeighborsPanelComponent baseLocation={selectedLocation!} />
             </div>
           </TooltipContent>
         </Tooltip>

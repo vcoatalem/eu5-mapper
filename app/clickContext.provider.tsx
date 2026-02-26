@@ -13,7 +13,8 @@ export function ClickContextProvider({ children }: { children: React.ReactNode }
   const [clickContext, setClickContext] = useState<IClickContext | null>(null);
 
   const handleClick = useCallback((e: MouseEvent) => {
-    setClickContext({ clickedElement: e.target as HTMLElement });
+    const el = e.target instanceof HTMLElement ? e.target : null;
+    setClickContext({ clickedElement: el });
   }, []);
 
   useEffect(() => {

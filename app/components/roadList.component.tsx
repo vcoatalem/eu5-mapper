@@ -1,8 +1,8 @@
-import React, { useMemo, useSyncExternalStore } from "react";
+import React, { useContext, useMemo, useSyncExternalStore } from "react";
+import { AppContext } from "@/app/appContextProvider";
 import { gameStateController } from "@/app/lib/gameState.controller";
 import { RoadsHelper } from "../lib/roads.helper";
 import { StringHelper } from "../lib/utils/string.helper";
-import { RoadType } from "../lib/types/general";
 import { getGuiImage } from "../lib/drawing/namedGuiImagesMap.const";
 import { ActionSource } from "../lib/actionSource.component";
 import Image from "next/image";
@@ -13,14 +13,14 @@ import buttonStyles from "../styles/button.module.css";
 import { IoSearch } from "react-icons/io5";
 import { FaAnglesDown, FaAnglesUp } from 'react-icons/fa6';
 import { Popover } from "@/app/lib/popover/popover.component";
-
-interface IRoadListProps { }
+import { ObjectHelper } from "@/app/lib/object.helper";
+import { allRoadTypes, asRoadKey, RoadKey, RoadType } from "@/app/lib/types/roads";
 
 const RoadItem = React.memo(function RoadItem({
   roadKey,
   type,
 }: {
-  roadKey: `${string}-${string}`;
+  roadKey: RoadKey;
   type: RoadType;
 }) {
   const spanRef = React.useRef<HTMLSpanElement>(null);
@@ -75,7 +75,7 @@ const RoadItem = React.memo(function RoadItem({
           <TooltipContent
             anchor={{
               type: "dom",
-              ref: spanRef as React.RefObject<HTMLElement>,
+              ref: spanRef,
             }}
           >
             {from} - {to}
@@ -117,7 +117,8 @@ const RoadItem = React.memo(function RoadItem({
   );
 });
 
-export function RoadList(props: IRoadListProps) {
+export function RoadList() {
+  const { gameData } = useContext(AppContext);
   const gameState = useSyncExternalStore(
     gameStateController.subscribe.bind(gameStateController),
     () => gameStateController.getSnapshot(),
@@ -125,16 +126,20 @@ export function RoadList(props: IRoadListProps) {
 
   const [search, setSearch] = React.useState<string | null>(null);
 
+  const baseRoads = gameData?.roads ?? {};
+  const stateRoads = gameState?.roads ?? {};
+
   const filteredRoadsEntries = useMemo(() => {
     const entries = RoadsHelper.getOwnedRoads(
       gameState?.ownedLocations ?? {},
-      gameState?.roads ?? {},
+      baseRoads,
+      stateRoads,
     );
     if (!search) {
       return entries;
     }
 
-    for (const [key] of Object.entries(entries)) {
+    for (const [key] of ObjectHelper.getTypedEntries(entries)) {
       const [from, to] = key.split("-");
       const fromContains = StringHelper.isInSearchQuery(from, search);
       const toContains = StringHelper.isInSearchQuery(to, search);
@@ -142,25 +147,25 @@ export function RoadList(props: IRoadListProps) {
       const toScore = toContains ? search.length / to.length : 0;
       const keyMatched: "from" | "to" = fromScore >= toScore ? "from" : "to";
       if (keyMatched === "from") {
-        delete entries[key as keyof typeof entries];
+        delete entries[key];
       } else if (keyMatched === "to") {
         const type = entries[key];
         delete entries[key];
-        const newKey = `${to}-${from}`;
+        const newKey = asRoadKey(`${to}-${from}`);
         entries[newKey] = type;
       }
     }
     return entries;
-  }, [search, gameState.ownedLocations, gameState.roads]);
+  }, [search, gameState?.ownedLocations, baseRoads, stateRoads]);
 
   const areAllRoadsOfType: Record<RoadType, boolean> = useMemo(() => {
     return {
-      gravel_road: RoadsHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, gameState.roads, "gravel_road"),
-      paved_road: RoadsHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, gameState.roads, "paved_road"),
-      modern_road: RoadsHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, gameState.roads, "modern_road"),
-      rail_road: RoadsHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, gameState.roads, "rail_road"),
-    }
-  }, [gameState.ownedLocations, gameState.roads]);
+      gravel_road: RoadsHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, baseRoads, stateRoads, "gravel_road"),
+      paved_road: RoadsHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, baseRoads, stateRoads, "paved_road"),
+      modern_road: RoadsHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, baseRoads, stateRoads, "modern_road"),
+      rail_road: RoadsHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, baseRoads, stateRoads, "rail_road"),
+    };
+  }, [gameState.ownedLocations, baseRoads, stateRoads]);
 
   if (!filteredRoadsEntries) return null;
   return (
@@ -185,19 +190,19 @@ export function RoadList(props: IRoadListProps) {
             </button>
           )}
         >
-          {(["gravel_road", "paved_road", "modern_road", "rail_road"] as RoadType[]).map((type) => (
+          {allRoadTypes.map((type) => (
             <button key={type} className={`${buttonStyles.simpleButton} ${areAllRoadsOfType[type] ? buttonStyles.buttonActive : ""}`} onClick={() => gameStateController.changeAllOwnedRoadsToType(type)}>{type}</button>
           ))}
         </Popover>
       </div>
       <hr className="mt-2 mb-1"></hr>
       <div>
-        {Object.entries(filteredRoadsEntries)
+        {ObjectHelper.getTypedEntries(filteredRoadsEntries)
           .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
           .map(([key, type]) => (
             <RoadItem
               key={key}
-              roadKey={key as `${string}-${string}`}
+              roadKey={key}
               type={type}
             />
           ))}

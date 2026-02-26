@@ -155,7 +155,7 @@ export function EditableField<TValue extends { toString: () => string }>(props: 
             <TooltipContent
               anchor={{
                 type: "dom",
-                ref: divRef as React.RefObject<HTMLElement>,
+                ref: divRef,
               }}
             >
               {props.tooltip}

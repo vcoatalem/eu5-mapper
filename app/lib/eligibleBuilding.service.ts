@@ -1,32 +1,32 @@
 import { evaluateLogicTree, LogicTree, LogicTreeBuilder } from "@/app/lib/classes/logicTree";
 import { LocationsHelper } from "@/app/lib/locations.helper";
 import { ConstructibleAction, IBuildingInstance, INewBuildingTemplate, NewConstructibleState, PlacementRestrictions } from "@/app/lib/types/building";
-import { IGameData, IGameState, ILocationGameData, ILocationIdentifier, LocationRank } from "@/app/lib/types/general";
+import { BaseRoadRecord, IGameData, IGameState, ILocationGameData, ILocationIdentifier, LocationRank } from "@/app/lib/types/general";
 
 type IBuildingTemplateIdentifier = INewBuildingTemplate["name"];
 
 export class EligibleBuildingService {
-
-  private readonly buildingTemplateMapping: Record<IBuildingTemplateIdentifier, {tree: LogicTree, data: INewBuildingTemplate }>;
-  private readonly templateFamilyMapping: Record<IBuildingTemplateIdentifier, Array<IBuildingTemplateIdentifier>>
-
+  private readonly buildingTemplateMapping: Record<IBuildingTemplateIdentifier, { tree: LogicTree; data: INewBuildingTemplate }>;
+  private readonly templateFamilyMapping: Record<IBuildingTemplateIdentifier, Array<IBuildingTemplateIdentifier>>;
   private readonly locationDataMap: IGameData["locationDataMap"];
+  private readonly baseRoads: BaseRoadRecord;
 
   constructor(gameData: IGameData) {
     this.locationDataMap = gameData.locationDataMap;
+    this.baseRoads = gameData.roads;
     console.log("[EligibleBuildingService] initializing with building templates:", Object.values(gameData.buildingsTemplate));
     this.buildingTemplateMapping = {};
     const getLocationData = (id: ILocationIdentifier) => this.locationDataMap[id];
     for (const [templateName, templateData] of Object.entries(gameData.buildingsTemplate)) {
       this.buildingTemplateMapping[templateName] = {
-        tree: EligibleBuildingService.getBuildingSupportabilityLogicTree(templateData, getLocationData),
+        tree: this.getBuildingSupportabilityLogicTree(templateData, getLocationData),
         data: templateData,
       };
     }
     this.templateFamilyMapping = EligibleBuildingService.partitionTemplatesByFamily(gameData.buildingsTemplate);
   }
 
-  private static getBuildingSupportabilityLogicTree(
+  private getBuildingSupportabilityLogicTree(
     buildingTemplate: INewBuildingTemplate,
     getLocationData: (locationId: ILocationIdentifier) => ILocationGameData | undefined,
   ): LogicTree {
@@ -34,7 +34,7 @@ export class EligibleBuildingService {
       ? LogicTreeBuilder.treeFromConditions(
           buildingTemplate.placementRestriction,
           getLocationData,
-          EligibleBuildingService.evaluatePlacementCondition,
+          this.evaluatePlacementCondition.bind(this),
         )
       : ({
           type: "leaf" as const,
@@ -59,7 +59,7 @@ export class EligibleBuildingService {
     return root;
   }
 
-  private static evaluatePlacementCondition(
+  private evaluatePlacementCondition(
     condition: PlacementRestrictions,
     location: ILocationGameData,
     gameState: IGameState,
@@ -74,7 +74,11 @@ export class EligibleBuildingService {
       case "is_capital":
         return gameState.capitalLocation === location.name;
       case "has_road":
-        return LocationsHelper.locationHasRoad(location.name, gameState.roads);
+        return LocationsHelper.locationHasRoad(
+          location.name,
+          this.baseRoads,
+          gameState.roads,
+        );
       case "is_not_capital":
         return gameState.capitalLocation !== location.name;
     }

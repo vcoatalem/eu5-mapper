@@ -1,4 +1,5 @@
 import { HierarchyRecord } from "@/app/lib/locationHierarchy.service";
+import { ObjectHelper } from "@/app/lib/object.helper";
 import { ILocationDataMap, ILocationGameData } from "@/app/lib/types/general";
 
 export class LocationHierarchyHelper {
@@ -6,13 +7,17 @@ export class LocationHierarchyHelper {
   public static buildHierarchyGroups(
     locationDataMap: ILocationDataMap,
   ): HierarchyRecord {
-    const groups = {} as HierarchyRecord;
+    const groups: HierarchyRecord = {
+      continent: {},
+      subcontinent: {},
+      region: {},
+      area: {},
+      province: {},
+    };
     for (const [locationName, { hierarchy }] of Object.entries(
       locationDataMap,
     )) {
-      for (const hierarchyType of Object.keys(hierarchy) as Array<
-        keyof ILocationGameData["hierarchy"]
-      >) {
+      for (const [hierarchyType] of ObjectHelper.getTypedEntries(hierarchy)) {
         const value = hierarchy[hierarchyType];
         if (!value) continue;
 

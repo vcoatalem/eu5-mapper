@@ -12,7 +12,7 @@ import { StringHelper } from "@/app/lib/utils/string.helper";
 
 interface IShortestPathComponentProps {
   location: ILocationIdentifier;
-  className: string;
+  className?: string;
 }
 
 function ShortestPathDisplay(props: {
@@ -68,7 +68,7 @@ export function ShortestPathComponent(props: IShortestPathComponentProps) {
   }, [props.location]);
 
   return (
-    <div className={props.className}>
+    <div className={props.className ?? ""}>
       {!locationResult ||
         (["pending", "needs_update"].includes(locationResult.status) && (
           <Loader></Loader>

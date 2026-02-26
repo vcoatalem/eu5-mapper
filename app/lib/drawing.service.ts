@@ -4,11 +4,11 @@ import {
   proximityComputationController,
 } from "@/app/lib/proximityComputation.controller";
 import {
-  IConstructibleLocation,
   ICoordinate,
   IGameData,
   IGameState,
   ILocationIdentifier,
+  LocationRank,
 } from "./types/general";
 import { ObservableCombiner } from "./observableCombiner";
 import { DrawingHelper } from "./drawing/drawing.helper";
@@ -26,10 +26,18 @@ import { Subject } from "./subject";
 import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
 import { editModeController } from "@/app/lib/editMode.controller";
 import { colorSearchController } from "@/app/lib/colorSeach.controller";
+import { ObjectHelper } from "@/app/lib/object.helper";
+import { RoadsHelper } from "@/app/lib/roads.helper";
 
 
-const canvasNames = ["areas", "constructibles", "roads", "indicators", "maritimePresences"] as const;
-type CanvasName = typeof canvasNames[number];
+enum CanvasName {
+  areas = "areas",
+  constructibles = "constructibles",
+  roads = "roads",
+  indicators = "indicators",
+  maritimePresences = "maritimePresences",
+}
+
 type CanvasRecord = Record<CanvasName, CanvasRenderingContext2D>;
 
 export class DrawingService {
@@ -53,11 +61,13 @@ export class DrawingService {
     this.mapInfos = mapInfos;
     this.gameData = gameData;
 
-    this.canvasRecord = ([{ name: "areas", canvas: areaDrawingCanvas },
-    { name: "constructibles", canvas: constructibleDrawingCanvas },
-    { name: "roads", canvas: roadDrawingCanvas },
-    { name: "indicators", canvas: indicatorDrawingCanvas },
-    { name: "maritimePresences", canvas: maritimePresenceDrawingCanvas }] as Array<{ name: CanvasName, canvas: HTMLCanvasElement }>)
+    this.canvasRecord = [
+      { name: CanvasName.areas, canvas: areaDrawingCanvas },
+      { name: CanvasName.constructibles, canvas: constructibleDrawingCanvas },
+      { name: CanvasName.roads, canvas: roadDrawingCanvas },
+      { name: CanvasName.indicators, canvas: indicatorDrawingCanvas },
+      { name: CanvasName.maritimePresences, canvas: maritimePresenceDrawingCanvas }
+    ]
       .map(({ name, canvas }) => ({ name, context: canvas.getContext("2d", {}) }))
       .map(({ name, context }) => {
         if (!context) {
@@ -128,10 +138,10 @@ export class DrawingService {
     );
 
     this.reDraw.debounce(5).subscribe(() => {
-      for (const [canvasName, callback] of Object.entries(this.drawingCallbackBuffer)) {
+      for (const [canvasName, callback] of ObjectHelper.getTypedEntries(this.drawingCallbackBuffer)) {
         const missingCoordinates = callback() as ILocationIdentifier[];
         if (!missingCoordinates?.length) {
-          delete this.drawingCallbackBuffer[canvasName as CanvasName];     
+          delete this.drawingCallbackBuffer[canvasName];
         } else {
           this.reDraw.emit(new Date());
         }
@@ -187,7 +197,7 @@ export class DrawingService {
 
   private drawLocation(
     ctx: CanvasRenderingContext2D,
-    level: IConstructibleLocation["rank"],
+    level: LocationRank,
     zoom: IZoomState,
     coordinate: ICoordinate,
     isCapital: boolean,
@@ -253,6 +263,11 @@ export class DrawingService {
   }
 
   private drawRoads(gameState: IGameState): null {
+
+    if (!this.gameData) {
+      return null;
+    }
+
     this.canvasRecord["roads"].clearRect(
       0,
       0,
@@ -260,29 +275,27 @@ export class DrawingService {
       this.mapInfos.height,
     );
 
-    const allRoads = gameState.roads;
+    const resolvedRoads = RoadsHelper.getRoads(this.gameData.roads, gameState.roads);
+    const roadsToDraw = ObjectHelper.getTypedEntries(resolvedRoads);
 
     const drawCallbacks: Array<() => void> = [
       () => this.canvasRecord["roads"].beginPath(),
     ];
-    for (const [from, toLocations] of Object.entries(allRoads)) {
-      for (const { to, type } of toLocations) {
-        const fromCoordinates =
-          this.gameData?.locationDataMap[from].centerCoordinates;
-        const toCoordinates =
-          this.gameData?.locationDataMap[to].centerCoordinates;
-
-        if (fromCoordinates && toCoordinates) {
-          const roadColor = ColorHelper.getRoadHexColor(type);
-          drawCallbacks.push(() =>
-            DrawingHelper.drawLine(this.canvasRecord["roads"], {
-              canvasCoordFrom: fromCoordinates,
-              canvasCoordTo: toCoordinates,
-              lineWidth: 1,
-              color: roadColor,
-            }),
-          );
-        }
+    for (const [key, type] of roadsToDraw) {
+      const [from, to] = key.split("-");
+      const fromCoordinates =
+        this.gameData.locationDataMap[from].centerCoordinates;
+      const toCoordinates =
+        this.gameData.locationDataMap[to].centerCoordinates;
+      if (fromCoordinates && toCoordinates) {
+        const roadColor = ColorHelper.getRoadHexColor(type);
+        drawCallbacks.push(() =>
+          DrawingHelper.drawLine(this.canvasRecord["roads"], {
+            canvasCoordFrom: fromCoordinates,
+            canvasCoordTo: toCoordinates,
+            lineWidth: 1,
+            color: roadColor,
+          }));
       }
     }
     DrawingHelper.draw([this.canvasRecord["roads"]], drawCallbacks);

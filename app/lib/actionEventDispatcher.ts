@@ -156,9 +156,6 @@ export class ActionEventDispatcher {
         { type: "mousemove", handler: mouseMoveHandler },
         { type: "mouseout", handler: mouseOutHandler },
       );
-    /*     console.log(
-      `[ActionEventDispatcher] registerHoverActionSource: total event listeners stored: ${Array.from(this.elementEventHandlers.values()).reduce((acc, arr) => acc + arr.length, 0)}`,
-    ); */
   }
 
   public registerClickActionSource(

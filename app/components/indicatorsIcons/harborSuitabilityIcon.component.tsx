@@ -14,7 +14,7 @@ export function HarborSuitabilityIcon({ className, size = 24, tooltip }: { class
       <TooltipTrigger>
         <Image src="/gui/icons/harbor_capacity.png" alt="Harbor Suitability" width={size} height={size} />
       </TooltipTrigger>
-      <TooltipContent anchor={{ type: "dom", ref: divRef as React.RefObject<HTMLElement> }}>
+      <TooltipContent anchor={{ type: "dom", ref: divRef }}>
         <span>{tooltip ?? DEFAULT_TOOLTIP}</span>
       </TooltipContent>
     </Tooltip>

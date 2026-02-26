@@ -32,7 +32,12 @@ interface IAppContext {
   error: string | null;
 }
 
-const emptyContext = {} as IAppContext;
+const emptyContext: IAppContext = {
+  gameData: null,
+  imagePaths: null,
+  isLoading: true,
+  error: null,
+};
 
 export const AppContext = createContext<IAppContext>(emptyContext);
 
@@ -92,7 +97,7 @@ export const AppContextProvider = ({
                 img.src = imagePath;
               });
 
-              return [fileType, imagePath] as const;
+              return [fileType, imagePath];
             }),
           );
 

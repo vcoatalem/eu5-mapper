@@ -41,7 +41,7 @@ export function PosthogSurveyButton({
         <TooltipTrigger>
           <PiChatCircleTextLight color="white" size={24}></PiChatCircleTextLight>
         </TooltipTrigger>
-        <TooltipContent anchor={{ type: "dom", ref: buttonRef as React.RefObject<HTMLElement> }}>
+        <TooltipContent anchor={{ type: "dom", ref: buttonRef }}>
           <span>open contact form</span>
         </TooltipContent>
       </Tooltip>) || <span>Reach out !</span>}

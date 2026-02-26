@@ -24,7 +24,7 @@ function DisplayBuilding(props: { location: ILocationIdentifier, buildingTemplat
             {hasInstance && instance?.template.cap === null && <span className="text-white absolute bottom-0 left-[1/4] px-1 rounded-md backdrop-blur-md text-xs" >{instance?.level}</span>}
           </div>
         </TooltipTrigger>
-        <TooltipContent anchor={{ type: "dom", ref: divRef as React.RefObject<HTMLElement> }}>
+        <TooltipContent anchor={{ type: "dom", ref: divRef }}>
           <BuildingDescription buildingTemplateName={props.buildingTemplateName} instance={instance}></BuildingDescription>
         </TooltipContent>
       </Tooltip>

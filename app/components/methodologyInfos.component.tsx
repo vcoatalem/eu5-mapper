@@ -39,7 +39,7 @@ export function MethodologyInfos({ className = "" }: { className?: string }) {
         <TooltipContent
           anchor={{
             type: "dom",
-            ref: containerRef as React.RefObject<HTMLElement>,
+            ref: containerRef,
           }}
         >
           <span>see performance report</span>

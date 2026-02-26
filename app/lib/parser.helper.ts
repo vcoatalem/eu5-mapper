@@ -49,8 +49,8 @@ export class ParserHelper {
   }
 
   // jsonContent should be an array of [from, to] pairs. One canonical key per road (buildOrderedRoadKey).
-  static parseRoadFile(jsonContent: any): BaseRoadRecord {
-    const roadRecord: BaseRoadRecord = {} as BaseRoadRecord;
+  static parseRoadFile(jsonContent: unknown): BaseRoadRecord {
+    const roadRecord: BaseRoadRecord = {};
 
     for (const [from, to] of jsonContent as [ILocationIdentifier, ILocationIdentifier][]) {
       roadRecord[RoadsHelper.buildOrderedRoadKey(from, to)] = "gravel_road";

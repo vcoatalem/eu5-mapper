@@ -31,6 +31,7 @@ import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
 import { useParams } from "next/navigation";
 import { Loader } from "@/app/components/loader.component";
 import { Popover } from "@/app/lib/popover/popover.component";
+import { ObjectHelper } from "@/app/lib/object.helper";
 
 function LocationExtensiveViewModalHeader(props: {
   countryName: string | null;
@@ -80,8 +81,12 @@ function LocationExtensiveViewModalHeader(props: {
             </button>
           )}
         >
-          {Object.entries(props.config.columnVisibility).filter(([column]) => column !== columns[0].title).map(([column, visible]) => (
-            <label key={column} className=" flex items-center gap-2 cursor-pointer hover:bg-stone-600 rounded-md " onClick={(e) => { e.stopPropagation(); e.preventDefault(); props.toggleColumnVisibility(column as keyof IStoredLocationListConfig["columnVisibility"]) }}>
+          {ObjectHelper.getTypedEntries(props.config.columnVisibility).filter(([column]) => column !== columns[0].title).map(([column, visible]) => (
+            <label key={column} className=" flex items-center gap-2 cursor-pointer hover:bg-stone-600 rounded-md " onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              props.toggleColumnVisibility(column)
+            }}>
               {visible ? <FaRegEye color="white" size={16} /> : <FaRegEyeSlash color="white" size={16} />}
               <span>{column}</span>
             </label>

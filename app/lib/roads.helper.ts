@@ -23,7 +23,7 @@ export class RoadsHelper {
     baseRoads: BaseRoadRecord,
     stateRoads: RoadRecord,
   ): BaseRoadRecord {
-    const result: BaseRoadRecord = {} as BaseRoadRecord;
+    const result: BaseRoadRecord = {};
     for (const [key, type] of ObjectHelper.getTypedEntries(stateRoads)) {
       if (type != null) result[key] = type;
     }

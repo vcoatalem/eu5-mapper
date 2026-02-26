@@ -19,7 +19,7 @@ export function BuffDisplay({ buffKey, buffValue, className }: IBuffDisplayProps
         <TooltipTrigger>
           <span className="flex-none flex-1 rounded-md p-1 cursor-help">{countryBuffsMetadata[buffKey].label}</span>
         </TooltipTrigger>
-        <TooltipContent anchor={{ type: "dom", ref: divRef as React.RefObject<HTMLElement> }}>
+        <TooltipContent anchor={{ type: "dom", ref: divRef }}>
           <div className="max-w-96">
             <span dangerouslySetInnerHTML={{ __html: countryBuffsMetadata[buffKey].valueDefinition.description }} />
           </div>

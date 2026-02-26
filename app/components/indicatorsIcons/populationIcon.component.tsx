@@ -14,7 +14,7 @@ export function PopulationIcon({ className, size = 24, tooltip }: { className?: 
       <TooltipTrigger>
         <Image src="/gui/icons/population.png" alt="Population" width={size} height={size} />
       </TooltipTrigger>
-      <TooltipContent anchor={{ type: "dom", ref: divRef as React.RefObject<HTMLElement> }}>
+      <TooltipContent anchor={{ type: "dom", ref: divRef }}>
         <span>{tooltip ?? DEFAULT_TOOLTIP}</span>
       </TooltipContent>
     </Tooltip>

@@ -27,7 +27,7 @@ export function ModifierBuffDisplay({
             <span className="ml-auto">{sum.toFixed(2)}{suffix}</span>
           </p>
         </TooltipTrigger>
-        <TooltipContent anchor={{ type: "dom", ref: divRef as React.RefObject<HTMLElement> }}>
+        <TooltipContent anchor={{ type: "dom", ref: divRef }}>
           <div className="flex flex-col gap-1 bg-black max-w-96">
             <span><b>{buffDisplayableData.label}</b>:</span>
             <span dangerouslySetInnerHTML={{ __html: buffDisplayableData.valueDefinition.description }} />

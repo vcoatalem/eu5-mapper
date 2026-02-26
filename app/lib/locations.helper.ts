@@ -3,11 +3,13 @@ import { ObjectHelper } from "@/app/lib/object.helper";
 import {
   BaseRoadRecord,
   IConstructibleLocation,
+  IGameData,
   IGameState,
   ILocationDataMap,
   ILocationGameData,
   ILocationIdentifier,
   ITemporaryLocationData,
+  LocationRank,
   RoadRecord,
 } from "./types/general";
 
@@ -75,5 +77,30 @@ export class LocationsHelper {
     return temporaryData?.development ?? locationData.development;
   }
 
+
+  public static getLocationRank(str: string): LocationRank {
+    switch (str) {
+      case "rural":
+        return "rural";
+      case "town":
+        return "town";
+      case "city":
+        return "city";
+      default:
+        throw new Error(`Invalid location rank: ${str}`);
+    }
+  }
+
+  public static findLocationName(hexColor: string, gameData: IGameData): string | null {
+    if (!gameData) {
+      return null;
+    }
+    const name = gameData?.colorToNameMap[hexColor];
+    if (!name) {
+      console.log("could not find name for color", hexColor);
+      return null;
+    }
+    return name;
+  }
 
 }

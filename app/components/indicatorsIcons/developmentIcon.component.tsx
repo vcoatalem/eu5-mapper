@@ -14,7 +14,7 @@ export function DevelopmentIcon({ className, size = 24, tooltip }: { className?:
       <TooltipTrigger>
         <Image src="/gui/icons/development.png" alt="Development" width={size} height={size} />
       </TooltipTrigger>
-      <TooltipContent anchor={{ type: "dom", ref: divRef as React.RefObject<HTMLElement> }}>
+      <TooltipContent anchor={{ type: "dom", ref: divRef }}>
         <span>{tooltip ?? DEFAULT_TOOLTIP}</span>
       </TooltipContent>
     </Tooltip>

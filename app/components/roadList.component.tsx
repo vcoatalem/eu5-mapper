@@ -75,7 +75,7 @@ const RoadItem = React.memo(function RoadItem({
           <TooltipContent
             anchor={{
               type: "dom",
-              ref: spanRef as React.RefObject<HTMLElement>,
+              ref: spanRef,
             }}
           >
             {from} - {to}
@@ -147,7 +147,7 @@ export function RoadList() {
       const toScore = toContains ? search.length / to.length : 0;
       const keyMatched: "from" | "to" = fromScore >= toScore ? "from" : "to";
       if (keyMatched === "from") {
-        delete entries[key as keyof typeof entries];
+        delete entries[key];
       } else if (keyMatched === "to") {
         const type = entries[key];
         delete entries[key];

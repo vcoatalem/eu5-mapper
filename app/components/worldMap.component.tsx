@@ -485,7 +485,7 @@ export function WorldMapComponent() {
       const getLocationsAtPointer = (
         e: MouseEvent,
       ): ILocationIdentifier[] | Promise<ILocationIdentifier[]> => {
-        const locationName = cameraController.getLocationAtPointer(e);
+        const locationName = cameraController.getLocationAtPointer(e, gameData);
         if (!locationName) return [];
         const state = editModeController.getSnapshot();
         if (

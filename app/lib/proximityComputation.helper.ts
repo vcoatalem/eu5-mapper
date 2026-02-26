@@ -543,7 +543,7 @@ export class ProximityComputationHelper {
       );
       if (shortestPath) {
         shortestPaths.push({
-          sourceLocation: proximitySourceLocationName as ILocationIdentifier,
+          sourceLocation: proximitySourceLocationName,
           proximity: proximitySourceAmount,
           path: shortestPath,
         });

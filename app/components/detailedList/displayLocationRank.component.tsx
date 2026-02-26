@@ -1,9 +1,9 @@
 import { ILocationDetailedViewData } from "@/app/components/detailedList/detailedLocationListModal.component";
 import { gameStateController } from "@/app/lib/gameState.controller";
+import { LocationsHelper } from "@/app/lib/locations.helper";
 import { Tooltip } from "@/app/lib/tooltip/tooltip.component";
 import { TooltipContent } from "@/app/lib/tooltip/tooltipContent.component";
 import { TooltipTrigger } from "@/app/lib/tooltip/tooltipTrigger.component";
-import { LocationRank } from "@/app/lib/types/general";
 import styles from "@/app/styles/button.module.css";
 import { useRef } from "react";
 
@@ -17,10 +17,9 @@ export function DisplayRank(props: { data: ILocationDetailedViewData }) {
             id={props.data.baseLocationGameData.name + "-rank"}
             className={"w-content h-full outline-none " + styles.simpleButton}
             onChange={({ target }) => {
-              console.log("changing location rank to " + target.value);
               gameStateController.changeLocationRank(
                 props.data.baseLocationGameData.name,
-                target.value as LocationRank,
+                LocationsHelper.getLocationRank(target.value),
               );
             }}
             value={props.data.constructibleData.rank}
@@ -33,7 +32,7 @@ export function DisplayRank(props: { data: ILocationDetailedViewData }) {
             ))}
           </select>
         </TooltipTrigger>
-        <TooltipContent anchor={{ type: "dom", ref: spanRef as React.RefObject<HTMLElement> }}>
+        <TooltipContent anchor={{ type: "dom", ref: spanRef }}>
           <span>Change the rank of the location</span>
         </TooltipContent>
       </Tooltip>

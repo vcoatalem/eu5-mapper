@@ -507,6 +507,29 @@
       const temporaryData = gameState.temporaryLocationData[locationIdentifier] ?? null;
       return temporaryData?.development ?? locationData.development;
     }
+    static getLocationRank(str) {
+      switch (str) {
+        case "rural":
+          return "rural";
+        case "town":
+          return "town";
+        case "city":
+          return "city";
+        default:
+          throw new Error(`Invalid location rank: ${str}`);
+      }
+    }
+    static findLocationName(hexColor, gameData2) {
+      if (!gameData2) {
+        return null;
+      }
+      const name = gameData2?.colorToNameMap[hexColor];
+      if (!name) {
+        console.log("could not find name for color", hexColor);
+        return null;
+      }
+      return name;
+    }
   };
 
   // app/lib/classes/countryProximityBuffs.const.ts

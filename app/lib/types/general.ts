@@ -67,6 +67,7 @@ export interface IConstructibleLocation {
 
 export type BaseRoadRecord = Record<RoadKey, RoadType>;
 export type RoadRecord = Record<RoadKey, RoadType | null>;
+
 export interface ITemporaryLocationData {
   development?: number;
   population?: number;

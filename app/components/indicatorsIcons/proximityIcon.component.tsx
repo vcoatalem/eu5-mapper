@@ -14,7 +14,7 @@ export function ProximityIcon({ className, size = 24, tooltip }: { className?: s
       <TooltipTrigger>
         <Image src="/gui/icons/proximity.png" alt="Proximity" width={size} height={size} />
       </TooltipTrigger>
-      <TooltipContent anchor={{ type: "dom", ref: divRef as React.RefObject<HTMLElement> }}>
+      <TooltipContent anchor={{ type: "dom", ref: divRef }}>
         <span>{tooltip ?? DEFAULT_TOOLTIP}</span>
       </TooltipContent>
     </Tooltip>

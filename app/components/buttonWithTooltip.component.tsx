@@ -22,7 +22,7 @@ export function ButtonWithTooltip({
   tooltip: React.ReactNode;
   children: ReactElement<
     TooltipTriggerChildProps,
-    string | JSXElementConstructor<any>
+    string | JSXElementConstructor<unknown>
   >;
   onClick?: (e?: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
   showOnHover?: boolean;
@@ -57,7 +57,7 @@ export function ButtonWithTooltip({
         <TooltipContent
           anchor={{
             type: "dom",
-            ref: buttonDivRef as React.RefObject<HTMLElement>,
+            ref: buttonDivRef
           }}
         >
           {tooltip}

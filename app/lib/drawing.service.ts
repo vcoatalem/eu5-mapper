@@ -4,11 +4,11 @@ import {
   proximityComputationController,
 } from "@/app/lib/proximityComputation.controller";
 import {
-  IConstructibleLocation,
   ICoordinate,
   IGameData,
   IGameState,
   ILocationIdentifier,
+  LocationRank,
 } from "./types/general";
 import { ObservableCombiner } from "./observableCombiner";
 import { DrawingHelper } from "./drawing/drawing.helper";
@@ -30,8 +30,14 @@ import { ObjectHelper } from "@/app/lib/object.helper";
 import { RoadsHelper } from "@/app/lib/roads.helper";
 
 
-const canvasNames = ["areas", "constructibles", "roads", "indicators", "maritimePresences"] as const;
-type CanvasName = typeof canvasNames[number];
+enum CanvasName {
+  areas = "areas",
+  constructibles = "constructibles",
+  roads = "roads",
+  indicators = "indicators",
+  maritimePresences = "maritimePresences",
+}
+
 type CanvasRecord = Record<CanvasName, CanvasRenderingContext2D>;
 
 export class DrawingService {
@@ -55,11 +61,13 @@ export class DrawingService {
     this.mapInfos = mapInfos;
     this.gameData = gameData;
 
-    this.canvasRecord = ([{ name: "areas", canvas: areaDrawingCanvas },
-    { name: "constructibles", canvas: constructibleDrawingCanvas },
-    { name: "roads", canvas: roadDrawingCanvas },
-    { name: "indicators", canvas: indicatorDrawingCanvas },
-    { name: "maritimePresences", canvas: maritimePresenceDrawingCanvas }] as Array<{ name: CanvasName, canvas: HTMLCanvasElement }>)
+    this.canvasRecord = [
+      { name: CanvasName.areas, canvas: areaDrawingCanvas },
+      { name: CanvasName.constructibles, canvas: constructibleDrawingCanvas },
+      { name: CanvasName.roads, canvas: roadDrawingCanvas },
+      { name: CanvasName.indicators, canvas: indicatorDrawingCanvas },
+      { name: CanvasName.maritimePresences, canvas: maritimePresenceDrawingCanvas }
+    ]
       .map(({ name, canvas }) => ({ name, context: canvas.getContext("2d", {}) }))
       .map(({ name, context }) => {
         if (!context) {
@@ -189,7 +197,7 @@ export class DrawingService {
 
   private drawLocation(
     ctx: CanvasRenderingContext2D,
-    level: IConstructibleLocation["rank"],
+    level: LocationRank,
     zoom: IZoomState,
     coordinate: ICoordinate,
     isCapital: boolean,

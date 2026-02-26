@@ -23,7 +23,7 @@ export function IBuffEditableField(props: IBuffEditableFieldProps) {
           <TooltipTrigger>
             <label className="cursor-help rounded-md p-1"><b>{props.buffDisplayableData.label}</b></label>
           </TooltipTrigger>
-          <TooltipContent anchor={{ type: "dom", ref: labelDivRef as React.RefObject<HTMLElement> }}>
+          <TooltipContent anchor={{ type: "dom", ref: labelDivRef }}>
             <div className="max-w-96 flex flex-row items-center">
               <span dangerouslySetInnerHTML={{ __html: props.buffDisplayableData.valueDefinition.description }} />
             </div>

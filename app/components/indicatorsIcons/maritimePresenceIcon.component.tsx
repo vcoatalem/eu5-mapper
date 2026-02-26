@@ -14,7 +14,7 @@ export function MaritimePresenceIcon({ className, size = 24, tooltip }: { classN
       <TooltipTrigger>
         <Image src="/gui/icons/maritime_presence.png" alt="Maritime Presence" width={size} height={size} />
       </TooltipTrigger>
-      <TooltipContent anchor={{ type: "dom", ref: divRef as React.RefObject<HTMLElement> }}>
+      <TooltipContent anchor={{ type: "dom", ref: divRef }}>
         <span>{tooltip ?? DEFAULT_TOOLTIP}</span>
       </TooltipContent>
     </Tooltip>

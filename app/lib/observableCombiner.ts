@@ -3,15 +3,15 @@ import { Observable } from "./observable";
 // Sentinel for uninitialized values
 const UNSET = Symbol("unset");
 
-export type CombinedEmission<T extends any[]> = {
+export type CombinedEmission<T extends unknown[]> = {
   values: T;
   changedIndex: number;
 };
 
-export class ObservableCombiner<T extends any[]> extends Observable<
+export class ObservableCombiner<T extends unknown[]> extends Observable<
   CombinedEmission<T>
 > {
-  private latestValues: any[];
+  private latestValues: unknown[];
   private unsubscribes: Array<() => void> = [];
   private initialized: boolean[];
   private lastChangedIndex: number | null = null;

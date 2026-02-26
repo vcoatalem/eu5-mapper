@@ -8,7 +8,7 @@ import styles from "./tooltip.module.css";
 
 interface ITooltipDomAnchor {
   type: "dom";
-  ref: React.RefObject<HTMLElement>;
+  ref: React.RefObject<HTMLElement | null>;
 }
 
 interface ITooltipCoordinateAnchor {

@@ -9,7 +9,6 @@ import {
   ICountryProximityBuffs,
 } from "../types/proximityComputationRules";
 
-
 export class ProximityBuffsRecord {
   private countryProximityBuffs: Record<string, ICountryProximityBuffs> = {};
   constructor(
@@ -51,7 +50,7 @@ export class ProximityBuffsRecord {
       return {};
     }
 
-    const buffToApply =
+    const buffToApply: ICountryProximityBuffs =
       value > 0
         ? this.rule.valuesImpact[valueKey][1]
         : this.rule.valuesImpact[valueKey][0];
@@ -67,9 +66,7 @@ export class ProximityBuffsRecord {
     const impactFactor = Math.abs(value) / 100;
     const res: Partial<ICountryProximityBuffs> = {};
 
-    for (const key of Object.keys(buffToApply) as Array<
-      keyof ICountryProximityBuffs
-    >) {
+    for (const key of Object.keys(buffToApply) as Array<keyof ICountryProximityBuffs>) {
       if (!(key in countryBuffsMetadata)) {
         console.error(
           "[ProximityBuffsRecord] Unknown buff key for",

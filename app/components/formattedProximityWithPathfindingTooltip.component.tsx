@@ -29,7 +29,7 @@ export function FormattedProximityWithPathfindingTooltip(
         <TooltipContent
           anchor={{
             type: "dom",
-            ref: divRef as React.RefObject<HTMLElement>,
+            ref: divRef,
           }}
         >
           <ShortestPathComponent

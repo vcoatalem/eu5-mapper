@@ -58,16 +58,6 @@ export class GameStateController extends Observable<IGameState> {
     this.notifyListeners();
   }
 
-  // todo: methods like the one below that do not update subject should be service / helper methods instead
-  public findLocationName(hexColor: string): string {
-    const name = this.gameData?.colorToNameMap[hexColor];
-    if (!name) {
-      console.log("could not find name for color", hexColor);
-      return "??";
-    }
-    return name ?? "??";
-  }
-
   public toggleLocationOwnership(locationName: string): boolean {
     if (!this.subject) return false;
     const storedLocation = this.subject.ownedLocations[locationName];

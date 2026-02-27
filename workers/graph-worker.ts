@@ -185,12 +185,15 @@ self.onmessage = async function (e: MessageEvent<IWorkerTask>) {
               },
             ),
         };
-        sendMessage(self, {
-          data: neighborEval,
-          message: "Neighbors computation completed",
-          level: "result",
-          task: e.data,
-        });
+        setTimeout(() => {
+          sendMessage(self, {
+            data: neighborEval,
+            message: "Neighbors computation completed",
+            level: "result",
+            task: e.data,
+          });
+        }, 10000)
+        
       } catch (err) {
         sendMessage(self, {
           message: `Error during neighbors computation: ${(err as any).message}`,

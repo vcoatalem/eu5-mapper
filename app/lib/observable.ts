@@ -17,9 +17,13 @@ export abstract class Observable<T> {
 
   protected notifyListeners(): void {
     this.cachedSnapshot = { ...this.subject } as T; // Create new snapshot when data changes
-    for (const listener of this.listeners) {
-      listener(this.subject);
-    }
+    const snapshot = this.cachedSnapshot;
+    const listeners = this.listeners.slice();
+    queueMicrotask(() => {
+      for (const listener of listeners) {
+        listener(snapshot);
+      }
+    });
   }
 
   public getSnapshot(): T {

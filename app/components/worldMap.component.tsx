@@ -40,7 +40,7 @@ import { colorSearchController } from "@/app/lib/colorSeach.controller";
 import { shortestPathController } from "../lib/shortestPath.controller";
 import { MainActionsBar } from "./mainActionsBar.component";
 import { RoadList } from "./roads/roadList.component";
-import { WorkerStatusComponent } from "@/app/components/workerStatus.component";
+import { SlowTaskIndicator } from "@/app/components/slowTaskIndicator.component";
 import { LocationSearchBar } from "@/app/components/locationSearchBar.component";
 import { useParams, useSearchParams } from "next/navigation";
 import { LocationsHelper } from "@/app/lib/locations.helper";
@@ -928,9 +928,7 @@ export function WorldMapComponent() {
         <GuiElement className="fixed right-5 top-15 py-2 flex-none z-51"> {/* z-51 here is so that main actions bar and its popovers shows above of other guiElement in this div */}
           <MainActionsBar></MainActionsBar>
         </GuiElement>
-        <GuiElement className="fixed right-5 bottom-30">
-          <WorkerStatusComponent className="w-24" />
-        </GuiElement>
+        <SlowTaskIndicator className="w-24 right-5 bottom-30 fixed" />
         <GuiElement className="fixed right-20 bottom-17">
           <button onClick={handleZoomOut} className="w-8 px-2 py-1">
             -

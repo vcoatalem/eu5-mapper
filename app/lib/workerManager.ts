@@ -15,11 +15,14 @@ type WorkerPool = {
   assignments: Map<Worker, string | null>; // taskId or null
 };
 
+const SLOW_TASK_THRESHOLD_MS = 5000;
+
 class WorkerManager extends Observable<IWorkerManagerStatus> {
   private workerPools: Map<string, WorkerPool> = new Map(); // workerFileName -> pool
   private taskQueue: IWorkerTask[] = [];
   private activeTasks: Map<string, IWorkerTask> = new Map();
-  private taskTimeouts: Map<string, NodeJS.Timeout> = new Map(); // taskId -> timeout
+  private taskTimeouts: Map<string, NodeJS.Timeout> = new Map();
+  private taskSlowNotifyTimeouts: Map<string, NodeJS.Timeout> = new Map(); // fires at SLOW_TASK_THRESHOLD_MS after task start
 
   public isAvailable(): boolean {
     return this.workerPools.size > 0;
@@ -31,6 +34,7 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
       activeTasks: 0,
       queuedTasks: 0,
       lastCompletedTask: null,
+      lastSlowTask: null,
     };
 
     if (typeof Worker === "undefined") {
@@ -85,6 +89,7 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
       activeTasks: this.activeTasks.size,
       queuedTasks: this.taskQueue.length,
       lastCompletedTask: completedTask ?? this.subject.lastCompletedTask,
+      lastSlowTask: this.subject.lastSlowTask,
     };
     this.notifyListeners();
     // dont emit the same task completion twice
@@ -92,7 +97,17 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
       activeTasks: this.activeTasks.size,
       queuedTasks: this.taskQueue.length,
       lastCompletedTask: null,
+      lastSlowTask: this.subject.lastSlowTask,
     };
+  }
+
+  private notifySlowTask(taskId: string, type: TaskType): void {
+    this.subject = {
+      ...this.subject,
+      lastSlowTask: { taskId, type },
+    };
+    this.notifyListeners();
+    this.subject = { ...this.subject, lastSlowTask: null };
   }
 
   public queueTask(task: IWorkerTask): void {
@@ -152,6 +167,11 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
             `[WorkerManager] Task ${task.id} (type: ${task.type}) timed out after ${timeoutDuration}ms. Freeing worker.`,
           );
           this.taskTimeouts.delete(task.id);
+          const slowTimeout = this.taskSlowNotifyTimeouts.get(task.id);
+          if (slowTimeout) {
+            clearTimeout(slowTimeout);
+            this.taskSlowNotifyTimeouts.delete(task.id);
+          }
           this.activeTasks.delete(task.id);
           pool.assignments.set(availableWorker, null); // Free up worker
           this.updateStatus({
@@ -164,6 +184,14 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
           this.processQueue(); // Try to process next task
         }, timeoutDuration);
         this.taskTimeouts.set(task.id, timeout);
+
+        const slowNotifyTimeout = setTimeout(() => {
+          this.taskSlowNotifyTimeouts.delete(task.id);
+          if (this.activeTasks.has(task.id)) {
+            queueMicrotask(() => this.notifySlowTask(task.id, task.type));
+          }
+        }, SLOW_TASK_THRESHOLD_MS);
+        this.taskSlowNotifyTimeouts.set(task.id, slowNotifyTimeout);
 
         // Collect transferable objects from payload
         const transferables: Transferable[] = [];
@@ -196,6 +224,11 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
             if (timeout) {
               clearTimeout(timeout);
               this.taskTimeouts.delete(task.id);
+            }
+            const slowTimeout = this.taskSlowNotifyTimeouts.get(task.id);
+            if (slowTimeout) {
+              clearTimeout(slowTimeout);
+              this.taskSlowNotifyTimeouts.delete(task.id);
             }
             this.activeTasks.delete(task.id);
             pool.assignments.set(availableWorker, null);
@@ -236,6 +269,10 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
       clearTimeout(timeout);
     }
     this.taskTimeouts.clear();
+    for (const t of this.taskSlowNotifyTimeouts.values()) {
+      clearTimeout(t);
+    }
+    this.taskSlowNotifyTimeouts.clear();
 
     // Clear assignments but keep workers alive
     for (const pool of this.workerPools.values()) {
@@ -300,7 +337,12 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
         console.log();
         break;
 
-      case "result":
+      case "result": {
+        const slowTimeout = this.taskSlowNotifyTimeouts.get(taskId);
+        if (slowTimeout) {
+          clearTimeout(slowTimeout);
+          this.taskSlowNotifyTimeouts.delete(taskId);
+        }
         this.activeTasks.delete(taskId);
         pool.assignments.set(worker, null); // Free up worker
         console.log(`[WorkerManager] Task completed: ${taskId}`);
@@ -313,8 +355,14 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
         });
         this.processQueue(); // Process next task in queue
         break;
+      }
 
-      case "error":
+      case "error": {
+        const slowTimeout = this.taskSlowNotifyTimeouts.get(taskId);
+        if (slowTimeout) {
+          clearTimeout(slowTimeout);
+          this.taskSlowNotifyTimeouts.delete(taskId);
+        }
         this.activeTasks.delete(taskId);
         pool.assignments.set(worker, null); // Free up worker
         console.error(`[WorkerManager] Task failed: ${taskId}`);
@@ -328,6 +376,7 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
         });
         this.processQueue(); // Process next task in queue
         break;
+      }
     }
   }
 

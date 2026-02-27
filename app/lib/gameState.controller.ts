@@ -69,15 +69,16 @@ export class GameStateController extends Observable<IGameState> {
     return !storedLocation;
   }
 
-  public toggleLocationsOwnership(
-    locationNames: ILocationIdentifier[],
-  ): void {
+  public toggleLocationsOwnership(locationNames: ILocationIdentifier[]): void {
     if (!this.subject) return;
-    const toAcquire = locationNames.filter((locationName) => !this.subject.ownedLocations[locationName] && this.gameData?.locationDataMap[locationName]?.ownable);
+    const toAcquire = locationNames.filter(
+      (locationName) =>
+        !this.subject.ownedLocations[locationName] &&
+        this.gameData?.locationDataMap[locationName]?.ownable,
+    );
     if (toAcquire.length === 0) {
       this.abandonLocations(locationNames);
-    }
-    else {
+    } else {
       this.acquireLocations(toAcquire, false);
       this.notifyListeners();
     }
@@ -140,18 +141,18 @@ export class GameStateController extends Observable<IGameState> {
     for (const locationName of locationNames) {
       delete this.subject.ownedLocations[locationName];
     }
-    if (this.subject.capitalLocation && !this.subject.ownedLocations[this.subject.capitalLocation]) {
-      this.subject.capitalLocation = Object.keys(this.subject.ownedLocations)?.[0] ?? null;
+    if (
+      this.subject.capitalLocation &&
+      !this.subject.ownedLocations[this.subject.capitalLocation]
+    ) {
+      this.subject.capitalLocation =
+        Object.keys(this.subject.ownedLocations)?.[0] ?? null;
     }
     this.notifyListeners();
   }
 
   public changeCapital(locationName: string): void {
-    if (!this.subject.ownedLocations[locationName]) {
-      throw new Error(
-        `Cannot set capital to unowned location: ${locationName}`,
-      );
-    }
+    this.acquireLocations([locationName], false); // ensure capital is acquired
     this.subject.capitalLocation = locationName;
     this.notifyListeners();
   }
@@ -172,7 +173,11 @@ export class GameStateController extends Observable<IGameState> {
     location.rank = newRank;
 
     const eligibleBuildingService = new EligibleBuildingService(this.gameData);
-    const eligibleBuildings = eligibleBuildingService.getEligibleBuildingTemplates(locationName, this.subject);
+    const eligibleBuildings =
+      eligibleBuildingService.getEligibleBuildingTemplates(
+        locationName,
+        this.subject,
+      );
     const buildingsToRemove = new Set(
       Object.entries(location.buildings)
         .filter(([buildingName, buildingInstance]) => {
@@ -192,7 +197,11 @@ export class GameStateController extends Observable<IGameState> {
     location: ILocationIdentifier,
     action: ConstructibleAction,
   ): void {
-    console.log("[GameStateController] handling building action", location, action);
+    console.log(
+      "[GameStateController] handling building action",
+      location,
+      action,
+    );
     switch (action.type) {
       case "build":
         const locationConstructibleData = this.subject.ownedLocations[location];
@@ -338,13 +347,24 @@ export class GameStateController extends Observable<IGameState> {
     this.notifyListeners();
   }
 
-  public changeCountryModifier(name: string, toUpdate: {description?: string, buff?: Partial<ICountryProximityBuffs>, enabled?: boolean}): void {
+  public changeCountryModifier(
+    name: string,
+    toUpdate: {
+      description?: string;
+      buff?: Partial<ICountryProximityBuffs>;
+      enabled?: boolean;
+    },
+  ): void {
     if (!this.subject.country?.modifiers) {
       return;
     }
     const newModifiers = { ...this.subject.country.modifiers };
-    if (!(name in this.subject.country.modifiers )) {
-      newModifiers[name] = { buff: toUpdate.buff ?? {}, enabled: toUpdate.enabled ?? true, description: toUpdate.description ?? "" };
+    if (!(name in this.subject.country.modifiers)) {
+      newModifiers[name] = {
+        buff: toUpdate.buff ?? {},
+        enabled: toUpdate.enabled ?? true,
+        description: toUpdate.description ?? "",
+      };
     } else {
       if (toUpdate.buff !== undefined) {
         newModifiers[name].buff = toUpdate.buff;
@@ -356,7 +376,10 @@ export class GameStateController extends Observable<IGameState> {
         newModifiers[name].description = toUpdate.description;
       }
     }
-    this.subject = { ...this.subject, country: { ...this.subject.country, modifiers: newModifiers } };
+    this.subject = {
+      ...this.subject,
+      country: { ...this.subject.country, modifiers: newModifiers },
+    };
     this.notifyListeners();
   }
 
@@ -368,7 +391,11 @@ export class GameStateController extends Observable<IGameState> {
     this.notifyListeners();
   }
 
-  public changeRoadType(key: RoadKey, type: RoadType | null, notify: boolean = true): void {
+  public changeRoadType(
+    key: RoadKey,
+    type: RoadType | null,
+    notify: boolean = true,
+  ): void {
     const [from, to] = key.split("-");
     const canonicalKey = RoadsHelper.buildOrderedRoadKey(from, to);
     this.subject.roads = { ...this.subject.roads, [canonicalKey]: type };
@@ -378,7 +405,7 @@ export class GameStateController extends Observable<IGameState> {
   }
 
   public changeRoadTypeBulk(
-    changes:  Array<{ key: RoadKey; type: RoadType | null }>,
+    changes: Array<{ key: RoadKey; type: RoadType | null }>,
   ): void {
     const roads: IGameState["roads"] = { ...this.subject.roads };
     for (const { key, type } of changes) {
@@ -450,10 +477,10 @@ export class GameStateController extends Observable<IGameState> {
     if (parsedState.version !== expectedVersion) {
       throw new Error(
         'File version is of version "' +
-        parsedState.version +
-        '", but expected version is "' +
-        expectedVersion +
-        '". Version migration is not supported yet, but you can try migrating the file manually.',
+          parsedState.version +
+          '", but expected version is "' +
+          expectedVersion +
+          '". Version migration is not supported yet, but you can try migrating the file manually.',
       );
     }
     this.subject = parsedState;

@@ -1,17 +1,14 @@
 import { CountryProximityBuffs } from "@/app/components/countryBuffs/countryProximityBuffs.component";
 import { FoldableMenu } from "@/app/components/foldableMenu.component";
 import { gameStateController } from "@/app/lib/gameState.controller";
-import {
-  useContext,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useContext, useState, useSyncExternalStore } from "react";
 import { AppContext } from "../appContextProvider";
 import { CountryValuesInput } from "./countryValuesInput.component";
 
 export function CountryOverview() {
   const [countryMenuExpanded, setCountryMenuExpanded] = useState(false);
-  const [countryProximityBuffsExpanded, setCountryProximityBuffsExpanded] = useState(false);
+  const [countryProximityBuffsExpanded, setCountryProximityBuffsExpanded] =
+    useState(false);
   const gameState = useSyncExternalStore(
     gameStateController.subscribe.bind(gameStateController),
     () => gameStateController.getSnapshot(),
@@ -38,11 +35,16 @@ export function CountryOverview() {
       </FoldableMenu>
 
       <FoldableMenu
-        title="Country Buff Breakdown"
+        title="Country Modifiers Breakdown"
         isExpanded={countryProximityBuffsExpanded}
-        onToggle={() => setCountryProximityBuffsExpanded(!countryProximityBuffsExpanded)}
+        onToggle={() =>
+          setCountryProximityBuffsExpanded(!countryProximityBuffsExpanded)
+        }
       >
-        <CountryProximityBuffs country={country}></CountryProximityBuffs>
+        <CountryProximityBuffs
+          className="pl-2"
+          country={country}
+        ></CountryProximityBuffs>
       </FoldableMenu>
     </>
   );

@@ -15,7 +15,8 @@ type WorkerPool = {
   assignments: Map<Worker, string | null>; // taskId or null
 };
 
-const SLOW_TASK_THRESHOLD_MS = 5000;
+const SLOW_TASK_THRESHOLD_MS = 2000;
+const MAX_TASK_DURATION_MS = 30000;
 
 class WorkerManager extends Observable<IWorkerManagerStatus> {
   private workerPools: Map<string, WorkerPool> = new Map(); // workerFileName -> pool
@@ -146,7 +147,6 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
         continue;
       }
 
-      // Debug: Log pool state
       const assignedCount = Array.from(pool.assignments.values()).filter(
         (a) => a !== null,
       ).length;
@@ -161,28 +161,20 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
         this.taskQueue.splice(i, 1);
         this.activeTasks.set(task.id, task);
         pool.assignments.set(availableWorker, task.id);
-        const timeoutDuration = 30000;
         const timeout = setTimeout(() => {
           console.warn(
-            `[WorkerManager] Task ${task.id} (type: ${task.type}) timed out after ${timeoutDuration}ms. Freeing worker.`,
+            `[WorkerManager] Task ${task.id} (type: ${task.type}) timed out after ${MAX_TASK_DURATION_MS}ms. Freeing worker.`,
           );
-          this.taskTimeouts.delete(task.id);
-          const slowTimeout = this.taskSlowNotifyTimeouts.get(task.id);
-          if (slowTimeout) {
-            clearTimeout(slowTimeout);
-            this.taskSlowNotifyTimeouts.delete(task.id);
-          }
-          this.activeTasks.delete(task.id);
-          pool.assignments.set(availableWorker, null); // Free up worker
+          this.clearActiveTask(task.id, pool);
           this.updateStatus({
             taskId: task.id,
             type: task.type,
             success: false,
-            error: `Task timed out after ${timeoutDuration}ms`,
+            error: `Task timed out after ${MAX_TASK_DURATION_MS}ms`,
             data: null,
           });
           this.processQueue(); // Try to process next task
-        }, timeoutDuration);
+        }, MAX_TASK_DURATION_MS);
         this.taskTimeouts.set(task.id, timeout);
 
         const slowNotifyTimeout = setTimeout(() => {
@@ -220,18 +212,7 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
               "Transferables count:",
               transferables.length,
             );
-            const timeout = this.taskTimeouts.get(task.id);
-            if (timeout) {
-              clearTimeout(timeout);
-              this.taskTimeouts.delete(task.id);
-            }
-            const slowTimeout = this.taskSlowNotifyTimeouts.get(task.id);
-            if (slowTimeout) {
-              clearTimeout(slowTimeout);
-              this.taskSlowNotifyTimeouts.delete(task.id);
-            }
-            this.activeTasks.delete(task.id);
-            pool.assignments.set(availableWorker, null);
+            this.clearActiveTask(task.id, pool);
             throw error;
           }
         } else {
@@ -255,6 +236,32 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
     }
     // If no available worker for any task, just return
     // (will be retried when a worker becomes available)
+  }
+
+  /**
+   * called on task completion or failure
+   */
+  private clearActiveTask(taskId: string, pool: WorkerPool): void {
+    const task = this.activeTasks.get(taskId);
+    if (task) {
+      this.activeTasks.delete(taskId);
+      for (const [worker, assignedTaskId] of pool.assignments.entries()) {
+        if (assignedTaskId === taskId) {
+          pool.assignments.set(worker, null); // Free up worker
+          break;
+        }
+      }
+      const timeout = this.taskTimeouts.get(taskId);
+      if (timeout) {
+        clearTimeout(timeout);
+        this.taskTimeouts.delete(taskId);
+      }
+      const slowTimeout = this.taskSlowNotifyTimeouts.get(taskId);
+      if (slowTimeout) {
+        clearTimeout(slowTimeout);
+        this.taskSlowNotifyTimeouts.delete(taskId);
+      }
+    }
   }
 
   /**

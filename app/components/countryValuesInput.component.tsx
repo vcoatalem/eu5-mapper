@@ -1,5 +1,12 @@
 import { gameStateController } from "@/app/lib/gameState.controller";
-import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ChangeEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { ICountryInstance } from "../lib/types/general";
 import formStyles from "@/app/components/countryBuffs/forms.module.css";
 
@@ -53,7 +60,11 @@ function CountryValueInput({
       <select
         value={currentValueSide}
         onChange={changeValueSide}
-        className={[formStyles.formLabel, formStyles.formLabelSmall, "cursor-pointer"].join(" ")}
+        className={[
+          formStyles.formLabel,
+          formStyles.formLabelSmall,
+          "cursor-pointer",
+        ].join(" ")}
         style={{ border: "none" }}
       >
         <option value="min">{labelMinFormatted}</option>
@@ -96,8 +107,16 @@ function RulerAdministrativeSkillInput({ value }: { value: number }) {
 
   return (
     <div className="flex flex-row gap-2 items-center">
-      <button onClick={() => inputRef.current?.focus()} className={[formStyles.formLabel, formStyles.formLabelSmall, "cursor-pointer"].join(" ")}>
-        <span className="pl-1">Administrative skill</span></button>
+      <button
+        onClick={() => inputRef.current?.focus()}
+        className={[
+          formStyles.formLabel,
+          formStyles.formLabelSmall,
+          "cursor-pointer",
+        ].join(" ")}
+      >
+        <span className="pl-1">Administrative skill</span>
+      </button>
       <input
         ref={inputRef}
         type="number"
@@ -111,9 +130,19 @@ function RulerAdministrativeSkillInput({ value }: { value: number }) {
   );
 }
 
-export function CountryValuesInput({ country, className }: { country: ICountryInstance, className?: string }) {
+export function CountryValuesInput({
+  country,
+  className,
+}: {
+  country: ICountryInstance;
+  className?: string;
+}) {
   return (
-    <div className={["flex flex-col gap-1 mb-1", className].filter(Boolean).join(" ")}>
+    <div
+      className={["flex flex-col gap-1 mb-1", className]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <CountryValueInput
         valueKey={"landVsNaval"}
         value={country.values.landVsNaval ?? 0}

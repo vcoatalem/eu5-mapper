@@ -66,7 +66,9 @@ export class LocationSearchController extends Observable<ILocationSearchResult> 
       const nonLocationHierarchyMatches =
         await LocationHierarchyService.getNonLocationHierarchyMatches(query);
       locations.push(
-        ...nonLocationHierarchyMatches.flatMap((match) => match.locations),
+        ...nonLocationHierarchyMatches
+          .flatMap((match) => match.locations)
+          .filter((loc) => loc.hierarchyType !== "continent"), //exclude continents for now, to avoid performance issues in client
       );
     }
     this.subject = { locations };

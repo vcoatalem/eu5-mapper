@@ -9,7 +9,7 @@ import { Modal } from "../lib/modal/modal.component";
 import { DetailedLocationListModal } from "./detailedList/detailedLocationListModal.component";
 
 interface IMainActionsBarProps {
-  isTutorial: boolean;
+  isTutorial?: boolean;
 }
 
 export function MainActionsBar({ isTutorial }: IMainActionsBarProps) {

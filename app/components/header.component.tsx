@@ -3,7 +3,7 @@ import { CopyrightNotice } from "@/app/components/copyrightNotice.component";
 import { CountrySelectionModal } from "@/app/components/countrySelectionModal.component";
 import { GameVersionSelector } from "@/app/components/gameVersionSelector.component";
 import { ImportExportGameState } from "@/app/components/importExportGameState.component";
-import { MethodologyInfos } from "@/app/components/methodologyInfos.component";
+import { Help } from "@/app/components/help.component";
 import { useContext, useState, useSyncExternalStore } from "react";
 import { PiCopyrightLight } from "react-icons/pi";
 import { AppContext } from "../appContextProvider";
@@ -26,20 +26,24 @@ function RegularHeader() {
   const gameData = useContext(AppContext).gameData;
   if (!gameData) return null;
 
-  const flagUrl = gameData.countriesDataMap[gameState.countryCode ?? ""]?.flagUrl;
+  const flagUrl =
+    gameData.countriesDataMap[gameState.countryCode ?? ""]?.flagUrl;
 
   return (
     <div className={styles.header}>
       <GameVersionSelector />
-      <MethodologyInfos />
+      <Help className="ml-2" />
       <button
-        className={["absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 min-w-24 hover:grayscale-50", buttonStyles.simpleButton].join(" ")}
+        className={[
+          "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 min-w-24 hover:grayscale-50",
+          buttonStyles.simpleButton,
+        ].join(" ")}
         onClick={() => setChooseCountryModalOpen(true)}
         style={{
-          backgroundImage: flagUrl ? `url(${flagUrl})` : 'none',
-          backgroundSize: '100% auto',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
+          backgroundImage: flagUrl ? `url(${flagUrl})` : "none",
+          backgroundSize: "100% auto",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
         }}
       >
         <span className="inset text-center backdrop-blur-sm">
@@ -47,7 +51,6 @@ function RegularHeader() {
             gameData.countriesDataMap[gameState.countryCode]?.name) ||
             "Choose a Country"}
         </span>
-
       </button>
       <Modal
         isOpen={chooseCountryModalOpen}
@@ -56,10 +59,15 @@ function RegularHeader() {
         <CountrySelectionModal></CountrySelectionModal>
       </Modal>
 
-
       <div className="ml-auto w-fit flex flex-row gap-2 items-center relative">
-        {PosthogHelper.isPosthogEnabled() && <PosthogSurveyButton className="" />}
-        <ButtonWithTooltip tooltip="show copyright notice" isActive={showCopyrightNotice} onClick={() => setShowCopyrightNotice((prev) => !prev)}>
+        {PosthogHelper.isPosthogEnabled() && (
+          <PosthogSurveyButton className="" />
+        )}
+        <ButtonWithTooltip
+          tooltip="show copyright notice"
+          isActive={showCopyrightNotice}
+          onClick={() => setShowCopyrightNotice((prev) => !prev)}
+        >
           <PiCopyrightLight color="white" size={24}></PiCopyrightLight>
         </ButtonWithTooltip>
         <Modal
@@ -70,9 +78,7 @@ function RegularHeader() {
         </Modal>
         <ImportExportGameState />
       </div>
-
-    </div >
-
+    </div>
   );
 }
 
@@ -85,5 +91,5 @@ export function HeaderComponent() {
     <>
       <RegularHeader />
     </>
-  )
+  );
 }

@@ -4,7 +4,11 @@ import { gameStateController } from "@/app/lib/gameState.controller";
 import { useCallback, useState, useSyncExternalStore } from "react";
 import { Modal } from "@/app/lib/modal/modal.component";
 
-export function ImportExportGameState() {
+interface IImportExportGameStateProps {
+  isTutorial?: boolean;
+}
+
+export function ImportExportGameState(props: IImportExportGameStateProps) {
   const params = useParams();
   const gameState = useSyncExternalStore(
     gameStateController.subscribe.bind(gameStateController),
@@ -46,14 +50,20 @@ export function ImportExportGameState() {
     <div className="flex flex-row items-center gap-2">
       <button
         className={styles.simpleButton}
-        onClick={() => setShowImportModal(true)}
+        onClick={() => {
+          if (props.isTutorial) return;
+          setShowImportModal(true);
+        }}
       >
         Load State
       </button>
       <button
         disabled={!gameState.capitalLocation}
         className={styles.simpleButton}
-        onClick={() => gameStateController.download(version)}
+        onClick={() => {
+          if (props.isTutorial) return;
+          gameStateController.download(version);
+        }}
       >
         Save State
       </button>

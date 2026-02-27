@@ -15,7 +15,9 @@
     position: relative;
   }
 
-  .infoBoxContainer::before {
+  .infoBoxContainer.changeCapitalStripes::before,
+  .infoBoxContainer.editMaritimePresenceStripes::before,
+  .infoBoxContainer.roadBuildingStripes::before {
     content: "";
     position: absolute;
     inset: 4px;

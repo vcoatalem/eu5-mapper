@@ -33,18 +33,26 @@ import { locationSearchController } from "@/app/lib/locationSearchController";
 import { actionEventDispatcher } from "../lib/actionEventDispatcher";
 import { IWorkerTaskInitWithImagePayload } from "@/workers/types/workerTypes";
 import { ObservableCombiner } from "../lib/observableCombiner";
-import { editModeController, maritimeSliceFromState, roadSliceFromState } from "@/app/lib/editMode.controller";
+import {
+  editModeController,
+  maritimeSliceFromState,
+  roadSliceFromState,
+} from "@/app/lib/editMode.controller";
 import { Tooltip } from "../lib/tooltip/tooltip.component";
 import { TooltipContent } from "../lib/tooltip/tooltipContent.component";
 import { colorSearchController } from "@/app/lib/colorSeach.controller";
 import { shortestPathController } from "../lib/shortestPath.controller";
 import { MainActionsBar } from "./mainActionsBar.component";
 import { RoadList } from "./roads/roadList.component";
-import { WorkerStatusComponent } from "@/app/components/workerStatus.component";
+import { SlowTaskIndicator } from "@/app/components/slowTaskIndicator.component";
 import { LocationSearchBar } from "@/app/components/locationSearchBar.component";
 import { useParams, useSearchParams } from "next/navigation";
 import { LocationsHelper } from "@/app/lib/locations.helper";
 import { CountryStats } from "@/app/components/countryStatsComponent";
+import {
+  HiOutlineMagnifyingGlassMinus,
+  HiOutlineMagnifyingGlassPlus,
+} from "react-icons/hi2";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
@@ -231,7 +239,7 @@ export function WorldMapComponent() {
         ref: maritimePresenceCanvasRef,
         zIndex: 5,
         createMethod: createTransparentCanvas,
-      }
+      },
     ],
     [
       imagePaths?.locationsImage,
@@ -525,46 +533,45 @@ export function WorldMapComponent() {
       );
     }
 
-    const hoverMaritimePresenceModeObservable = new ObservableCombiner(
-      [actionEventDispatcher.hoveredLocation, editModeController],
-    );
+    const hoverMaritimePresenceModeObservable = new ObservableCombiner([
+      actionEventDispatcher.hoveredLocation,
+      editModeController,
+    ]);
     subscriptionsRef.current.push(
       hoverMaritimePresenceModeObservable.dispose.bind(
         hoverMaritimePresenceModeObservable,
       ),
     );
 
-    const hoverInMaritimePresenceMode = hoverMaritimePresenceModeObservable.subscribe(
-      ({
-        values: [{ locations }, editModeState],
-      }) => {
-        const maritimePresenceEditState = maritimeSliceFromState(editModeState);
-        if (roadSliceFromState(editModeState).isModeEnabled) return;
-        if (maritimePresenceEditState.selectedLocation) {
-          return; // already editing a location
-        }
-        if (!maritimePresenceEditState.isModeEnabled) {
-          setSelectedLocation(null);
-          return;
-        }
-        const location = locations[0];
-        if (!location) {
-          setSelectedLocation(null);
-          return;
-        }
+    const hoverInMaritimePresenceMode =
+      hoverMaritimePresenceModeObservable.subscribe(
+        ({ values: [{ locations }, editModeState] }) => {
+          const maritimePresenceEditState =
+            maritimeSliceFromState(editModeState);
+          if (roadSliceFromState(editModeState).isModeEnabled) return;
+          if (maritimePresenceEditState.selectedLocation) {
+            return; // already editing a location
+          }
+          if (!maritimePresenceEditState.isModeEnabled) {
+            setSelectedLocation(null);
+            return;
+          }
+          const location = locations[0];
+          if (!location) {
+            setSelectedLocation(null);
+            return;
+          }
 
-        const locationData = gameData.locationDataMap[location ?? ""] ?? null;
-        if (!locationData) return;
-        if (!LocationsHelper.isLocationEligibleForMaritime(locationData)) {
-          setSelectedLocation(null);
-          return;
-        }
-        setSelectedLocation(location);
-      },
-    );
+          const locationData = gameData.locationDataMap[location ?? ""] ?? null;
+          if (!locationData) return;
+          if (!LocationsHelper.isLocationEligibleForMaritime(locationData)) {
+            setSelectedLocation(null);
+            return;
+          }
+          setSelectedLocation(location);
+        },
+      );
     subscriptionsRef.current.push(hoverInMaritimePresenceMode);
-
-
 
     const prolongedHoverProximityCalculationObservable = new ObservableCombiner(
       [actionEventDispatcher.prolongedHoverLocation, editModeController],
@@ -576,11 +583,9 @@ export function WorldMapComponent() {
     );
     const prolongedHoverOutsideRoadAndMaritimeMode =
       prolongedHoverProximityCalculationObservable.subscribe(
-        ({
-          values: [{ locations, type, mouseCoordinate }, editModeState],
-        }) => {
-          if (editModeState.modeEnabled === 'road') return;
-          if (editModeState.modeEnabled === 'maritime') return;
+        ({ values: [{ locations, type, mouseCoordinate }, editModeState] }) => {
+          if (editModeState.modeEnabled === "road") return;
+          if (editModeState.modeEnabled === "maritime") return;
           if (type === "search") return;
           if (locations.length === 1) {
             // only show neighbors panel if there is exactly one location hovered
@@ -609,10 +614,7 @@ export function WorldMapComponent() {
 
     const clickedLocationUnsubscribe = clickObserver.subscribe(
       ({
-        values: [
-          { locations, type, mouseCoordinate },
-          mapEditModeState,
-        ],
+        values: [{ locations, type, mouseCoordinate }, mapEditModeState],
         changedIndex,
       }) => {
         if (changedIndex !== 0) {
@@ -624,8 +626,7 @@ export function WorldMapComponent() {
         const locationData =
           gameData.locationDataMap[primaryLocation ?? ""] ?? null;
         switch (true) {
-          case locationData &&
-            mapEditModeState.modeEnabled === "capital":
+          case locationData && mapEditModeState.modeEnabled === "capital":
             if (!LocationsHelper.isLocationEligibleForCapital(locationData)) {
               return;
             }
@@ -742,7 +743,7 @@ export function WorldMapComponent() {
     // dev mode: boot game state from public/test-gamefile.json for quick reloaded
     if (loadFileOnStart) {
       fetch(`/saves/${loadFileOnStart}`).then((res) =>
-        res.text().then((txt) => gameStateController.loadFile(txt, version))
+        res.text().then((txt) => gameStateController.loadFile(txt, version)),
       );
     }
 
@@ -887,9 +888,14 @@ export function WorldMapComponent() {
           {hasOwnedLocations && (
             <>
               <GuiElement className="flex-none w-72">
-                <CountryStats ownedLocations={gameState?.ownedLocations ?? {}} />
+                <CountryStats
+                  ownedLocations={gameState?.ownedLocations ?? {}}
+                />
               </GuiElement>
-              <GuiElement className="flex-none w-72 overflow-y-scroll overflow-x-hidden">
+              <GuiElement
+                className="flex-none w-72 overflow-y-scroll overflow-x-hidden"
+                style={{ padding: 0 }}
+              >
                 <CountryOverview />
               </GuiElement>
               <GuiElement className="min-h-0 w-72 max-h-[60vh] shrink overflow-hidden flex flex-col">
@@ -925,20 +931,24 @@ export function WorldMapComponent() {
         <GuiElement className="fixed right-5 top-30 rounded-lg py-2">
           <LocationSearchBar className="w-52" />
         </GuiElement>
-        <GuiElement className="fixed right-5 top-15 py-2 flex-none z-51"> {/* z-51 here is so that main actions bar and its popovers shows above of other guiElement in this div */}
+        <GuiElement className="fixed right-5 top-15 py-2 flex-none z-51">
+          {" "}
+          {/* z-51 here is so that main actions bar and its popovers shows above of other guiElement in this div */}
           <MainActionsBar></MainActionsBar>
         </GuiElement>
-        <GuiElement className="fixed right-5 bottom-30">
-          <WorkerStatusComponent className="w-24" />
-        </GuiElement>
-        <GuiElement className="fixed right-20 bottom-17">
-          <button onClick={handleZoomOut} className="w-8 px-2 py-1">
-            -
-          </button>
-        </GuiElement>
+        <SlowTaskIndicator className="fixed bottom-32 right-5 z-50 backdrop-blur-md p-4" />
         <GuiElement className="fixed right-5 bottom-17">
-          <button onClick={handleZoomIn} className="w-8 px-2 py-1">
-            +
+          <button
+            onClick={handleZoomOut}
+            className="px-2 py-1 hover:text-stone-500 cursor-pointer"
+          >
+            <HiOutlineMagnifyingGlassMinus size={24} />
+          </button>
+          <button
+            onClick={handleZoomIn}
+            className="px-2 py-1 hover:text-stone-500 cursor-pointer"
+          >
+            <HiOutlineMagnifyingGlassPlus size={24} />
           </button>
         </GuiElement>
       </div>

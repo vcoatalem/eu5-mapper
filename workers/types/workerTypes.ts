@@ -27,6 +27,7 @@ export interface IWorkerManagerStatus {
   activeTasks: number;
   queuedTasks: number;
   lastCompletedTask: IWorkerTaskResult | null;
+  lastSlowTask: { taskId: string; type: TaskType } | null;
 }
 
 export interface IWorkerTask {

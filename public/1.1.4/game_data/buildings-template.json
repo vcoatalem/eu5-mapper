@@ -260,7 +260,7 @@
         "is_coastal"
       ]
     },
-    "buildable": true
+    "buildable": false
   },
   "copenhagen_dockyard": {
     "name": "copenhagen_dockyard",

@@ -83,6 +83,7 @@ export class DrawingService {
       }, {} as CanvasRecord);
 
     colorSearchController.subscribe(() => {
+      /* console.log("[DrawingService] colorSearchController subscription triggered"); */
       this.reDraw.emit(new Date());
     });
 
@@ -92,6 +93,7 @@ export class DrawingService {
     ])
       .debounce(10)
       .subscribe(({ values: [gameState, proximityEvaluation] }) => {
+        /* console.log("[DrawingService] gameState x ProximityEvaluation subscription triggered", { gameState, proximityEvaluation }); */
         this.drawingCallbackBuffer["areas"] = () =>
           this.drawAreas(gameState, proximityEvaluation);
         this.drawingCallbackBuffer["roads"] = () => this.drawRoads(gameState);
@@ -163,10 +165,11 @@ export class DrawingService {
     const data = imageData.data;
 
     const missingCoordinates: ILocationIdentifier[] = [];
+    const colorSearchResult = colorSearchController.getSnapshot().result;
     for (const location of Object.keys(gameState.ownedLocations)) {
-      const coordinates =
-        colorSearchController.getSnapshot().result[location]?.coordinates;
-      if (!coordinates) {
+      const entry = colorSearchResult[location];
+      const coordinates = entry?.coordinates;
+      if (!coordinates?.length) {
         missingCoordinates.push(location);
         continue;
       }
@@ -310,10 +313,11 @@ export class DrawingService {
 
     const colorSearchResult = colorSearchController.getSnapshot().result;
     for (const location of locations) {
-      if (!(location in colorSearchResult)) {
+      const coords = colorSearchResult[location]?.coordinates;
+      if (!coords?.length) {
         missingCoordinates.push(location);
       } else {
-        toHighlight[location] = colorSearchResult[location].coordinates;
+        toHighlight[location] = coords;
       }
     }
 
@@ -350,11 +354,16 @@ export class DrawingService {
 
     const colorSearchResult = colorSearchController.getSnapshot().result;
     for (const [location, { maritimePresence }] of Object.entries(maritimePresenceData)) {
-      if (!(location in colorSearchResult)) {
+      const coords = colorSearchResult[location]?.coordinates;
+      if (!coords?.length) {
         missingCoordinates.push(location);
       } else {
-        toHighlight[location] = { coordinates: colorSearchResult[location].coordinates, maritimePresence };
+        toHighlight[location] = { coordinates: coords, maritimePresence };
       }
+    }
+
+    if (missingCoordinates.length > 0) {
+      colorSearchController.requestColorSearch(missingCoordinates);
     }
 
     DrawingHelper.draw(

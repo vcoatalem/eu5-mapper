@@ -110,6 +110,12 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
     () => countryModifiersTemplatesController.getSnapshot(),
   );
 
+  const [countryModifiersOpen, setCountryModifiersOpen] = useState(false);
+  const [countryValuesOpen, setCountryValuesOpen] = useState(false);
+  const [selectedModifier, setSelectedModifier] = useState<ICountryModifierTemplate | null>(null);
+  const [hoveredModifier, setHoveredModifier] = useState<ICountryModifierTemplate | null>(null);
+  const [createCustomModifierFormOpen, setCreateCustomModifierFormOpen] = useState(false);
+
   const version = useParams().version as string;
 
   useEffect(() => {
@@ -117,13 +123,10 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
       throw new Error("[CreateCustomModifierForm] version not found");
     }
     countryModifiersTemplatesController.init(version);
+    if (Object.keys(gameState.country?.modifiers ?? {}).length > 0) {
+      queueMicrotask(() => setCountryModifiersOpen(true));
+    }
   }, [version]);
-
-  const [countryModifiersOpen, setCountryModifiersOpen] = useState(false);
-  const [countryValuesOpen, setCountryValuesOpen] = useState(false);
-  const [selectedModifier, setSelectedModifier] = useState<ICountryModifierTemplate | null>(null);
-  const [hoveredModifier, setHoveredModifier] = useState<ICountryModifierTemplate | null>(null);
-  const [createCustomModifierFormOpen, setCreateCustomModifierFormOpen] = useState(false);
 
   const addModifier = useCallback((name: string, description: string | null, buff: Partial<ICountryProximityBuffs>) => {
     if (!gameState.country) {

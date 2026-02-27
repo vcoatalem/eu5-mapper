@@ -1,11 +1,13 @@
 import { ButtonWithTooltip } from "@/app/components/buttonWithTooltip.component";
 import { RoadKey, RoadType } from "@/app/lib/types/roads";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { FaAnglesDown, FaAnglesUp } from "react-icons/fa6";
-import buttonStyles from "@/app/styles/button.module.css";
 import { gameStateController } from "@/app/lib/gameState.controller";
 import { getRoadIcon } from "@/app/lib/drawing/getImages";
 import Image from "next/image";
+import { Tooltip } from "@/app/lib/tooltip/tooltip.component";
+import { TooltipTrigger } from "@/app/lib/tooltip/tooltipTrigger.component";
+import { TooltipContent } from "@/app/lib/tooltip/tooltipContent.component";
 
 interface IRoadStepperProps {
   roadKey: RoadKey;
@@ -15,6 +17,7 @@ interface IRoadStepperProps {
 
 export function RoadStepper({ roadKey, roadType, className }: IRoadStepperProps) {
 
+  const divRef = useRef<HTMLDivElement>(null);
 
   const upgradeType = useMemo(() => {
     switch (roadType) {
@@ -52,40 +55,53 @@ export function RoadStepper({ roadKey, roadType, className }: IRoadStepperProps)
       className={["flex flex-row items-center gap-1 shrink-0 min-w-[7rem]", className].filter(Boolean).join(" ")}
     >
 
-        <ButtonWithTooltip
-          className="ml-auto"
-          disabled={roadType === null}
-          tooltip={downgradeType ? "Downgrade road to " + downgradeType : "destroy road"}
-          onClick={() =>
-            gameStateController.changeRoadType(roadKey, downgradeType)
-          }
-        >
-          <FaAnglesDown color="white" size={12}></FaAnglesDown>
-        </ButtonWithTooltip>
+      <ButtonWithTooltip
+        className="ml-auto"
+        disabled={roadType === null}
+        tooltip={downgradeType ? "Downgrade road to " + downgradeType : "destroy road"}
+        onClick={() =>
+          gameStateController.changeRoadType(roadKey, downgradeType)
+        }
+      >
+        <FaAnglesDown color="white" size={12}></FaAnglesDown>
+      </ButtonWithTooltip>
 
-      <span
-        className="inline-flex shrink-0"
+
+      <p
+        ref={divRef}
+        className="inline-flex shrink-0 cursor-help relative"
         style={{ filter: roadType === null ? "grayscale(100%)" : "none" }}
       >
-        <Image
-          src={getRoadIcon(roadType)}
-          alt={roadType ?? ""}
-          width={32}
-          height={32}
-          className="pt-1 px-1"
-        />
-      </span>
 
-          <ButtonWithTooltip
-            disabled={!upgradeType}
-            tooltip={upgradeType ? "Upgrade road to " + upgradeType : "Cannot upgrade road further"}
-            onClick={() =>
-              gameStateController.changeRoadType(roadKey, upgradeType)
-            }
-          >
-            <FaAnglesUp color="white" size={12}></FaAnglesUp>
-          </ButtonWithTooltip>
-    </div>
+        <Tooltip>
+          <TooltipTrigger>
+            <Image
+              src={getRoadIcon(roadType)}
+              alt={roadType ?? ""}
+              width={32}
+              height={32}
+              className="pt-1 px-1"
+            />
+
+          </TooltipTrigger>
+
+          <TooltipContent anchor={{ type: "dom", ref: divRef }}>
+            {roadType ?? "No road built here"}
+          </TooltipContent>
+
+        </Tooltip>
+      </p>
+
+      <ButtonWithTooltip
+        disabled={!upgradeType}
+        tooltip={upgradeType ? "Upgrade road to " + upgradeType : "Cannot upgrade road further"}
+        onClick={() =>
+          gameStateController.changeRoadType(roadKey, upgradeType)
+        }
+      >
+        <FaAnglesUp color="white" size={12}></FaAnglesUp>
+      </ButtonWithTooltip>
+    </div >
 
   )
 }

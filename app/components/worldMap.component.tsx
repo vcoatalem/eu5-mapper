@@ -44,6 +44,7 @@ import { WorkerStatusComponent } from "@/app/components/workerStatus.component";
 import { LocationSearchBar } from "@/app/components/locationSearchBar.component";
 import { useParams, useSearchParams } from "next/navigation";
 import { LocationsHelper } from "@/app/lib/locations.helper";
+import { CountryStats } from "@/app/components/countryStatsComponent";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
@@ -741,7 +742,7 @@ export function WorldMapComponent() {
     // dev mode: boot game state from public/test-gamefile.json for quick reloaded
     if (loadFileOnStart) {
       fetch(`/saves/${loadFileOnStart}`).then((res) =>
-        res.text().then((txt) => gameStateController.loadFile(txt, version)),
+        res.text().then((txt) => gameStateController.loadFile(txt, version))
       );
     }
 
@@ -885,15 +886,15 @@ export function WorldMapComponent() {
         <div className="fixed left-5 top-16 flex flex-col gap-2 z-50 max-h-[80vh] min-h-0">
           {hasOwnedLocations && (
             <>
+              <GuiElement className="flex-none w-72">
+                <CountryStats ownedLocations={gameState?.ownedLocations ?? {}} />
+              </GuiElement>
               <GuiElement className="flex-none w-72 overflow-y-scroll overflow-x-hidden">
                 <CountryOverview />
               </GuiElement>
-              <GuiElement className="h-content py-2 flex-none z-51"> {/* z-51 here is so that main actions bar and its popovers shows above of other guiElement in this div */}
-                <MainActionsBar></MainActionsBar>
-              </GuiElement>
               <GuiElement className="min-h-0 w-72 max-h-[60vh] shrink overflow-hidden flex flex-col">
                 {roadBuilderState.isModeEnabled ? (
-                  <RoadList className="max-h-[60vh]"  />
+                  <RoadList className="max-h-[60vh]" />
                 ) : (
                   <SimpleLocationList />
                 )}
@@ -921,11 +922,12 @@ export function WorldMapComponent() {
             </div>
           </TooltipContent>
         </Tooltip>
-        {!roadBuilderState.isModeEnabled && (
-          <GuiElement className="fixed right-5 top-15 rounded-lg py-2">
-            <LocationSearchBar className="w-52" />
-          </GuiElement>
-        )}
+        <GuiElement className="fixed right-5 top-30 rounded-lg py-2">
+          <LocationSearchBar className="w-52" />
+        </GuiElement>
+        <GuiElement className="fixed right-5 top-15 py-2 flex-none z-51"> {/* z-51 here is so that main actions bar and its popovers shows above of other guiElement in this div */}
+          <MainActionsBar></MainActionsBar>
+        </GuiElement>
         <GuiElement className="fixed right-5 bottom-30">
           <WorkerStatusComponent className="w-24" />
         </GuiElement>

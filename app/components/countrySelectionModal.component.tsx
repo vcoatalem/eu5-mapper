@@ -58,8 +58,8 @@ export function CountrySelectionModal() {
           modal.close();
         }}
       ></CountrySelectionList>
-      <div className="w-full py-1 flex flex-col h-full items-center max-w-[400px] mt-4 mx-auto">
-        <div className="w-full flex flex-center items-center text-stone-500 block">
+      <div className="w-full py-1 flex flex-col h-full items-center max-w-[400px] mt-4 mx-auto overflow-y-scroll overflow-x-hidden overscroll-none" style={{ scrollbarGutter: "stable" }}>
+        <div className="w-[50%] mx-auto flex flex-center items-center text-stone-500 block">
           {selectedCountry && countryHasFlag ? (
             flagLoaded ? (
               <img

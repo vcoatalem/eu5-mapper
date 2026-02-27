@@ -31,6 +31,12 @@
   }
 }
 
+.formLabelSmall {
+  &.formLabel {
+    width: 152px !important;
+  }
+}
+
 .formLabel::after {
   content: "";
   position: absolute;

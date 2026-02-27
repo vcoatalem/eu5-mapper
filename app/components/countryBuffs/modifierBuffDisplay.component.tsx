@@ -22,7 +22,7 @@ export function ModifierBuffDisplay({
     <div key={buffKey} ref={divRef} className="flex flex-row items-center gap-1 relative">
       <Tooltip config={{ offset: { x: 100, y: 0 }, preferredHorizontal: "right", preferredVertical: "bottom" }}>
         <TooltipTrigger>
-          <p className="flex flex-row w-full items-center gap-1 hover:bg-stone-700/50 rounded-md p-1 cursor-help">
+          <p className="flex flex-row w-full items-center gap-1 hover:bg-stone-700/50 rounded-md p-1 cursor-help text-sm">
             <b><span className="flex-none w-32">{buffDisplayableData.label}</span></b>
             <span className="ml-auto">{sum.toFixed(2)}{suffix}</span>
           </p>

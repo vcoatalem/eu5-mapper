@@ -17,7 +17,7 @@ export function BuffDisplay({ buffKey, buffValue, className }: IBuffDisplayProps
     <div key={buffKey} ref={divRef} className={["relative flex flex-row items-center gap-1", className].join(" ")}>
       <Tooltip config={{ offset: { x: 100, y: 0 }, preferredHorizontal: "left", preferredVertical: "bottom" }}>
         <TooltipTrigger>
-          <span className="flex-none flex-1 rounded-md p-1 cursor-help">{countryBuffsMetadata[buffKey].label}</span>
+          <span className="flex-none flex-1 rounded-md p-1 cursor-help text-sma">{countryBuffsMetadata[buffKey].label}</span>
         </TooltipTrigger>
         <TooltipContent anchor={{ type: "dom", ref: divRef }}>
           <div className="max-w-96">

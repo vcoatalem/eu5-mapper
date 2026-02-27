@@ -285,7 +285,7 @@ export function NeighborsPanelComponent({ baseLocation }: NeighborsPanelProps) {
         {vegetationProximityModifier && roadEditState.isModeEnabled ? (
           <Tooltip config={{ preferredHorizontal: "left", preferredVertical: "bottom" }}>
             <TooltipTrigger>
-              <Image className="ml-2" src={getVegetationIcon(vegetationAtLocation)} alt={vegetationAtLocation ?? ""} width={16} height={16} />
+              <Image className="ml-2 cursor-help" src={getVegetationIcon(vegetationAtLocation)} alt={vegetationAtLocation ?? ""} width={16} height={16} />
             </TooltipTrigger>
             <TooltipContent anchor={{ type: "dom", ref: locationNameRef }}>
               <p className="max-w-54"><b>{vegetationAtLocation}</b> in <b>{StringHelper.formatLocationName(baseLocation)}</b> adds a {vegetationProximityModifier}% proximity modifier to destinations not connected by a road.</p>

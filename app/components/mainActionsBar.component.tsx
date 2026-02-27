@@ -1,17 +1,12 @@
 import { ButtonWithTooltip } from "@/app/components/buttonWithTooltip.component";
-import { editModeController, EditMode } from "@/app/lib/editMode.controller";
-import Image from "next/image";
-import { useCallback, useState, useSyncExternalStore } from "react";
-import { IoStarSharp } from "react-icons/io5";
-import { MdAnchor } from "react-icons/md";
-import { TbListDetails } from "react-icons/tb";
-import { Modal } from "../lib/modal/modal.component";
-import { DetailedLocationListModal } from "./detailedList/detailedLocationListModal.component";
 import { CountryModifiersModal } from "@/app/components/countryBuffs/countryModifiersModal.component";
-import { IoIosFlask } from "react-icons/io";
-import { BsBrush } from "react-icons/bs";
+import { EditMode, editModeController } from "@/app/lib/editMode.controller";
 import { Popover } from "@/app/lib/popover/popover.component";
 import buttonStyles from "@/app/styles/button.module.css";
+import Image from "next/image";
+import { useCallback, useState, useSyncExternalStore } from "react";
+import { Modal } from "../lib/modal/modal.component";
+import { DetailedLocationListModal } from "./detailedList/detailedLocationListModal.component";
 
 export function MainActionsBar() {
 
@@ -44,6 +39,19 @@ export function MainActionsBar() {
 
   return (
     <div className="flex flex-row gap-2 items-center">
+
+      <Popover renderTrigger={({ isOpen, toggle }) => (
+        <ButtonWithTooltip disabled={editModeState.modeEnabled !== 'acquire'} isActive={isOpen} className={["h-10 relative rounded-md"].join(" ")} tooltip={"Land acquisition brush size (currently: " + editModeState.acquireLocations.brushSize + ")"} onClick={() => { toggleMode("acquire"); toggle(); }}>
+          <Image src="/gui/icons/acquire.png" alt="Choose land acquisition brush size" width={24} height={24} />
+        </ButtonWithTooltip>
+      )}>
+        <div className="flex flex-col gap-2">
+          {(["location", "province", "area"] as const).map((size) => (
+            <button key={size} className={[buttonStyles.simpleButton, editModeState.acquireLocations.brushSize === size ? buttonStyles.buttonActive : ""].filter(Boolean).join(" ")} onClick={() => editModeController.setBrushSize("acquire", size)}>{size}</button>
+          ))}
+        </div>
+      </Popover>
+
       <ButtonWithTooltip className="h-10 relative" tooltip="Toggle capital location edition" isActive={editModeState.modeEnabled === 'capital'} onClick={() => toggleMode("capital")}>
         <Image src="/gui/icons/city_capital.png" alt="Enter capital location edition mode" width={24} height={24} />
       </ButtonWithTooltip>
@@ -62,27 +70,14 @@ export function MainActionsBar() {
         {/* <MdAnchor color="white" size={24}></MdAnchor> */}
       </ButtonWithTooltip>
 
-      <ButtonWithTooltip disabled={editModeState.modeEnabled !== 'acquire'} className="h-10 relative" tooltip="Open detailed location view" onClick={() => setIsDetailedLocationViewOpen(true)}>
-        <Image src="/gui/icons/building.png" alt="Open detailed location view" width={24} height={24} />
-      </ButtonWithTooltip>
 
       <ButtonWithTooltip disabled={editModeState.modeEnabled !== 'acquire'} className="h-10 relative" tooltip="Open country buffs view" onClick={() => setIsCountryBuffsModalOpen(true)}>
         <Image src="/gui/icons/research.png" alt="Open country modifiers view" width={24} height={24} />
       </ButtonWithTooltip>
 
-
-
-      <Popover renderTrigger={({ isOpen, toggle }) => (
-        <ButtonWithTooltip disabled={editModeState.modeEnabled !== 'acquire'} isActive={isOpen} className={["h-10 relative rounded-md"].join(" ")} tooltip={"Land acquisition brush size (currently: " + editModeState.acquireLocations.brushSize + ")"} onClick={() => { toggleMode("acquire"); toggle(); }}>
-          <Image src="/gui/icons/acquire.png" alt="Choose land acquisition brush size" width={24} height={24} />
-        </ButtonWithTooltip>
-      )}>
-        <div className="flex flex-col gap-2">
-          {(["location", "province", "area"] as const).map((size) => (
-            <button key={size} className={[buttonStyles.simpleButton, editModeState.acquireLocations.brushSize === size ? buttonStyles.buttonActive : ""].filter(Boolean).join(" ")} onClick={() => editModeController.setBrushSize("acquire", size)}>{size}</button>
-          ))}
-        </div>
-      </Popover>
+      <ButtonWithTooltip disabled={editModeState.modeEnabled !== 'acquire'} className="h-10 relative" tooltip="Open detailed location view" onClick={() => setIsDetailedLocationViewOpen(true)}>
+        <Image src="/gui/icons/building.png" alt="Open detailed location view" width={24} height={24} />
+      </ButtonWithTooltip>
 
       <Modal
         onClose={() => setIsDetailedLocationViewOpen(false)}

@@ -12,7 +12,6 @@ import { useContext, useMemo, useRef, useSyncExternalStore } from "react";
 interface ICountryStatsProps {
   ownedLocations: IGameState["ownedLocations"];
   className?: string;
-  align?: boolean;
 }
 export function CountryStats(props: ICountryStatsProps) {
   const avgProxDivRef = useRef<HTMLDivElement>(null);
@@ -87,14 +86,13 @@ export function CountryStats(props: ICountryStatsProps) {
   return (
     <div
       className={
-        "flex flex-wrap gap-2 divide-stone-600 " +
-        (!props.align ? " divide-x-2 " : "") +
+        "flex flex-wrap gap-2 " +
         (props.className ?? "")
       }
     >
-      <div className="flex justify-center items-center gap-1 pr-1">
-        <div className={props.align ? "w-24" : ""} ref={avgProxDivRef}>
-          <div className="flex flex-row items-center gap-1">
+      <div className="flex justify-center items-center gap-1 pr-1 border-stone-400 border rounded-md p-1">
+        <div className={""} ref={avgProxDivRef}>
+          <div className="flex flex-row items-center gap-1 ">
             <ProximityIcon size={24} tooltip="Average Proximity of owned locations" />
             <span className="text-stone-400 text-xs">(avg) </span>
           </div>
@@ -111,10 +109,10 @@ export function CountryStats(props: ICountryStatsProps) {
       </div>
 
       <div
-        className="flex justify-center items-center gap-1 pr-1"
+        className="flex justify-center items-center gap-1 pr-1 border-stone-400 border rounded-md p-1"
         ref={totalPopDivRef}
       >
-        <div className={props.align ? "w-24" : ""}>
+        <div className="">
           <PopulationIcon size={24} tooltip="Total population of owned locations" />
         </div>
         <span className="">
@@ -122,8 +120,8 @@ export function CountryStats(props: ICountryStatsProps) {
         </span>
       </div>
 
-      <div className="flex justify-center items-center gap-1 pr-1">
-        <div ref={popProxDivRef} className={props.align ? "w-24" : ""}>
+      <div className="flex justify-center items-center gap-1 pr-1 border-stone-400 border rounded-md p-1">
+        <div ref={popProxDivRef} className="">
           <div className="flex flex-row items-center gap-1">
             <PopulationIcon size={24} tooltip="Total population scaled by proximity of owned locations" />
             <span className="text-stone-400">X</span>

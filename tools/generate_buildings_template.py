@@ -41,6 +41,7 @@ BUILDABLE_EXCLUDED: frozenset[str] = frozenset({
     "ostrog",
     "kings_manor",
     "seljuk_mint",
+    "venetial_arsenal",
 })
 
 

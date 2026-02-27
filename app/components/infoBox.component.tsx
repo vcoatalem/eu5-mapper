@@ -269,7 +269,7 @@ function HierarchyInfoBox(props: { locationNames: ILocationIdentifier[] }) {
           <span className="text-sm shrink-0 flex flex-row items-center gap-1">
             <DevelopmentIcon size={24} />
             <span>{hierarchyAverageDevelopment.toFixed(2)}</span>
-            <span>(average) {hierarchyAverageDevelopment.toFixed(2)}</span>
+            <span>(average)</span>
           </span>
         </>
       )}

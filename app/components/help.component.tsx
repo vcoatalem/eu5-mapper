@@ -51,25 +51,26 @@ export function Help({ className = "" }: { className?: string }) {
 
             <div className="flex flex-col bg-blue-500/20 rounded-md px-2 py-1">
               <p>
-                The proximity computation algorithm was created by
+                - The proximity computation algorithm was created by
                 reverse-engineering most of the game's mechanics.
               </p>
               <p>
-                While it is a good approximation, it may not be entirely
+                - While it is a good approximation, it may not be entirely
                 accurate.
               </p>
-              <p>
-                Automated tests are run to compare in-app results with in-game
-                results, to make sure the algorithm remains reliable.
+              <p className="mr-16">
+                - Automated tests are run whenever the algorithm changes to
+                compare in-app results with in-game proximity computation, to
+                make sure the app does not stray too far from the truth.
               </p>
 
               <hr className="border-stone-500 mt-2"></hr>
               <a
                 href={s3url}
                 target="_blank"
-                className="flex items-center h-full w-full gap-1 mt-2"
+                className=" flex items-center h-full w-full gap-1 mt-2 text-md "
               >
-                <AiOutlineQuestionCircle size={16} color="white" />
+                <AiOutlineQuestionCircle size={24} color="white" />
                 <span className="text-sm hover:text-yellow-500">
                   See the latest performance report for version{" "}
                   <b className="text-stone-400">{version}</b>

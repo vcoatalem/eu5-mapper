@@ -53,6 +53,12 @@ import {
   HiOutlineMagnifyingGlassMinus,
   HiOutlineMagnifyingGlassPlus,
 } from "react-icons/hi2";
+import { CanvasName } from "@/app/lib/types/rendering";
+import {
+  getLayerVisibilityClass,
+  layerVisibilityController,
+} from "@/app/lib/layerVisibility.controller";
+import { LayerVisibilityEdition } from "@/app/components/layerVisibilityEdition.component";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
@@ -74,6 +80,11 @@ export function WorldMapComponent() {
     () => roadSliceFromState(editModeState),
     [editModeState],
   );
+  const layerVisibilityState = useSyncExternalStore(
+    layerVisibilityController.subscribe.bind(layerVisibilityController),
+    () => layerVisibilityController.getSnapshot(),
+  );
+
   const hasOwnedLocations = gameState?.ownedLocations
     ? !!Object.keys(gameState?.ownedLocations)?.length
     : false;
@@ -176,7 +187,7 @@ export function WorldMapComponent() {
 
   const layers = useMemo<
     Array<{
-      name: string;
+      name: CanvasName;
       ref: RefObject<HTMLCanvasElement | null>;
       zIndex: number;
       path?: string;
@@ -186,56 +197,56 @@ export function WorldMapComponent() {
   >(
     () => [
       {
-        name: "colorLayer",
+        name: CanvasName.color,
         ref: colorCanvasRef,
         zIndex: 0,
         path: imagePaths?.locationsImage,
         initializeWorkerCanvas: true,
       },
       {
-        name: "blackLayer",
+        name: CanvasName.background,
         ref: blackCanvasRef,
         zIndex: 1,
         createMethod: createBlackCanvas,
       },
       {
-        name: "borderLayer",
+        name: CanvasName.border,
         ref: borderCanvasRef,
         zIndex: 4,
         path: imagePaths?.borderLayer,
       },
       {
-        name: "areaDrawingLayer",
+        name: CanvasName.areasDrawing,
         ref: areaDrawingCanvasRef,
         zIndex: 2,
         createMethod: createTransparentCanvas,
       },
       {
-        name: "terrainLayer",
+        name: CanvasName.terrain,
         ref: terrainCanvasRef,
         zIndex: 3,
         path: imagePaths?.terrainLayer,
       },
       {
-        name: "constructibleLayer",
+        name: CanvasName.constructiblesDrawing,
         ref: constructibleCanvasRef,
         zIndex: 8,
         createMethod: createTransparentCanvas,
       },
       {
-        name: "roadLayer",
+        name: CanvasName.roadsDrawing,
         ref: roadCanvasRef,
         zIndex: 7,
         createMethod: createTransparentCanvas,
       },
       {
-        name: "indicatorLayer",
+        name: CanvasName.indicatorsDrawing,
         ref: indicatorCanvasRef,
         zIndex: 10,
         createMethod: createTransparentCanvas,
       },
       {
-        name: "maritimePresenceLayer",
+        name: CanvasName.maritimePresenceDrawing,
         ref: maritimePresenceCanvasRef,
         zIndex: 5,
         createMethod: createTransparentCanvas,
@@ -702,32 +713,6 @@ export function WorldMapComponent() {
 
       cameraController.setDraggingCheck(() => isDraggingRef.current);
       cameraController.init(topLayerRef.current);
-
-      // Subscribe to zoom changes
-      const zoomUnsubscribe = cameraController.subscribe(
-        ({ zoomLevel, oldZoomLevel }) => {
-          if (!borderCanvasRef.current) {
-            console.error(
-              "[WorldMapComponent] borderCanvasRef is nullish. Check if this is due to HMR or proper bug",
-            );
-            return;
-          }
-          cameraController.applyZoomLevel(zoomLevel, oldZoomLevel);
-
-          if (
-            zoomLevel < zoomLevels.normal &&
-            oldZoomLevel >= zoomLevels.normal
-          ) {
-            borderCanvasRef.current!.style.visibility = "hidden";
-          } else if (
-            zoomLevel >= zoomLevels.normal &&
-            oldZoomLevel < zoomLevels.normal
-          ) {
-            borderCanvasRef.current!.style.visibility = "visible";
-          }
-        },
-      );
-      subscriptionsRef.current.push(zoomUnsubscribe);
     }
 
     // init all controllers (after subscriptions to trigger first subscriptions)
@@ -739,6 +724,7 @@ export function WorldMapComponent() {
     editModeController.init();
     actionEventDispatcher.init();
     shortestPathController.init();
+    layerVisibilityController.init();
 
     // dev mode: boot game state from public/test-gamefile.json for quick reloaded
     if (loadFileOnStart) {
@@ -875,6 +861,10 @@ export function WorldMapComponent() {
           style={{
             zIndex: layer.zIndex,
             imageRendering: "pixelated",
+            visibility: getLayerVisibilityClass(
+              layer.name,
+              layerVisibilityState,
+            ),
           }}
         />
       ))}
@@ -937,7 +927,9 @@ export function WorldMapComponent() {
           <MainActionsBar></MainActionsBar>
         </GuiElement>
         <SlowTaskIndicator className="fixed bottom-32 right-5 z-50 backdrop-blur-md p-4" />
-        <GuiElement className="fixed right-5 bottom-17">
+        <GuiElement className="fixed right-5 bottom-17 flex flex-row gap-2 ">
+          <LayerVisibilityEdition className="px-2 py-1" />
+
           <button
             onClick={handleZoomOut}
             className="px-2 py-1 hover:text-stone-500 cursor-pointer"

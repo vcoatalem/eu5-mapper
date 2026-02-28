@@ -10,18 +10,17 @@ export interface IPopoverRenderTriggerProps {
 }
 
 export interface IPopoverProps {
-  /** Render prop for the button/element that opens the popover. Receives isOpen and toggle. */
   renderTrigger: (props: IPopoverRenderTriggerProps) => React.ReactNode;
-  /** Content projected into the popover panel. */
   children: React.ReactNode;
-  /** Extra class names for the panel (e.g. "w-full gap-2"). */
   panelClassName?: string;
+  placement: "bottom" | "top";
 }
 
 export function Popover({
   renderTrigger,
   children,
-  panelClassName = "top-8",
+  panelClassName = "",
+  placement = "bottom",
 }: IPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -32,20 +31,40 @@ export function Popover({
 
   useEffect(() => {
     if (!isOpen || !clickContext?.clickedElement) return;
-    const insideTrigger = triggerRef.current?.contains(clickContext.clickedElement);
+    const insideTrigger = triggerRef.current?.contains(
+      clickContext.clickedElement,
+    );
     const insidePanel = panelRef.current?.contains(clickContext.clickedElement);
     if (!insideTrigger && !insidePanel) {
       queueMicrotask(() => setIsOpen(false));
     }
   }, [clickContext, isOpen]);
 
+  const positionStyle =
+    placement === "top"
+      ? {
+          bottom: "100%",
+          left: "50%",
+          transform: "translateX(-50%)",
+          marginBottom: "8px",
+        }
+      : {
+          top: "100%",
+          left: "50%",
+          transform: "translateX(-50%)",
+          marginTop: "8px",
+        };
+
   return (
-    <div className="relative">
+    <div className="relative bottom-full">
       <div ref={triggerRef}>{renderTrigger({ isOpen, toggle })}</div>
       {isOpen && (
         <div
           ref={panelRef}
-          className={`${popoverStyles.panel} ${panelClassName}`.trim()}
+          className={["absolute", popoverStyles.panel, panelClassName].join(
+            " ",
+          )}
+          style={positionStyle}
         >
           {children}
         </div>

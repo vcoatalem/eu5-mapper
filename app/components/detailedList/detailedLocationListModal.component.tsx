@@ -26,7 +26,12 @@ import { ProximityComputationHelper } from "@/app/lib/proximityComputation.helpe
 import { EligibleBuildingService } from "@/app/lib/eligibleBuilding.service";
 import { HiOutlineCog6Tooth } from "react-icons/hi2";
 import styles from "@/app/styles/button.module.css";
-import { columns, IStoredLocationListConfig, loadConfigFromLocalStorage, saveConfigToLocalStorage } from "@/app/components/detailedList/detailedList.config";
+import {
+  columns,
+  IStoredLocationListConfig,
+  loadConfigFromLocalStorage,
+  saveConfigToLocalStorage,
+} from "@/app/components/detailedList/detailedList.config";
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
 import { useParams } from "next/navigation";
 import { Loader } from "@/app/components/loader.component";
@@ -38,8 +43,16 @@ function LocationExtensiveViewModalHeader(props: {
   ownedLocations: IGameState["ownedLocations"];
   config: IStoredLocationListConfig;
   setSearch: (search: string) => void;
-  toggleColumnVisibility: (column: keyof IStoredLocationListConfig["columnVisibility"]) => void;
+  toggleColumnVisibility: (
+    column: keyof IStoredLocationListConfig["columnVisibility"],
+  ) => void;
 }) {
+  const someColumnHidden = useMemo(() => {
+    return Object.values(props.config.columnVisibility).some(
+      (visible) => !visible,
+    );
+  }, [props.config.columnVisibility]);
+
   return (
     <div className=" w-full flex flex-row items-center h-12 pb-2 z-10">
       {/* z-index so that the header stays above modal content */}
@@ -67,30 +80,43 @@ function LocationExtensiveViewModalHeader(props: {
         ></input>
       </div>
 
-
-
       <div className="relative ml-auto flex flex-row items-center gap-2">
         <Popover
+          placement="bottom"
           renderTrigger={({ isOpen, toggle }) => (
             <button
               type="button"
-              className={[styles.iconButton, isOpen ? styles.buttonActive : ""].join(" ")}
+              className={[
+                styles.iconButton,
+                isOpen ? styles.buttonActive : "",
+                someColumnHidden ? styles.buttonPartialActive : "",
+              ].join(" ")}
               onClick={toggle}
             >
               <HiOutlineCog6Tooth color="white" size={24} />
             </button>
           )}
         >
-          {ObjectHelper.getTypedEntries(props.config.columnVisibility).filter(([column]) => column !== columns[0].title).map(([column, visible]) => (
-            <label key={column} className=" flex items-center gap-2 cursor-pointer hover:bg-stone-600 rounded-md " onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              props.toggleColumnVisibility(column)
-            }}>
-              {visible ? <FaRegEye color="white" size={16} /> : <FaRegEyeSlash color="white" size={16} />}
-              <span>{column}</span>
-            </label>
-          ))}
+          {ObjectHelper.getTypedEntries(props.config.columnVisibility)
+            .filter(([column]) => column !== columns[0].title)
+            .map(([column, visible]) => (
+              <label
+                key={column}
+                className=" flex items-center gap-2 cursor-pointer hover:bg-stone-600 rounded-md "
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  props.toggleColumnVisibility(column);
+                }}
+              >
+                {visible ? (
+                  <FaRegEye color="white" size={16} />
+                ) : (
+                  <FaRegEyeSlash color="white" size={16} />
+                )}
+                <span>{column}</span>
+              </label>
+            ))}
         </Popover>
 
         <CountryStats
@@ -98,8 +124,6 @@ function LocationExtensiveViewModalHeader(props: {
           ownedLocations={props.ownedLocations}
         ></CountryStats>
       </div>
-
-
     </div>
   );
 }
@@ -113,7 +137,7 @@ export interface ILocationDetailedViewData {
   constructibleState: NewConstructibleState;
   computedLocationData: {
     harborSuitability: number;
-  }
+  };
 }
 
 export function DetailedLocationListModal() {
@@ -135,38 +159,37 @@ export function DetailedLocationListModal() {
     );
   }
   const version = useParams().version as string;
-  const [storedLocationListConfig, setStoredLocationListConfig] = useState<IStoredLocationListConfig | null>(null);
+  const [storedLocationListConfig, setStoredLocationListConfig] =
+    useState<IStoredLocationListConfig | null>(null);
 
-  const togglePin = useCallback(
-    (location: ILocationIdentifier) => {
-      setStoredLocationListConfig((prev) => {
-        if (!prev) return null;
-        const newPinned = { ...prev.pinnedLocations };
-        if (location in newPinned) {
-          delete newPinned[location];
-        } else {
-          newPinned[location] = true;
-        }
-        return { ...prev, pinnedLocations: newPinned };
-      });
-    },
-    [],
-  );
+  const togglePin = useCallback((location: ILocationIdentifier) => {
+    setStoredLocationListConfig((prev) => {
+      if (!prev) return null;
+      const newPinned = { ...prev.pinnedLocations };
+      if (location in newPinned) {
+        delete newPinned[location];
+      } else {
+        newPinned[location] = true;
+      }
+      return { ...prev, pinnedLocations: newPinned };
+    });
+  }, []);
 
   const toggleColumnVisibility = useCallback(
     (column: keyof IStoredLocationListConfig["columnVisibility"]) => {
-      console.log("toggleColumnVisibility", column);
       setStoredLocationListConfig((prev) => {
         if (!prev) return null;
         const newState = {
-          ...prev, columnVisibility: {
+          ...prev,
+          columnVisibility: {
             ...prev.columnVisibility,
             [column]: !prev.columnVisibility[column],
-          }
-        }
+          },
+        };
         return newState;
       });
-    }, []
+    },
+    [],
   );
 
   const toggleSort = useCallback((column: string) => {
@@ -194,19 +217,28 @@ export function DetailedLocationListModal() {
   }, []);
 
   useEffect(() => {
-    const config = loadConfigFromLocalStorage(gameState.countryCode ?? "CUSTOM", version);
+    const config = loadConfigFromLocalStorage(
+      gameState.countryCode ?? "CUSTOM",
+      version,
+    );
     queueMicrotask(() => setStoredLocationListConfig(config));
   }, [gameState.countryCode, version]);
 
   useEffect(() => {
     // save config whenever it changes
     if (storedLocationListConfig !== null) {
-      saveConfigToLocalStorage(gameState.countryCode ?? "CUSTOM", version, storedLocationListConfig);
+      saveConfigToLocalStorage(
+        gameState.countryCode ?? "CUSTOM",
+        version,
+        storedLocationListConfig,
+      );
     }
   }, [storedLocationListConfig]);
 
-  const eligibleBuildingService = useMemo(() =>
-    gameData && new EligibleBuildingService(gameData) || null, [gameData]);
+  const eligibleBuildingService = useMemo(
+    () => (gameData && new EligibleBuildingService(gameData)) || null,
+    [gameData],
+  );
 
   // TODO: optimize this ^^
   const ownedLocations: Record<ILocationIdentifier, ILocationDetailedViewData> =
@@ -220,32 +252,46 @@ export function DetailedLocationListModal() {
             if (!locationGameData) {
               throw new Error(
                 "[DetailedLocationViewModal] location game data not found for location id: " +
-                key,
+                  key,
               );
             }
             const data: ILocationDetailedViewData = {
               constructibleData: value,
               temporaryLocationData: temporaryLocationData[key] ?? {},
               baseLocationGameData: locationGameData,
-              constructibleState: eligibleBuildingService?.getConstructibleState(key, gameState) ?? {},
-              pinned: storedLocationListConfig ? key in storedLocationListConfig.pinnedLocations : false,
+              constructibleState:
+                eligibleBuildingService?.getConstructibleState(
+                  key,
+                  gameState,
+                ) ?? {},
+              pinned: storedLocationListConfig
+                ? key in storedLocationListConfig.pinnedLocations
+                : false,
               proximity: ProximityComputationHelper.evaluationToProximity(
                 proximityComputation.result[key]?.cost ?? 100,
               ),
               computedLocationData: {
-                harborSuitability: locationGameData.naturalHarborSuitability + (Object.values(value.buildings).reduce((acc, building) => acc + (building.template.modifiers.harborSuitability ?? 0) * building.level, 0)),
-              }
-            }
-            return [
-              key,
-              data
-            ] as [string, ILocationDetailedViewData];
+                harborSuitability:
+                  locationGameData.naturalHarborSuitability +
+                  Object.values(value.buildings).reduce(
+                    (acc, building) =>
+                      acc +
+                      (building.template.modifiers.harborSuitability ?? 0) *
+                        building.level,
+                    0,
+                  ),
+              },
+            };
+            return [key, data] as [string, ILocationDetailedViewData];
           })
           .filter(([key, value]) => {
             if (value.pinned) {
               return true;
             }
-            return StringHelper.isInSearchQuery(key, storedLocationListConfig?.search ?? "");
+            return StringHelper.isInSearchQuery(
+              key,
+              storedLocationListConfig?.search ?? "",
+            );
           }),
       );
     }, [
@@ -253,7 +299,7 @@ export function DetailedLocationListModal() {
       gameState,
       proximityComputation,
       eligibleBuildingService,
-      storedLocationListConfig
+      storedLocationListConfig,
     ]);
 
   return (
@@ -275,7 +321,9 @@ export function DetailedLocationListModal() {
             toggleSort={toggleSort}
           ></DetailedLocationList>
         </>
-      ) : <Loader className="w-full h-full" size={80}></Loader>}
+      ) : (
+        <Loader className="w-full h-full" size={80}></Loader>
+      )}
     </div>
   );
 }

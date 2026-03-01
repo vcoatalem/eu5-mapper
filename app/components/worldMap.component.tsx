@@ -603,7 +603,8 @@ export function WorldMapComponent() {
             const locationName = locations[0];
             if (
               !gameData.locationDataMap[locationName]?.ownable &&
-              !gameData.locationDataMap[locationName]?.isSea
+              !gameData.locationDataMap[locationName]?.isSea &&
+              !gameData.locationDataMap[locationName]?.isLake
             ) {
               // filter out unpassage terrain
               return;

@@ -775,7 +775,10 @@
           const harborImpact = rule.harborSuitabilityImpact.value;
           const harborValue = harborCapacity * harborImpact * 100;
           const harborMod = {
-            [HARBOR_CAPACITY_MODIFIER_KEY]: { ...rule.harborSuitabilityImpact, value: harborValue }
+            [HARBOR_CAPACITY_MODIFIER_KEY]: {
+              ...rule.harborSuitabilityImpact,
+              value: harborValue
+            }
           };
           if (fromLocation.isSea) {
             return harborMod;
@@ -826,7 +829,12 @@
     static getProximityCostFunction(gameState, gameData2, options) {
       return (from, to, edgeType, throughSeaLocation) => {
         const rule = gameData2.proximityComputationRule;
-        const road = RoadsHelper.getRoad(from, to, gameData2.roads, gameState.roads);
+        const road = RoadsHelper.getRoad(
+          from,
+          to,
+          gameData2.roads,
+          gameState.roads
+        );
         const countryProximityBuffs = new ProximityBuffsRecord(
           rule,
           gameState.country
@@ -834,7 +842,14 @@
         if (!rule.throughSeaEdgeCountedAsLandProximity && throughSeaLocation && edgeType === "through-sea") {
           from = throughSeaLocation;
         }
-        const maritimePresence = LocationsHelper.getLocationMaritimePresence(gameData2.locationDataMap[from], gameState.temporaryLocationData[from] ?? null);
+        if (edgeType === "lake") {
+          const lakeLocation = gameData2.locationDataMap[to].isLake ? to : from;
+          from = lakeLocation;
+        }
+        const maritimePresence = LocationsHelper.getLocationMaritimePresence(
+          gameData2.locationDataMap[from],
+          gameState.temporaryLocationData[from] ?? null
+        );
         const baseCost = this.getFlatProximityCost(
           edgeType,
           rule,
@@ -867,8 +882,14 @@
         logProximityComputation([from, to], options, "Proximity cost modifiers", {
           proximityModifiers
         });
-        const proximityModifiersReduced = reduceBuffValuesToEffective(proximityModifiers, rule);
-        let cost = Math.max(0, baseCost - proximityModifiersReduced.flatCostReduction);
+        const proximityModifiersReduced = reduceBuffValuesToEffective(
+          proximityModifiers,
+          rule
+        );
+        let cost = Math.max(
+          0,
+          baseCost - proximityModifiersReduced.flatCostReduction
+        );
         cost *= proximityModifiersReduced.percentageMultiplier;
         if (rule.proximityPercentageModifierType === "proximityCostReduction") {
           cost *= 1 - proximityModifiersReduced.percentageIncrease / 100;
@@ -944,14 +965,21 @@
     const baseTopography = rule.topography[location.topography];
     let topographyValue = baseTopography?.value ?? 0;
     const buffKey = `${location.topography}Multiplier`;
-    if (["mountainsMultiplier", "plateauMultiplier", "hillsMultiplier"].includes(buffKey)) {
-      const buffs = proximityBuffs.getBuffsOfType(buffKey);
+    if (["mountainsMultiplier", "plateauMultiplier", "hillsMultiplier"].includes(
+      buffKey
+    )) {
+      const buffs = proximityBuffs.getBuffsOfType(
+        buffKey
+      );
       if (Object.keys(buffs).length > 0) {
         const buffSum = BuffsHelper.sumBuffs(Object.values(buffs)) ?? 1;
         topographyValue *= Math.min(1, buffSum / 100);
       }
     }
-    result[`topography_${location.topography}`] = { ...baseTopography, value: topographyValue };
+    result[`topography_${location.topography}`] = {
+      ...baseTopography,
+      value: topographyValue
+    };
     if (location.vegetation && !discardVegetationModifiers) {
       const vegetation = rule.vegetation[location.vegetation];
       if (vegetation?.value) {

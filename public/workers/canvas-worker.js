@@ -120,15 +120,21 @@
           const result = { result: {} };
           try {
             for (const [locationName, coordinates] of Object.entries(
-              payload.startCoordinates
+              payload.coordinates
             )) {
-              const foundCoordinates = scanlineFill(
-                pixelData32,
-                canvasWidth,
-                coordinates.x,
-                coordinates.y,
-                e.data
-              );
+              const foundCoordinates = [];
+              for (const centerCoord of coordinates) {
+                const regionCoords = scanlineFill(
+                  pixelData32,
+                  canvasWidth,
+                  centerCoord.x,
+                  centerCoord.y,
+                  e.data
+                );
+                for (const coord of regionCoords) {
+                  foundCoordinates.push(coord);
+                }
+              }
               result.result[locationName] = foundCoordinates;
             }
           } catch (err) {

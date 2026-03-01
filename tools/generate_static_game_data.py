@@ -419,6 +419,13 @@ def generate_game_data_json(
         # Get center coordinates for this location (precomputed by generate_location_centers.py)
         center = location_centers.get(location_name)
         center_dict = {"x": center["x"], "y": center["y"]} if center else None
+        # Optional: additional representative coordinates for locations
+        # with multiple disconnected regions on the map.
+        secondary_coordinates = None
+        if center and isinstance(center, dict):
+            sec = center.get("secondaryCoordinates")
+            if sec:
+                secondary_coordinates = sec
         
         location_data_map[location_name] = {
             "topography": data.topography,
@@ -441,6 +448,7 @@ def generate_game_data_json(
                 "province": location_hierarchy.province
             },
             "centerCoordinates": center_dict,
+            **({"secondaryCoordinates": secondary_coordinates} if secondary_coordinates is not None else {}),
             "population": population,
             "development": development,
             "rank": rank,

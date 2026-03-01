@@ -61,7 +61,7 @@ export interface IWorkerTaskInitWithImagePayload {
 export interface IWorkerTaskColorSearchPayload {
   canvasWidth: number;
   canvasHeight: number;
-  startCoordinates: Record<ILocationIdentifier, { x: number; y: number }>;
+  coordinates: Record<ILocationIdentifier, ICoordinate[]>;
 }
 
 export interface IWorkerTaskColorSearchResult {

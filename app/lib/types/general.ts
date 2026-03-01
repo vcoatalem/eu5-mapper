@@ -41,6 +41,7 @@ export interface ILocationGameData {
   name: string;
   hexColor: string;
   centerCoordinates: ICoordinate;
+  secondaryCoordinates: ICoordinate[]; // for large locations with multiple disconnected areas (like Venice or the Netherlands), these are the coordinates of the other areas (used for drawing and color search)
   topography: Topography;
   vegetation: Vegetation;
   isSea?: boolean;

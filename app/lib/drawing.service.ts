@@ -24,11 +24,14 @@ import {
 } from "./drawing/color.helper";
 import { Subject } from "./subject";
 import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
-import { editModeController, maritimeSliceFromState, roadSliceFromState } from "@/app/lib/editMode.controller";
+import {
+  editModeController,
+  maritimeSliceFromState,
+  roadSliceFromState,
+} from "@/app/lib/editMode.controller";
 import { colorSearchController } from "@/app/lib/colorSeach.controller";
 import { ObjectHelper } from "@/app/lib/object.helper";
 import { RoadsHelper } from "@/app/lib/roads.helper";
-
 
 enum CanvasName {
   areas = "areas",
@@ -66,14 +69,18 @@ export class DrawingService {
       { name: CanvasName.constructibles, canvas: constructibleDrawingCanvas },
       { name: CanvasName.roads, canvas: roadDrawingCanvas },
       { name: CanvasName.indicators, canvas: indicatorDrawingCanvas },
-      { name: CanvasName.maritimePresences, canvas: maritimePresenceDrawingCanvas }
+      {
+        name: CanvasName.maritimePresences,
+        canvas: maritimePresenceDrawingCanvas,
+      },
     ]
-      .map(({ name, canvas }) => ({ name, context: canvas.getContext("2d", {}) }))
+      .map(({ name, canvas }) => ({
+        name,
+        context: canvas.getContext("2d", {}),
+      }))
       .map(({ name, context }) => {
         if (!context) {
-          throw new Error(
-            `Could not get drawing context for canvas ${name}`,
-          );
+          throw new Error(`Could not get drawing context for canvas ${name}`);
         }
         return { name, context };
       })
@@ -97,7 +104,8 @@ export class DrawingService {
         this.drawingCallbackBuffer["areas"] = () =>
           this.drawAreas(gameState, proximityEvaluation);
         this.drawingCallbackBuffer["roads"] = () => this.drawRoads(gameState);
-        this.drawingCallbackBuffer["maritimePresences"] = () => this.drawMaritimePresence(gameState.temporaryLocationData);
+        this.drawingCallbackBuffer["maritimePresences"] = () =>
+          this.drawMaritimePresence(gameState.temporaryLocationData);
         this.reDraw.emit(new Date());
       });
 
@@ -115,24 +123,23 @@ export class DrawingService {
       editModeController,
     ]).subscribe(
       ({
-        values: [
-          prolongedHoverLocation,
-          hoveredLocation,
-          editModeState,
-        ],
+        values: [prolongedHoverLocation, hoveredLocation, editModeState],
       }) => {
         const roadSlice = roadSliceFromState(editModeState);
         const maritimeSlice = maritimeSliceFromState(editModeState);
-        const toHighlight = [
-          ...(roadSlice.isModeEnabled && roadSlice.selectedLocation
-            ? [roadSlice.selectedLocation]
-            : []),
-          ...(maritimeSlice.isModeEnabled && maritimeSlice.selectedLocation
-            ? [maritimeSlice.selectedLocation]
-            : []),
-          ...(hoveredLocation?.locations ?? []),
-          ...(prolongedHoverLocation?.locations ?? []),
-        ];
+        const toHighlight = Array.from(
+          new Set([
+            ...(roadSlice.isModeEnabled && roadSlice.selectedLocation
+              ? [roadSlice.selectedLocation]
+              : []),
+            ...(maritimeSlice.isModeEnabled && maritimeSlice.selectedLocation
+              ? [maritimeSlice.selectedLocation]
+              : []),
+            ...(hoveredLocation?.locations ?? []),
+            ...(prolongedHoverLocation?.locations ?? []),
+          ]),
+        );
+        toHighlight.sort();
         this.drawingCallbackBuffer["indicators"] = () =>
           this.drawHighlighted(toHighlight);
         this.reDraw.emit(new Date());
@@ -140,7 +147,9 @@ export class DrawingService {
     );
 
     this.reDraw.debounce(5).subscribe(() => {
-      for (const [canvasName, callback] of ObjectHelper.getTypedEntries(this.drawingCallbackBuffer)) {
+      for (const [canvasName, callback] of ObjectHelper.getTypedEntries(
+        this.drawingCallbackBuffer,
+      )) {
         const missingCoordinates = callback() as ILocationIdentifier[];
         if (!missingCoordinates?.length) {
           delete this.drawingCallbackBuffer[canvasName];
@@ -266,7 +275,6 @@ export class DrawingService {
   }
 
   private drawRoads(gameState: IGameState): null {
-
     if (!this.gameData) {
       return null;
     }
@@ -278,8 +286,13 @@ export class DrawingService {
       this.mapInfos.height,
     );
 
-    const resolvedRoads = RoadsHelper.getRoads(this.gameData.roads, gameState.roads);
-    const roadsToDraw = ObjectHelper.getTypedEntries(resolvedRoads).filter(([, type]) => type != null);
+    const resolvedRoads = RoadsHelper.getRoads(
+      this.gameData.roads,
+      gameState.roads,
+    );
+    const roadsToDraw = ObjectHelper.getTypedEntries(resolvedRoads).filter(
+      ([, type]) => type != null,
+    );
 
     const drawCallbacks: Array<() => void> = [
       () => this.canvasRecord["roads"].beginPath(),
@@ -288,8 +301,7 @@ export class DrawingService {
       const [from, to] = key.split("-");
       const fromCoordinates =
         this.gameData.locationDataMap[from].centerCoordinates;
-      const toCoordinates =
-        this.gameData.locationDataMap[to].centerCoordinates;
+      const toCoordinates = this.gameData.locationDataMap[to].centerCoordinates;
       if (fromCoordinates && toCoordinates) {
         const roadColor = ColorHelper.getRoadHexColor(type);
         drawCallbacks.push(() =>
@@ -298,7 +310,8 @@ export class DrawingService {
             canvasCoordTo: toCoordinates,
             lineWidth: 1,
             color: roadColor,
-          }));
+          }),
+        );
       }
     }
     DrawingHelper.draw([this.canvasRecord["roads"]], drawCallbacks);
@@ -314,6 +327,7 @@ export class DrawingService {
     const colorSearchResult = colorSearchController.getSnapshot().result;
     for (const location of locations) {
       const coords = colorSearchResult[location]?.coordinates;
+
       if (!coords?.length) {
         missingCoordinates.push(location);
       } else {
@@ -324,8 +338,6 @@ export class DrawingService {
     if (missingCoordinates.length > 0) {
       colorSearchController.requestColorSearch(missingCoordinates);
     }
-
-    /* console.log("[DrawingService] will draw highlighted:", toHighlight); */
 
     DrawingHelper.draw(
       [this.canvasRecord["indicators"]],
@@ -348,12 +360,22 @@ export class DrawingService {
     return missingCoordinates;
   }
 
-  private drawMaritimePresence(maritimePresenceData: Record<ILocationIdentifier, { maritimePresence?: number }>): ILocationIdentifier[] {
-    const toHighlight: Record<ILocationIdentifier, { coordinates: ICoordinate[], maritimePresence?: number }> = {};
+  private drawMaritimePresence(
+    maritimePresenceData: Record<
+      ILocationIdentifier,
+      { maritimePresence?: number }
+    >,
+  ): ILocationIdentifier[] {
+    const toHighlight: Record<
+      ILocationIdentifier,
+      { coordinates: ICoordinate[]; maritimePresence?: number }
+    > = {};
     const missingCoordinates: ILocationIdentifier[] = [];
 
     const colorSearchResult = colorSearchController.getSnapshot().result;
-    for (const [location, { maritimePresence }] of Object.entries(maritimePresenceData)) {
+    for (const [location, { maritimePresence }] of Object.entries(
+      maritimePresenceData,
+    )) {
       const coords = colorSearchResult[location]?.coordinates;
       if (!coords?.length) {
         missingCoordinates.push(location);
@@ -378,19 +400,25 @@ export class DrawingService {
           ),
         ...Object.values(toHighlight)
           .filter(({ maritimePresence }) => !!maritimePresence)
-          .map(({ coordinates, maritimePresence }) => () => DrawingHelper.drawHighlights(
-            this.canvasRecord["maritimePresences"],
-            [coordinates],
-            (presence: unknown) => {
-              const t = Math.max(0, Math.min(100, Number(presence) ?? 0)) / 100;
-              const r = Math.round(12 + (2 - 12) * t);
-              const g = Math.round(6 + (166 - 6) * t);
-              const b = Math.round(183 + (255 - 183) * t);
-              return `rgba(${r}, ${g}, ${b}, 0.5)`;
-            },
-            [maritimePresence]))
-      ]
-    )
+          .map(
+            ({ coordinates, maritimePresence }) =>
+              () =>
+                DrawingHelper.drawHighlights(
+                  this.canvasRecord["maritimePresences"],
+                  [coordinates],
+                  (presence: unknown) => {
+                    const t =
+                      Math.max(0, Math.min(100, Number(presence) ?? 0)) / 100;
+                    const r = Math.round(12 + (2 - 12) * t);
+                    const g = Math.round(6 + (166 - 6) * t);
+                    const b = Math.round(183 + (255 - 183) * t);
+                    return `rgba(${r}, ${g}, ${b}, 0.5)`;
+                  },
+                  [maritimePresence],
+                ),
+          ),
+      ],
+    );
 
     return missingCoordinates;
   }

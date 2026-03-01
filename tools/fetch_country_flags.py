@@ -11,10 +11,11 @@ import json
 import os
 import urllib.request
 import urllib.error
-from typing import Optional
+from typing import Dict, Optional
 
 FLAG_API_BASE = "https://eu5.paradoxwikis.com/api.php?action=query&format=json&titles=File:Flag_{}.png&prop=imageinfo&iiprop=url"
 COUNTRIES_FILENAME = "countries-data-map.json"
+FLAG_CACHE_FILENAME = "country-flags-cache.json"
 
 
 def fetch_flag_url(country_code: str) -> Optional[str]:
@@ -63,13 +64,55 @@ def main(version: str, output_dir: Optional[str] = None) -> None:
         print("❌ Invalid format: expected a JSON object keyed by country code.")
         raise SystemExit(1)
 
-    print("Fetching flag URLs from Paradox wiki...")
+    # Prepare cache directory and load existing cache (if any)
+    tmp_dir = os.path.join(script_dir, "tmp")
+    os.makedirs(tmp_dir, exist_ok=True)
+    cache_path = os.path.join(tmp_dir, FLAG_CACHE_FILENAME)
+
+    cache: Dict[str, Optional[str]]
+    if os.path.isfile(cache_path):
+        try:
+            with open(cache_path, "r", encoding="utf-8") as cf:
+                loaded = json.load(cf)
+            if isinstance(loaded, dict):
+                # Ensure values are strings or None
+                cache = {str(k): (v if isinstance(v, str) or v is None else None) for k, v in loaded.items()}
+            else:
+                cache = {}
+        except (OSError, json.JSONDecodeError, ValueError):
+            cache = {}
+    else:
+        cache = {}
+
+    print("Fetching flag URLs from Paradox wiki (using cache when available)...")
     for code, data in countries.items():
         if not isinstance(data, dict):
             continue
-        data["flagUrl"] = fetch_flag_url(code)
-        if data["flagUrl"] is None:
+
+        # Use cache first (including cached misses: value is None)
+        if code in cache:
+            data["flagUrl"] = cache[code]
+            if cache[code] is None:
+                print(f"  (cached: no flag URL for {code})")
+            else:
+                print(f"  (cached) {code} -> {cache[code]}")
+            continue
+
+        # Not in cache: fetch from API and record in cache
+        url = fetch_flag_url(code)
+        data["flagUrl"] = url
+        cache[code] = url
+        if url is None:
             print(f"  (no flag URL for {code})")
+        else:
+            print(f"  {code} -> {url}")
+
+    # Persist cache to disk so subsequent runs can reuse it
+    try:
+        with open(cache_path, "w", encoding="utf-8") as cf:
+            json.dump(cache, cf, ensure_ascii=False, separators=(",", ":"))
+    except OSError as e:
+        print(f"Warning: could not write flag cache to {cache_path}: {e}")
 
     fetched = sum(1 for d in countries.values() if isinstance(d, dict) and d.get("flagUrl") is not None)
     print(f"  Fetched flag URLs for {fetched} countries")

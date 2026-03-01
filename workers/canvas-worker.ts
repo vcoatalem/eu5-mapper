@@ -162,15 +162,25 @@ self.onmessage = function (e: MessageEvent<IWorkerTask>) {
 
         try {
           for (const [locationName, coordinates] of Object.entries(
-            payload.startCoordinates,
+            payload.coordinates,
           )) {
-            const foundCoordinates = scanlineFill(
-              pixelData32,
-              canvasWidth,
-              coordinates.x,
-              coordinates.y,
-              e.data,
-            );
+            const foundCoordinates: ICoordinate[] = [];
+            for (const centerCoord of coordinates) {
+              const regionCoords = scanlineFill(
+                pixelData32,
+                canvasWidth,
+                centerCoord.x,
+                centerCoord.y,
+                e.data,
+              );
+
+              // Avoid using spread push with very large arrays, which can
+              // trigger "Maximum call stack size exceeded" due to engine
+              // argument limits. Append incrementally instead.
+              for (const coord of regionCoords) {
+                foundCoordinates.push(coord);
+              }
+            }
             result.result[locationName] = foundCoordinates;
           }
         } catch (err) {

@@ -80,7 +80,7 @@ export function Popover({
   }, [isOpen, placement]);
 
   return (
-    <div className="relative bottom-full">
+    <div>
       <div ref={triggerRef}>{renderTrigger({ isOpen, toggle })}</div>
       {isOpen &&
         createPortal(

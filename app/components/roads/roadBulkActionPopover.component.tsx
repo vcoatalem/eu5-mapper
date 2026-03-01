@@ -1,7 +1,6 @@
 import { ButtonWithTooltip } from "@/app/components/buttonWithTooltip.component";
 import { Popover } from "@/app/lib/popover/popover.component";
 import { allRoadTypes, RoadType } from "@/app/lib/types/roads";
-import { FaHammer } from "react-icons/fa6";
 import buttonStyles from "@/app/styles/button.module.css";
 import { RoadsHelper } from "@/app/lib/roads.helper";
 import { useContext, useMemo, useSyncExternalStore } from "react";
@@ -9,6 +8,7 @@ import { gameStateController } from "@/app/lib/gameState.controller";
 import { AppContext } from "@/app/appContextProvider";
 import Image from "next/image";
 import { getRoadIcon } from "@/app/lib/drawing/getImages";
+import { IoIosHammer } from "react-icons/io";
 
 interface IRoadBulkActionPopoverProps {}
 
@@ -48,7 +48,7 @@ export function RoadBulkActionPopover({}: IRoadBulkActionPopoverProps) {
           onClick={toggle}
           tooltip="Bulk actions for roads"
         >
-          <FaHammer color="white" size={24}></FaHammer>
+          <IoIosHammer color="white" size={24}></IoIosHammer>
         </ButtonWithTooltip>
       )}
     >

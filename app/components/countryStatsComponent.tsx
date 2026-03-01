@@ -63,10 +63,10 @@ export function CountryStats(props: ICountryStatsProps) {
       const meanProximity =
         proximityValues.length > 0
           ? Math.max(
-            0,
-            proximityValues.reduce((a, b) => a + b, 0) /
-            proximityValues.length,
-          )
+              0,
+              proximityValues.reduce((a, b) => a + b, 0) /
+                proximityValues.length,
+            )
           : 0;
       const totalPopulation = populationValues.reduce((a, b) => a + b, 0);
       const totalPopulationScaledByProximity = Math.round(
@@ -83,20 +83,21 @@ export function CountryStats(props: ICountryStatsProps) {
       };
     }, [gameData, proximityComputation, ownedLocations]);
 
+  if (!ownedLocations || Object.keys(ownedLocations).length === 0) {
+    return null;
+  }
+
   return (
-    <div
-      className={
-        "flex flex-wrap gap-2 " +
-        (props.className ?? "")
-      }
-    >
+    <div className={"flex flex-wrap gap-2 " + (props.className ?? "")}>
       <div className="flex justify-center items-center gap-1 pr-1 border-stone-400 border rounded-md p-1">
         <div className={""} ref={avgProxDivRef}>
           <div className="flex flex-row items-center gap-1 ">
-            <ProximityIcon size={24} tooltip="Average Proximity of owned locations" />
+            <ProximityIcon
+              size={24}
+              tooltip="Average Proximity of owned locations"
+            />
             <span className="text-stone-400 text-xs">(avg) </span>
           </div>
-
         </div>
         {proximityComputation.status === "completed" ? (
           <FormatedProximity
@@ -113,7 +114,10 @@ export function CountryStats(props: ICountryStatsProps) {
         ref={totalPopDivRef}
       >
         <div className="">
-          <PopulationIcon size={24} tooltip="Total population of owned locations" />
+          <PopulationIcon
+            size={24}
+            tooltip="Total population of owned locations"
+          />
         </div>
         <span className="">
           {NumbersHelper.addDecimalThousandSeparators(totalPopulation)}
@@ -123,9 +127,15 @@ export function CountryStats(props: ICountryStatsProps) {
       <div className="flex justify-center items-center gap-1 pr-1 border-stone-400 border rounded-md p-1">
         <div ref={popProxDivRef} className="">
           <div className="flex flex-row items-center gap-1">
-            <PopulationIcon size={24} tooltip="Total population scaled by proximity of owned locations" />
+            <PopulationIcon
+              size={24}
+              tooltip="Total population scaled by proximity of owned locations"
+            />
             <span className="text-stone-400">X</span>
-            <ProximityIcon size={24} tooltip="Total population scaled by proximity of owned locations" />
+            <ProximityIcon
+              size={24}
+              tooltip="Total population scaled by proximity of owned locations"
+            />
           </div>
         </div>
         {proximityComputation.status === "completed" ? (
@@ -145,7 +155,6 @@ export function CountryStats(props: ICountryStatsProps) {
           <Loader></Loader>
         )}
       </div>
-
     </div>
   );
 }

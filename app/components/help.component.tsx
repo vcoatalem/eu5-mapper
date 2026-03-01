@@ -81,7 +81,7 @@ export function Help({ className = "" }: { className?: string }) {
             <div className="flex flex-row mt-4 items-center">
               <div className="mr-20 text-stone-400">
                 Use the toolbar to interact with the game: changing capital,
-                creating builds, roads, advances, ...
+                creating buildings, roads, advances, ...
               </div>
               <div className="bg-blue-500/20 rounded-md px-2 py-1">
                 <MainActionsBar isTutorial={true}></MainActionsBar>

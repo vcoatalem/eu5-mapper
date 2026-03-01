@@ -1,10 +1,14 @@
 import { AppContextProvider } from "@/app/appContextProvider";
-import { ClickContextProvider } from "@/app/clickContext.provider";
+import { PopoverContextProvider } from "@/app/lib/popover/popover.provider";
 
 export default function VersionLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <AppContextProvider><ClickContextProvider>{children}</ClickContextProvider></AppContextProvider>;
+  return (
+    <AppContextProvider>
+      <PopoverContextProvider>{children}</PopoverContextProvider>
+    </AppContextProvider>
+  );
 }

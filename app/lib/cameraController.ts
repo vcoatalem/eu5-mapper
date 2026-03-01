@@ -53,7 +53,7 @@ export class CameraController extends Observable<IZoomState> {
 
   /**
    * Subscribe to be notified when a pan animation completes. Use this to trigger side effects at the end of camera panning (e.g recomputing tooltip position)
-  **/
+   **/
   public subscribePanEnd(callback: () => void): () => void {
     this.panEndListeners.push(callback);
     return () => {
@@ -146,6 +146,7 @@ export class CameraController extends Observable<IZoomState> {
       oldZoomLevel: oldZoomLevel,
       zoomLevel: zoomSteps[this.currentZoomIndex],
     };
+    this.applyZoomLevel(this.subject.zoomLevel, this.subject.oldZoomLevel);
     this.notifyListeners();
   }
 
@@ -203,7 +204,10 @@ export class CameraController extends Observable<IZoomState> {
     };
   }
 
-  public getLocationAtPointer(event: MouseEvent, gameData: IGameData): ILocationIdentifier | null {
+  public getLocationAtPointer(
+    event: MouseEvent,
+    gameData: IGameData,
+  ): ILocationIdentifier | null {
     if (!this.colorCanvas || !gameData) return null;
     const rect = this.colorCanvas.current?.getBoundingClientRect();
 
@@ -236,7 +240,8 @@ export class CameraController extends Observable<IZoomState> {
       b.toString(16).padStart(2, "0"),
     ].join("");
 
-    const locationName = LocationsHelper.findLocationName(hexStr, gameData) ?? null;
+    const locationName =
+      LocationsHelper.findLocationName(hexStr, gameData) ?? null;
     return locationName;
   }
 
@@ -341,7 +346,13 @@ export class CameraController extends Observable<IZoomState> {
   };
 
   public applyZoomLevel = (newZoom: number, oldZoom: number) => {
-    if (!this.colorCanvas || !this.container || this.colorCanvas.current === null || this.container.current === null) return;
+    if (
+      !this.colorCanvas ||
+      !this.container ||
+      this.colorCanvas.current === null ||
+      this.container.current === null
+    )
+      return;
     const colorCanvas = this.colorCanvas.current;
     const container = this.container.current;
 
@@ -388,10 +399,15 @@ export class CameraController extends Observable<IZoomState> {
   /**
    * Preferred placement for tooltip (vertical + horizontal). Used to try that quadrant first.
    */
-  private static preferredToPlacementName(
-    preferred: { horizontal: "left" | "right"; vertical: "top" | "bottom" },
-  ): "bottom-right" | "top-right" | "top-left" | "bottom-left" {
-    return `${preferred.vertical}-${preferred.horizontal}` as "bottom-right" | "top-right" | "top-left" | "bottom-left";
+  private static preferredToPlacementName(preferred: {
+    horizontal: "left" | "right";
+    vertical: "top" | "bottom";
+  }): "bottom-right" | "top-right" | "top-left" | "bottom-left" {
+    return `${preferred.vertical}-${preferred.horizontal}` as
+      | "bottom-right"
+      | "top-right"
+      | "top-left"
+      | "bottom-left";
   }
 
   /**
@@ -410,7 +426,10 @@ export class CameraController extends Observable<IZoomState> {
     tooltipSize: ICoordinate = { x: 200, y: 200 },
     screenOffset = this.baseScreenOffset,
     mouseCoordinate: ICoordinate = { x: 0, y: 0 },
-    preferredPlacement?: { horizontal: "left" | "right"; vertical: "top" | "bottom" },
+    preferredPlacement?: {
+      horizontal: "left" | "right";
+      vertical: "top" | "bottom";
+    },
   ): ICoordinate | null {
     const rawLeft = containerRect.left;
     const rawRight = containerRect.right;
@@ -446,10 +465,26 @@ export class CameraController extends Observable<IZoomState> {
       panelLeft: number;
       panelTop: number;
     }> = [
-      { name: "bottom-right", panelLeft: baseX + marginX, panelTop: baseY + marginY },
-      { name: "top-right", panelLeft: baseX + marginX, panelTop: baseY - marginY - tooltipHeight },
-      { name: "top-left", panelLeft: baseX - marginX - tooltipWidth, panelTop: baseY - marginY - tooltipHeight },
-      { name: "bottom-left", panelLeft: baseX - marginX - tooltipWidth, panelTop: baseY + marginY },
+      {
+        name: "bottom-right",
+        panelLeft: baseX + marginX,
+        panelTop: baseY + marginY,
+      },
+      {
+        name: "top-right",
+        panelLeft: baseX + marginX,
+        panelTop: baseY - marginY - tooltipHeight,
+      },
+      {
+        name: "top-left",
+        panelLeft: baseX - marginX - tooltipWidth,
+        panelTop: baseY - marginY - tooltipHeight,
+      },
+      {
+        name: "bottom-left",
+        panelLeft: baseX - marginX - tooltipWidth,
+        panelTop: baseY + marginY,
+      },
     ];
 
     const preferredName = preferredPlacement
@@ -534,7 +569,7 @@ export class CameraController extends Observable<IZoomState> {
     const y = panelTop;
     return { x, y };
   }
-  
+
   /**
    * Tooltip placement when the anchor is expressed in game/map coordinates
    * (affected by camera zoom and pan).
@@ -544,7 +579,10 @@ export class CameraController extends Observable<IZoomState> {
     offset: ICoordinate = { x: 0, y: 0 },
     tooltipSize: ICoordinate,
     mouseCoordinate?: ICoordinate,
-    preferredPlacement?: { horizontal: "left" | "right"; vertical: "top" | "bottom" },
+    preferredPlacement?: {
+      horizontal: "left" | "right";
+      vertical: "top" | "bottom";
+    },
   ): ICoordinate | null {
     if (!this.colorCanvas || !this.container) return null;
     const colorCanvas = this.colorCanvas.current;
@@ -580,7 +618,10 @@ export class CameraController extends Observable<IZoomState> {
     offset: ICoordinate = { x: 0, y: 0 },
     tooltipSize: ICoordinate,
     mouseCoordinate: ICoordinate,
-    preferredPlacement?: { horizontal: "left" | "right"; vertical: "top" | "bottom" },
+    preferredPlacement?: {
+      horizontal: "left" | "right";
+      vertical: "top" | "bottom";
+    },
   ): ICoordinate | null {
     if (!this.container) return null;
     const container = this.container.current;

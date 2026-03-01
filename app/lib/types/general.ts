@@ -1,6 +1,9 @@
 import { RoadKey, RoadType } from "@/app/lib/types/roads";
 import { IBuildingInstance, INewBuildingTemplate } from "./building";
-import { ICountryProximityBuffs, IProximityComputationRule } from "./proximityComputationRules";
+import {
+  ICountryProximityBuffs,
+  IProximityComputationRule,
+} from "./proximityComputationRules";
 
 export type ILocationIdentifier = string; // location name
 
@@ -64,7 +67,6 @@ export interface IConstructibleLocation {
   buildings: Record<INewBuildingTemplate["name"], IBuildingInstance>;
 }
 
-
 export type BaseRoadRecord = Record<RoadKey, RoadType>;
 export type RoadRecord = Record<RoadKey, RoadType | null>;
 
@@ -88,10 +90,7 @@ export interface IGameState {
   temporaryLocationData: TemporaryLocationDataRecord;
 }
 
-export type ILocationDataMap<LocationName extends string = string> = Record<
-  LocationName,
-  ILocationGameData
->;
+export type ILocationDataMap = Record<ILocationIdentifier, ILocationGameData>;
 
 export type ILocationIdentifierMap<
   HexColor extends string = string,
@@ -116,14 +115,16 @@ export interface ICountryInstance {
   templateData: ICountryData | null;
   values: ICountryValues;
   rulerAdministrativeAbility: number; // from 0 to 100, higher means more impact of proximity on the country
-  modifiers: Record<string, {buff: ICountryProximityBuffs, description: string, enabled: boolean;}>;
+  modifiers: Record<
+    string,
+    { buff: ICountryProximityBuffs; description: string; enabled: boolean }
+  >;
 }
 
 export interface ICountryValues {
   centralizationVsDecentralization: number;
   landVsNaval: number;
 }
-
 
 export interface ICountryModifierTemplate {
   name: string;

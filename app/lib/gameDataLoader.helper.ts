@@ -5,6 +5,7 @@ import {
   ICountryData,
   ICountryModifierTemplate,
   ILocationDataMap,
+  ILocationGameData,
   ILocationIdentifierMap,
 } from "@/app/lib/types/general";
 import { IProximityComputationRule } from "@/app/lib/types/proximityComputationRules";
@@ -12,8 +13,10 @@ import { GameDataFileType } from "@/app/lib/types/versionsManifest";
 import { VersionResolver } from "@/app/lib/versionResolver";
 
 export interface IGameDataParsedFiles {
-  locationDataMap: ILocationDataMap;
-  colorToNameMap: ILocationIdentifierMap;
+  locationData: {
+    map: ILocationDataMap;
+    colorToNameMap: ILocationIdentifierMap;
+  };
   buildingsTemplate: Record<string, INewBuildingTemplate>;
   adjacencyCsv: string;
   proximityComputationRule: IProximityComputationRule;
@@ -81,11 +84,18 @@ export class GameDataLoaderHelper {
     }
   }
   private static readonly fileTypeHandlers: FileTypeHandlers = {
-    locationDataMap: async (res) => {
-      return (await res.json()) as ILocationDataMap;
-    },
-    colorToNameMap: async (res) => {
-      return (await res.json()) as ILocationIdentifierMap;
+    locationData: async (res) => {
+      const map = (await res.json()) as ILocationDataMap;
+
+      const colorToNameMap = Object.entries(map).reduce(
+        (acc, [locationName, locationData]) => {
+          const locationDataTyped = locationData as ILocationGameData;
+          acc[locationDataTyped.hexColor] = locationName;
+          return acc;
+        },
+        {} as ILocationIdentifierMap,
+      );
+      return { map, colorToNameMap } as IGameDataParsedFiles["locationData"];
     },
     buildingsTemplate: async (res) => {
       return (await res.json()) as Record<string, INewBuildingTemplate>;
@@ -128,8 +138,7 @@ export class GameDataLoaderHelper {
   };
 
   public static readonly defaultGameDataFileTypes: GameDataFileType[] = [
-    "locationDataMap",
-    "colorToNameMap",
+    "locationData",
     "buildingsTemplate",
     "adjacencyCsv",
     "proximityComputationRule",
@@ -142,7 +151,6 @@ export class GameDataLoaderHelper {
     resolver: VersionResolver,
     gameDataFileTypes: GameDataFileType[] = GameDataLoaderHelper.defaultGameDataFileTypes,
   ): Promise<IGameDataParsedFiles> {
-
     const entries = await Promise.all(
       gameDataFileTypes.map(async (fileType) => {
         try {
@@ -170,8 +178,10 @@ export class GameDataLoaderHelper {
     );
 
     return Object.fromEntries(entries) as {
-      locationDataMap: ILocationDataMap;
-      colorToNameMap: ILocationIdentifierMap;
+      locationData: {
+        map: ILocationDataMap;
+        colorToNameMap: ILocationIdentifierMap;
+      };
       buildingsTemplate: Record<string, INewBuildingTemplate>;
       adjacencyCsv: string;
       proximityComputationRule: IProximityComputationRule;

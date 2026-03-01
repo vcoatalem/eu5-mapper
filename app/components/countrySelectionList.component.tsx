@@ -1,6 +1,10 @@
 import { useContext, useMemo, useState } from "react";
 import { AppContext } from "../appContextProvider";
-import { ICountryData, ILocationGameData, ILocationIdentifier } from "@/app/lib/types/general";
+import {
+  ICountryData,
+  ILocationGameData,
+  ILocationIdentifier,
+} from "@/app/lib/types/general";
 import { CountriesHelper } from "@/app/lib/countries.helper";
 
 interface ICountrySelectionListProps {
@@ -15,52 +19,109 @@ interface ICountrySelectionListProps {
 export function CountrySelectionList(props: ICountrySelectionListProps) {
   const { gameData } = useContext(AppContext);
   const [search, setSearch] = useState<string>("");
-  const filteredCountries: Record<ILocationIdentifier, ICountryData & { capitalHierarchy: ILocationGameData["hierarchy"] }> = useMemo(() => {
+  const filteredCountries: Record<
+    ILocationIdentifier,
+    ICountryData & { capitalHierarchy: ILocationGameData["hierarchy"] }
+  > = useMemo(() => {
     const countries = Object.entries(gameData?.countriesDataMap ?? {});
     return countries
       .filter(([, data]) => data.locations.length > 0)
       .map(([countryKey, countryData]) => {
-        const capitalLocation = CountriesHelper.getCountryBaseCapitalLocation(countryKey, gameData?.countriesDataMap ?? {});
+        const capitalLocation = CountriesHelper.getCountryBaseCapitalLocation(
+          countryKey,
+          gameData?.countriesDataMap ?? {},
+        );
         return {
-          countryKey, countryData: {
+          countryKey,
+          countryData: {
             ...countryData,
-            capitalHierarchy: gameData?.locationDataMap[capitalLocation]?.hierarchy ?? { continent: "", subcontinent: "", region: "", area: "", province: "" },
-          }
+            capitalHierarchy: gameData?.locationDataMap[capitalLocation]
+              ?.hierarchy ?? {
+              continent: "",
+              subcontinent: "",
+              region: "",
+              area: "",
+              province: "",
+            },
+          },
         };
       })
-      .reduce((acc, { countryKey, countryData }) => {
-        acc[countryKey] = countryData;
-        return acc;
-      }, {} as Record<ILocationIdentifier, ICountryData & { capitalHierarchy: ILocationGameData["hierarchy"] }>);
+      .reduce(
+        (acc, { countryKey, countryData }) => {
+          acc[countryKey] = countryData;
+          return acc;
+        },
+        {} as Record<
+          ILocationIdentifier,
+          ICountryData & { capitalHierarchy: ILocationGameData["hierarchy"] }
+        >,
+      );
   }, [gameData?.countriesDataMap, gameData?.locationDataMap]);
 
   const searchedCountries = useMemo(() => {
-    return Object.entries(filteredCountries).filter(([countryKey, countryData]) => {
-      return countryData.name.toLowerCase().includes(search.toLowerCase()) || countryKey.toLowerCase().includes(search.toLowerCase());
-    });
+    return Object.entries(filteredCountries).filter(
+      ([countryKey, countryData]) => {
+        return (
+          countryData.name.toLowerCase().includes(search.toLowerCase()) ||
+          countryKey.toLowerCase().includes(search.toLowerCase())
+        );
+      },
+    );
   }, [filteredCountries, search]);
 
   if (!gameData) return <></>;
 
   return (
-    <div className={"flex flex-col gap-1 min-w-0 overflow-x-hidden " + props.className}>
-      <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search for a country or tag" className="py-1 px-2 min-w-0" style={{ outline: "none" }} />
+    <div
+      className={
+        "flex flex-col gap-1 min-w-0 overflow-x-hidden " + props.className
+      }
+    >
+      <input
+        type="text"
+        autoFocus={true}
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search for a country or tag"
+        className="py-1 px-2 min-w-0"
+        style={{ outline: "none" }}
+      />
       <hr className="w-full"></hr>
       <div className="h-full overflow-y-scroll overflow-x-hidden min-w-0">
         {searchedCountries.map(([countryKey, countryData]) => (
           <div
             key={countryKey}
-            className={"px-2 py-1 hover:bg-stone-700 cursor-pointer rounded-md flex flex-row items-center gap-2 min-w-0 mr-4 " + (props.selectedCountry === countryKey ? "bg-stone-700" : "")}
+            className={
+              "px-2 py-1 hover:bg-stone-700 cursor-pointer rounded-md flex flex-row items-center gap-2 min-w-0 mr-4 " +
+              (props.selectedCountry === countryKey ? "bg-stone-700" : "")
+            }
             onClick={() => props.onSelect(countryKey)}
           >
             <span className="min-w-0 truncate">{countryData.name}</span>
-            <span className="text-stone-500 text-sm flex-none">({countryKey})</span>
-            <span className="text-stone-500 text-sm ml-auto flex-none shrink-0">{countryData.capitalHierarchy.subcontinent ?? countryData.capitalHierarchy.region ?? countryData.capitalHierarchy.area ?? countryData.capitalHierarchy.province ?? ""}</span>
+            <span className="text-stone-500 text-sm flex-none">
+              ({countryKey})
+            </span>
+            <span className="text-stone-500 text-sm ml-auto flex-none shrink-0">
+              {countryData.capitalHierarchy.subcontinent ??
+                countryData.capitalHierarchy.region ??
+                countryData.capitalHierarchy.area ??
+                countryData.capitalHierarchy.province ??
+                ""}
+            </span>
           </div>
         ))}
       </div>
 
-      {props.selectedCountry && <button onClick={props.onValidate} className="bg-stone-700 hover:bg-stone-800 cursor-pointer rounded-md px-2 py-1 bottom-0 left-0 right-0">Choose {gameData.countriesDataMap[props.selectedCountry]?.name ?? props.selectedCountry}</button>}
+      {props.selectedCountry && (
+        <button
+          onClick={props.onValidate}
+          className="bg-stone-700 hover:bg-stone-800 cursor-pointer rounded-md px-2 py-1 bottom-0 left-0 right-0"
+        >
+          Choose{" "}
+          {gameData.countriesDataMap[props.selectedCountry]?.name ??
+            props.selectedCountry}
+        </button>
+      )}
     </div>
   );
 }

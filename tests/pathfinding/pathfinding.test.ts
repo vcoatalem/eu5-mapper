@@ -13,7 +13,7 @@ import { GameDataLoaderHelper } from "@/app/lib/gameDataLoader.helper";
 
 const referenceFiles = getAllReferenceFilePaths(
   "tests/pathfinding/references/",
-);/* .filter((filePath) => filePath.includes("eng") && filePath.includes('1_1_4'));// && filePath.includes('1_0_11')); */
+); /* .filter((filePath) => filePath.includes("eng") && filePath.includes('1_1_4'));// && filePath.includes('1_0_11')); */
 
 test("found reference files", () => {
   console.log("referenceFiles", referenceFiles);
@@ -39,9 +39,14 @@ test.each(referenceFiles)(
       await GameDataLoaderHelper.loadGameDataFilesForVersion(
         version,
         versionResolver,
-        [...GameDataLoaderHelper.defaultGameDataFileTypes, "countryModifiersTemplate"]
+        [
+          ...GameDataLoaderHelper.defaultGameDataFileTypes,
+          "countryModifiersTemplate",
+        ],
       );
     const gameData: IGameData = {
+      locationDataMap: gameDataFiles.locationData.map,
+      colorToNameMap: {},
       ...gameDataFiles,
     };
 
@@ -49,7 +54,9 @@ test.each(referenceFiles)(
     const gameStateController = new GameStateController();
     gameStateController.init(gameData);
     gameStateController.reset(countryCode);
-    gameStateController.changeCountryRulerAdministrativeAbility(rulerAdministrativeAbility);
+    gameStateController.changeCountryRulerAdministrativeAbility(
+      rulerAdministrativeAbility,
+    );
     if (Object.keys(countryValuesOverrides).length > 0) {
       gameStateController.changeCountryValues(countryValuesOverrides);
     }
@@ -58,9 +65,14 @@ test.each(referenceFiles)(
     for (const modifier of modifiers) {
       const modifierTemplate = countryModifiersTemplates[modifier];
       if (!modifierTemplate) {
-        throw new Error(`Modifier template not found for modifier: ${modifier}`);
+        throw new Error(
+          `Modifier template not found for modifier: ${modifier}`,
+        );
       }
-      gameStateController.changeCountryModifier(modifier, { enabled: true, buff: modifierTemplate?.buff ?? {} });
+      gameStateController.changeCountryModifier(modifier, {
+        enabled: true,
+        buff: modifierTemplate?.buff ?? {},
+      });
     }
 
     const gameState = gameStateController.getSnapshot();

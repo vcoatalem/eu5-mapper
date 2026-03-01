@@ -356,7 +356,7 @@ def generate_game_data_json(
         is_lake = data.topography == "lakes"
         is_sea = data.topography in [
             "ocean", "coastal_ocean", "inland_sea", 
-            "ocean_wasteland", "narrows"
+            "ocean_wasteland", "narrows", "deep_ocean"
         ]
         
         # Get hierarchy for this location

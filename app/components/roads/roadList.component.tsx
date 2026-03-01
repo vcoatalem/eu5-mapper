@@ -3,7 +3,12 @@ import { RoadStepper } from "@/app/components/roads/roadStepper.component";
 import { gameStateController } from "@/app/lib/gameState.controller";
 import { ObjectHelper } from "@/app/lib/object.helper";
 import { Popover } from "@/app/lib/popover/popover.component";
-import { allRoadTypes, asRoadKey, RoadKey, RoadType } from "@/app/lib/types/roads";
+import {
+  allRoadTypes,
+  asRoadKey,
+  RoadKey,
+  RoadType,
+} from "@/app/lib/types/roads";
 import React, { useContext, useMemo, useSyncExternalStore } from "react";
 import { IoSearch } from "react-icons/io5";
 import { ActionSource } from "../../lib/actionSource.component";
@@ -13,6 +18,9 @@ import { TooltipContent } from "../../lib/tooltip/tooltipContent.component";
 import { TooltipTrigger } from "../../lib/tooltip/tooltipTrigger.component";
 import { StringHelper } from "../../lib/utils/string.helper";
 import buttonStyles from "@/app/styles/button.module.css";
+import { ButtonWithTooltip } from "@/app/components/buttonWithTooltip.component";
+import { FaHammer } from "react-icons/fa6";
+import { RoadBulkActionPopover } from "@/app/components/roads/roadBulkActionPopover.component";
 
 const RoadItem = React.memo(function RoadItem({
   roadKey,
@@ -23,7 +31,6 @@ const RoadItem = React.memo(function RoadItem({
 }) {
   const spanRef = React.useRef<HTMLSpanElement>(null);
   const [from, to] = roadKey.split("-");
- 
 
   if (!from || !to) {
     return <></>;
@@ -58,9 +65,7 @@ const RoadItem = React.memo(function RoadItem({
         </Tooltip>
       </span>
 
-
       <RoadStepper roadKey={roadKey} roadType={type} />
-     
     </div>
   );
 });
@@ -106,19 +111,10 @@ export function RoadList({ className }: { className?: string }) {
     return entries;
   }, [search, gameState?.ownedLocations, baseRoads, stateRoads]);
 
-  const areAllRoadsOfType: Record<RoadType, boolean> = useMemo(() => {
-    return {
-      gravel_road: RoadsHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, baseRoads, stateRoads, "gravel_road"),
-      paved_road: RoadsHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, baseRoads, stateRoads, "paved_road"),
-      modern_road: RoadsHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, baseRoads, stateRoads, "modern_road"),
-      rail_road: RoadsHelper.areAllOwnedRoadsOfType(gameState.ownedLocations, baseRoads, stateRoads, "rail_road"),
-    };
-  }, [gameState.ownedLocations, baseRoads, stateRoads]);
-
   if (!filteredRoadsEntries) return null;
   return (
     <div className={[className, " "].filter(Boolean).join(" ")}>
-      <div className="shrink-0 flex flex-row pt-1">
+      <div className="shrink-0 flex flex-row items-center pt-1">
         <IoSearch color="white" size={24}></IoSearch>
         <input
           type="search"
@@ -127,32 +123,16 @@ export function RoadList({ className }: { className?: string }) {
           onChange={(e) => setSearch(e.target.value)}
           style={{ outline: "none" }}
         />
+        <RoadBulkActionPopover></RoadBulkActionPopover>
       </div>
       <hr className="mt-2 mb-1"></hr>
-      <div className="w-full flex flex-row gap-2 relative">
-        <Popover
-          panelClassName="w-full flex flex-col gap-2"
-          renderTrigger={({ isOpen, toggle }) => (
-            <button className={`${buttonStyles.simpleButton} ${isOpen ? buttonStyles.buttonActive : ""}`} onClick={toggle}>
-              Bulk Update
-            </button>
-          )}
-        >
-          {allRoadTypes.map((type) => (
-            <button key={type} className={`${buttonStyles.simpleButton} ${areAllRoadsOfType[type] ? buttonStyles.buttonActive : ""}`} onClick={() => gameStateController.changeAllOwnedRoadsToType(type)}>{type}</button>
-          ))}
-        </Popover>
-      </div>
-      <hr className="mt-2 mb-1"></hr>
-      <div className="flex flex-col gap-1 overflow-y-scroll max-h-[60vh] pb-16"> {/* // max height is set here to avoid overflow of the list in the context of the gui. Find something */} 
+      <div className="flex flex-col gap-1 overflow-y-scroll max-h-[60vh] pb-16">
+        {" "}
+        {/* // max height is set here to avoid overflow of the list in the context of the gui. Find something */}
         {ObjectHelper.getTypedEntries(filteredRoadsEntries)
           .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
           .map(([key, type]) => (
-            <RoadItem
-              key={key}
-              roadKey={key}
-              type={type}
-            />
+            <RoadItem key={key} roadKey={key} type={type} />
           ))}
       </div>
     </div>

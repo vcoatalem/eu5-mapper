@@ -130,8 +130,7 @@ export const AppContextProvider = ({
         ]);
 
         const {
-          locationDataMap,
-          colorToNameMap,
+          locationData,
           buildingsTemplate,
           adjacencyCsv,
           proximityComputationRule,
@@ -142,7 +141,7 @@ export const AppContextProvider = ({
         console.log("[AppContext] Parsed roads:", roads);
 
         const toBePersistedGameData: IGameData = {
-          locationDataMap,
+          locationDataMap: locationData.map,
           colorToNameMap: {},
           buildingsTemplate: {},
           proximityComputationRule,
@@ -179,7 +178,7 @@ export const AppContextProvider = ({
             dbDataKey,
             {},
           );
-          await LocationHierarchyService.persistToIndexedDB(locationDataMap);
+          await LocationHierarchyService.persistToIndexedDB(locationData.map);
         } catch (dbErr) {
           console.error(
             "[AppContext] IndexedDB error, dropping DB and reloading",
@@ -193,8 +192,8 @@ export const AppContextProvider = ({
         // indexedDB operations have to be done before setGameData to ensure this happens before worldmap component initializes
         setImagePaths(resolvedImagePaths);
         setGameData({
-          locationDataMap,
-          colorToNameMap,
+          locationDataMap: locationData.map,
+          colorToNameMap: locationData.colorToNameMap,
           buildingsTemplate,
           proximityComputationRule,
           countriesDataMap,
@@ -202,7 +201,7 @@ export const AppContextProvider = ({
         });
 
         console.log(
-          `[AppContext] Game data loaded: ${Object.keys(locationDataMap).length} locations`,
+          `[AppContext] Game data loaded: ${Object.keys(locationData.map).length} locations`,
         );
       } catch (err) {
         const errorMsg =

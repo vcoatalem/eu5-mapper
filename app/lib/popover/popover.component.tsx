@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { ClickContext } from "@/app/clickContext.provider";
+import { PopoverContext } from "@/app/lib/popover/popover.provider";
 import popoverStyles from "./popover.module.css";
+import { createPortal } from "react-dom";
 
 export interface IPopoverRenderTriggerProps {
   isOpen: boolean;
@@ -13,7 +14,7 @@ export interface IPopoverProps {
   renderTrigger: (props: IPopoverRenderTriggerProps) => React.ReactNode;
   children: React.ReactNode;
   panelClassName?: string;
-  placement: "bottom" | "top";
+  placement?: "bottom" | "top" | "left" | "right";
 }
 
 export function Popover({
@@ -23,52 +24,77 @@ export function Popover({
   placement = "bottom",
 }: IPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [panelPositionStyle, setPanelPositionStyle] =
+    useState<React.CSSProperties>({});
   const triggerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const clickContext = useContext(ClickContext);
+  const popoverContext = useContext(PopoverContext);
 
   const toggle = () => setIsOpen((prev) => !prev);
 
   useEffect(() => {
-    if (!isOpen || !clickContext?.clickedElement) return;
+    if (!isOpen || !popoverContext?.clickedElement) return;
     const insideTrigger = triggerRef.current?.contains(
-      clickContext.clickedElement,
+      popoverContext.clickedElement,
     );
-    const insidePanel = panelRef.current?.contains(clickContext.clickedElement);
+    const insidePanel = panelRef.current?.contains(
+      popoverContext.clickedElement,
+    );
     if (!insideTrigger && !insidePanel) {
       queueMicrotask(() => setIsOpen(false));
     }
-  }, [clickContext, isOpen]);
+  }, [popoverContext, isOpen]);
 
-  const positionStyle =
-    placement === "top"
-      ? {
-          bottom: "100%",
-          left: "50%",
-          transform: "translateX(-50%)",
-          marginBottom: "8px",
-        }
-      : {
-          top: "100%",
-          left: "50%",
-          transform: "translateX(-50%)",
-          marginTop: "8px",
-        };
+  useEffect(() => {
+    if (isOpen && triggerRef.current && panelRef.current) {
+      const triggerRect = triggerRef.current.getBoundingClientRect();
+      const panelRect = panelRef.current.getBoundingClientRect();
+
+      let top = 0;
+      let left = 0;
+
+      switch (placement) {
+        case "top":
+          top = triggerRect.top - panelRect.height - 8;
+          left = triggerRect.left + triggerRect.width / 2 - panelRect.width / 2;
+          break;
+        case "bottom":
+          top = triggerRect.bottom + 8;
+          left = triggerRect.left + triggerRect.width / 2 - panelRect.width / 2;
+          break;
+        case "left":
+          top = triggerRect.top + triggerRect.height / 2 - panelRect.height / 2;
+          left = triggerRect.left - panelRect.width - 8;
+          break;
+        case "right":
+          top = triggerRect.top + triggerRect.height / 2 - panelRect.height / 2;
+          left = triggerRect.right + 8;
+          break;
+      }
+
+      setPanelPositionStyle({
+        top: Math.max(top, 0),
+        left: Math.max(left, 0),
+      });
+    }
+  }, [isOpen, placement]);
 
   return (
     <div className="relative bottom-full">
       <div ref={triggerRef}>{renderTrigger({ isOpen, toggle })}</div>
-      {isOpen && (
-        <div
-          ref={panelRef}
-          className={["absolute", popoverStyles.panel, panelClassName].join(
-            " ",
-          )}
-          style={positionStyle}
-        >
-          {children}
-        </div>
-      )}
+      {isOpen &&
+        createPortal(
+          <div
+            ref={panelRef}
+            className={["absolute", popoverStyles.panel, panelClassName].join(
+              " ",
+            )}
+            style={panelPositionStyle}
+          >
+            {children}
+          </div>,
+          popoverContext?.rootElement ?? document.body,
+        )}
     </div>
   );
 }

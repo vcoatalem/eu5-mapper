@@ -26,7 +26,7 @@ export function RoadBulkActionPopover({}: IRoadBulkActionPopoverProps) {
 
   const areAllRoadsOfType: Record<RoadType, boolean> = useMemo(() => {
     return ArrayHelper.reduceToRecord(
-      allRoadTypes,
+      allRoadTypes as RoadType[],
       (type) => type,
       (type) =>
         RoadsHelper.areAllOwnedRoadsOfType(

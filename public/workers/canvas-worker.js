@@ -120,14 +120,20 @@
           const result = { result: {} };
           try {
             for (const [locationName, coordinates] of Object.entries(
-              payload.startCoordinates
+              payload.coordinates
             )) {
-              const foundCoordinates = scanlineFill(
-                pixelData32,
-                canvasWidth,
-                coordinates.x,
-                coordinates.y,
-                e.data
+              const foundCoordinates = coordinates.reduce(
+                (prev, { x, y }) => {
+                  const regionCoords = scanlineFill(
+                    pixelData32,
+                    canvasWidth,
+                    x,
+                    y,
+                    e.data
+                  );
+                  return prev.concat(regionCoords);
+                },
+                []
               );
               result.result[locationName] = foundCoordinates;
             }

@@ -1,3 +1,4 @@
+import { ArrayHelper } from "@/app/lib/array.helper";
 import { ParserHelper } from "@/app/lib/parser.helper";
 import { INewBuildingTemplate } from "@/app/lib/types/building";
 import {
@@ -5,7 +6,6 @@ import {
   ICountryData,
   ICountryModifierTemplate,
   ILocationDataMap,
-  ILocationGameData,
   ILocationIdentifierMap,
 } from "@/app/lib/types/general";
 import { IProximityComputationRule } from "@/app/lib/types/proximityComputationRules";
@@ -89,7 +89,7 @@ export class GameDataLoaderHelper {
 
       const colorToNameMap = Object.entries(map).reduce(
         (acc, [locationName, locationData]) => {
-          const locationDataTyped = locationData as ILocationGameData;
+          const locationDataTyped = locationData;
           acc[locationDataTyped.hexColor] = locationName;
           return acc;
         },
@@ -116,12 +116,10 @@ export class GameDataLoaderHelper {
           `Expected country modifiers template to be an array, got ${typeof arr}`,
         );
       }
-      return arr.reduce(
-        (acc, entry) => {
-          acc[entry.name] = entry;
-          return acc;
-        },
-        {} as Record<string, ICountryModifierTemplate>,
+      return ArrayHelper.reduceToRecord(
+        arr,
+        (entry) => entry.name,
+        (entry) => entry,
       );
     },
     roads: async (res) => {

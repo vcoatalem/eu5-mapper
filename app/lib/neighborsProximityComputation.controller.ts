@@ -4,6 +4,7 @@ import { ILocationIdentifier } from "./types/general";
 import { workerManager } from "@/app/lib/workerManager";
 import { gameStateController } from "@/app/lib/gameState.controller";
 import { PathfindingResult } from "./types/pathfinding";
+import { ArrayHelper } from "@/app/lib/array.helper";
 
 type NeighborsProximityComputationResults = {
   computationResults: Record<
@@ -16,7 +17,6 @@ type NeighborsProximityComputationResults = {
 };
 
 class NeighborProximityComputationController extends Observable<NeighborsProximityComputationResults> {
-
   private lastCompletedTaskId: string | null = null;
   private unsubscribeWorkerManager: (() => void) | null = null;
   private unsubscribeGameState: (() => void) | null = null;
@@ -34,40 +34,37 @@ class NeighborProximityComputationController extends Observable<NeighborsProximi
     this.unsubscribeWorkerManager = null;
     this.unsubscribeGameState = null;
 
-    this.unsubscribeWorkerManager = workerManager.subscribe(({ lastCompletedTask }) => {
-      if (!lastCompletedTask) return;
-      if (lastCompletedTask.type !== "computeNeighbors") return;
-      if (lastCompletedTask.taskId === this.lastCompletedTaskId) return;
+    this.unsubscribeWorkerManager = workerManager.subscribe(
+      ({ lastCompletedTask }) => {
+        if (!lastCompletedTask) return;
+        if (lastCompletedTask.type !== "computeNeighbors") return;
+        if (lastCompletedTask.taskId === this.lastCompletedTaskId) return;
 
-      this.lastCompletedTaskId = lastCompletedTask.taskId;
+        this.lastCompletedTaskId = lastCompletedTask.taskId;
 
-      const data = lastCompletedTask.data as IWorkerTaskComputeNeighborsResult;
+        const data =
+          lastCompletedTask.data as IWorkerTaskComputeNeighborsResult;
 
-      this.subject.computationResults[data.locationName] = {
-        neighbors: data.neighbors,
-        status: "completed",
-      };
+        this.subject.computationResults[data.locationName] = {
+          neighbors: data.neighbors,
+          status: "completed",
+        };
 
-      this.notifyListeners();
-    });
+        this.notifyListeners();
+      },
+    );
 
     this.unsubscribeGameState = gameStateController.subscribe(() => {
       // invalidate all results
+
       this.subject = {
-        computationResults: Object.entries(
-          this.subject.computationResults,
-        ).reduce(
-          (acc, [locationName, result]) => {
-            acc[locationName] = {
-              neighbors: result.neighbors,
-              status: "needs_update",
-            };
-            return acc;
-          },
-          {} as Record<
-            ILocationIdentifier,
-            { neighbors: PathfindingResult; status: "needs_update" }
-          >,
+        computationResults: ArrayHelper.reduceToRecord(
+          Object.entries(this.subject.computationResults),
+          ([locationName]) => locationName,
+          ([, resultData]) => ({
+            neighbors: resultData.neighbors,
+            status: "needs_update",
+          }),
         ),
       };
       this.notifyListeners();

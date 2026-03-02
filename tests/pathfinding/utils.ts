@@ -1,13 +1,11 @@
 import { CompactGraph } from "@/app/lib/graph";
 import { ParserHelper } from "@/app/lib/parser.helper";
-import {
-  ICountryValues,
-  ILocationIdentifier,
-} from "@/app/lib/types/general";
+import { ICountryValues, ILocationIdentifier } from "@/app/lib/types/general";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import crypto from "crypto";
+import { ArrayHelper } from "@/app/lib/array.helper";
 
 const COUNTRY_VALUE_KEYS: Array<keyof ICountryValues> = [
   "landVsNaval",
@@ -20,9 +18,14 @@ export interface ReferenceSettings {
   countryValuesOverrides: Partial<ICountryValues>;
 }
 
-function parseCountryValuesOverrides(valuesRaw: string): Partial<ICountryValues> {
+function parseCountryValuesOverrides(
+  valuesRaw: string,
+): Partial<ICountryValues> {
   const overrides: Partial<ICountryValues> = {};
-  const pairs = valuesRaw.split("|").map((s) => s.trim()).filter(Boolean);
+  const pairs = valuesRaw
+    .split("|")
+    .map((s) => s.trim())
+    .filter(Boolean);
   for (const pair of pairs) {
     const colonIndex = pair.indexOf(":");
     if (colonIndex <= 0) continue;
@@ -61,7 +64,9 @@ export const readReferenceFile = async (
 
   for (const segment of fifthColumn.split(";").map((s) => s.trim())) {
     if (segment.startsWith("adminAbility:")) {
-      rulerAdministrativeAbility = Number(segment.slice("adminAbility:".length));
+      rulerAdministrativeAbility = Number(
+        segment.slice("adminAbility:".length),
+      );
     } else if (segment.startsWith("modifiers:")) {
       const modifiersRaw = segment.slice("modifiers:".length);
       modifiers = modifiersRaw
@@ -75,17 +80,14 @@ export const readReferenceFile = async (
     }
   }
 
-  const data = lines
-    .slice(1) // skip header
-    .filter((line) => line.trim().length > 0) // ignore empty lines
-    .map((line) => line.trim().split(",") as [string, string])
-    .reduce(
-      (acc, [location, proximity]) => {
-        acc[location] = Number(proximity);
-        return acc;
-      },
-      {} as Record<ILocationIdentifier, number>,
-    );
+  const data = ArrayHelper.reduceToRecord(
+    lines
+      .slice(1) // skip header
+      .filter((line) => line.trim().length > 0) // ignore empty lines
+      .map((line) => line.trim().split(",") as [string, string]),
+    ([location]) => location,
+    ([, proximity]) => Number(proximity),
+  );
 
   return {
     countryCode,
@@ -614,7 +616,11 @@ export async function generateHtmlReport(
         ${
           settings.countryValuesOverrides &&
           Object.keys(settings.countryValuesOverrides).length > 0
-            ? `Values: ${(Object.entries(settings.countryValuesOverrides) as Array<[keyof ICountryValues, number]>)
+            ? `Values: ${(
+                Object.entries(settings.countryValuesOverrides) as Array<
+                  [keyof ICountryValues, number]
+                >
+              )
                 .map(([k, v]) => `${escapeHtml(k)}: ${v}`)
                 .join("; ")}`
             : ""

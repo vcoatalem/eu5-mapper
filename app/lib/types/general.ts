@@ -41,6 +41,7 @@ export interface ILocationGameData {
   name: string;
   hexColor: string;
   centerCoordinates: ICoordinate;
+  secondaryCoordinates: ICoordinate[];
   topography: Topography;
   vegetation: Vegetation;
   isSea?: boolean;
@@ -59,8 +60,8 @@ export interface ILocationGameData {
   isOnLake: boolean;
   rank: LocationRank;
   buildings: string[]; //building names
-  development: number; // can me modified , in other interface (ILocationTemporaryData ?)
-  population: number; // can me modified , in other interface (ILocationTemporaryData ?)
+  development: number; // overriden by ITemporaryLocationData
+  population: number; // overriden by ITemporaryLocationData
 }
 export interface IConstructibleLocation {
   rank: LocationRank;
@@ -137,5 +138,5 @@ export interface IGameData {
   buildingsTemplate: Record<string, INewBuildingTemplate>;
   proximityComputationRule: IProximityComputationRule;
   countriesDataMap: Record<string, ICountryData>; //TODO: move this outside of mandatory game data. Can be loaded only when needed, stored in indexedDB, and read by specific components that need it
-  roads: BaseRoadRecord; // base roads from parser; gameState.roads holds overrides (and null = deleted)
+  roads: BaseRoadRecord; // overriden by gameState.roads
 }

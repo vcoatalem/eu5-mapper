@@ -9,7 +9,6 @@ import { sendMessage } from "./utils";
 
 (globalThis as any).__workerName = "Canvas Worker";
 
-//type Coordinate = { x: number; y: number };
 /**
  * Flood fill algorithm to find all contiguous pixels of the same color.
  * @param data32 - Uint32Array of pixel data
@@ -162,15 +161,22 @@ self.onmessage = function (e: MessageEvent<IWorkerTask>) {
 
         try {
           for (const [locationName, coordinates] of Object.entries(
-            payload.startCoordinates,
+            payload.coordinates,
           )) {
-            const foundCoordinates = scanlineFill(
-              pixelData32,
-              canvasWidth,
-              coordinates.x,
-              coordinates.y,
-              e.data,
+            const foundCoordinates: ICoordinate[] = coordinates.reduce(
+              (prev, { x, y }) => {
+                const regionCoords = scanlineFill(
+                  pixelData32,
+                  canvasWidth,
+                  x,
+                  y,
+                  e.data,
+                );
+                return prev.concat(regionCoords);
+              },
+              [] as ICoordinate[],
             );
+
             result.result[locationName] = foundCoordinates;
           }
         } catch (err) {

@@ -22,6 +22,7 @@ import {
 import { ICountryProximityBuffs } from "@/app/lib/types/proximityComputationRules";
 import { ObjectHelper } from "@/app/lib/object.helper";
 import { RoadKey, RoadType } from "@/app/lib/types/roads";
+import { ArrayHelper } from "@/app/lib/array.helper";
 
 const baseCountryValues: ICountryInstance = {
   templateData: null,
@@ -88,25 +89,29 @@ export class GameStateController extends Observable<IGameState> {
     locationNames: ILocationIdentifier[],
     notify: boolean = true,
   ): void {
+    if (!this.gameData) {
+      return;
+    }
+
     const toAdd: Record<ILocationIdentifier, IConstructibleLocation> = {};
     for (const location of locationNames) {
-      const locationData = this.gameData?.locationDataMap[location];
+      const locationData = this.gameData.locationDataMap[location];
       if (!locationData?.ownable) {
         continue;
       }
       const baseLocationRank = locationData?.rank;
       const baseBuildings =
-        this.gameData?.locationDataMap[location].buildings ?? [];
-      const initialLocationBuildings = baseBuildings.reduce(
-        (acc, buildingName) => {
-          const newSet = { ...acc };
-          newSet[buildingName] = {
-            template: this.gameData!.buildingsTemplate[buildingName],
+        this.gameData.locationDataMap[location].buildings ?? [];
+      const initialLocationBuildings = ArrayHelper.reduceToRecord(
+        baseBuildings,
+        (buildingName) => buildingName,
+        (buildingName) => {
+          if (!this.gameData) return undefined;
+          return {
+            template: this.gameData.buildingsTemplate[buildingName],
             level: 1,
           };
-          return newSet;
         },
-        {} as Record<INewBuildingTemplate["name"], IBuildingInstance>,
       );
       const newLocation: IConstructibleLocation = {
         rank: baseLocationRank ?? "rural",

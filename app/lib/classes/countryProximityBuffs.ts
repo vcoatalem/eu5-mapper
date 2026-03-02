@@ -1,13 +1,11 @@
 import { countryBuffsMetadata } from "@/app/lib/classes/countryProximityBuffs.const";
-import {
-  ICountryValues,
-  IGameData,
-  IGameState,
-} from "../types/general";
+import { ICountryValues, IGameData, IGameState } from "../types/general";
 import {
   IBuffValue,
   ICountryProximityBuffs,
 } from "../types/proximityComputationRules";
+import { ArrayHelper } from "@/app/lib/array.helper";
+import { ObjectHelper } from "@/app/lib/object.helper";
 
 export class ProximityBuffsRecord {
   private countryProximityBuffs: Record<string, ICountryProximityBuffs> = {};
@@ -26,12 +24,13 @@ export class ProximityBuffsRecord {
         rule.rulerAdministrativeAbilityImpact.value,
     };
 
-    const modifiersBuff = Object.entries(this.country?.modifiers ?? {}).reduce(
-      (acc, [name, { buff, enabled }]) => {
-        if (enabled) acc[name] = buff;
-        return acc;
+    const modifiersBuff = ArrayHelper.reduceToRecord(
+      ObjectHelper.getTypedEntries(this.country?.modifiers ?? {}),
+      ([buffName]) => buffName,
+      ([, { buff, enabled }]) => {
+        if (!enabled) return undefined;
+        return buff;
       },
-      {} as Record<string, ICountryProximityBuffs>,
     );
 
     this.countryProximityBuffs = {
@@ -66,7 +65,9 @@ export class ProximityBuffsRecord {
     const impactFactor = Math.abs(value) / 100;
     const res: Partial<ICountryProximityBuffs> = {};
 
-    for (const key of Object.keys(buffToApply) as Array<keyof ICountryProximityBuffs>) {
+    for (const key of Object.keys(buffToApply) as Array<
+      keyof ICountryProximityBuffs
+    >) {
       if (!(key in countryBuffsMetadata)) {
         console.error(
           "[ProximityBuffsRecord] Unknown buff key for",
@@ -81,32 +82,42 @@ export class ProximityBuffsRecord {
 
       const buffToApplyValue = buffToApply[key];
       if (buffToApplyValue) {
-          res[key] = buffToApplyValue * impactFactor;
+        res[key] = buffToApplyValue * impactFactor;
       }
     }
     return res;
   }
 
-  public getBuffsOfType(type: keyof ICountryProximityBuffs): Record<string, IBuffValue> {
+  public getBuffsOfType(
+    type: keyof ICountryProximityBuffs,
+  ): Record<string, IBuffValue> {
     const result: Record<string, IBuffValue> = {};
     for (const [sourceName, buffEffects] of Object.entries(
       this.countryProximityBuffs,
     )) {
       const buffValue = buffEffects[type];
       if (buffValue) {
-        result[sourceName] = { type: countryBuffsMetadata[type].valueDefinition.type, value: buffValue }
+        result[sourceName] = {
+          type: countryBuffsMetadata[type].valueDefinition.type,
+          value: buffValue,
+        };
       }
     }
     return result;
   }
 
   public getBuffsToDisplay(): Set<keyof ICountryProximityBuffs> {
-    return Object.entries(this.countryProximityBuffs).reduce((acc, [,buffEffects]) => {
-      const newSet = new Set(acc);
-      for (const buffKey of Object.keys(buffEffects) as Array<keyof ICountryProximityBuffs>) {
-        newSet.add(buffKey);
-      }
-      return newSet;
-    }, new Set<keyof ICountryProximityBuffs>())
+    return Object.entries(this.countryProximityBuffs).reduce(
+      (acc, [, buffEffects]) => {
+        const newSet = new Set(acc);
+        for (const buffKey of Object.keys(buffEffects) as Array<
+          keyof ICountryProximityBuffs
+        >) {
+          newSet.add(buffKey);
+        }
+        return newSet;
+      },
+      new Set<keyof ICountryProximityBuffs>(),
+    );
   }
 }

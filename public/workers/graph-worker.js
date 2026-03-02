@@ -576,6 +576,23 @@
     }
   };
 
+  // app/lib/array.helper.ts
+  var ArrayHelper = class {
+    static reduceToRecord(list, keyFn, valueFn) {
+      return list.reduce(
+        (prev, curr) => {
+          const key = keyFn(curr);
+          const value = valueFn(curr);
+          if (value !== void 0) {
+            prev[key] = value;
+          }
+          return prev;
+        },
+        {}
+      );
+    }
+  };
+
   // app/lib/classes/countryProximityBuffs.ts
   var ProximityBuffsRecord = class {
     constructor(rule, country) {
@@ -589,13 +606,14 @@
       const rulerAdministrativeAbility = {
         genericModifier: (country?.rulerAdministrativeAbility ?? 0) * rule.rulerAdministrativeAbilityImpact.value
       };
-      const modifiersBuff = Object.entries(this.country?.modifiers ?? {}).reduce(
-        (acc, [name, { buff, enabled }]) => {
-          if (enabled)
-            acc[name] = buff;
-          return acc;
-        },
-        {}
+      const modifiersBuff = ArrayHelper.reduceToRecord(
+        ObjectHelper.getTypedEntries(this.country?.modifiers ?? {}),
+        ([buffName]) => buffName,
+        ([, { buff, enabled }]) => {
+          if (!enabled)
+            return void 0;
+          return buff;
+        }
       );
       this.countryProximityBuffs = {
         navalVsLand,
@@ -646,19 +664,25 @@
       )) {
         const buffValue = buffEffects[type];
         if (buffValue) {
-          result[sourceName] = { type: countryBuffsMetadata[type].valueDefinition.type, value: buffValue };
+          result[sourceName] = {
+            type: countryBuffsMetadata[type].valueDefinition.type,
+            value: buffValue
+          };
         }
       }
       return result;
     }
     getBuffsToDisplay() {
-      return Object.entries(this.countryProximityBuffs).reduce((acc, [, buffEffects]) => {
-        const newSet = new Set(acc);
-        for (const buffKey of Object.keys(buffEffects)) {
-          newSet.add(buffKey);
-        }
-        return newSet;
-      }, /* @__PURE__ */ new Set());
+      return Object.entries(this.countryProximityBuffs).reduce(
+        (acc, [, buffEffects]) => {
+          const newSet = new Set(acc);
+          for (const buffKey of Object.keys(buffEffects)) {
+            newSet.add(buffKey);
+          }
+          return newSet;
+        },
+        /* @__PURE__ */ new Set()
+      );
     }
   };
 

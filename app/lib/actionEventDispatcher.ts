@@ -26,14 +26,28 @@ export class ActionEventDispatcher {
   public clickedLocationSource: Subject<ClickEventPayload> =
     new Subject<ClickEventPayload>();
 
-
   public init() {
-    this.hoveredLocation.emit({ locations: [], type: null, mouseCoordinate: null });
-    this.prolongedHoverLocation.emit({ locations: [], type: null, mouseCoordinate: null });
-    this.clickedLocationSource.emit({ locations: [], type: null, mouseCoordinate: null });
+    this.hoveredLocation.emit({
+      locations: [],
+      type: null,
+      mouseCoordinate: null,
+    });
+    this.prolongedHoverLocation.emit({
+      locations: [],
+      type: null,
+      mouseCoordinate: null,
+    });
+    this.clickedLocationSource.emit({
+      locations: [],
+      type: null,
+      mouseCoordinate: null,
+    });
   }
 
-  private static arraysEqual(a: ILocationIdentifier[], b: ILocationIdentifier[]): boolean {
+  private static arraysEqual(
+    a: ILocationIdentifier[],
+    b: ILocationIdentifier[],
+  ): boolean {
     return a.length === b.length && a.every((loc, i) => loc === b[i]);
   }
 
@@ -162,9 +176,7 @@ export class ActionEventDispatcher {
     element: HTMLElement,
     locationNameFn: (
       e: MouseEvent,
-    ) =>
-      | ILocationIdentifier[]
-      | Promise<ILocationIdentifier[]>,
+    ) => ILocationIdentifier[] | Promise<ILocationIdentifier[]>,
     type: "acquire" | "goto" | null = null, // TODO: add more actions as needed
   ) {
     const maximumClickDistance = 5; // pixels
@@ -207,16 +219,9 @@ export class ActionEventDispatcher {
         { type: "mousedown", handler: mouseDownHandler },
         { type: "mouseup", handler: mouseUpHandler },
       );
-    /*     console.log(
-      `[ActionEventDispatcher] registerClickActionSource: total event listeners stored: ${Array.from(this.elementEventHandlers.values()).reduce((acc, arr) => acc + arr.length, 0)}`,
-    ); */
   }
 
   public clearEventListenersForElement(element: HTMLElement) {
-    /*     console.log(
-      "[ActionEventDispatcher] clearEventListenersForElement called with ",
-      element,
-    ); */
     const handlers = this.elementEventHandlers.get(element);
     if (handlers) {
       handlers.forEach(({ type, handler }) => {
@@ -237,7 +242,11 @@ export class ActionEventDispatcher {
     this.clickedLocationSource.emit({ locations, type, mouseCoordinate });
   }
 
-  public dispatchHoverAction(type: HoverActionType, locations: ILocationIdentifier[], mouseCoordinate: ICoordinate | null) {
+  public dispatchHoverAction(
+    type: HoverActionType,
+    locations: ILocationIdentifier[],
+    mouseCoordinate: ICoordinate | null,
+  ) {
     this.hoveredLocation.emit({ locations, type, mouseCoordinate });
   }
 }

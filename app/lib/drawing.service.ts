@@ -32,6 +32,7 @@ import {
 import { colorSearchController } from "@/app/lib/colorSeach.controller";
 import { ObjectHelper } from "@/app/lib/object.helper";
 import { RoadsHelper } from "@/app/lib/roads.helper";
+import { ArrayHelper } from "@/app/lib/array.helper";
 
 enum CanvasName {
   areas = "areas",
@@ -64,7 +65,7 @@ export class DrawingService {
     this.mapInfos = mapInfos;
     this.gameData = gameData;
 
-    this.canvasRecord = [
+    const canvasList = [
       { name: CanvasName.areas, canvas: areaDrawingCanvas },
       { name: CanvasName.constructibles, canvas: constructibleDrawingCanvas },
       { name: CanvasName.roads, canvas: roadDrawingCanvas },
@@ -83,11 +84,13 @@ export class DrawingService {
           throw new Error(`Could not get drawing context for canvas ${name}`);
         }
         return { name, context };
-      })
-      .reduce((acc, { name, context }) => {
-        acc[name] = context;
-        return acc;
-      }, {} as CanvasRecord);
+      });
+
+    this.canvasRecord = ArrayHelper.reduceToRecord(
+      canvasList,
+      (canvas) => canvas.name,
+      (canvas) => canvas.context,
+    );
 
     colorSearchController.subscribe(() => {
       /* console.log("[DrawingService] colorSearchController subscription triggered"); */

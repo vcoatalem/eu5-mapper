@@ -6,6 +6,7 @@ import {
   ILocationIdentifier,
 } from "@/app/lib/types/general";
 import { CountriesHelper } from "@/app/lib/countries.helper";
+import { ArrayHelper } from "@/app/lib/array.helper";
 
 interface ICountrySelectionListProps {
   selectedCountry: string | null;
@@ -19,12 +20,9 @@ interface ICountrySelectionListProps {
 export function CountrySelectionList(props: ICountrySelectionListProps) {
   const { gameData } = useContext(AppContext);
   const [search, setSearch] = useState<string>("");
-  const filteredCountries: Record<
-    ILocationIdentifier,
-    ICountryData & { capitalHierarchy: ILocationGameData["hierarchy"] }
-  > = useMemo(() => {
+  const filteredCountries = useMemo(() => {
     const countries = Object.entries(gameData?.countriesDataMap ?? {});
-    return countries
+    const countriesArray = countries
       .filter(([, data]) => data.locations.length > 0)
       .map(([countryKey, countryData]) => {
         const capitalLocation = CountriesHelper.getCountryBaseCapitalLocation(
@@ -45,17 +43,12 @@ export function CountrySelectionList(props: ICountrySelectionListProps) {
             },
           },
         };
-      })
-      .reduce(
-        (acc, { countryKey, countryData }) => {
-          acc[countryKey] = countryData;
-          return acc;
-        },
-        {} as Record<
-          ILocationIdentifier,
-          ICountryData & { capitalHierarchy: ILocationGameData["hierarchy"] }
-        >,
-      );
+      });
+    return ArrayHelper.reduceToRecord(
+      countriesArray,
+      (country) => country.countryKey,
+      (country) => country.countryData,
+    );
   }, [gameData?.countriesDataMap, gameData?.locationDataMap]);
 
   const searchedCountries = useMemo(() => {

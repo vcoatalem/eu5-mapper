@@ -9,6 +9,7 @@ import { AppContext } from "@/app/appContextProvider";
 import Image from "next/image";
 import { getRoadIcon } from "@/app/lib/drawing/getImages";
 import { IoIosHammer } from "react-icons/io";
+import { ArrayHelper } from "@/app/lib/array.helper";
 
 interface IRoadBulkActionPopoverProps {}
 
@@ -24,17 +25,16 @@ export function RoadBulkActionPopover({}: IRoadBulkActionPopoverProps) {
   const stateRoads = gameState?.roads ?? {};
 
   const areAllRoadsOfType: Record<RoadType, boolean> = useMemo(() => {
-    return allRoadTypes.reduce(
-      (acc, type) => {
-        acc[type] = RoadsHelper.areAllOwnedRoadsOfType(
+    return ArrayHelper.reduceToRecord(
+      allRoadTypes,
+      (type) => type,
+      (type) =>
+        RoadsHelper.areAllOwnedRoadsOfType(
           gameState.ownedLocations,
           baseRoads,
           stateRoads,
           type,
-        );
-        return acc;
-      },
-      {} as Record<RoadType, boolean>,
+        ),
     );
   }, [gameState.ownedLocations, baseRoads, stateRoads]);
 

@@ -1,4 +1,5 @@
 import { worldMapConfig } from "@/app/components/worldMap.config";
+import { ArrayHelper } from "@/app/lib/array.helper";
 import { Observable } from "@/app/lib/observable";
 import {
   ICoordinate,
@@ -85,18 +86,18 @@ export class ColorSearchController extends Observable<IColorSearchResult> {
     const taskPayload: IWorkerTaskColorSearchPayload = {
       canvasWidth: this.mapConfig.width,
       canvasHeight: this.mapConfig.height,
-      coordinates: notYetQueried.reduce(
-        (acc, loc) => {
+      coordinates: ArrayHelper.reduceToRecord(
+        notYetQueried,
+        (loc) => loc,
+        (loc) => {
           const locData = this.gameData?.locationDataMap[loc];
           if (!locData) {
             throw new Error(`Location data not found for location: ${loc}`);
           }
-          acc[loc] = locData?.secondaryCoordinates?.length
+          return locData?.secondaryCoordinates?.length
             ? locData.secondaryCoordinates
             : [locData.centerCoordinates];
-          return acc;
         },
-        {} as Record<ILocationIdentifier, Array<ICoordinate>>,
       ),
     };
     for (const missingLocation of notYetQueried) {

@@ -9,7 +9,6 @@ import { sendMessage } from "./utils";
 
 (globalThis as any).__workerName = "Canvas Worker";
 
-//type Coordinate = { x: number; y: number };
 /**
  * Flood fill algorithm to find all contiguous pixels of the same color.
  * @param data32 - Uint32Array of pixel data
@@ -164,23 +163,20 @@ self.onmessage = function (e: MessageEvent<IWorkerTask>) {
           for (const [locationName, coordinates] of Object.entries(
             payload.coordinates,
           )) {
-            const foundCoordinates: ICoordinate[] = [];
-            for (const centerCoord of coordinates) {
-              const regionCoords = scanlineFill(
-                pixelData32,
-                canvasWidth,
-                centerCoord.x,
-                centerCoord.y,
-                e.data,
-              );
+            const foundCoordinates: ICoordinate[] = coordinates.reduce(
+              (prev, { x, y }) => {
+                const regionCoords = scanlineFill(
+                  pixelData32,
+                  canvasWidth,
+                  x,
+                  y,
+                  e.data,
+                );
+                return prev.concat(regionCoords);
+              },
+              [] as ICoordinate[],
+            );
 
-              // Avoid using spread push with very large arrays, which can
-              // trigger "Maximum call stack size exceeded" due to engine
-              // argument limits. Append incrementally instead.
-              for (const coord of regionCoords) {
-                foundCoordinates.push(coord);
-              }
-            }
             result.result[locationName] = foundCoordinates;
           }
         } catch (err) {

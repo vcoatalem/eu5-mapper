@@ -122,19 +122,19 @@
             for (const [locationName, coordinates] of Object.entries(
               payload.coordinates
             )) {
-              const foundCoordinates = [];
-              for (const centerCoord of coordinates) {
-                const regionCoords = scanlineFill(
-                  pixelData32,
-                  canvasWidth,
-                  centerCoord.x,
-                  centerCoord.y,
-                  e.data
-                );
-                for (const coord of regionCoords) {
-                  foundCoordinates.push(coord);
-                }
-              }
+              const foundCoordinates = coordinates.reduce(
+                (prev, { x, y }) => {
+                  const regionCoords = scanlineFill(
+                    pixelData32,
+                    canvasWidth,
+                    x,
+                    y,
+                    e.data
+                  );
+                  return prev.concat(regionCoords);
+                },
+                []
+              );
               result.result[locationName] = foundCoordinates;
             }
           } catch (err) {

@@ -6,13 +6,13 @@ import { DisplayPop } from "@/app/components/detailedList/displayPop.component";
 import { DisplayProximity } from "@/app/components/detailedList/displayProximity.component";
 import { ILocationDetailedViewData } from "@/app/components/detailedList/detailedLocationListModal.component";
 import { LocationsHelper } from "@/app/lib/locations.helper";
-import { ConstructibleAction } from "@/app/lib/types/building";
 import { ILocationIdentifier } from "@/app/lib/types/general";
 import { FaAnglesDown, FaAnglesUp } from "react-icons/fa6";
 import { PiPlusLight, PiMinusLight } from "react-icons/pi";
 import { DisplayBuildings } from "@/app/components/detailedList/displayBuildings.component";
 import { ArrayHelper } from "@/app/lib/array.helper";
-import { LocationRank } from "@/app/lib/types/location";
+import { ConstructibleAction } from "@/app/lib/types/constructibleAction";
+import { LocationRank } from "@/app/lib/types/locationRank";
 
 export type SortOrder = "asc" | "desc" | null;
 

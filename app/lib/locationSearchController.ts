@@ -3,7 +3,7 @@
 import { LocationHierarchyService } from "@/app/lib/locationHierarchy.service";
 import { Observable } from "./observable";
 import { IGameData, ILocationIdentifier } from "./types/general";
-import { ILocationHierarchy } from "@/app/lib/types/location";
+import { ILocationHierarchy } from "@/app/lib/types/locationHierarchy";
 
 export interface ILocationSearchResult {
   locations: Array<{

@@ -1,13 +1,13 @@
 import { countryBuffsMetadata } from "@/app/lib/classes/countryProximityBuffs.const";
 import { IGameData, IGameState } from "../types/general";
-import {
-  baseCountryProximityBuffs,
-  IBuffValue,
-  ICountryProximityBuffs,
-} from "../types/proximityComputationRules";
 import { ArrayHelper } from "@/app/lib/array.helper";
 import { ObjectHelper } from "@/app/lib/object.helper";
 import { ICountryValues } from "@/app/lib/types/country";
+import {
+  baseCountryProximityBuffs,
+  ICountryProximityBuffs,
+} from "@/app/lib/types/countryProximityBuffs";
+import { IBuffValue } from "@/app/lib/types/buffValue";
 
 export class ProximityBuffsRecord {
   private countryProximityBuffs: Record<string, ICountryProximityBuffs> = {};

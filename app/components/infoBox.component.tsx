@@ -22,7 +22,7 @@ import {
   getTopographyIcon,
   getVegetationIcon,
 } from "@/app/lib/drawing/getImages";
-import { ILocationHierarchy } from "@/app/lib/types/location";
+import { ILocationHierarchy } from "@/app/lib/types/locationHierarchy";
 
 function LocationInfoBox(props: {
   locationName: ILocationIdentifier;

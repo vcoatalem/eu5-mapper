@@ -2,7 +2,6 @@
 
 import { CountriesHelper } from "@/app/lib/countries.helper";
 import { EligibleBuildingService } from "@/app/lib/eligibleBuilding.service";
-import { ConstructibleAction } from "@/app/lib/types/building";
 import { cameraController } from "./cameraController";
 import { RoadsHelper } from "./roads.helper";
 import { Observable } from "./observable";
@@ -13,14 +12,15 @@ import {
   ILocationIdentifier,
   ITemporaryLocationData,
 } from "./types/general";
-import {
-  baseCountryProximityBuffs,
-  ICountryProximityBuffs,
-} from "@/app/lib/types/proximityComputationRules";
 import { ObjectHelper } from "@/app/lib/object.helper";
 import { RoadKey, RoadType } from "@/app/lib/types/roads";
 import { ArrayHelper } from "@/app/lib/array.helper";
 import { ICountryInstance, ICountryValues } from "@/app/lib/types/country";
+import { ConstructibleAction } from "@/app/lib/types/constructibleAction";
+import {
+  baseCountryProximityBuffs,
+  ICountryProximityBuffs,
+} from "@/app/lib/types/countryProximityBuffs";
 
 const baseCountryValues: ICountryInstance = {
   templateData: null,

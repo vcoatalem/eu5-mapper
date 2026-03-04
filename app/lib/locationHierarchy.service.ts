@@ -11,9 +11,8 @@ import {
 } from "@/app/lib/indexeddb/indexeddb.const";
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import { LocationHierarchyHelper } from "@/app/lib/locationHierarchy.helper";
-import { ILocationHierarchy } from "@/app/lib/types/location";
+import { ILocationHierarchy } from "@/app/lib/types/locationHierarchy";
 
-/** Composite key so different hierarchy types with the same value stay distinct. */
 const HIERARCHY_ITEM_KEY_SEP = "\u001e";
 
 function hierarchyItemKey(

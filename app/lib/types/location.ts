@@ -1,52 +1,8 @@
+import { ZodLocationHierarchy } from "@/app/lib/types/locationHierarchy";
+import { ZodLocationRank } from "@/app/lib/types/locationRank";
+import { ZodTopography } from "@/app/lib/types/topography";
+import { ZodVegetation } from "@/app/lib/types/vegetation";
 import * as z from "zod";
-
-const ZodTopography = z.enum([
-  "unknown",
-  "hills",
-  "wetlands",
-  "mountains",
-  "flatland",
-  "lakes",
-  "plateau",
-  "ocean",
-  "coastal_ocean",
-  "narrows",
-  "inland_sea",
-  "ocean_wasteland",
-  "mountain_wasteland",
-  "high_lakes",
-  "atoll",
-  "salt_pans",
-  "deep_ocean",
-  "dune_wasteland",
-  "flatland_wasteland",
-  "hills_wasteland",
-  "mesa_wasteland",
-  "plateau_wasteland",
-  "wetlands_wasteland",
-]);
-
-const ZodVegetation = z.nullable(
-  z.enum([
-    "farmland",
-    "forest",
-    "woods",
-    "grasslands",
-    "sparse",
-    "jungle",
-    "desert",
-  ]),
-);
-
-const ZodLocationRank = z.enum(["rural", "town", "city"]);
-
-const ZodLocationHierarchy = z.object({
-  continent: z.string(),
-  subcontinent: z.string(),
-  region: z.string(),
-  area: z.string(),
-  province: z.string(),
-});
 
 export const ZodLocationGameData = z.object({
   name: z.string(),
@@ -64,7 +20,7 @@ export const ZodLocationGameData = z.object({
     )
     .optional(),
   topography: ZodTopography,
-  vegetation: ZodVegetation.default(null).optional(),
+  vegetation: ZodVegetation.nullable().optional().default(null),
   hierarchy: ZodLocationHierarchy,
   naturalHarborSuitability: z.number().optional().default(0), // only specified if isCoastal
   ownable: z.boolean().optional(),
@@ -82,11 +38,3 @@ export const ZodLocationGameData = z.object({
 export const ZodLocationGameDataArray = z.array(ZodLocationGameData);
 
 export type ILocationGameData = z.infer<typeof ZodLocationGameData>;
-
-export type ILocationHierarchy = z.infer<typeof ZodLocationHierarchy>;
-
-export type Topography = z.infer<typeof ZodTopography>;
-
-export type Vegetation = z.infer<typeof ZodVegetation>;
-
-export type LocationRank = z.infer<typeof ZodLocationRank>;

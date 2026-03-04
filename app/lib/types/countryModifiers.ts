@@ -1,4 +1,4 @@
-import { ZodCountryProximityBuffs } from "@/app/lib/types/proximityComputationRules";
+import { ZodCountryProximityBuffs } from "@/app/lib/types/countryProximityBuffs";
 import { z } from "zod";
 
 const ZodCountryModifiersTemplate = z.object({

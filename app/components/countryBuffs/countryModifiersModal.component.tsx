@@ -9,7 +9,6 @@ import { FoldableMenu } from "@/app/components/foldableMenu.component";
 import { Loader } from "@/app/components/loader.component";
 import { countryModifiersTemplatesController } from "@/app/lib/countryModifiers.controller";
 import { gameStateController } from "@/app/lib/gameState.controller";
-import { ICountryProximityBuffs } from "@/app/lib/types/proximityComputationRules";
 import buttonStyles from "@/app/styles/button.module.css";
 import { useParams } from "next/navigation";
 import {
@@ -27,6 +26,7 @@ import { FiDelete } from "react-icons/fi";
 import posthog from "posthog-js";
 import { ObjectHelper } from "@/app/lib/object.helper";
 import { ICountryModifierTemplate } from "@/app/lib/types/countryModifiers";
+import { ICountryProximityBuffs } from "@/app/lib/types/countryProximityBuffs";
 
 interface ICountryModifiersModal {
   onClose: () => void;

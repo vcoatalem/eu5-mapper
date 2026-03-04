@@ -1,9 +1,9 @@
 import { ArrayHelper } from "@/app/lib/array.helper";
 import { ParserHelper } from "@/app/lib/parser.helper";
 import {
-  INewBuildingTemplate,
+  BuildingTemplate,
   ZodBuildingTemplateArray,
-} from "@/app/lib/types/building";
+} from "@/app/lib/types/buildingTemplate";
 import { ICountryData, ZodCountryDataArray } from "@/app/lib/types/country";
 import { ICountryModifierTemplate } from "@/app/lib/types/countryModifiers";
 import {
@@ -21,7 +21,7 @@ export interface IGameDataParsedFiles {
     map: ILocationDataMap;
     colorToNameMap: ILocationIdentifierMap;
   };
-  buildingsTemplate: Record<string, INewBuildingTemplate>;
+  buildingsTemplate: Record<string, BuildingTemplate>;
   adjacencyCsv: string;
   proximityComputationRule: IProximityComputationRule;
   countriesData: Record<string, ICountryData>;
@@ -211,7 +211,7 @@ export class GameDataLoaderHelper {
         map: ILocationDataMap;
         colorToNameMap: ILocationIdentifierMap;
       };
-      buildingsTemplate: Record<string, INewBuildingTemplate>;
+      buildingsTemplate: Record<string, BuildingTemplate>;
       adjacencyCsv: string;
       proximityComputationRule: IProximityComputationRule;
       countriesData: Record<string, ICountryData>;

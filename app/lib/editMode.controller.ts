@@ -1,4 +1,4 @@
-import { ILocationHierarchy } from "@/app/lib/types/location";
+import { ILocationHierarchy } from "@/app/lib/types/locationHierarchy";
 import { gameStateController } from "./gameState.controller";
 import { Observable } from "./observable";
 import { ILocationIdentifier } from "./types/general";

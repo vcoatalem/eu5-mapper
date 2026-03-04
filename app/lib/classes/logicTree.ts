@@ -1,7 +1,7 @@
 import {
-  IPlacementRestrictionConfig,
-  PlacementRestrictions,
-} from "@/app/lib/types/building";
+  BuildingPlacementRestrictionConfig,
+  BuildingPlacementRestrictions,
+} from "@/app/lib/types/buildingPlacementRestriction";
 import { IGameState, ILocationIdentifier } from "@/app/lib/types/general";
 import { ILocationGameData } from "@/app/lib/types/location";
 
@@ -42,12 +42,12 @@ export function evaluateLogicTree(
 
 export class LogicTreeBuilder {
   public static treeFromConditions(
-    conditions: IPlacementRestrictionConfig,
+    conditions: BuildingPlacementRestrictionConfig,
     getLocationData: (
       locationId: ILocationIdentifier,
     ) => ILocationGameData | undefined,
     evaluateFn: (
-      condition: PlacementRestrictions,
+      condition: BuildingPlacementRestrictions,
       location: ILocationGameData,
       gameState: IGameState,
     ) => boolean,

@@ -32,7 +32,7 @@ import { colorSearchController } from "@/app/lib/colorSeach.controller";
 import { ObjectHelper } from "@/app/lib/object.helper";
 import { RoadsHelper } from "@/app/lib/roads.helper";
 import { ArrayHelper } from "@/app/lib/array.helper";
-import { LocationRank } from "@/app/lib/types/location";
+import { LocationRank } from "@/app/lib/types/locationRank";
 
 enum CanvasName {
   areas = "areas",

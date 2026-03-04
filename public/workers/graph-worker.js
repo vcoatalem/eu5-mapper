@@ -339,252 +339,6 @@
     }
   };
 
-  // app/lib/types/roads.ts
-  function asRoadKey(s) {
-    if (!/^.+-.+$/.test(s))
-      throw new Error(`Invalid RoadKey format: ${s}`);
-    return s;
-  }
-
-  // app/lib/object.helper.ts
-  var ObjectHelper = class {
-    static getTypedEntries(obj) {
-      return Object.entries(obj);
-    }
-  };
-
-  // app/lib/roads.helper.ts
-  var RoadsHelper = class {
-    static buildOrderedRoadKey(fromLocation, toLocation) {
-      return asRoadKey(
-        fromLocation.localeCompare(toLocation) < 0 ? `${fromLocation}-${toLocation}` : `${toLocation}-${fromLocation}`
-      );
-    }
-    static getRoads(baseRoads, stateRoads) {
-      const result = {};
-      for (const [key, type] of ObjectHelper.getTypedEntries(baseRoads)) {
-        if (!(key in result))
-          result[key] = type;
-      }
-      for (const [key, type] of ObjectHelper.getTypedEntries(stateRoads)) {
-        result[key] = type;
-      }
-      return result;
-    }
-    static getOwnedRoads(ownedLocations, baseRoads, stateRoads) {
-      const resolved = this.getRoads(baseRoads, stateRoads);
-      const ownedRoads = {};
-      for (const [key, type] of ObjectHelper.getTypedEntries(resolved)) {
-        const [from, to] = key.split("-");
-        if (!(from in ownedLocations) || !(to in ownedLocations))
-          continue;
-        ownedRoads[key] = type;
-      }
-      return ownedRoads;
-    }
-    static areAllOwnedRoadsOfType(ownedLocations, baseRoads, stateRoads, type) {
-      const ownedRoads = this.getOwnedRoads(
-        ownedLocations,
-        baseRoads,
-        stateRoads
-      );
-      const types = Object.values(ownedRoads);
-      if (types.length === 0)
-        return false;
-      return types.every((t) => t === type);
-    }
-    static getRoad(fromLocation, toLocation, baseRoads, stateRoads) {
-      const key = this.buildOrderedRoadKey(fromLocation, toLocation);
-      const stateType = stateRoads[key];
-      if (stateType !== void 0)
-        return stateType;
-      return baseRoads[key] ?? null;
-    }
-  };
-
-  // app/lib/parser.helper.ts
-  var ParserHelper = class {
-    /**
-     * Parses adjacency CSV data and builds a CompactGraph
-     * @param csvContent The raw CSV content as a string
-     * @returns A populated CompactGraph instance
-     */
-    static parseAdjacencyCSV(csvContent) {
-      const graph2 = new CompactGraph();
-      const lines = csvContent.trim().split("\n");
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line)
-          continue;
-        const [locationA, locationB, edgeType, throughSeaLocation] = line.split(",");
-        if ([
-          "river",
-          "land",
-          "sea",
-          "port",
-          "lake",
-          "port-river",
-          "through-sea",
-          "coastal"
-        ].includes(edgeType) === false) {
-          throw new Error(
-            `Invalid edge type "${edgeType}" in adjacency CSV at line ${i + 1}`
-          );
-        }
-        graph2.addEdge(
-          locationA,
-          locationB,
-          edgeType,
-          throughSeaLocation || void 0
-        );
-      }
-      return graph2;
-    }
-    // jsonContent should be an array of [from, to] pairs. One canonical key per road (buildOrderedRoadKey).
-    static parseRoadFile(jsonContent) {
-      const roadRecord = {};
-      for (const [from, to] of jsonContent) {
-        roadRecord[RoadsHelper.buildOrderedRoadKey(from, to)] = "gravel_road";
-      }
-      return roadRecord;
-    }
-  };
-
-  // app/lib/buffs.helper.ts
-  var BuffsHelper = class {
-    static sumBuffs(buffs) {
-      if (buffs.length === 0) {
-        return 0;
-      }
-      return buffs.reduce((acc, buff) => {
-        const newValue = acc.value + buff.value;
-        if (buff.type !== acc.type) {
-          throw new Error("Cannot sum buffs with different types");
-        }
-        return { value: newValue, type: buff.type };
-      }, { value: 0, type: buffs[0].type }).value;
-    }
-  };
-
-  // app/lib/locations.helper.ts
-  var LocationsHelper = class {
-    static locationHasRoad(location, baseRoads, stateRoads) {
-      const resolved = RoadsHelper.getRoads(baseRoads, stateRoads);
-      return ObjectHelper.getTypedEntries(resolved).some(
-        ([key]) => key.split("-")[0] === location || key.split("-")[1] === location
-      );
-    }
-    static getLocationHarborSuitability(locationData, locationConstructibleData) {
-      if (!locationData.isCoastal) {
-        return -1;
-      }
-      return locationData.naturalHarborSuitability + (Object.values(locationConstructibleData?.buildings ?? {}).reduce(
-        (acc, building) => acc + (building?.template?.modifiers?.harborSuitability ?? 0),
-        0
-      ) ?? 0);
-    }
-    static getDefaultMaritimePresence(locationData) {
-      if (locationData.topography === "ocean") {
-        return 0;
-      }
-      if (locationData.isLake) {
-        return 100;
-      }
-      return 50;
-    }
-    static getLocationMaritimePresence(locationData, locationTemporaryData) {
-      if (!locationData.isSea && !locationData.isLake) {
-        return -1;
-      }
-      const defaultMaritimePresence = this.getDefaultMaritimePresence(locationData);
-      return locationTemporaryData?.maritimePresence ?? defaultMaritimePresence;
-    }
-    static getLocationPopulation(locationIdentifier, locationDataMap, gameState) {
-      if (!(locationIdentifier in locationDataMap)) {
-        return 0;
-      }
-      const locationData = locationDataMap[locationIdentifier];
-      const temporaryData = gameState.temporaryLocationData[locationIdentifier] ?? null;
-      return temporaryData?.population ?? locationData.population;
-    }
-    static getLocationDevelopment(locationIdentifier, locationDataMap, gameState) {
-      if (!(locationIdentifier in locationDataMap)) {
-        return 0;
-      }
-      const locationData = locationDataMap[locationIdentifier];
-      const temporaryData = gameState.temporaryLocationData[locationIdentifier] ?? null;
-      return temporaryData?.development ?? locationData.development;
-    }
-    static getLocationRank(str) {
-      switch (str) {
-        case "rural":
-          return "rural";
-        case "town":
-          return "town";
-        case "city":
-          return "city";
-        default:
-          throw new Error(`Invalid location rank: ${str}`);
-      }
-    }
-    static findLocationName(hexColor, gameData2) {
-      if (!gameData2) {
-        return null;
-      }
-      const name = gameData2?.colorToNameMap[hexColor];
-      if (!name) {
-        console.log("could not find name for color", hexColor);
-        return null;
-      }
-      return name;
-    }
-    static isLocationEligibleForCapital(location) {
-      return !!location.ownable && !location.isSea && !location.isLake;
-    }
-    static isLocationEligibleForRoad(location) {
-      return !!location.ownable && !location.isSea && !location.isLake;
-    }
-    static isLocationEligibleForMaritime(location) {
-      return !!location && (!!location.isSea || !!location.isLake);
-    }
-  };
-
-  // app/lib/classes/countryProximityBuffs.const.ts
-  var countryBuffsMetadata = {
-    genericModifier: {
-      label: "Generic proximity modifier",
-      valueDefinition: { type: "percentage", description: "modifier applied to proximity over any kind of terrain or connection" }
-    },
-    landModifier: {
-      label: "Land proximity modifier",
-      valueDefinition: { type: "percentage", description: "modifier applied to proximity over land and rivers" }
-    },
-    seaWithMaritimeFlatCostReduction: {
-      label: "Proximity cost with maritime presence",
-      valueDefinition: { type: "flat", description: `<p>This is a flat reduction to the base proximity cost of a sea edge with a maritime presence of 100.<br/>Total flat cost of traveling on sea edge is obtained through formula:<br/> <code>costWithMaritimePresence * maritimePresence / 100 + costWithoutMaritimePresence * (1 - maritimePresence / 100)</code></p>` }
-    },
-    seaWithoutMaritimeFlatCostReduction: {
-      label: "Proximity cost without maritime presence",
-      valueDefinition: { type: "flat", description: `<p>This is a flat reduction to the base proximity cost of a sea edge with a maritime presence of 0.<br/>Total flat cost of traveling on sea edge is obtained through formula:<br/> <code>costWithMaritimePresence * maritimePresence / 100 + costWithoutMaritimePresence * (1 - maritimePresence / 100)</code></p>` }
-    },
-    portFlatCostReduction: {
-      label: "Port proximity modifier",
-      valueDefinition: { type: "flat", description: "It is applied to proximity going in and out of a harbor, with or without river. Note: not all land <-> sea connections are harbor." }
-    },
-    mountainsMultiplier: {
-      label: "Mountains multiplier",
-      valueDefinition: { type: "percentage", description: "It is applied to proximity cost penalty applied when the source location is mountains." }
-    },
-    plateauMultiplier: {
-      label: "Plateau multiplier",
-      valueDefinition: { type: "percentage", description: "It is applied to proximity cost penalty applied when the source location is plateau." }
-    },
-    hillsMultiplier: {
-      label: "Hills multiplier",
-      valueDefinition: { type: "percentage", description: "It is applied to proximity cost penalty applied when the source location is hills." }
-    }
-  };
-
   // node_modules/zod/v4/classic/external.js
   var external_exports = {};
   __export(external_exports, {
@@ -14352,7 +14106,306 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
   // node_modules/zod/v4/classic/external.js
   config(en_default());
 
-  // app/lib/types/proximityComputationRules.ts
+  // node_modules/zod/index.js
+  var zod_default = external_exports;
+
+  // app/lib/types/roads.ts
+  function asRoadKey(s) {
+    if (!/^.+-.+$/.test(s))
+      throw new Error(`Invalid RoadKey format: ${s}`);
+    return s;
+  }
+  var ZodRoadType = zod_default.enum([
+    "gravel_road",
+    "paved_road",
+    "modern_road",
+    "rail_road"
+  ]);
+
+  // app/lib/object.helper.ts
+  var ObjectHelper = class {
+    static getTypedEntries(obj) {
+      return Object.entries(obj);
+    }
+  };
+
+  // app/lib/roads.helper.ts
+  var RoadsHelper = class {
+    static buildOrderedRoadKey(fromLocation, toLocation) {
+      return asRoadKey(
+        fromLocation.localeCompare(toLocation) < 0 ? `${fromLocation}-${toLocation}` : `${toLocation}-${fromLocation}`
+      );
+    }
+    static getRoads(baseRoads, stateRoads) {
+      const result = {};
+      for (const [key, type] of ObjectHelper.getTypedEntries(baseRoads)) {
+        if (!(key in result))
+          result[key] = type;
+      }
+      for (const [key, type] of ObjectHelper.getTypedEntries(stateRoads)) {
+        result[key] = type;
+      }
+      return result;
+    }
+    static getOwnedRoads(ownedLocations, baseRoads, stateRoads) {
+      const resolved = this.getRoads(baseRoads, stateRoads);
+      const ownedRoads = {};
+      for (const [key, type] of ObjectHelper.getTypedEntries(resolved)) {
+        const [from, to] = key.split("-");
+        if (!(from in ownedLocations) || !(to in ownedLocations))
+          continue;
+        ownedRoads[key] = type;
+      }
+      return ownedRoads;
+    }
+    static areAllOwnedRoadsOfType(ownedLocations, baseRoads, stateRoads, type) {
+      const ownedRoads = this.getOwnedRoads(
+        ownedLocations,
+        baseRoads,
+        stateRoads
+      );
+      const types = Object.values(ownedRoads);
+      if (types.length === 0)
+        return false;
+      return types.every((t) => t === type);
+    }
+    static getRoad(fromLocation, toLocation, baseRoads, stateRoads) {
+      const key = this.buildOrderedRoadKey(fromLocation, toLocation);
+      const stateType = stateRoads[key];
+      if (stateType !== void 0)
+        return stateType;
+      return baseRoads[key] ?? null;
+    }
+  };
+
+  // app/lib/parser.helper.ts
+  var ParserHelper = class {
+    /**
+     * Parses adjacency CSV data and builds a CompactGraph
+     * @param csvContent The raw CSV content as a string
+     * @returns A populated CompactGraph instance
+     */
+    static parseAdjacencyCSV(csvContent) {
+      const graph2 = new CompactGraph();
+      const lines = csvContent.trim().split("\n");
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line)
+          continue;
+        const [locationA, locationB, edgeType, throughSeaLocation] = line.split(",");
+        if ([
+          "river",
+          "land",
+          "sea",
+          "port",
+          "lake",
+          "port-river",
+          "through-sea",
+          "coastal"
+        ].includes(edgeType) === false) {
+          throw new Error(
+            `Invalid edge type "${edgeType}" in adjacency CSV at line ${i + 1}`
+          );
+        }
+        graph2.addEdge(
+          locationA,
+          locationB,
+          edgeType,
+          throughSeaLocation || void 0
+        );
+      }
+      return graph2;
+    }
+    // jsonContent should be an array of [from, to] pairs. One canonical key per road (buildOrderedRoadKey).
+    static parseRoadFile(jsonContent) {
+      const roadRecord = {};
+      for (const [from, to] of jsonContent) {
+        roadRecord[RoadsHelper.buildOrderedRoadKey(from, to)] = "gravel_road";
+      }
+      return roadRecord;
+    }
+  };
+
+  // app/lib/buffs.helper.ts
+  var BuffsHelper = class {
+    static sumBuffs(buffs) {
+      if (buffs.length === 0) {
+        return 0;
+      }
+      return buffs.reduce(
+        (acc, buff) => {
+          const newValue = acc.value + buff.value;
+          if (buff.type !== acc.type) {
+            throw new Error("Cannot sum buffs with different types");
+          }
+          return { value: newValue, type: buff.type };
+        },
+        { value: 0, type: buffs[0].type }
+      ).value;
+    }
+  };
+
+  // app/lib/locations.helper.ts
+  var LocationsHelper = class {
+    static locationHasRoad(location, baseRoads, stateRoads) {
+      const resolved = RoadsHelper.getRoads(baseRoads, stateRoads);
+      return ObjectHelper.getTypedEntries(resolved).some(
+        ([key]) => key.split("-")[0] === location || key.split("-")[1] === location
+      );
+    }
+    static getLocationHarborSuitability(locationData, locationConstructibleData) {
+      if (!locationData.isCoastal) {
+        return -1;
+      }
+      return locationData.naturalHarborSuitability + (Object.values(locationConstructibleData?.buildings ?? {}).reduce(
+        (acc, building) => acc + (building?.template?.modifiers?.harborSuitability ?? 0),
+        0
+      ) ?? 0);
+    }
+    static getDefaultMaritimePresence(locationData) {
+      if (locationData.topography === "ocean") {
+        return 0;
+      }
+      if (locationData.isLake) {
+        return 100;
+      }
+      return 50;
+    }
+    static getLocationMaritimePresence(locationData, locationTemporaryData) {
+      if (!locationData.isSea && !locationData.isLake) {
+        return -1;
+      }
+      const defaultMaritimePresence = this.getDefaultMaritimePresence(locationData);
+      return locationTemporaryData?.maritimePresence ?? defaultMaritimePresence;
+    }
+    static getLocationPopulation(locationIdentifier, locationDataMap, gameState) {
+      if (!(locationIdentifier in locationDataMap)) {
+        return 0;
+      }
+      const locationData = locationDataMap[locationIdentifier];
+      const temporaryData = gameState.temporaryLocationData[locationIdentifier] ?? null;
+      return temporaryData?.population ?? locationData.population;
+    }
+    static getLocationDevelopment(locationIdentifier, locationDataMap, gameState) {
+      if (!(locationIdentifier in locationDataMap)) {
+        return 0;
+      }
+      const locationData = locationDataMap[locationIdentifier];
+      const temporaryData = gameState.temporaryLocationData[locationIdentifier] ?? null;
+      return temporaryData?.development ?? locationData.development;
+    }
+    static getLocationRank(str) {
+      switch (str) {
+        case "rural":
+          return "rural";
+        case "town":
+          return "town";
+        case "city":
+          return "city";
+        default:
+          throw new Error(`Invalid location rank: ${str}`);
+      }
+    }
+    static findLocationName(hexColor, gameData2) {
+      if (!gameData2) {
+        return null;
+      }
+      const name = gameData2?.colorToNameMap[hexColor];
+      if (!name) {
+        console.log("could not find name for color", hexColor);
+        return null;
+      }
+      return name;
+    }
+    static isLocationEligibleForCapital(location) {
+      return !!location.ownable && !location.isSea && !location.isLake;
+    }
+    static isLocationEligibleForRoad(location) {
+      return !!location.ownable && !location.isSea && !location.isLake;
+    }
+    static isLocationEligibleForMaritime(location) {
+      return !!location && (!!location.isSea || !!location.isLake);
+    }
+  };
+
+  // app/lib/classes/countryProximityBuffs.const.ts
+  var countryBuffsMetadata = {
+    genericModifier: {
+      label: "Generic proximity modifier",
+      valueDefinition: {
+        type: "percentage",
+        description: "modifier applied to proximity over any kind of terrain or connection"
+      }
+    },
+    landModifier: {
+      label: "Land proximity modifier",
+      valueDefinition: {
+        type: "percentage",
+        description: "modifier applied to proximity over land and rivers"
+      }
+    },
+    seaWithMaritimeFlatCostReduction: {
+      label: "Proximity cost with maritime presence",
+      valueDefinition: {
+        type: "flat",
+        description: `<p>This is a flat reduction to the base proximity cost of a sea edge with a maritime presence of 100.<br/>Total flat cost of traveling on sea edge is obtained through formula:<br/> <code>costWithMaritimePresence * maritimePresence / 100 + costWithoutMaritimePresence * (1 - maritimePresence / 100)</code></p>`
+      }
+    },
+    seaWithoutMaritimeFlatCostReduction: {
+      label: "Proximity cost without maritime presence",
+      valueDefinition: {
+        type: "flat",
+        description: `<p>This is a flat reduction to the base proximity cost of a sea edge with a maritime presence of 0.<br/>Total flat cost of traveling on sea edge is obtained through formula:<br/> <code>costWithMaritimePresence * maritimePresence / 100 + costWithoutMaritimePresence * (1 - maritimePresence / 100)</code></p>`
+      }
+    },
+    portFlatCostReduction: {
+      label: "Port proximity modifier",
+      valueDefinition: {
+        type: "flat",
+        description: "It is applied to proximity going in and out of a harbor, with or without river. Note: not all land <-> sea connections are harbor."
+      }
+    },
+    mountainsMultiplier: {
+      label: "Mountains multiplier",
+      valueDefinition: {
+        type: "percentage",
+        description: "It is applied to proximity cost penalty applied when the source location is mountains."
+      }
+    },
+    plateauMultiplier: {
+      label: "Plateau multiplier",
+      valueDefinition: {
+        type: "percentage",
+        description: "It is applied to proximity cost penalty applied when the source location is plateau."
+      }
+    },
+    hillsMultiplier: {
+      label: "Hills multiplier",
+      valueDefinition: {
+        type: "percentage",
+        description: "It is applied to proximity cost penalty applied when the source location is hills."
+      }
+    }
+  };
+
+  // app/lib/array.helper.ts
+  var ArrayHelper = class {
+    static reduceToRecord(list, keyFn, valueFn) {
+      return list.reduce(
+        (prev, curr) => {
+          const key = keyFn(curr);
+          const value = valueFn(curr);
+          if (value !== void 0) {
+            prev[key] = value;
+          }
+          return prev;
+        },
+        {}
+      );
+    }
+  };
+
+  // app/lib/types/countryProximityBuffs.ts
   var ZodCountryProximityBuffs = external_exports.object({
     genericModifier: external_exports.number().nullable().optional().default(null),
     landModifier: external_exports.number().nullable().optional().default(null),
@@ -14372,23 +14425,6 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
     mountainsMultiplier: null,
     plateauMultiplier: null,
     hillsMultiplier: null
-  };
-
-  // app/lib/array.helper.ts
-  var ArrayHelper = class {
-    static reduceToRecord(list, keyFn, valueFn) {
-      return list.reduce(
-        (prev, curr) => {
-          const key = keyFn(curr);
-          const value = valueFn(curr);
-          if (value !== void 0) {
-            prev[key] = value;
-          }
-          return prev;
-        },
-        {}
-      );
-    }
   };
 
   // app/lib/classes/countryProximityBuffs.ts

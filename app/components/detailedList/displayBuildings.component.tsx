@@ -6,7 +6,7 @@ import { gameStateController } from "@/app/lib/gameState.controller";
 import { Tooltip } from "@/app/lib/tooltip/tooltip.component";
 import { TooltipContent } from "@/app/lib/tooltip/tooltipContent.component";
 import { TooltipTrigger } from "@/app/lib/tooltip/tooltipTrigger.component";
-import { ConstructibleState } from "@/app/lib/types/building";
+import { ConstructibleState } from "@/app/lib/types/constructibleState";
 import { ILocationIdentifier } from "@/app/lib/types/general";
 import Image from "next/image";
 import { useRef } from "react";

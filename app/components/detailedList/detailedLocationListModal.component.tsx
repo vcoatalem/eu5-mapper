@@ -19,7 +19,6 @@ import {
 import { DetailedLocationList } from "./detailedLocationList.component";
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import { proximityComputationController } from "@/app/lib/proximityComputation.controller";
-import { ConstructibleState } from "@/app/lib/types/building";
 import { IoSearch } from "react-icons/io5";
 import { ProximityComputationHelper } from "@/app/lib/proximityComputation.helper";
 import { EligibleBuildingService } from "@/app/lib/eligibleBuilding.service";
@@ -37,6 +36,7 @@ import { Loader } from "@/app/components/loader.component";
 import { Popover } from "@/app/lib/popover/popover.component";
 import { ObjectHelper } from "@/app/lib/object.helper";
 import { ILocationGameData } from "@/app/lib/types/location";
+import { ConstructibleState } from "@/app/lib/types/constructibleState";
 
 function LocationExtensiveViewModalHeader(props: {
   countryName: string | null;

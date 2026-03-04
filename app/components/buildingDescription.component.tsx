@@ -14,7 +14,9 @@ export function BuildingDescription(props: BuildingDescriptionProps) {
 
   const buildingTemplate = gameData?.buildingsTemplate[buildingTemplateName];
   if (!buildingTemplate) {
-    console.error(`[BuildingDescription] building template ${buildingTemplateName} not found`);
+    console.error(
+      `[BuildingDescription] building template ${buildingTemplateName} not found`,
+    );
     return null;
   }
   return (
@@ -23,23 +25,27 @@ export function BuildingDescription(props: BuildingDescriptionProps) {
       <hr></hr>
       <p>This building yields the following modifiers to this location:</p>
       <ul>
-        {ObjectHelper.getTypedEntries(buildingTemplate.modifiers).map(([modKey, modValue]) => {
-          return (
-            <li key={modKey}>
-              <span className="font-bold">{modKey}:</span>
-              <span>{modValue}</span>
-            </li>
-          )
-        })}
+        {ObjectHelper.getTypedEntries(buildingTemplate.modifiers).map(
+          ([modKey, modValue]) => {
+            return (
+              <li key={modKey}>
+                <span className="font-bold">{modKey}:</span>
+                <span>{modValue}</span>
+              </li>
+            );
+          },
+        )}
       </ul>
       {instance && (
         <>
           <hr></hr>
           <div>
-            <span className="font-bold">{instance.level} instance{instance.level > 1 ? "s" : ""} of this building in this location</span>
+            <span className="font-bold">
+              {instance.level} instance{instance.level > 1 ? "s" : ""} of this
+              building in this location
+            </span>
           </div>
         </>
-
       )}
     </div>
   );

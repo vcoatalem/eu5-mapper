@@ -15,14 +15,12 @@ import {
   PathFindingOptions,
   PathfindingResult,
 } from "./types/pathfinding";
-import {
-  IBuffValue,
-  ICountryProximityBuffs,
-  IProximityComputationRule,
-} from "./types/proximityComputationRules";
+import { IProximityComputationRule } from "./types/proximityComputationRules";
 import { RoadsHelper } from "@/app/lib/roads.helper";
 import { RoadType } from "@/app/lib/types/roads";
 import { ILocationGameData } from "@/app/lib/types/location";
+import { IBuffValue } from "@/app/lib/types/buffValue";
+import { ICountryProximityBuffs } from "@/app/lib/types/countryProximityBuffs";
 
 /** Only this key is applied as percentageMultiplier (cost *= 1 + value/100); all other percentage modifiers are additive (percentageIncrease). */
 const HARBOR_CAPACITY_MODIFIER_KEY = "harborCapacityImpact";

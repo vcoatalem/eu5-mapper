@@ -10,7 +10,8 @@ import {
   ITemporaryLocationData,
   RoadRecord,
 } from "./types/general";
-import { ILocationGameData, LocationRank } from "@/app/lib/types/location";
+import { ILocationGameData } from "@/app/lib/types/location";
+import { LocationRank } from "@/app/lib/types/locationRank";
 
 export class LocationsHelper {
   public static locationHasRoad(

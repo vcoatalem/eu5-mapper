@@ -6,7 +6,6 @@ import {
   IConstructibleLocation,
   IGameData,
   IGameState,
-  ILocationGameData,
   ILocationIdentifier,
   ITemporaryLocationData,
 } from "./types/general";
@@ -23,6 +22,7 @@ import {
 } from "./types/proximityComputationRules";
 import { RoadsHelper } from "@/app/lib/roads.helper";
 import { RoadType } from "@/app/lib/types/roads";
+import { ILocationGameData } from "@/app/lib/types/location";
 
 /** Only this key is applied as percentageMultiplier (cost *= 1 + value/100); all other percentage modifiers are additive (percentageIncrease). */
 const HARBOR_CAPACITY_MODIFIER_KEY = "harborCapacityImpact";
@@ -507,19 +507,12 @@ export class ProximityComputationHelper {
         0,
         baseCost - proximityModifiersReduced.flatCostReduction,
       );
-      /*       if (rule.proximityModifiersStackingMode === "additive") {
-        const effectivePercentageSum =
-          (1 - proximityModifiersReduced.percentageMultiplier) * 100 +
-          proximityModifiersReduced.percentageIncrease;
-        cost *= Math.max(0, 1 - effectivePercentageSum / 100);
-      } else { */
       cost *= proximityModifiersReduced.percentageMultiplier;
       if (rule.proximityPercentageModifierType === "proximityCostReduction") {
         cost *= 1 - proximityModifiersReduced.percentageIncrease / 100;
       } else {
         cost /= 1 + 0.01 * proximityModifiersReduced.percentageIncrease;
       }
-      /*       } */
       const finalCost = Math.max(0.1, cost);
 
       logProximityComputation([from, to], options, "Final proximity cost", {

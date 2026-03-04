@@ -7,8 +7,8 @@ import {
   useRef,
   useState,
 } from "react";
-import { ICountryInstance } from "../lib/types/general";
 import formStyles from "@/app/components/countryBuffs/forms.module.css";
+import { ICountryInstance } from "@/app/lib/types/country";
 
 function CountryValueInput({
   valueKey,

@@ -1,6 +1,5 @@
-import { Topography, Vegetation } from "@/app/lib/types/general";
+import { Topography, Vegetation } from "@/app/lib/types/location";
 import { RoadType } from "@/app/lib/types/roads";
-
 
 export function getVegetationIcon(vegetation: Vegetation): string {
   switch (vegetation) {

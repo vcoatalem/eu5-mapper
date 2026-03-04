@@ -1,11 +1,12 @@
 import { CompactGraph } from "@/app/lib/graph";
 import { ParserHelper } from "@/app/lib/parser.helper";
-import { ICountryValues, ILocationIdentifier } from "@/app/lib/types/general";
+import { ILocationIdentifier } from "@/app/lib/types/general";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 import { ArrayHelper } from "@/app/lib/array.helper";
+import { ICountryValues } from "@/app/lib/types/country";
 
 const COUNTRY_VALUE_KEYS: Array<keyof ICountryValues> = [
   "landVsNaval",

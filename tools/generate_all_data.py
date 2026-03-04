@@ -9,7 +9,6 @@ This script runs all data generation scripts in the correct order:
 4. compare-adjacency-data.py - Compare with existing adjacency data
 5. generate_location_centers.py - Compute and cache center coordinates for all locations
 6. generate_static_game_data.py - Generate final static game data JSON
-7. fetch_country_flags.py - Add flag URLs to countries-data-map.json from Paradox wiki
 
 All outputs are stored in tools/output/{version}/ (plus cached center coordinates in tools/tmp/)
 """
@@ -188,14 +187,6 @@ def main():
         print("\n❌ Pipeline failed at step 6")
         sys.exit(1)
 
-    # Step 7: Fetch country flag URLs and update countries-data-map.json
-    if not run_script(
-        'fetch_country_flags.py',
-        [version] + extra_args,
-        'Step 7/7: Fetch country flag URLs from Paradox wiki'
-    ):
-        print("\n❌ Pipeline failed at step 7")
-        sys.exit(1)
     
     # Success!
     overall_elapsed = time.time() - overall_start

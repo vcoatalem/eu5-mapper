@@ -6,12 +6,11 @@ import {
   IGameData,
   IGameState,
   ILocationDataMap,
-  ILocationGameData,
   ILocationIdentifier,
   ITemporaryLocationData,
-  LocationRank,
   RoadRecord,
 } from "./types/general";
+import { ILocationGameData, LocationRank } from "@/app/lib/types/location";
 
 export class LocationsHelper {
   public static locationHasRoad(
@@ -33,12 +32,19 @@ export class LocationsHelper {
     if (!locationData.isCoastal) {
       return -1;
     }
-    return locationData.naturalHarborSuitability +
-      (Object.values(locationConstructibleData?.buildings ?? {}).reduce((acc, building) => acc + (building?.template?.modifiers?.harborSuitability ?? 0), 0) ?? 0);
+    return (
+      locationData.naturalHarborSuitability +
+      (Object.values(locationConstructibleData?.buildings ?? {}).reduce(
+        (acc, building) =>
+          acc + (building?.template?.modifiers?.harborSuitability ?? 0),
+        0,
+      ) ?? 0)
+    );
   }
 
-
-  private static getDefaultMaritimePresence(locationData: ILocationGameData): number {
+  private static getDefaultMaritimePresence(
+    locationData: ILocationGameData,
+  ): number {
     if (locationData.topography === "ocean") {
       return 0;
     }
@@ -55,28 +61,38 @@ export class LocationsHelper {
     if (!locationData.isSea && !locationData.isLake) {
       return -1;
     }
-    const defaultMaritimePresence = this.getDefaultMaritimePresence(locationData);
+    const defaultMaritimePresence =
+      this.getDefaultMaritimePresence(locationData);
     return locationTemporaryData?.maritimePresence ?? defaultMaritimePresence;
   }
 
-  public static getLocationPopulation(locationIdentifier: ILocationIdentifier, locationDataMap: ILocationDataMap, gameState: IGameState): number {
+  public static getLocationPopulation(
+    locationIdentifier: ILocationIdentifier,
+    locationDataMap: ILocationDataMap,
+    gameState: IGameState,
+  ): number {
     if (!(locationIdentifier in locationDataMap)) {
       return 0;
     }
     const locationData = locationDataMap[locationIdentifier];
-    const temporaryData = gameState.temporaryLocationData[locationIdentifier] ?? null;
+    const temporaryData =
+      gameState.temporaryLocationData[locationIdentifier] ?? null;
     return temporaryData?.population ?? locationData.population;
   }
 
-  public static getLocationDevelopment(locationIdentifier: ILocationIdentifier, locationDataMap: ILocationDataMap, gameState: IGameState): number {
+  public static getLocationDevelopment(
+    locationIdentifier: ILocationIdentifier,
+    locationDataMap: ILocationDataMap,
+    gameState: IGameState,
+  ): number {
     if (!(locationIdentifier in locationDataMap)) {
       return 0;
     }
     const locationData = locationDataMap[locationIdentifier];
-    const temporaryData = gameState.temporaryLocationData[locationIdentifier] ?? null;
+    const temporaryData =
+      gameState.temporaryLocationData[locationIdentifier] ?? null;
     return temporaryData?.development ?? locationData.development;
   }
-
 
   public static getLocationRank(str: string): LocationRank {
     switch (str) {
@@ -91,7 +107,10 @@ export class LocationsHelper {
     }
   }
 
-  public static findLocationName(hexColor: string, gameData: IGameData): string | null {
+  public static findLocationName(
+    hexColor: string,
+    gameData: IGameData,
+  ): string | null {
     if (!gameData) {
       return null;
     }
@@ -103,16 +122,21 @@ export class LocationsHelper {
     return name;
   }
 
+  public static isLocationEligibleForCapital(
+    location: ILocationGameData,
+  ): boolean {
+    return !!location.ownable && !location.isSea && !location.isLake;
+  }
 
-  public static isLocationEligibleForCapital(location: ILocationGameData): boolean {
+  public static isLocationEligibleForRoad(
+    location: ILocationGameData,
+  ): boolean {
     return !!location.ownable && !location.isSea && !location.isLake;
   }
-  
-  public static isLocationEligibleForRoad(location: ILocationGameData): boolean {
-    return !!location.ownable && !location.isSea && !location.isLake;
-  }
-  
-  public static isLocationEligibleForMaritime(location: ILocationGameData): boolean {
+
+  public static isLocationEligibleForMaritime(
+    location: ILocationGameData,
+  ): boolean {
     return !!location && (!!location.isSea || !!location.isLake);
   }
 }

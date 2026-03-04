@@ -2,27 +2,25 @@
 
 import { CountriesHelper } from "@/app/lib/countries.helper";
 import { EligibleBuildingService } from "@/app/lib/eligibleBuilding.service";
-import {
-  ConstructibleAction,
-  IBuildingInstance,
-  INewBuildingTemplate,
-} from "@/app/lib/types/building";
+import { ConstructibleAction } from "@/app/lib/types/building";
 import { cameraController } from "./cameraController";
 import { RoadsHelper } from "./roads.helper";
 import { Observable } from "./observable";
 import {
   IConstructibleLocation,
-  ICountryInstance,
-  ICountryValues,
   IGameData,
   IGameState,
   ILocationIdentifier,
   ITemporaryLocationData,
 } from "./types/general";
-import { ICountryProximityBuffs } from "@/app/lib/types/proximityComputationRules";
+import {
+  baseCountryProximityBuffs,
+  ICountryProximityBuffs,
+} from "@/app/lib/types/proximityComputationRules";
 import { ObjectHelper } from "@/app/lib/object.helper";
 import { RoadKey, RoadType } from "@/app/lib/types/roads";
 import { ArrayHelper } from "@/app/lib/array.helper";
+import { ICountryInstance, ICountryValues } from "@/app/lib/types/country";
 
 const baseCountryValues: ICountryInstance = {
   templateData: null,
@@ -286,13 +284,13 @@ export class GameStateController extends Observable<IGameState> {
       throw new Error("Game data is not initialized");
     }
     if (countryCode) {
-      const countryTemplate = this.gameData?.countriesDataMap[countryCode];
+      const countryTemplate = this.gameData?.countriesData[countryCode];
       if (!countryTemplate) {
         throw new Error(`Unknown country code: ${countryCode}`);
       }
       const capitalLocation = CountriesHelper.getCountryBaseCapitalLocation(
         countryCode,
-        this.gameData.countriesDataMap,
+        this.gameData.countriesData,
       );
       this.subject.capitalLocation = capitalLocation;
       const locationsToAcquire = countryTemplate.locations;
@@ -366,13 +364,18 @@ export class GameStateController extends Observable<IGameState> {
     const newModifiers = { ...this.subject.country.modifiers };
     if (!(name in this.subject.country.modifiers)) {
       newModifiers[name] = {
-        buff: toUpdate.buff ?? {},
+        buff: toUpdate.buff
+          ? { ...baseCountryProximityBuffs, ...toUpdate.buff }
+          : { ...baseCountryProximityBuffs },
         enabled: toUpdate.enabled ?? true,
         description: toUpdate.description ?? "",
       };
     } else {
       if (toUpdate.buff !== undefined) {
-        newModifiers[name].buff = toUpdate.buff;
+        newModifiers[name].buff = {
+          ...baseCountryProximityBuffs,
+          ...toUpdate.buff,
+        };
       }
       if (toUpdate.enabled !== undefined) {
         newModifiers[name].enabled = toUpdate.enabled;

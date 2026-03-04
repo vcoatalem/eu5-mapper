@@ -7,11 +7,12 @@ import { DisplayProximity } from "@/app/components/detailedList/displayProximity
 import { ILocationDetailedViewData } from "@/app/components/detailedList/detailedLocationListModal.component";
 import { LocationsHelper } from "@/app/lib/locations.helper";
 import { ConstructibleAction } from "@/app/lib/types/building";
-import { ILocationIdentifier, LocationRank } from "@/app/lib/types/general";
+import { ILocationIdentifier } from "@/app/lib/types/general";
 import { FaAnglesDown, FaAnglesUp } from "react-icons/fa6";
 import { PiPlusLight, PiMinusLight } from "react-icons/pi";
 import { DisplayBuildings } from "@/app/components/detailedList/displayBuildings.component";
 import { ArrayHelper } from "@/app/lib/array.helper";
+import { LocationRank } from "@/app/lib/types/location";
 
 export type SortOrder = "asc" | "desc" | null;
 
@@ -130,8 +131,12 @@ export const columns: Array<{
         town: 1,
         city: 2,
       };
-      const rankA = rankings[a.baseLocationGameData.rank] ?? -1;
-      const rankB = rankings[b.baseLocationGameData.rank] ?? -1;
+      const rankA = a.baseLocationGameData.rank
+        ? rankings[a.baseLocationGameData.rank]
+        : -1;
+      const rankB = b.baseLocationGameData.rank
+        ? rankings[b.baseLocationGameData.rank]
+        : -1;
       return rankB - rankA;
     },
   },

@@ -1,5 +1,5 @@
 import { ILocationSearchResult } from "@/app/lib/locationSearchController";
-import { ILocationDataMap, ILocationGameData, ILocationIdentifier } from "@/app/lib/types/general";
+import { ILocationDataMap, ILocationIdentifier } from "@/app/lib/types/general";
 import { IndexedDBReader } from "@/app/lib/indexeddb/indexeddb-reader";
 import { IndexedDBWriter } from "@/app/lib/indexeddb/indexeddb-writer";
 import {
@@ -11,23 +11,24 @@ import {
 } from "@/app/lib/indexeddb/indexeddb.const";
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import { LocationHierarchyHelper } from "@/app/lib/locationHierarchy.helper";
+import { ILocationHierarchy } from "@/app/lib/types/location";
 
 /** Composite key so different hierarchy types with the same value stay distinct. */
 const HIERARCHY_ITEM_KEY_SEP = "\u001e";
 
 function hierarchyItemKey(
-  hierarchyType: keyof ILocationGameData["hierarchy"],
+  hierarchyType: keyof ILocationHierarchy,
   hierarchyValue: string,
 ): string {
   return `${hierarchyType}${HIERARCHY_ITEM_KEY_SEP}${hierarchyValue}`;
 }
 
 export type HierarchyRecord = Record<
-  keyof ILocationGameData["hierarchy"],
+  keyof ILocationHierarchy,
   Record<
     string,
     {
-      hierarchy: ILocationGameData["hierarchy"];
+      hierarchy: ILocationHierarchy;
       locations: ILocationIdentifier[];
     }
   >
@@ -38,24 +39,18 @@ export class LocationHierarchyService {
   public static async persistToIndexedDB(
     locationDataMap: ILocationDataMap,
   ): Promise<void> {
-    const hierarchyGroups = LocationHierarchyHelper.buildHierarchyGroups(locationDataMap);
+    const hierarchyGroups =
+      LocationHierarchyHelper.buildHierarchyGroups(locationDataMap);
     const writer = new IndexedDBWriter(dbName, dbVersion, dbStoreNames);
     await writer.open();
 
-    await writer.put(
-      dbLocationHierarchyStoreName,
-      dbDataKey,
-      hierarchyGroups,
-    );
+    await writer.put(dbLocationHierarchyStoreName, dbDataKey, hierarchyGroups);
 
     for (const [hierarchyType, typeMap] of Object.entries(hierarchyGroups)) {
       for (const [value, entry] of Object.entries(typeMap)) {
         await writer.put(
           dbLocationHierarchyStoreName,
-          hierarchyItemKey(
-            hierarchyType as keyof ILocationGameData["hierarchy"],
-            value,
-          ),
+          hierarchyItemKey(hierarchyType as keyof ILocationHierarchy, value),
           entry,
         );
       }
@@ -77,15 +72,13 @@ export class LocationHierarchyService {
     const lowerQuery = query.toLowerCase();
 
     for (const [hierarchyType, typeMap] of Object.entries(hierarchyGroups)) {
-      for (const [value, { hierarchy, locations }] of Object.entries(
-        typeMap,
-      )) {
+      for (const [value, { hierarchy, locations }] of Object.entries(typeMap)) {
         if (!StringHelper.isInSearchQuery(value, lowerQuery)) continue;
         nonProvinceHierarchyMatches.push({
           locations: [
             {
               name: value,
-              hierarchyType: hierarchyType as keyof ILocationGameData["hierarchy"],
+              hierarchyType: hierarchyType as keyof ILocationHierarchy,
               hierarchy,
               locationsInHierarchy: locations,
             },
@@ -102,7 +95,7 @@ export class LocationHierarchyService {
   }
 
   public static async getAllLocationsInHierarchy(
-    hierarchyType: keyof ILocationGameData["hierarchy"],
+    hierarchyType: keyof ILocationHierarchy,
     hierarchyValue: string,
   ): Promise<ILocationIdentifier[]> {
     const reader = new IndexedDBReader(dbName, dbVersion, dbStoreNames);

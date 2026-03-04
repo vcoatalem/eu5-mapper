@@ -1,11 +1,13 @@
 import { countryBuffsMetadata } from "@/app/lib/classes/countryProximityBuffs.const";
-import { ICountryValues, IGameData, IGameState } from "../types/general";
+import { IGameData, IGameState } from "../types/general";
 import {
+  baseCountryProximityBuffs,
   IBuffValue,
   ICountryProximityBuffs,
 } from "../types/proximityComputationRules";
 import { ArrayHelper } from "@/app/lib/array.helper";
 import { ObjectHelper } from "@/app/lib/object.helper";
+import { ICountryValues } from "@/app/lib/types/country";
 
 export class ProximityBuffsRecord {
   private countryProximityBuffs: Record<string, ICountryProximityBuffs> = {};
@@ -19,6 +21,7 @@ export class ProximityBuffsRecord {
     );
 
     const rulerAdministrativeAbility = {
+      ...baseCountryProximityBuffs,
       genericModifier:
         (country?.rulerAdministrativeAbility ?? 0) *
         rule.rulerAdministrativeAbilityImpact.value,
@@ -43,10 +46,10 @@ export class ProximityBuffsRecord {
 
   private computeCountryValuesBuff(
     valueKey: keyof ICountryValues,
-  ): Partial<ICountryProximityBuffs> {
+  ): ICountryProximityBuffs {
     const value = this.country?.values[valueKey];
-    if (typeof value !== "number" || value === 0) {
-      return {};
+    if (value === undefined) {
+      throw new Error('unrecognised country value key: "' + valueKey + '"');
     }
 
     const buffToApply: ICountryProximityBuffs =
@@ -55,15 +58,16 @@ export class ProximityBuffsRecord {
         : this.rule.valuesImpact[valueKey][0];
 
     if (!buffToApply || typeof buffToApply !== "object") {
-      console.error(
-        "[ProximityBuffsRecord] Invalid buff definition for",
-        valueKey,
-        buffToApply,
+      throw new Error(
+        "[ProximityBuffsRecord] Invalid buff definition for " +
+          valueKey +
+          ": " +
+          JSON.stringify(buffToApply),
       );
-      return {};
+      return {} as ICountryProximityBuffs;
     }
     const impactFactor = Math.abs(value) / 100;
-    const res: Partial<ICountryProximityBuffs> = {};
+    let res = { ...baseCountryProximityBuffs };
 
     for (const key of Object.keys(buffToApply) as Array<
       keyof ICountryProximityBuffs

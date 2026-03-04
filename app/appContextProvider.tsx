@@ -134,7 +134,7 @@ export const AppContextProvider = ({
           buildingsTemplate,
           adjacencyCsv,
           proximityComputationRule,
-          countriesDataMap,
+          countriesData,
           roads,
         } = gameDataFiles;
 
@@ -145,7 +145,7 @@ export const AppContextProvider = ({
           colorToNameMap: {},
           buildingsTemplate: {},
           proximityComputationRule,
-          countriesDataMap: {},
+          countriesData: {},
           roads,
         };
         const indexedDBWriter = new IndexedDBWriter(
@@ -196,7 +196,7 @@ export const AppContextProvider = ({
           colorToNameMap: locationData.colorToNameMap,
           buildingsTemplate,
           proximityComputationRule,
-          countriesDataMap,
+          countriesData,
           roads,
         });
 

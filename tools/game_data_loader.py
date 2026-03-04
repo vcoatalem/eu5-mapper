@@ -43,6 +43,7 @@ class GameDataFiles:
     rural_buildings: str
     town_buildings: str
     unique_buildings: str
+    country_flag_file: str
 
 
 class GameDataLoader:
@@ -131,7 +132,8 @@ class GameDataLoader:
     COMPUTED_OUTPUT_FILES = {
         'adjacency_data': ('computed_adjacency_data', 'adjacency-data.csv'),
         'river_colors': ('computed_river_colors', 'location-river-colors.json'),
-        'location_centers_file': ('computed_location_centers', 'location-centers.json')
+        'location_centers_file': ('computed_location_centers', 'location-centers.json'),
+        'country_flag_file': ('computed_country_flags', 'country_flag_urls.csv')
     }
 
     def __init__(

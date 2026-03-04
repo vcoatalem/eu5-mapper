@@ -8,7 +8,6 @@ import {
   IGameData,
   IGameState,
   ILocationIdentifier,
-  LocationRank,
 } from "./types/general";
 import { ObservableCombiner } from "./observableCombiner";
 import { DrawingHelper } from "./drawing/drawing.helper";
@@ -33,6 +32,7 @@ import { colorSearchController } from "@/app/lib/colorSeach.controller";
 import { ObjectHelper } from "@/app/lib/object.helper";
 import { RoadsHelper } from "@/app/lib/roads.helper";
 import { ArrayHelper } from "@/app/lib/array.helper";
+import { LocationRank } from "@/app/lib/types/location";
 
 enum CanvasName {
   areas = "areas",

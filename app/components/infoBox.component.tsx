@@ -12,7 +12,7 @@ import { StringHelper } from "@/app/lib/utils/string.helper";
 import styles from "@/app/styles/Gui.module.css";
 import { memo, useContext, useMemo, useSyncExternalStore } from "react";
 import { AppContext } from "../appContextProvider";
-import { ILocationGameData, ILocationIdentifier } from "../lib/types/general";
+import { ILocationIdentifier } from "../lib/types/general";
 import { MaritimePresenceIcon } from "@/app/components/indicatorsIcons/maritimePresenceIcon.component";
 import { HarborSuitabilityIcon } from "@/app/components/indicatorsIcons/harborSuitabilityIcon.component";
 import { PopulationIcon } from "@/app/components/indicatorsIcons/populationIcon.component";
@@ -22,6 +22,7 @@ import {
   getTopographyIcon,
   getVegetationIcon,
 } from "@/app/lib/drawing/getImages";
+import { ILocationHierarchy } from "@/app/lib/types/location";
 
 function LocationInfoBox(props: {
   locationName: ILocationIdentifier;
@@ -211,7 +212,7 @@ function HierarchyInfoBox(props: { locationNames: ILocationIdentifier[] }) {
   const hierarchyData = useMemo(
     () =>
       gameData?.locationDataMap?.[props.locationNames[0]]?.hierarchy[
-        hierarchyType as keyof ILocationGameData["hierarchy"]
+        hierarchyType as keyof ILocationHierarchy
       ] ?? null,
     [gameData, props.locationNames, hierarchyType],
   );

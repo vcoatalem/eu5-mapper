@@ -8,17 +8,16 @@ import {
   ConstructibleAction,
   IBuildingInstance,
   INewBuildingTemplate,
-  NewConstructibleState,
+  ConstructibleState,
   PlacementRestrictions,
 } from "@/app/lib/types/building";
 import {
   BaseRoadRecord,
   IGameData,
   IGameState,
-  ILocationGameData,
   ILocationIdentifier,
-  LocationRank,
 } from "@/app/lib/types/general";
+import { ILocationGameData, LocationRank } from "@/app/lib/types/location";
 
 type IBuildingTemplateIdentifier = INewBuildingTemplate["name"];
 
@@ -104,11 +103,11 @@ export class EligibleBuildingService {
   ): boolean {
     switch (condition) {
       case "is_coastal":
-        return location.isCoastal;
+        return !!location.isCoastal;
       case "has_river":
-        return location.isOnRiver;
+        return !!location.isOnRiver;
       case "is_adjacent_to_lake":
-        return location.isOnLake;
+        return !!location.isOnLake;
       case "is_capital":
         return gameState.capitalLocation === location.name;
       case "has_road":
@@ -216,8 +215,8 @@ export class EligibleBuildingService {
   public getConstructibleState(
     location: ILocationIdentifier,
     gameState: IGameState,
-  ): NewConstructibleState {
-    const res: NewConstructibleState = {};
+  ): ConstructibleState {
+    const res: ConstructibleState = {};
     const locationBuildings = gameState.ownedLocations[location].buildings;
     const representativeTemplateNames =
       EligibleBuildingService.getRepresentativeTemplateNamesPerFamily(

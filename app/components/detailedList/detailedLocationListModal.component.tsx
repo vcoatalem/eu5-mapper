@@ -13,14 +13,13 @@ import { CountryStats } from "../countryStatsComponent";
 import {
   IConstructibleLocation,
   IGameState,
-  ILocationGameData,
   ILocationIdentifier,
   ITemporaryLocationData,
 } from "../../lib/types/general";
 import { DetailedLocationList } from "./detailedLocationList.component";
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import { proximityComputationController } from "@/app/lib/proximityComputation.controller";
-import { NewConstructibleState } from "@/app/lib/types/building";
+import { ConstructibleState } from "@/app/lib/types/building";
 import { IoSearch } from "react-icons/io5";
 import { ProximityComputationHelper } from "@/app/lib/proximityComputation.helper";
 import { EligibleBuildingService } from "@/app/lib/eligibleBuilding.service";
@@ -37,6 +36,7 @@ import { useParams } from "next/navigation";
 import { Loader } from "@/app/components/loader.component";
 import { Popover } from "@/app/lib/popover/popover.component";
 import { ObjectHelper } from "@/app/lib/object.helper";
+import { ILocationGameData } from "@/app/lib/types/location";
 
 function LocationExtensiveViewModalHeader(props: {
   countryName: string | null;
@@ -134,7 +134,7 @@ export interface ILocationDetailedViewData {
   baseLocationGameData: ILocationGameData;
   pinned?: boolean;
   proximity: number | null;
-  constructibleState: NewConstructibleState;
+  constructibleState: ConstructibleState;
   computedLocationData: {
     harborSuitability: number;
   };

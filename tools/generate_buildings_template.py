@@ -9,6 +9,7 @@ Generate buildings-template.json from game_data/buildings.
   buildings-template.json in output_dir
 """
 
+from dataclasses import asdict, dataclass
 import json
 import os
 import sys
@@ -17,6 +18,17 @@ from typing import Dict, List, Optional
 from game_data_loader import GameDataLoader, GameDataFiles
 from game_data_utils import parse_game_data_file
 
+
+@dataclass()
+class BuildingTemplate:
+    name: str
+    type: str
+    upgrade: Optional[str]
+    downgrade: Optional[str]
+    cap: Optional[float]
+    modifiers: Dict[str, Optional[float]]
+    placementRestriction: Optional[dict]
+    buildable: bool
 
 WHITELISTED_MODIFIERS = {
     "local_distance_from_capital_speed_propagation": "localProximityCostModifier",
@@ -28,7 +40,6 @@ WHITELISTED_MODIFIERS = {
 
 def parse_yes_no(value: Optional[str]) -> bool:
     return str(value).lower() == "yes"
-
 
 
 BUILDABLE_EXCLUDED: frozenset[str] = frozenset({
@@ -73,8 +84,8 @@ def extract_numeric(value: object) -> Optional[float]:
     return None
 
 
-def build_templates_from_files(files: GameDataFiles) -> Dict[str, dict]:
-    templates: Dict[str, dict] = {}
+def build_templates_from_files(files: GameDataFiles) -> List[BuildingTemplate]:
+    templates_by_name: Dict[str, BuildingTemplate] = {}
     obsolete_links: Dict[str, str] = {}
 
     building_file_paths = [
@@ -165,29 +176,29 @@ def build_templates_from_files(files: GameDataFiles) -> Dict[str, dict]:
                             "conditions": sorted(list(set(simple_conditions)))
                         }
 
-            templates[building_name] = {
-                "name": building_name,
-                "type": infer_building_type(props),
-                "upgrade": None,
-                "downgrade": None,
-                "cap": cap,
-                "modifiers": modifiers,
-                "placementRestriction": placementRestriction,
-                "buildable": infer_buildability(building_name),
-            }
+            templates_by_name[building_name] = BuildingTemplate(
+                name=building_name,
+                type=infer_building_type(props),
+                upgrade=None,
+                downgrade=None,
+                cap=cap,
+                modifiers=modifiers,
+                placementRestriction=placementRestriction,
+                buildable=infer_buildability(building_name),
+            )
 
             obsolete = props.get("obsolete")
             if isinstance(obsolete, str) and obsolete:
                 obsolete_links[building_name] = obsolete
 
     for building_name, obsolete in obsolete_links.items():
-        if building_name in templates:
-            templates[building_name]["downgrade"] = obsolete
-        if obsolete in templates:
-            templates[obsolete]["upgrade"] = building_name
+        if building_name in templates_by_name:
+            templates_by_name[building_name].downgrade = obsolete
+        if obsolete in templates_by_name:
+            templates_by_name[obsolete].upgrade = building_name
 
 
-    return templates
+    return list(templates_by_name.values())
 
 
 def generate_buildings_template(
@@ -195,7 +206,7 @@ def generate_buildings_template(
     output_dir: Optional[str],
     source: str = "app",
     game_root_path: Optional[str] = None
-) -> Dict[str, dict]:
+) -> List[BuildingTemplate]:
     loader = GameDataLoader(source=source, game_root_path=game_root_path)
     files = loader.get_game_files_for_version(version)
     templates = build_templates_from_files(files)
@@ -204,7 +215,7 @@ def generate_buildings_template(
         os.makedirs(output_dir, exist_ok=True)
         output_path = os.path.join(output_dir, "buildings-template.json")
         with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(templates, f, separators=(",", ":"))
+            json.dump([asdict(template) for template in templates], f, separators=(",", ":"))
 
     return templates
 

@@ -1,9 +1,8 @@
 import { HierarchyRecord } from "@/app/lib/locationHierarchy.service";
 import { ObjectHelper } from "@/app/lib/object.helper";
-import { ILocationDataMap, ILocationGameData } from "@/app/lib/types/general";
+import { ILocationDataMap } from "@/app/lib/types/general";
 
 export class LocationHierarchyHelper {
-
   public static buildHierarchyGroups(
     locationDataMap: ILocationDataMap,
   ): HierarchyRecord {

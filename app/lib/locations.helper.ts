@@ -2,16 +2,16 @@ import { RoadsHelper } from "@/app/lib/roads.helper";
 import { ObjectHelper } from "@/app/lib/object.helper";
 import {
   BaseRoadRecord,
-  IConstructibleLocation,
   IGameData,
-  IGameState,
   ILocationDataMap,
   ILocationIdentifier,
-  ITemporaryLocationData,
   RoadRecord,
 } from "./types/general";
 import { ILocationGameData } from "@/app/lib/types/location";
 import { LocationRank } from "@/app/lib/types/locationRank";
+import { IConstructibleLocation } from "@/app/lib/types/constructibleLocation";
+import { IGameState } from "@/app/lib/types/gameState";
+import { ITemporaryLocationData } from "@/app/lib/types/temporaryLocationData";
 
 export class LocationsHelper {
   public static locationHasRoad(

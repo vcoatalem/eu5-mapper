@@ -10,12 +10,7 @@ import { ModalInstanceContext } from "@/app/lib/modal/modal.component";
 import { gameStateController } from "@/app/lib/gameState.controller";
 import { AppContext } from "../../appContextProvider";
 import { CountryStats } from "../countryStatsComponent";
-import {
-  IConstructibleLocation,
-  IGameState,
-  ILocationIdentifier,
-  ITemporaryLocationData,
-} from "../../lib/types/general";
+import { ILocationIdentifier } from "../../lib/types/general";
 import { DetailedLocationList } from "./detailedLocationList.component";
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import { proximityComputationController } from "@/app/lib/proximityComputation.controller";
@@ -37,6 +32,9 @@ import { Popover } from "@/app/lib/popover/popover.component";
 import { ObjectHelper } from "@/app/lib/object.helper";
 import { ILocationGameData } from "@/app/lib/types/location";
 import { ConstructibleState } from "@/app/lib/types/constructibleState";
+import { IGameState } from "@/app/lib/types/gameState";
+import { IConstructibleLocation } from "@/app/lib/types/constructibleLocation";
+import { ITemporaryLocationData } from "@/app/lib/types/temporaryLocationData";
 
 function LocationExtensiveViewModalHeader(props: {
   countryName: string | null;

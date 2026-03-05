@@ -1,20 +1,25 @@
 import { countryBuffsMetadata } from "@/app/lib/classes/countryProximityBuffs.const";
-import { IGameData, IGameState } from "../types/general";
+import { IGameData } from "../types/general";
 import { ArrayHelper } from "@/app/lib/array.helper";
 import { ObjectHelper } from "@/app/lib/object.helper";
-import { ICountryValues } from "@/app/lib/types/country";
 import {
   baseCountryProximityBuffs,
   ICountryProximityBuffs,
 } from "@/app/lib/types/countryProximityBuffs";
 import { IBuffValue } from "@/app/lib/types/buffValue";
+import { ICountryValues } from "@/app/lib/types/countryValues";
+import { ICountryInstance } from "@/app/lib/types/countryInstance";
 
 export class ProximityBuffsRecord {
   private countryProximityBuffs: Record<string, ICountryProximityBuffs> = {};
   constructor(
     private readonly rule: IGameData["proximityComputationRule"],
-    private readonly country: IGameState["country"],
+    private readonly country: ICountryInstance | null,
   ) {
+    if (!country) {
+      return;
+    }
+
     const navalVsLand = this.computeCountryValuesBuff("landVsNaval");
     const centralizationVsDecentralization = this.computeCountryValuesBuff(
       "centralizationVsDecentralization",

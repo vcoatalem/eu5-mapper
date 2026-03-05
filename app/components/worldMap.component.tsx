@@ -717,7 +717,7 @@ export function WorldMapComponent() {
     }
 
     // init all controllers (after subscriptions to trigger first subscriptions)
-    gameStateController.init(gameData);
+    gameStateController.init(gameData, version);
     proximityComputationController.init();
     neighborsProximityComputationController.init();
     locationSearchController.init(gameData);

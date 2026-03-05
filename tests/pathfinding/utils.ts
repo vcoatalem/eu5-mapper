@@ -6,7 +6,7 @@ import fsPromises from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 import { ArrayHelper } from "@/app/lib/array.helper";
-import { ICountryValues } from "@/app/lib/types/country";
+import { ICountryValues } from "@/app/lib/types/countryValues";
 
 const COUNTRY_VALUE_KEYS: Array<keyof ICountryValues> = [
   "landVsNaval",

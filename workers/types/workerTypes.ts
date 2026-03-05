@@ -1,9 +1,5 @@
-import {
-  ICoordinate,
-  IGameData,
-  IGameState,
-  ILocationIdentifier,
-} from "@/app/lib/types/general"; // TODO: try to remove this import of domain logic into worker types
+import { IGameState } from "@/app/lib/types/gameState";
+import { ICoordinate, ILocationIdentifier } from "@/app/lib/types/general"; // TODO: try to remove this import of domain logic into worker types
 import { EdgeType, PathfindingResult } from "@/app/lib/types/pathfinding";
 
 export type WorkerManagerConfig = {

@@ -3,12 +3,7 @@ import {
   IProximityComputationResults,
   proximityComputationController,
 } from "@/app/lib/proximityComputation.controller";
-import {
-  ICoordinate,
-  IGameData,
-  IGameState,
-  ILocationIdentifier,
-} from "./types/general";
+import { ICoordinate, IGameData, ILocationIdentifier } from "./types/general";
 import { ObservableCombiner } from "./observableCombiner";
 import { DrawingHelper } from "./drawing/drawing.helper";
 import {
@@ -33,6 +28,7 @@ import { ObjectHelper } from "@/app/lib/object.helper";
 import { RoadsHelper } from "@/app/lib/roads.helper";
 import { ArrayHelper } from "@/app/lib/array.helper";
 import { LocationRank } from "@/app/lib/types/locationRank";
+import { IGameState } from "@/app/lib/types/gameState";
 
 enum CanvasName {
   areas = "areas",

@@ -447,8 +447,9 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
                   )}
                   <hr className="w-full border-stone-600 border-b-1 flex-0 my-2"></hr>
                   {showcasedModifier.buff &&
-                    ObjectHelper.getTypedEntries(showcasedModifier.buff).map(
-                      ([buffKey, buffData]) => {
+                    ObjectHelper.getTypedEntries(showcasedModifier.buff)
+                      .filter(([, value]) => value !== null)
+                      .map(([buffKey, buffData]) => {
                         return (
                           <BuffDisplay
                             key={buffKey}
@@ -456,8 +457,7 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
                             buffValue={buffData}
                           />
                         );
-                      },
-                    )}
+                      })}
                 </>
               )) || <></>}
           </div>

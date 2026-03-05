@@ -2,13 +2,7 @@ import { BuffsHelper } from "@/app/lib/buffs.helper";
 import { LocationsHelper } from "@/app/lib/locations.helper";
 import { ProximityBuffsRecord } from "./classes/countryProximityBuffs";
 import { CompactGraph } from "./graph";
-import {
-  IConstructibleLocation,
-  IGameData,
-  IGameState,
-  ILocationIdentifier,
-  ITemporaryLocationData,
-} from "./types/general";
+import { IGameData, ILocationIdentifier } from "./types/general";
 import {
   CostFunction,
   EdgeType,
@@ -21,6 +15,9 @@ import { RoadType } from "@/app/lib/types/roads";
 import { ILocationGameData } from "@/app/lib/types/location";
 import { IBuffValue } from "@/app/lib/types/buffValue";
 import { ICountryProximityBuffs } from "@/app/lib/types/countryProximityBuffs";
+import { IConstructibleLocation } from "@/app/lib/types/constructibleLocation";
+import { IGameState } from "@/app/lib/types/gameState";
+import { ITemporaryLocationData } from "@/app/lib/types/temporaryLocationData";
 
 /** Only this key is applied as percentageMultiplier (cost *= 1 + value/100); all other percentage modifiers are additive (percentageIncrease). */
 const HARBOR_CAPACITY_MODIFIER_KEY = "harborCapacityImpact";
@@ -62,7 +59,7 @@ const logProximityComputation = (
 /**
  * Result of reducing proximity modifiers by type.
  * - flatCostReduction: subtract from base cost first (positive = lower cost).
- * - percentageMultiplier: applied after cost reduction. As of 1.1.4, only harbor suitability is concernted
+ * - percentageMultiplier: applied after cost reduction. As of 1.1.4, only harbor suitability is concerned
  * - percentageIncrease: all other percentage modifiers summed
  */
 export type ReducedProximityModifiers = {

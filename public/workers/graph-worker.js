@@ -14110,11 +14110,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
   var zod_default = external_exports;
 
   // app/lib/types/roads.ts
-  function asRoadKey(s) {
-    if (!/^.+-.+$/.test(s))
-      throw new Error(`Invalid RoadKey format: ${s}`);
-    return s;
-  }
+  var ZodRoadKey = zod_default.string().regex(/^.+-.+$/, "Invalid RoadKey format").brand();
   var ZodRoadType = zod_default.enum([
     "gravel_road",
     "paved_road",
@@ -14132,7 +14128,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
   // app/lib/roads.helper.ts
   var RoadsHelper = class {
     static buildOrderedRoadKey(fromLocation, toLocation) {
-      return asRoadKey(
+      return ZodRoadKey.parse(
         fromLocation.localeCompare(toLocation) < 0 ? `${fromLocation}-${toLocation}` : `${toLocation}-${fromLocation}`
       );
     }
@@ -14433,6 +14429,9 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
       this.rule = rule;
       this.country = country;
       this.countryProximityBuffs = {};
+      if (!country) {
+        return;
+      }
       const navalVsLand = this.computeCountryValuesBuff("landVsNaval");
       const centralizationVsDecentralization = this.computeCountryValuesBuff(
         "centralizationVsDecentralization"

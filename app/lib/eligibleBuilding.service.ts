@@ -4,18 +4,16 @@ import {
   LogicTreeBuilder,
 } from "@/app/lib/classes/logicTree";
 import { LocationsHelper } from "@/app/lib/locations.helper";
-import {
-  BuildingIdentifier,
-  IBuildingInstance,
-} from "@/app/lib/types/building";
+import { BuildingIdentifier } from "@/app/lib/types/building";
+import { IBuildingInstance } from "@/app/lib/types/buildingInstance";
 import { BuildingPlacementRestrictions } from "@/app/lib/types/buildingPlacementRestriction";
 import { BuildingTemplate } from "@/app/lib/types/buildingTemplate";
 import { ConstructibleAction } from "@/app/lib/types/constructibleAction";
 import { ConstructibleState } from "@/app/lib/types/constructibleState";
+import { IGameState } from "@/app/lib/types/gameState";
 import {
   BaseRoadRecord,
   IGameData,
-  IGameState,
   ILocationIdentifier,
 } from "@/app/lib/types/general";
 import { ILocationGameData } from "@/app/lib/types/location";

@@ -1,7 +1,6 @@
-import { ICountryProximityBuffs } from "@/app/lib/types/countryProximityBuffs";
 import { z } from "zod";
 
-const ZodCountryData = z.object({
+export const ZodCountryData = z.object({
   code: z.string(),
   capital: z.string(),
   locations: z.array(z.string()),
@@ -14,18 +13,3 @@ const ZodCountryData = z.object({
 export const ZodCountryDataArray = z.array(ZodCountryData);
 
 export type ICountryData = z.infer<typeof ZodCountryData>;
-
-export interface ICountryInstance {
-  templateData: ICountryData | null;
-  values: ICountryValues;
-  rulerAdministrativeAbility: number; // from 0 to 100, higher means more impact of proximity on the country
-  modifiers: Record<
-    string,
-    { buff: ICountryProximityBuffs; description: string; enabled: boolean }
-  >;
-}
-
-export interface ICountryValues {
-  centralizationVsDecentralization: number;
-  landVsNaval: number;
-}

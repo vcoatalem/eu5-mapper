@@ -1,18 +1,18 @@
-import { asRoadKey, RoadKey, RoadType } from "@/app/lib/types/roads";
+import { RoadKey, RoadType, ZodRoadKey } from "@/app/lib/types/roads";
 import {
   BaseRoadRecord,
-  IGameState,
   ILocationIdentifier,
   RoadRecord,
 } from "./types/general";
 import { ObjectHelper } from "@/app/lib/object.helper";
+import { IGameState } from "@/app/lib/types/gameState";
 
 export class RoadsHelper {
   public static buildOrderedRoadKey(
     fromLocation: ILocationIdentifier,
     toLocation: ILocationIdentifier,
   ): RoadKey {
-    return asRoadKey(
+    return ZodRoadKey.parse(
       fromLocation.localeCompare(toLocation) < 0
         ? `${fromLocation}-${toLocation}`
         : `${toLocation}-${fromLocation}`,

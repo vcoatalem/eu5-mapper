@@ -1,4 +1,4 @@
-import { z, ZodType } from "zod";
+import { z } from "zod";
 
 import { ZodRoadType } from "@/app/lib/types/roads";
 import { ZodTopography } from "@/app/lib/types/topography";

@@ -2,7 +2,8 @@ import {
   BuildingPlacementRestrictionConfig,
   BuildingPlacementRestrictions,
 } from "@/app/lib/types/buildingPlacementRestriction";
-import { IGameState, ILocationIdentifier } from "@/app/lib/types/general";
+import { IGameState } from "@/app/lib/types/gameState";
+import { ILocationIdentifier } from "@/app/lib/types/general";
 import { ILocationGameData } from "@/app/lib/types/location";
 
 type EvaluationMethod = (

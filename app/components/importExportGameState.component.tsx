@@ -15,6 +15,7 @@ export function ImportExportGameState(props: IImportExportGameStateProps) {
     () => gameStateController.getSnapshot(),
   );
   const [showImportModal, setShowImportModal] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const version = params?.version as string;
 
   const readFile = useCallback(
@@ -29,8 +30,10 @@ export function ImportExportGameState(props: IImportExportGameStateProps) {
           const content = event.target?.result as string;
           gameStateController.loadFile(content, version);
           setShowImportModal(false);
+          setError(null);
         } catch (error) {
           console.error("Failed to parse JSON:", error);
+          setError(String(error));
         }
       };
 
@@ -62,13 +65,13 @@ export function ImportExportGameState(props: IImportExportGameStateProps) {
         className={styles.simpleButton}
         onClick={() => {
           if (props.isTutorial) return;
-          gameStateController.download(version);
+          gameStateController.download();
         }}
       >
         Save State
       </button>
       <Modal isOpen={showImportModal} onClose={() => setShowImportModal(false)}>
-        <div className="w-[30vw] h-[30vh] flex flex-col gap-2 items-center">
+        <div className="min-h-[30vh] min-w-[400px] flex flex-col gap-2 items-center">
           <h1 className="font-bold text-xl">Import a Game State file</h1>
           <span className="text-stone-600 text-center">
             {`You may import a JSON file exported through the "Save State" button`}
@@ -81,6 +84,13 @@ export function ImportExportGameState(props: IImportExportGameStateProps) {
             accept=".json"
             onChange={readFile}
           ></input>
+
+          {error && (
+            <div className="bg-red-100 text-red-700 p-2 rounded-md mt-2 overflow-y-auto">
+              <h2 className="font-bold">Error:</h2>
+              <pre className="whitespace-pre-wrap">{error}</pre>
+            </div>
+          )}
         </div>
       </Modal>
     </div>

@@ -10,10 +10,7 @@ import type { ILocationIdentifier } from "./types/general";
 
 export type LocationsInput = (
   e?: MouseEvent,
-) =>
-  | ILocationIdentifier[]
-  | Promise<ILocationIdentifier[] | null>
-  | null;
+) => ILocationIdentifier[] | Promise<ILocationIdentifier[] | null> | null;
 
 export type HoverConfig = {
   type?: HoverActionType;

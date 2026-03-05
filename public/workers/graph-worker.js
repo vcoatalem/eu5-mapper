@@ -14932,20 +14932,227 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
   };
   var ProximityComputationHelper = _ProximityComputationHelper;
 
+  // workers/types/task.ts
+  var ZodTaskType = external_exports.enum([
+    "colorSearch",
+    "initWithImage",
+    "initGraphWorker",
+    "computeProximity",
+    "computeNeighbors",
+    "computeShortestPathFromProximitySource"
+  ]);
+  var ZodWorkerTask = external_exports.object({
+    id: external_exports.string(),
+    type: ZodTaskType,
+    payload: external_exports.unknown()
+  });
+  var ZodWorkerTaskResult = external_exports.object({
+    taskId: external_exports.string(),
+    type: ZodTaskType,
+    success: external_exports.boolean(),
+    error: external_exports.string().nullable(),
+    data: external_exports.unknown()
+  });
+
+  // app/lib/types/buildingPlacementRestriction.ts
+  var ZodBuildingPlacementRestrictions = external_exports.enum([
+    "is_coastal",
+    "has_river",
+    "is_adjacent_to_lake",
+    "has_road",
+    "is_capital",
+    "is_not_capital"
+  ]);
+  var ZodBuildingPlacementRestrictionConfig = external_exports.object({
+    op: external_exports.enum(["AND", "OR"]),
+    conditions: external_exports.array(
+      external_exports.union([
+        ZodBuildingPlacementRestrictions,
+        external_exports.lazy(
+          () => ZodBuildingPlacementRestrictionConfig
+        )
+      ])
+    )
+  });
+
+  // app/lib/types/buildingType.ts
+  var ZodBuildingType = external_exports.enum(["rural", "urban", "city", "common"]);
+
+  // app/lib/types/buildingTemplate.ts
+  var ZodBuildingTemplate = external_exports.object({
+    name: external_exports.string(),
+    type: ZodBuildingType,
+    upgrade: external_exports.string().nullable(),
+    // name of potential upgrade path for the building, null if no upgrade available
+    downgrade: external_exports.string().nullable(),
+    // name of potential downgrade path for the building, null if no downgrade available
+    cap: external_exports.number().nullable(),
+    // how many of this building can be built on a single location, null if no cap
+    modifiers: external_exports.object({
+      localProximitySource: external_exports.number().nullable().optional(),
+      harborSuitability: external_exports.number().nullable().optional(),
+      localProximityCostModifier: external_exports.number().nullable().optional(),
+      globalProximityCostModifier: external_exports.number().nullable().optional()
+    }),
+    placementRestriction: ZodBuildingPlacementRestrictionConfig.nullable().optional(),
+    buildable: external_exports.boolean()
+    // whether the building can be built by the player in normal circumstances (false for most "special" buildings)
+  });
+  var ZodBuildingTemplateArray = external_exports.array(ZodBuildingTemplate);
+
+  // app/lib/types/buildingInstance.ts
+  var ZodBuildingInstance = external_exports.object({
+    template: ZodBuildingTemplate,
+    level: external_exports.number()
+  });
+
+  // app/lib/types/locationRank.ts
+  var ZodLocationRank = external_exports.enum(["rural", "town", "city"]);
+
+  // app/lib/types/constructibleLocation.ts
+  var ZodConstructibleLocation = external_exports.object({
+    rank: ZodLocationRank,
+    buildings: external_exports.record(external_exports.string(), ZodBuildingInstance)
+  });
+
+  // app/lib/types/country.ts
+  var ZodCountryData = external_exports.object({
+    code: external_exports.string(),
+    capital: external_exports.string(),
+    locations: external_exports.array(external_exports.string()),
+    centralizationVsDecentralization: external_exports.number(),
+    // from -100 (fully centralized) to 100 (fully decentralized)
+    landVsNaval: external_exports.number(),
+    // from -100 (fully land) to 100 (fully naval)
+    name: external_exports.string(),
+    flagUrl: external_exports.string().nullable()
+  });
+  var ZodCountryDataArray = external_exports.array(ZodCountryData);
+
+  // app/lib/types/countryValues.ts
+  var ZodCountryValues = external_exports.object({
+    centralizationVsDecentralization: external_exports.number(),
+    landVsNaval: external_exports.number()
+  });
+
+  // app/lib/types/countryInstance.ts
+  var ZodCountryInstance = external_exports.object({
+    templateData: ZodCountryData.nullable(),
+    values: ZodCountryValues,
+    rulerAdministrativeAbility: external_exports.number(),
+    modifiers: external_exports.record(
+      external_exports.string(),
+      external_exports.object({
+        buff: ZodCountryProximityBuffs,
+        description: external_exports.string(),
+        enabled: external_exports.boolean()
+      })
+    )
+  });
+
+  // app/lib/types/temporaryLocationData.ts
+  var ZodTemporaryLocationData = external_exports.object({
+    development: external_exports.number().optional(),
+    population: external_exports.number().optional(),
+    maritimePresence: external_exports.number().optional()
+  });
+
+  // app/lib/types/gameState.ts
+  var ZodGameStateTemporaryLocationRecord = external_exports.record(
+    external_exports.string(),
+    ZodTemporaryLocationData
+  );
+  var ZodGameStateOwnedLocationRecord = external_exports.record(
+    external_exports.string(),
+    ZodConstructibleLocation
+  );
+  var ZodGameState = external_exports.object({
+    version: external_exports.string(),
+    countryCode: external_exports.string().nullable(),
+    country: ZodCountryInstance.nullable(),
+    roads: external_exports.record(ZodRoadKey, ZodRoadType.nullable()),
+    ownedLocations: ZodGameStateOwnedLocationRecord,
+    capitalLocation: external_exports.string().optional(),
+    temporaryLocationData: ZodGameStateTemporaryLocationRecord
+  });
+
+  // app/lib/types/pathfinding.ts
+  var ZodEdgeType = external_exports.enum([
+    "river",
+    "land",
+    "sea",
+    "port",
+    "lake",
+    "port-river",
+    // river-mouth port
+    "through-sea",
+    // special hard-coded ajacency. Allows going from location A -> B while applying sea travel cost of location C
+    "coastal",
+    // land <-> sea adjacency that is not a port (e.g. dover <-> thames)
+    "unknown"
+  ]);
+  var ZodPathfindingResult = external_exports.record(
+    external_exports.string(),
+    external_exports.object({
+      cost: external_exports.number(),
+      through: ZodEdgeType
+    })
+  );
+
+  // workers/types/computeProximity.ts
+  var ZodWorkerTaskComputeProximityPayload = external_exports.object({
+    gameState: ZodGameState
+  });
+  var ZodWorkerTaskComputeProximityResult = external_exports.object({
+    result: ZodPathfindingResult
+  });
+
+  // workers/types/computeNeighbors.ts
+  var ZodWorkerTaskComputeNeighborsPayload = external_exports.object({
+    gameState: ZodGameState,
+    locationName: external_exports.string()
+  });
+  var ZodWorkerTaskComputeNeighborsResult = external_exports.object({
+    locationName: external_exports.string(),
+    neighbors: ZodPathfindingResult
+  });
+
+  // workers/types/shortestPath.ts
+  var ZodWorkerTaskcomputeShortestPathFromProximitySourcePayload = external_exports.object({
+    gameState: ZodGameState,
+    targetLocationName: external_exports.string()
+  });
+  var ZodWorkerTaskcomputeShortestPathFromProximitySourceResult = external_exports.object({
+    location: external_exports.string(),
+    shortestPath: external_exports.object({
+      sourceLocation: external_exports.string(),
+      proximity: external_exports.number(),
+      path: external_exports.array(
+        external_exports.object({
+          from: external_exports.string(),
+          to: external_exports.string(),
+          edgeType: ZodEdgeType,
+          cost: external_exports.number()
+        })
+      )
+    }).nullable()
+  });
+
   // workers/graph-worker.ts
   var connection = new IndexedDBReader(dbName, dbVersion, dbStoreNames);
   globalThis.__workerName = "Graph Worker";
   var gameData = null;
   var graph = null;
   self.onmessage = async function(e) {
-    switch (e.data.type) {
+    const taskData = ZodWorkerTask.parse(e.data);
+    switch (taskData.type) {
       case "initGraphWorker":
         try {
           sendMessage(self, {
             data: null,
             message: "Init Graph Worker with indexedDB data",
             level: "log",
-            task: e.data
+            task: taskData
           });
           gameData = await connection.get(dbGameDataStoreName, dbDataKey).then(
             (data) => {
@@ -14971,13 +15178,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
             data: {
               graphStats: graph.getStats()
             },
-            task: e.data
+            task: taskData
           });
         } catch (err) {
           sendMessage(self, {
             message: `Error initializing graph worker: ${err.message}`,
             level: "error",
-            task: e.data
+            task: taskData
           });
         }
         break;
@@ -14986,16 +15193,18 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
           if (!gameData || !graph) {
             throw new Error("Graph Worker not initialized.");
           }
-          const taskPayload = e.data.payload;
+          const taskPayload = ZodWorkerTaskComputeProximityPayload.parse(
+            taskData.payload
+          );
           const { gameState } = taskPayload;
           if (!gameState.capitalLocation) {
             sendMessage(self, {
               message: "No capital location defined for the country - skipping computation",
               level: "result",
               task: {
-                id: e.data.id,
-                type: e.data.type,
-                payload: e.data
+                id: taskData.id,
+                type: taskData.type,
+                payload: taskData.payload
               },
               data: { result: {} }
             });
@@ -15013,7 +15222,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
             data: { proximityBuffs, landProximityBuffs, seaProximityBuffs },
             message: "Proximity buffs computed",
             level: "log",
-            task: e.data
+            task: taskData
           });
           const resultPayload = {
             result: ProximityComputationHelper.getGameStateProximityComputation(
@@ -15031,7 +15240,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
                     data: data ?? null,
                     message,
                     level: "log",
-                    task: e.data
+                    task: taskData
                   });
                 }
               }
@@ -15041,13 +15250,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
             data: resultPayload,
             message: "Proximity computation completed",
             level: "result",
-            task: e.data
+            task: taskData
           });
         } catch (err) {
           sendMessage(self, {
             message: `Error during proximity computation: ${err.message}`,
             level: "error",
-            task: e.data
+            task: taskData
           });
         }
         break;
@@ -15056,7 +15265,9 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
           if (!gameData || !graph) {
             throw new Error("Graph Worker not initialized.");
           }
-          const taskPayload = e.data.payload;
+          const taskPayload = ZodWorkerTaskComputeNeighborsPayload.parse(
+            taskData.payload
+          );
           const { gameState, locationName } = taskPayload;
           const neighborEval = {
             locationName,
@@ -15076,7 +15287,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
                     data: data ?? null,
                     message,
                     level: "log",
-                    task: e.data
+                    task: taskData
                   });
                 }
               }
@@ -15086,13 +15297,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
             data: neighborEval,
             message: "Neighbors computation completed",
             level: "result",
-            task: e.data
+            task: taskData
           });
         } catch (err) {
           sendMessage(self, {
             message: `Error during neighbors computation: ${err.message}`,
             level: "error",
-            task: e.data
+            task: taskData
           });
         }
         break;
@@ -15101,7 +15312,9 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
           if (!gameData || !graph) {
             throw new Error("Graph Worker not initialized.");
           }
-          const taskPayload = e.data.payload;
+          const taskPayload = ZodWorkerTaskcomputeShortestPathFromProximitySourcePayload.parse(
+            taskData.payload
+          );
           const { gameState, targetLocationName } = taskPayload;
           const shortestPathResult = ProximityComputationHelper.getPathFromClosestProximitySource(
             targetLocationName,
@@ -15115,7 +15328,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
                   data: data ?? null,
                   message,
                   level: "log",
-                  task: e.data
+                  task: taskData
                 });
               }
             }
@@ -15132,13 +15345,13 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
             data: resultPayload,
             message: "Shortest path to proximity source computation completed",
             level: "result",
-            task: e.data
+            task: taskData
           });
         } catch (err) {
           sendMessage(self, {
             message: `Error during shortest path to proximity source computation: ${err.message}`,
             level: "error",
-            task: e.data
+            task: taskData
           });
         }
         break;

@@ -11,7 +11,6 @@
     "start": "next start",
     "lint": "eslint",
     "test": "jest",
-    "prepare": "husky install",
     "inject-commit-sha": "bash scripts/inject-commit-sha.sh"
   },
   "dependencies": {

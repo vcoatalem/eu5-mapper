@@ -2,7 +2,8 @@ import { LocationsHelper } from "@/app/lib/locations.helper";
 import { RefObject } from "react";
 import { Observable } from "./observable";
 import type { IGameData } from "./types/general";
-import { ICoordinate, ILocationIdentifier } from "./types/general";
+import { ILocationIdentifier } from "./types/general";
+import { ICoordinate } from "@/app/lib/types/coordinate";
 
 export const zoomLevels = {
   maxedOut: 0.1,

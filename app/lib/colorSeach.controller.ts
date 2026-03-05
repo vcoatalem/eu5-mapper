@@ -1,16 +1,13 @@
 import { worldMapConfig } from "@/app/components/worldMap.config";
 import { ArrayHelper } from "@/app/lib/array.helper";
 import { Observable } from "@/app/lib/observable";
-import {
-  ICoordinate,
-  IGameData,
-  ILocationIdentifier,
-} from "@/app/lib/types/general";
+import { ICoordinate } from "@/app/lib/types/coordinate";
+import { IGameData, ILocationIdentifier } from "@/app/lib/types/general";
 import { workerManager } from "@/app/lib/workerManager";
 import {
   IWorkerTaskColorSearchPayload,
-  IWorkerTaskColorSearchResult,
-} from "@/workers/types/workerTypes";
+  ZodWorkerTaskColorSearchResult,
+} from "@/workers/types/colorSearch";
 
 interface IColorSearchResult {
   result: Record<
@@ -46,7 +43,9 @@ export class ColorSearchController extends Observable<IColorSearchResult> {
           return;
         }
         if (lastCompletedTask.type === "colorSearch") {
-          const data = lastCompletedTask.data as IWorkerTaskColorSearchResult;
+          const data = ZodWorkerTaskColorSearchResult.parse(
+            lastCompletedTask.data,
+          );
           for (const [locationName, coordinates] of Object.entries(
             data.result,
           )) {

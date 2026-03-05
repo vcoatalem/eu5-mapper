@@ -1,4 +1,5 @@
-import { IWorkerMessage, IWorkerTask } from "./types/workerTypes";
+import { IWorkerMessage } from "@/workers/types/message";
+import { IWorkerTask } from "@/workers/types/task";
 
 export const sendMessage = (
   self: typeof globalThis,

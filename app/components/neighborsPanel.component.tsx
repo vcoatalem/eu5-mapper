@@ -229,7 +229,7 @@ export function NeighborsPanelComponent({ baseLocation }: NeighborsPanelProps) {
 
   useEffect(() => {
     if (
-      !neighborLocationResult ||
+      (!!baseLocation && !neighborLocationResult) ||
       neighborLocationResult.status === "needs_update"
     ) {
       neighborsProximityComputationController.launchGetNeighborsProximity(

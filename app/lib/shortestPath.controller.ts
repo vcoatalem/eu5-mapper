@@ -1,9 +1,9 @@
-import { IWorkerTaskcomputeShortestPathFromProximitySourceResult } from "@/workers/types/workerTypes";
 import { Observable } from "./observable";
 import { ILocationIdentifier } from "./types/general";
 import { EdgeType } from "./types/pathfinding";
 import { workerManager } from "@/app/lib/workerManager";
 import { gameStateController } from "./gameState.controller";
+import { ZodWorkerTaskcomputeShortestPathFromProximitySourceResult } from "@/workers/types/shortestPath";
 
 export interface IShortestPathResult {
   result: Record<
@@ -41,39 +41,43 @@ class ShortestPatchController extends Observable<IShortestPathResult> {
     this.unsubscribeWorkerManager = null;
     this.unsubscribeGameState = null;
 
-    this.unsubscribeWorkerManager = workerManager.subscribe(({ lastCompletedTask }) => {
-      if (!lastCompletedTask) return;
-      if (lastCompletedTask.type !== "computeShortestPathFromProximitySource")
-        return;
+    this.unsubscribeWorkerManager = workerManager.subscribe(
+      ({ lastCompletedTask }) => {
+        if (!lastCompletedTask) return;
+        if (lastCompletedTask.type !== "computeShortestPathFromProximitySource")
+          return;
 
-      const data =
-        lastCompletedTask.data as IWorkerTaskcomputeShortestPathFromProximitySourceResult;
-      const shortestPath = data.shortestPath;
+        const data =
+          ZodWorkerTaskcomputeShortestPathFromProximitySourceResult.parse(
+            lastCompletedTask.data,
+          );
+        const shortestPath = data.shortestPath;
 
-      this.subject.result[data.location] = {
-        status: "completed",
-        proximityResult: shortestPath
-          ? {
-              path: shortestPath.path.map((step) => ({
-                throughLocation: step.to,
-                cost: step.cost,
-                through: step.edgeType,
-              })),
-              sourceLocation: shortestPath.sourceLocation,
-              proximity: shortestPath.proximity,
-            }
-          : null,
-      };
+        this.subject.result[data.location] = {
+          status: "completed",
+          proximityResult: shortestPath
+            ? {
+                path: shortestPath.path.map((step) => ({
+                  throughLocation: step.to,
+                  cost: step.cost,
+                  through: step.edgeType,
+                })),
+                sourceLocation: shortestPath.sourceLocation,
+                proximity: shortestPath.proximity,
+              }
+            : null,
+        };
 
-      console.log(
-        "[ShortestPathController] Received shortest path result for location",
-        {
-          location: data.location,
-          shortestPath: data.shortestPath,
-        },
-      );
-      this.notifyListeners();
-    });
+        console.log(
+          "[ShortestPathController] Received shortest path result for location",
+          {
+            location: data.location,
+            shortestPath: data.shortestPath,
+          },
+        );
+        this.notifyListeners();
+      },
+    );
 
     this.unsubscribeGameState = gameStateController.subscribe(() => {
       let changed = false;

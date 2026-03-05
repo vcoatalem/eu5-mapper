@@ -1,5 +1,6 @@
+import { ICoordinate } from "@/app/lib/types/coordinate";
 import { Subject } from "./subject";
-import { ICoordinate, ILocationIdentifier } from "./types/general";
+import { ILocationIdentifier } from "./types/general";
 
 type HoverEventPayload = {
   locations: ILocationIdentifier[];

@@ -16,11 +16,6 @@ export type ILocationIdentifierMap<
   LocationName extends string = string,
 > = Record<HexColor, LocationName>;
 
-export interface ICoordinate {
-  x: number;
-  y: number;
-}
-
 export interface IGameData {
   locationDataMap: ILocationDataMap;
   colorToNameMap: ILocationIdentifierMap;

@@ -1,13 +1,4 @@
 import { sendMessage } from "./utils";
-import {
-  IWorkerTask,
-  IWorkerTaskComputeNeighborsPayload,
-  IWorkerTaskComputeNeighborsResult,
-  IWorkerTaskComputeProximityPayload,
-  IWorkerTaskComputeProximityResult,
-  IWorkerTaskcomputeShortestPathFromProximitySourcePayload,
-  IWorkerTaskcomputeShortestPathFromProximitySourceResult,
-} from "./types/workerTypes";
 import { IndexedDBReader } from "../app/lib/indexeddb/indexeddb-reader";
 import {
   dbAdjacencyDataStoreName,
@@ -22,6 +13,23 @@ import { CompactGraph } from "@/app/lib/graph";
 import { ParserHelper } from "@/app/lib/parser.helper";
 import { ProximityComputationHelper } from "@/app/lib/proximityComputation.helper";
 import { ProximityBuffsRecord } from "@/app/lib/classes/countryProximityBuffs";
+import { IWorkerTask, ZodWorkerTask } from "@/workers/types/task";
+import {
+  IWorkerTaskComputeProximityPayload,
+  IWorkerTaskComputeProximityResult,
+  ZodWorkerTaskComputeProximityPayload,
+} from "@/workers/types/computeProximity";
+import {
+  IWorkerTaskComputeNeighborsPayload,
+  IWorkerTaskComputeNeighborsResult,
+  ZodWorkerTaskComputeNeighborsPayload,
+} from "@/workers/types/computeNeighbors";
+import {
+  IWorkerTaskcomputeShortestPathFromProximitySourceResult,
+  ZodWorkerTaskcomputeShortestPathFromProximitySourcePayload,
+} from "@/workers/types/shortestPath";
+import { ZodWorkerMessage } from "@/workers/types/message";
+import { ZodWorkerTaskColorSearchPayload } from "@/workers/types/colorSearch";
 
 const connection = new IndexedDBReader(dbName, dbVersion, dbStoreNames);
 
@@ -30,15 +38,16 @@ const connection = new IndexedDBReader(dbName, dbVersion, dbStoreNames);
 let gameData: IGameData | null = null;
 let graph: CompactGraph | null = null;
 
-self.onmessage = async function (e: MessageEvent<IWorkerTask>) {
-  switch (e.data.type) {
+self.onmessage = async function (e: MessageEvent<unknown>) {
+  const taskData = ZodWorkerTask.parse(e.data);
+  switch (taskData.type) {
     case "initGraphWorker":
       try {
         sendMessage(self, {
           data: null,
           message: "Init Graph Worker with indexedDB data",
           level: "log",
-          task: e.data,
+          task: taskData,
         });
         gameData = await connection.get(dbGameDataStoreName, dbDataKey).then(
           (data) => {
@@ -65,13 +74,13 @@ self.onmessage = async function (e: MessageEvent<IWorkerTask>) {
           data: {
             graphStats: graph.getStats(),
           },
-          task: e.data,
+          task: taskData,
         });
       } catch (err) {
         sendMessage(self, {
           message: `Error initializing graph worker: ${(err as any).message}`,
           level: "error",
-          task: e.data,
+          task: taskData,
         });
       }
       break;
@@ -80,8 +89,9 @@ self.onmessage = async function (e: MessageEvent<IWorkerTask>) {
         if (!gameData || !graph) {
           throw new Error("Graph Worker not initialized.");
         }
-        const taskPayload = e.data
-          .payload as IWorkerTaskComputeProximityPayload;
+        const taskPayload = ZodWorkerTaskComputeProximityPayload.parse(
+          taskData.payload,
+        );
         const { gameState } = taskPayload;
         if (!gameState.capitalLocation) {
           sendMessage(self, {
@@ -89,9 +99,9 @@ self.onmessage = async function (e: MessageEvent<IWorkerTask>) {
               "No capital location defined for the country - skipping computation",
             level: "result",
             task: {
-              id: e.data.id,
-              type: e.data.type,
-              payload: e.data,
+              id: taskData.id,
+              type: taskData.type,
+              payload: taskData.payload,
             },
             data: { result: {} },
           });
@@ -113,7 +123,7 @@ self.onmessage = async function (e: MessageEvent<IWorkerTask>) {
           data: { proximityBuffs, landProximityBuffs, seaProximityBuffs },
           message: "Proximity buffs computed",
           level: "log",
-          task: e.data,
+          task: taskData,
         });
 
         const resultPayload: IWorkerTaskComputeProximityResult = {
@@ -131,7 +141,7 @@ self.onmessage = async function (e: MessageEvent<IWorkerTask>) {
                   data: data ?? null,
                   message: message,
                   level: "log",
-                  task: e.data,
+                  task: taskData,
                 });
               },
             },
@@ -142,13 +152,13 @@ self.onmessage = async function (e: MessageEvent<IWorkerTask>) {
           data: resultPayload,
           message: "Proximity computation completed",
           level: "result",
-          task: e.data,
+          task: taskData,
         });
       } catch (err) {
         sendMessage(self, {
           message: `Error during proximity computation: ${(err as any).message}`,
           level: "error",
-          task: e.data,
+          task: taskData,
         });
       }
       break;
@@ -157,8 +167,9 @@ self.onmessage = async function (e: MessageEvent<IWorkerTask>) {
         if (!gameData || !graph) {
           throw new Error("Graph Worker not initialized.");
         }
-        const taskPayload = e.data
-          .payload as IWorkerTaskComputeNeighborsPayload;
+        const taskPayload = ZodWorkerTaskComputeNeighborsPayload.parse(
+          taskData.payload,
+        );
         const { gameState, locationName } = taskPayload;
         const neighborEval: IWorkerTaskComputeNeighborsResult = {
           locationName,
@@ -181,7 +192,7 @@ self.onmessage = async function (e: MessageEvent<IWorkerTask>) {
                     data: data ?? null,
                     message: message,
                     level: "log",
-                    task: e.data,
+                    task: taskData,
                   });
                 },
               },
@@ -191,13 +202,13 @@ self.onmessage = async function (e: MessageEvent<IWorkerTask>) {
           data: neighborEval,
           message: "Neighbors computation completed",
           level: "result",
-          task: e.data,
+          task: taskData,
         });
       } catch (err) {
         sendMessage(self, {
           message: `Error during neighbors computation: ${(err as any).message}`,
           level: "error",
-          task: e.data,
+          task: taskData,
         });
       }
       break;
@@ -207,8 +218,11 @@ self.onmessage = async function (e: MessageEvent<IWorkerTask>) {
           throw new Error("Graph Worker not initialized.");
         }
 
-        const taskPayload = e.data
-          .payload as IWorkerTaskcomputeShortestPathFromProximitySourcePayload;
+        const taskPayload =
+          ZodWorkerTaskcomputeShortestPathFromProximitySourcePayload.parse(
+            taskData.payload,
+          );
+
         const { gameState, targetLocationName } = taskPayload;
 
         const shortestPathResult =
@@ -224,7 +238,7 @@ self.onmessage = async function (e: MessageEvent<IWorkerTask>) {
                   data: data ?? null,
                   message: message,
                   level: "log",
-                  task: e.data,
+                  task: taskData,
                 });
               },
             },
@@ -247,13 +261,13 @@ self.onmessage = async function (e: MessageEvent<IWorkerTask>) {
           data: resultPayload,
           message: "Shortest path to proximity source computation completed",
           level: "result",
-          task: e.data,
+          task: taskData,
         });
       } catch (err) {
         sendMessage(self, {
           message: `Error during shortest path to proximity source computation: ${(err as any).message}`,
           level: "error",
-          task: e.data,
+          task: taskData,
         });
       }
       break;

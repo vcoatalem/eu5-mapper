@@ -1,5 +1,5 @@
+import { ICoordinate } from "@/app/lib/types/coordinate";
 import { createContext, useEffect, useMemo, useState } from "react";
-import { ICoordinate } from "../types/general";
 
 export interface ITooltipConfig {
   offset: ICoordinate;
@@ -29,7 +29,9 @@ export function TooltipProvider({ children }: { children: React.ReactNode }) {
   const [tooltipRoot, setTooltipRoot] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
-    queueMicrotask(() => setTooltipRoot(document.getElementById("tooltip-root")));
+    queueMicrotask(() =>
+      setTooltipRoot(document.getElementById("tooltip-root")),
+    );
   }, []);
 
   const value = useMemo(

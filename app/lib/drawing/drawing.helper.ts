@@ -1,4 +1,4 @@
-import { ICoordinate } from "../types/general";
+import { ICoordinate } from "@/app/lib/types/coordinate";
 
 export class DrawingHelper {
   public static drawCircle(
@@ -88,10 +88,10 @@ export class DrawingHelper {
     ctx: CanvasRenderingContext2D,
     borderCanvas: ICoordinate[][],
     colorFn: (...args: unknown[]) => string = () => "rgba(255,255,255,0.5)",
-    colorFnArgs?: unknown[]
+    colorFnArgs?: unknown[],
   ): void {
     ctx.save();
-    ctx.fillStyle = colorFn(...colorFnArgs ?? []);
+    ctx.fillStyle = colorFn(...(colorFnArgs ?? []));
     for (const coords of borderCanvas) {
       for (const c of coords) {
         ctx.fillRect(c.x, c.y, 1, 1);

@@ -119,9 +119,9 @@ export class ProximityBuffsRecord {
     return Object.entries(this.countryProximityBuffs).reduce(
       (acc, [, buffEffects]) => {
         const newSet = new Set(acc);
-        for (const buffKey of Object.keys(buffEffects) as Array<
-          keyof ICountryProximityBuffs
-        >) {
+        for (const buffKey of ObjectHelper.getTypedEntries(buffEffects)
+          .filter(([, value]) => !!value)
+          .map(([key]) => key)) {
           newSet.add(buffKey);
         }
         return newSet;

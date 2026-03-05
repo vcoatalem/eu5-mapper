@@ -229,8 +229,9 @@ export function NeighborsPanelComponent({ baseLocation }: NeighborsPanelProps) {
 
   useEffect(() => {
     if (
-      (!!baseLocation && !neighborLocationResult) ||
-      neighborLocationResult.status === "needs_update"
+      !!baseLocation &&
+      (!neighborLocationResult ||
+        neighborLocationResult.status === "needs_update")
     ) {
       neighborsProximityComputationController.launchGetNeighborsProximity(
         baseLocation,

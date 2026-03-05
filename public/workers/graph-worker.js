@@ -14508,7 +14508,7 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
       return Object.entries(this.countryProximityBuffs).reduce(
         (acc, [, buffEffects]) => {
           const newSet = new Set(acc);
-          for (const buffKey of Object.keys(buffEffects)) {
+          for (const buffKey of ObjectHelper.getTypedEntries(buffEffects).filter(([, value]) => !!value).map(([key]) => key)) {
             newSet.add(buffKey);
           }
           return newSet;

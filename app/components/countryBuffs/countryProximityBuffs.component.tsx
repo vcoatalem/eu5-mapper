@@ -2,7 +2,7 @@ import { AppContext } from "@/app/appContextProvider";
 import { ModifierBuffDisplay } from "@/app/components/countryBuffs/modifierBuffDisplay.component";
 import { ProximityBuffsRecord } from "@/app/lib/classes/countryProximityBuffs";
 import { ICountryInstance } from "@/app/lib/types/countryInstance";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 
 interface ICountryProximityBuffsProps {
   className?: string;
@@ -27,14 +27,23 @@ export function CountryProximityBuffs(props: ICountryProximityBuffsProps) {
     queueMicrotask(() => setBuffRecord(buffRecord));
   }, [gameData, countrySignature]);
 
+  const buffsToDisplay = useMemo(() => {
+    if (!buffRecord) {
+      return [];
+    }
+    return Array.from(buffRecord.getBuffsToDisplay());
+  }, [buffRecord]);
+
   if (!gameData || !buffRecord) {
     return <div>Loading...</div>;
   }
 
+  console.log({ buffsToDisplay });
+
   return (
     <div className={[props.className].join(" ")}>
       <div className="flex flex-col gap-1">
-        {Array.from(buffRecord.getBuffsToDisplay()).map((buffKey) => (
+        {buffsToDisplay.map((buffKey) => (
           <ModifierBuffDisplay
             key={buffKey}
             buffKey={buffKey}

@@ -1,14 +1,22 @@
-import { ILocationIdentifier } from "@/app/lib/types/general";
+import z from "zod";
 
-export type RoadKey = `${ILocationIdentifier}-${ILocationIdentifier}` & { readonly __brand: unique symbol };
+export const ZodRoadKey = z
+  .string()
+  .regex(/^.+-.+$/, "Invalid RoadKey format")
+  .brand<"RoadKey">();
 
-export function asRoadKey(s: string): RoadKey {
-  if (!/^.+-.+$/.test(s)) throw new Error(`Invalid RoadKey format: ${s}`);
-  return s as RoadKey;
-}
-export type RoadType =
-  | "gravel_road"
-  | "paved_road"
-  | "modern_road"
-  | "rail_road";
-export const allRoadTypes: readonly RoadType[] = ["gravel_road", "paved_road", "modern_road", "rail_road"];
+export type RoadKey = z.infer<typeof ZodRoadKey>;
+
+export const ZodRoadType = z.enum([
+  "gravel_road",
+  "paved_road",
+  "modern_road",
+  "rail_road",
+]);
+export type RoadType = z.infer<typeof ZodRoadType>;
+export const allRoadTypes: readonly RoadType[] = [
+  "gravel_road",
+  "paved_road",
+  "modern_road",
+  "rail_road",
+];

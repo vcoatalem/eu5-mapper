@@ -1,10 +1,10 @@
-import { IWorkerTaskComputeNeighborsResult } from "@/workers/types/workerTypes";
 import { Observable } from "./observable";
 import { ILocationIdentifier } from "./types/general";
 import { workerManager } from "@/app/lib/workerManager";
 import { gameStateController } from "@/app/lib/gameState.controller";
 import { PathfindingResult } from "./types/pathfinding";
 import { ArrayHelper } from "@/app/lib/array.helper";
+import { ZodWorkerTaskComputeNeighborsResult } from "@/workers/types/computeNeighbors";
 
 type NeighborsProximityComputationResults = {
   computationResults: Record<
@@ -42,8 +42,9 @@ class NeighborProximityComputationController extends Observable<NeighborsProximi
 
         this.lastCompletedTaskId = lastCompletedTask.taskId;
 
-        const data =
-          lastCompletedTask.data as IWorkerTaskComputeNeighborsResult;
+        const data = ZodWorkerTaskComputeNeighborsResult.parse(
+          lastCompletedTask.data,
+        );
 
         this.subject.computationResults[data.locationName] = {
           neighbors: data.neighbors,

@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import { ITooltipConfig, TooltipProviderContext } from "./tooltip.provider";
-import { ICoordinate } from "../types/general";
+import { ICoordinate } from "@/app/lib/types/coordinate";
 
 interface ITooltipProps {
   config?: Partial<ITooltipConfig>;
@@ -50,25 +50,31 @@ export function Tooltip(props: ITooltipProps) {
   const triggerRef = props.triggerRef ?? internalTriggerRef;
   const openTimeout = useRef<number | null>(null);
   const closeTimeout = useRef<number | null>(null);
-  const open = useCallback((e: React.MouseEvent) => {
-    if (props.forceOpen) return;
-    if (closeTimeout.current) window.clearTimeout(closeTimeout.current);
-    setMouseCoordinates({ x: e.clientX, y: e.clientY });
-    openTimeout.current = window.setTimeout(
-      () => setIsOpen(true),
-      mergedConfig.openDelay,
-    );
-  }, [props.forceOpen, mergedConfig.openDelay]);
+  const open = useCallback(
+    (e: React.MouseEvent) => {
+      if (props.forceOpen) return;
+      if (closeTimeout.current) window.clearTimeout(closeTimeout.current);
+      setMouseCoordinates({ x: e.clientX, y: e.clientY });
+      openTimeout.current = window.setTimeout(
+        () => setIsOpen(true),
+        mergedConfig.openDelay,
+      );
+    },
+    [props.forceOpen, mergedConfig.openDelay],
+  );
 
-  const close = useCallback((e: React.MouseEvent) => {
-    if (props.forceOpen) return;
-    if (openTimeout.current) window.clearTimeout(openTimeout.current);
-    setMouseCoordinates({ x: e.clientX, y: e.clientY });
-    closeTimeout.current = window.setTimeout(
-      () => setIsOpen(false),
-      mergedConfig.closeDelay,
-    );
-  }, [props.forceOpen, mergedConfig.closeDelay]);
+  const close = useCallback(
+    (e: React.MouseEvent) => {
+      if (props.forceOpen) return;
+      if (openTimeout.current) window.clearTimeout(openTimeout.current);
+      setMouseCoordinates({ x: e.clientX, y: e.clientY });
+      closeTimeout.current = window.setTimeout(
+        () => setIsOpen(false),
+        mergedConfig.closeDelay,
+      );
+    },
+    [props.forceOpen, mergedConfig.closeDelay],
+  );
 
   useEffect(() => {
     if (props.forceOpen) {

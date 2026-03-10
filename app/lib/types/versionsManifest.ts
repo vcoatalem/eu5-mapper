@@ -24,11 +24,11 @@ export interface FileManifest {
  * These are the logical names for files, mapped to their actual file names
  */
 export type GameDataFileType =
-  | "locationData" // location-data-map.json
+  | "locationData" // location-data.json
   | "buildingsTemplate" // buildings-template.json
   | "adjacencyCsv" // adjacency-data.csv
   | "proximityComputationRule" // proximity-calculation-rules.json
-  | "countriesDataMap" // countries-data-map.json
+  | "countriesData" // countries-data.json
   | "roads" // roads.json
   | "locationsImage" // images/locations.png
   | "borderLayer" // images/border_layer.png
@@ -39,11 +39,11 @@ export type GameDataFileType =
  * Mapping from logical file type names to actual file names/paths
  */
 export const FILE_TYPE_TO_FILENAME: Record<GameDataFileType, string> = {
-  locationData: "location-data-map.json",
+  locationData: "location-data.json",
   buildingsTemplate: "buildings-template.json",
   adjacencyCsv: "adjacency-data.csv",
   proximityComputationRule: "proximity-calculation-rules.json",
-  countriesDataMap: "countries-data-map.json",
+  countriesData: "countries-data.json",
   roads: "roads.json",
   locationsImage: "images/locations.png",
   borderLayer: "images/border_layer.png",

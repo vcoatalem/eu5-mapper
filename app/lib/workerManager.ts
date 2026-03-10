@@ -1,13 +1,16 @@
 "use client";
 
-import {
-  IWorkerTask,
-  IWorkerMessage,
-  IWorkerManagerStatus,
-  TaskType,
-} from "../../workers/types/workerTypes";
 import { workerManagerConfig } from "./workerManager.config";
 import { Observable } from "./observable";
+import { IWorkerTask, IWorkerTaskResult, TaskType } from "@/workers/types/task";
+import { IWorkerMessage } from "@/workers/types/message";
+
+interface IWorkerManagerStatus {
+  activeTasks: number;
+  queuedTasks: number;
+  lastCompletedTask: IWorkerTaskResult | null;
+  lastSlowTask: { taskId: string; type: TaskType } | null;
+}
 
 type WorkerPool = {
   workerFileName: string;

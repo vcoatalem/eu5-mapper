@@ -14,7 +14,7 @@ import React, {
 import { InfoBoxComponent } from "./infoBox.component";
 import { AppContext } from "../appContextProvider";
 import { gameStateController } from "@/app/lib/gameState.controller";
-import { ICoordinate, ILocationIdentifier } from "../lib/types/general";
+import { ILocationIdentifier } from "@/app/lib/types/general";
 import { DrawingService } from "@/app/lib/drawing.service";
 import { workerManager } from "@/app/lib/workerManager";
 import { LoadingScreenComponent } from "./loadingScreen.component";
@@ -31,7 +31,6 @@ import { CountryOverview } from "./countryOverview.component";
 import { LocationHierarchyService } from "@/app/lib/locationHierarchy.service";
 import { locationSearchController } from "@/app/lib/locationSearchController";
 import { actionEventDispatcher } from "../lib/actionEventDispatcher";
-import { IWorkerTaskInitWithImagePayload } from "@/workers/types/workerTypes";
 import { ObservableCombiner } from "../lib/observableCombiner";
 import {
   editModeController,
@@ -59,6 +58,8 @@ import {
   layerVisibilityController,
 } from "@/app/lib/layerVisibility.controller";
 import { LayerVisibilityEdition } from "@/app/components/layerVisibilityEdition.component";
+import { ICoordinate } from "@/app/lib/types/coordinate";
+import { IWorkerTaskInitWithImagePayload } from "@/workers/types/initWithImage";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
@@ -717,7 +718,7 @@ export function WorldMapComponent() {
     }
 
     // init all controllers (after subscriptions to trigger first subscriptions)
-    gameStateController.init(gameData);
+    gameStateController.init(gameData, version);
     proximityComputationController.init();
     neighborsProximityComputationController.init();
     locationSearchController.init(gameData);

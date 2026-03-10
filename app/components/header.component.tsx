@@ -27,7 +27,9 @@ function RegularHeader() {
   if (!gameData) return null;
 
   const flagUrl =
-    gameData.countriesDataMap[gameState.countryCode ?? ""]?.flagUrl;
+    gameState.countryCode && gameState.countryCode in gameData.countriesData
+      ? gameData.countriesData[gameState.countryCode].flagUrl
+      : null;
 
   return (
     <div className={styles.header}>
@@ -48,7 +50,7 @@ function RegularHeader() {
       >
         <span className="inset text-center backdrop-blur-sm">
           {(gameState.countryCode &&
-            gameData.countriesDataMap[gameState.countryCode]?.name) ||
+            gameData.countriesData[gameState.countryCode]?.name) ||
             "Choose a Country"}
         </span>
       </button>

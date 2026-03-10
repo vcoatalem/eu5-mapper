@@ -5,12 +5,16 @@ import { ProximityIcon } from "@/app/components/indicatorsIcons/proximityIcon.co
 import { Loader } from "@/app/components/loader.component";
 import { debouncedProximityComputationController } from "@/app/lib/proximityComputation.controller";
 import { ProximityComputationHelper } from "@/app/lib/proximityComputation.helper";
-import { IGameState, ILocationIdentifier } from "@/app/lib/types/general";
+import {
+  IGameState,
+  IGameStateOwnedLocationRecord,
+} from "@/app/lib/types/gameState";
+import { ILocationIdentifier } from "@/app/lib/types/general";
 import { NumbersHelper } from "@/app/lib/utils/numbers.helper";
 import { useContext, useMemo, useRef, useSyncExternalStore } from "react";
 
 interface ICountryStatsProps {
-  ownedLocations: IGameState["ownedLocations"];
+  ownedLocations: IGameStateOwnedLocationRecord;
   className?: string;
 }
 export function CountryStats(props: ICountryStatsProps) {

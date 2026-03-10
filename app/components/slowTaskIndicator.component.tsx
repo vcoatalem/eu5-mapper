@@ -1,12 +1,10 @@
-import { memo, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { workerManager } from "@/app/lib/workerManager";
-import { TaskType } from "@/workers/types/workerTypes";
-import Loadable from "next/dist/shared/lib/loadable.shared-runtime";
 import { Loader } from "@/app/components/loader.component";
-import { GuiElement } from "@/app/components/guiElement";
 import { Tooltip } from "@/app/lib/tooltip/tooltip.component";
 import { TooltipTrigger } from "@/app/lib/tooltip/tooltipTrigger.component";
 import { TooltipContent } from "@/app/lib/tooltip/tooltipContent.component";
+import { TaskType } from "@/workers/types/task";
 
 export function SlowTaskIndicator(props: { className?: string }) {
   const [slowTask, setSlowTask] = useState<{

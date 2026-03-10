@@ -4,32 +4,29 @@ import {
   LogicTreeBuilder,
 } from "@/app/lib/classes/logicTree";
 import { LocationsHelper } from "@/app/lib/locations.helper";
-import {
-  ConstructibleAction,
-  IBuildingInstance,
-  INewBuildingTemplate,
-  NewConstructibleState,
-  PlacementRestrictions,
-} from "@/app/lib/types/building";
+import { BuildingIdentifier } from "@/app/lib/types/building";
+import { IBuildingInstance } from "@/app/lib/types/buildingInstance";
+import { BuildingPlacementRestrictions } from "@/app/lib/types/buildingPlacementRestriction";
+import { BuildingTemplate } from "@/app/lib/types/buildingTemplate";
+import { ConstructibleAction } from "@/app/lib/types/constructibleAction";
+import { ConstructibleState } from "@/app/lib/types/constructibleState";
+import { IGameState } from "@/app/lib/types/gameState";
 import {
   BaseRoadRecord,
   IGameData,
-  IGameState,
-  ILocationGameData,
   ILocationIdentifier,
-  LocationRank,
 } from "@/app/lib/types/general";
-
-type IBuildingTemplateIdentifier = INewBuildingTemplate["name"];
+import { ILocationGameData } from "@/app/lib/types/location";
+import { LocationRank } from "@/app/lib/types/locationRank";
 
 export class EligibleBuildingService {
   private readonly buildingTemplateMapping: Record<
-    IBuildingTemplateIdentifier,
-    { tree: LogicTree; data: INewBuildingTemplate }
+    BuildingIdentifier,
+    { tree: LogicTree; data: BuildingTemplate }
   >;
   private readonly templateFamilyMapping: Record<
-    IBuildingTemplateIdentifier,
-    Array<IBuildingTemplateIdentifier>
+    BuildingIdentifier,
+    Array<BuildingIdentifier>
   >;
   private readonly locationDataMap: IGameData["locationDataMap"];
   private readonly baseRoads: BaseRoadRecord;
@@ -62,7 +59,7 @@ export class EligibleBuildingService {
   }
 
   private getBuildingSupportabilityLogicTree(
-    buildingTemplate: INewBuildingTemplate,
+    buildingTemplate: BuildingTemplate,
     getLocationData: (
       locationId: ILocationIdentifier,
     ) => ILocationGameData | undefined,
@@ -98,17 +95,17 @@ export class EligibleBuildingService {
   }
 
   private evaluatePlacementCondition(
-    condition: PlacementRestrictions,
+    condition: BuildingPlacementRestrictions,
     location: ILocationGameData,
     gameState: IGameState,
   ): boolean {
     switch (condition) {
       case "is_coastal":
-        return location.isCoastal;
+        return !!location.isCoastal;
       case "has_river":
-        return location.isOnRiver;
+        return !!location.isOnRiver;
       case "is_adjacent_to_lake":
-        return location.isOnLake;
+        return !!location.isOnLake;
       case "is_capital":
         return gameState.capitalLocation === location.name;
       case "has_road":
@@ -123,7 +120,7 @@ export class EligibleBuildingService {
   }
 
   private static locationLevelSupportsBuilding(
-    building: INewBuildingTemplate,
+    building: BuildingTemplate,
     rank: LocationRank,
   ) {
     switch (building.type) {
@@ -141,18 +138,15 @@ export class EligibleBuildingService {
   }
 
   private static partitionTemplatesByFamily(
-    templates: Record<IBuildingTemplateIdentifier, INewBuildingTemplate>,
-  ): Record<IBuildingTemplateIdentifier, IBuildingTemplateIdentifier[]> {
-    const res: Record<
-      IBuildingTemplateIdentifier,
-      IBuildingTemplateIdentifier[]
-    > = {};
+    templates: Record<BuildingIdentifier, BuildingTemplate>,
+  ): Record<BuildingIdentifier, BuildingIdentifier[]> {
+    const res: Record<BuildingIdentifier, BuildingIdentifier[]> = {};
 
     const { baseTemplates } = Object.values(templates).reduce(
       (
         acc: {
-          baseTemplates: INewBuildingTemplate[];
-          upgradeTemplates: INewBuildingTemplate[];
+          baseTemplates: BuildingTemplate[];
+          upgradeTemplates: BuildingTemplate[];
         },
         template,
       ) => {
@@ -164,8 +158,8 @@ export class EligibleBuildingService {
         return acc;
       },
       { baseTemplates: [], upgradeTemplates: [] } as {
-        baseTemplates: INewBuildingTemplate[];
-        upgradeTemplates: INewBuildingTemplate[];
+        baseTemplates: BuildingTemplate[];
+        upgradeTemplates: BuildingTemplate[];
       },
     );
 
@@ -186,13 +180,10 @@ export class EligibleBuildingService {
    * already at the location if any, otherwise the base template of the family.
    */
   private static getRepresentativeTemplateNamesPerFamily(
-    templatesByFamily: Record<
-      IBuildingTemplateIdentifier,
-      IBuildingTemplateIdentifier[]
-    >,
-    locationBuildings: Record<IBuildingTemplateIdentifier, IBuildingInstance>,
-  ): Set<IBuildingTemplateIdentifier> {
-    const names = new Set<IBuildingTemplateIdentifier>();
+    templatesByFamily: Record<BuildingIdentifier, BuildingIdentifier[]>,
+    locationBuildings: Record<BuildingIdentifier, IBuildingInstance>,
+  ): Set<BuildingIdentifier> {
+    const names = new Set<BuildingIdentifier>();
     for (const [baseName, memberNames] of Object.entries(templatesByFamily)) {
       const existingInFamily = memberNames.find(
         (name) => name in locationBuildings,
@@ -205,7 +196,7 @@ export class EligibleBuildingService {
   public getEligibleBuildingTemplates(
     location: ILocationIdentifier,
     gameState: IGameState,
-  ): INewBuildingTemplate[] {
+  ): BuildingTemplate[] {
     return Object.values(this.buildingTemplateMapping)
       .filter(({ tree }) => {
         return evaluateLogicTree(tree, location, gameState);
@@ -216,8 +207,8 @@ export class EligibleBuildingService {
   public getConstructibleState(
     location: ILocationIdentifier,
     gameState: IGameState,
-  ): NewConstructibleState {
-    const res: NewConstructibleState = {};
+  ): ConstructibleState {
+    const res: ConstructibleState = {};
     const locationBuildings = gameState.ownedLocations[location].buildings;
     const representativeTemplateNames =
       EligibleBuildingService.getRepresentativeTemplateNamesPerFamily(
@@ -242,7 +233,6 @@ export class EligibleBuildingService {
           !(buildingTemplate.upgrade in locationBuildings)
         ) {
           possibleActions.push({
-            // TODO : need to check recursively for upgrades and downgrades ...
             type: "upgrade",
             building: buildingTemplate.name,
             to: this.buildingTemplateMapping[buildingTemplate.upgrade].data,

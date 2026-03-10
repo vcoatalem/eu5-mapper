@@ -1,10 +1,18 @@
-import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { TooltipInstanceContext } from "./tooltip.component";
 import { TooltipProviderContext } from "./tooltip.provider";
 import { createPortal } from "react-dom";
-import { ICoordinate } from "../types/general";
 import { cameraController } from "../cameraController";
 import styles from "./tooltip.module.css";
+import { ICoordinate } from "@/app/lib/types/coordinate";
 
 interface ITooltipDomAnchor {
   type: "dom";

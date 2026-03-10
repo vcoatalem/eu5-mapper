@@ -6,20 +6,20 @@ import React, {
   useSyncExternalStore,
 } from "react";
 import { gameStateController } from "@/app/lib/gameState.controller";
-import {
-  IConstructibleLocation,
-  IGameData,
-  IGameState,
-  ILocationIdentifier,
-} from "../lib/types/general";
+import { IGameData, ILocationIdentifier } from "../lib/types/general";
 import { AppContext } from "../appContextProvider";
-import { IProximityComputationResults, proximityComputationController } from "../lib/proximityComputation.controller";
+import {
+  IProximityComputationResults,
+  proximityComputationController,
+} from "../lib/proximityComputation.controller";
 import { ProximityComputationHelper } from "../lib/proximityComputation.helper";
 import { ActionSource } from "@/app/lib/actionSource.component";
 import { FoldableMenu } from "./foldableMenu.component";
 import { FormattedProximityWithPathfindingTooltip } from "@/app/components/formattedProximityWithPathfindingTooltip.component";
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import { IoSearch } from "react-icons/io5";
+import { IConstructibleLocation } from "@/app/lib/types/constructibleLocation";
+import { IGameState } from "@/app/lib/types/gameState";
 
 const SimpleLocationListItem = React.memo(function SimpleLocationListItem({
   location,
@@ -95,7 +95,6 @@ export function SimpleLocationList() {
       locationName.toLowerCase().includes(searchLower),
     );
   }, [search, gameState.ownedLocations, ownedLocationKeys.length]);
-
 
   // Auto-expand when search has results
   // This is a legitimate side effect: syncing UI state (expansion) with user input (search)

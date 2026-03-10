@@ -1,4 +1,5 @@
 import { ILocationIdentifier } from "./general";
+import { z } from "zod";
 
 // TODO: might need to make edges directional.
 // rivers seem to NOT bi directional (e.g pest -> buda is river, buda -> pest is land)
@@ -35,24 +36,29 @@ export interface GraphStats {
   unknownEdges: number;
 }
 
-export type EdgeType =
-  | "river"
-  | "land"
-  | "sea"
-  | "port"
-  | "lake"
-  | "port-river" // river-mouth port
-  | "through-sea" // special hard-coded ajacency. Allows going from location A -> B while applying sea travel cost of location C
-  | "coastal" // land <-> sea adjacency that is not a port (e.g. dover <-> thames)
-  | "unknown";
+export const ZodEdgeType = z.enum([
+  "river",
+  "land",
+  "sea",
+  "port",
+  "lake",
+  "port-river", // river-mouth port
+  "through-sea", // special hard-coded ajacency. Allows going from location A -> B while applying sea travel cost of location C
+  "coastal", // land <-> sea adjacency that is not a port (e.g. dover <-> thames)
+  "unknown",
+]);
 
-export type PathfindingResult = Record<
-  ILocationIdentifier,
-  {
-    cost: number;
-    through: EdgeType;
-  }
->;
+export type EdgeType = z.infer<typeof ZodEdgeType>;
+
+export const ZodPathfindingResult = z.record(
+  z.string(),
+  z.object({
+    cost: z.number(),
+    through: ZodEdgeType,
+  }),
+);
+
+export type PathfindingResult = z.infer<typeof ZodPathfindingResult>;
 
 export type CostFunction = (
   from: string,

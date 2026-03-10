@@ -2,13 +2,7 @@ import { AppContext } from "@/app/appContextProvider";
 import { RoadStepper } from "@/app/components/roads/roadStepper.component";
 import { gameStateController } from "@/app/lib/gameState.controller";
 import { ObjectHelper } from "@/app/lib/object.helper";
-import { Popover } from "@/app/lib/popover/popover.component";
-import {
-  allRoadTypes,
-  asRoadKey,
-  RoadKey,
-  RoadType,
-} from "@/app/lib/types/roads";
+import { RoadKey, RoadType, ZodRoadKey } from "@/app/lib/types/roads";
 import React, { useContext, useMemo, useSyncExternalStore } from "react";
 import { IoSearch } from "react-icons/io5";
 import { ActionSource } from "../../lib/actionSource.component";
@@ -17,9 +11,6 @@ import { Tooltip } from "../../lib/tooltip/tooltip.component";
 import { TooltipContent } from "../../lib/tooltip/tooltipContent.component";
 import { TooltipTrigger } from "../../lib/tooltip/tooltipTrigger.component";
 import { StringHelper } from "../../lib/utils/string.helper";
-import buttonStyles from "@/app/styles/button.module.css";
-import { ButtonWithTooltip } from "@/app/components/buttonWithTooltip.component";
-import { FaHammer } from "react-icons/fa6";
 import { RoadBulkActionPopover } from "@/app/components/roads/roadBulkActionPopover.component";
 
 const RoadItem = React.memo(function RoadItem({
@@ -104,7 +95,7 @@ export function RoadList({ className }: { className?: string }) {
       } else if (keyMatched === "to") {
         const type = entries[key];
         delete entries[key];
-        const newKey = asRoadKey(`${to}-${from}`);
+        const newKey = ZodRoadKey.parse(`${to}-${from}`);
         entries[newKey] = type;
       }
     }

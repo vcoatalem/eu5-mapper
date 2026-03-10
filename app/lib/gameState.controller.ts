@@ -2,27 +2,23 @@
 
 import { CountriesHelper } from "@/app/lib/countries.helper";
 import { EligibleBuildingService } from "@/app/lib/eligibleBuilding.service";
-import {
-  ConstructibleAction,
-  IBuildingInstance,
-  INewBuildingTemplate,
-} from "@/app/lib/types/building";
 import { cameraController } from "./cameraController";
 import { RoadsHelper } from "./roads.helper";
 import { Observable } from "./observable";
-import {
-  IConstructibleLocation,
-  ICountryInstance,
-  ICountryValues,
-  IGameData,
-  IGameState,
-  ILocationIdentifier,
-  ITemporaryLocationData,
-} from "./types/general";
-import { ICountryProximityBuffs } from "@/app/lib/types/proximityComputationRules";
+import { IGameData, ILocationIdentifier } from "./types/general";
 import { ObjectHelper } from "@/app/lib/object.helper";
 import { RoadKey, RoadType } from "@/app/lib/types/roads";
 import { ArrayHelper } from "@/app/lib/array.helper";
+import { ConstructibleAction } from "@/app/lib/types/constructibleAction";
+import {
+  baseCountryProximityBuffs,
+  ICountryProximityBuffs,
+} from "@/app/lib/types/countryProximityBuffs";
+import { ICountryInstance } from "@/app/lib/types/countryInstance";
+import { IGameState, ZodGameState } from "@/app/lib/types/gameState";
+import { IConstructibleLocation } from "@/app/lib/types/constructibleLocation";
+import { ICountryValues } from "@/app/lib/types/countryValues";
+import { ITemporaryLocationData } from "@/app/lib/types/temporaryLocationData";
 
 const baseCountryValues: ICountryInstance = {
   templateData: null,
@@ -34,27 +30,27 @@ const baseCountryValues: ICountryInstance = {
   modifiers: {},
 };
 
-const baseGameState: IGameState = {
-  countryCode: null,
-  country: baseCountryValues,
-  roads: {},
-  ownedLocations: {},
-  temporaryLocationData: {},
-};
-
 export class GameStateController extends Observable<IGameState> {
   private gameData: IGameData | null = null;
+  private baseGameState: IGameState | null = null;
 
   constructor() {
     super();
     this.subject = {} as IGameState;
   }
 
-  public init(gameData: IGameData): void {
+  public init(gameData: IGameData, version: string): void {
     this.gameData = gameData;
-    this.subject = {
-      ...baseGameState,
+    this.baseGameState = {
+      countryCode: null,
       country: baseCountryValues,
+      roads: {},
+      ownedLocations: {},
+      temporaryLocationData: {},
+      version,
+    };
+    this.subject = {
+      ...this.baseGameState,
     };
     this.notifyListeners();
   }
@@ -281,18 +277,19 @@ export class GameStateController extends Observable<IGameState> {
       roads: {},
       ownedLocations: {},
       temporaryLocationData: {},
+      version: this.subject.version,
     };
     if (!this.gameData) {
       throw new Error("Game data is not initialized");
     }
     if (countryCode) {
-      const countryTemplate = this.gameData?.countriesDataMap[countryCode];
+      const countryTemplate = this.gameData?.countriesData[countryCode];
       if (!countryTemplate) {
         throw new Error(`Unknown country code: ${countryCode}`);
       }
       const capitalLocation = CountriesHelper.getCountryBaseCapitalLocation(
         countryCode,
-        this.gameData.countriesDataMap,
+        this.gameData.countriesData,
       );
       this.subject.capitalLocation = capitalLocation;
       const locationsToAcquire = countryTemplate.locations;
@@ -366,13 +363,18 @@ export class GameStateController extends Observable<IGameState> {
     const newModifiers = { ...this.subject.country.modifiers };
     if (!(name in this.subject.country.modifiers)) {
       newModifiers[name] = {
-        buff: toUpdate.buff ?? {},
+        buff: toUpdate.buff
+          ? { ...baseCountryProximityBuffs, ...toUpdate.buff }
+          : { ...baseCountryProximityBuffs },
         enabled: toUpdate.enabled ?? true,
         description: toUpdate.description ?? "",
       };
     } else {
       if (toUpdate.buff !== undefined) {
-        newModifiers[name].buff = toUpdate.buff;
+        newModifiers[name].buff = {
+          ...baseCountryProximityBuffs,
+          ...toUpdate.buff,
+        };
       }
       if (toUpdate.enabled !== undefined) {
         newModifiers[name].enabled = toUpdate.enabled;
@@ -469,26 +471,21 @@ export class GameStateController extends Observable<IGameState> {
   }
 
   public loadFile(fileContent: string, expectedVersion: string): void {
-    const parsedState = JSON.parse(fileContent) as IGameState & {
-      version: string;
-    };
-    if (
-      !parsedState ||
-      typeof parsedState !== "object" ||
-      !parsedState.version
-    ) {
-      throw new Error("Invalid file format: missing version");
+    const parsedState = ZodGameState.safeParse(JSON.parse(fileContent));
+
+    if (!parsedState.success) {
+      throw new Error(`Invalid save file format: ${parsedState.error}`);
     }
-    if (parsedState.version !== expectedVersion) {
+    if (parsedState.data.version !== expectedVersion) {
       throw new Error(
         'File version is of version "' +
-          parsedState.version +
+          parsedState.data.version +
           '", but expected version is "' +
           expectedVersion +
           '". Version migration is not supported yet, but you can try migrating the file manually.',
       );
     }
-    this.subject = parsedState;
+    this.subject = parsedState.data;
     this.notifyListeners();
     const capitalCoordinates =
       this.gameData?.locationDataMap[this.subject.capitalLocation ?? ""]
@@ -498,9 +495,9 @@ export class GameStateController extends Observable<IGameState> {
     }
   }
 
-  public download(version: string): void {
-    const filename = `${this.subject.countryCode ?? "unknown_country"}-${version.replaceAll(".", "_")}-${new Date().toISOString()}.json`;
-    const fileContent = JSON.stringify({ version, ...this.subject });
+  public download(): void {
+    const filename = `${this.subject.countryCode ?? "unknown_country"}-${this.subject.version.replaceAll(".", "_")}-${new Date().toISOString()}.json`;
+    const fileContent = JSON.stringify({ ...this.subject });
     const blob = new Blob([fileContent], { type: "application/json" });
     const url = URL.createObjectURL(blob);
 

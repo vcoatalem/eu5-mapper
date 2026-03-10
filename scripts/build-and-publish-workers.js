@@ -1,5 +1,6 @@
 // This file ensures that all .ts worker files in app/components are transpiled to .js and placed in the same directory for use by WorkerManager.
-// It is used by Next.js custom build steps.
+// It is called in Vercel build pipeline
+// Can be run locally (see command in package.json) to develop with workers
 
 const fs = require("fs");
 const path = require("path");

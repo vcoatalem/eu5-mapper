@@ -1,24 +1,32 @@
 import { countryBuffsMetadata } from "@/app/lib/classes/countryProximityBuffs.const";
-import { ICountryValues, IGameData, IGameState } from "../types/general";
-import {
-  IBuffValue,
-  ICountryProximityBuffs,
-} from "../types/proximityComputationRules";
+import { IGameData } from "../types/general";
 import { ArrayHelper } from "@/app/lib/array.helper";
 import { ObjectHelper } from "@/app/lib/object.helper";
+import {
+  baseCountryProximityBuffs,
+  ICountryProximityBuffs,
+} from "@/app/lib/types/countryProximityBuffs";
+import { IBuffValue } from "@/app/lib/types/buffValue";
+import { ICountryValues } from "@/app/lib/types/countryValues";
+import { ICountryInstance } from "@/app/lib/types/countryInstance";
 
 export class ProximityBuffsRecord {
   private countryProximityBuffs: Record<string, ICountryProximityBuffs> = {};
   constructor(
     private readonly rule: IGameData["proximityComputationRule"],
-    private readonly country: IGameState["country"],
+    private readonly country: ICountryInstance | null,
   ) {
+    if (!country) {
+      return;
+    }
+
     const navalVsLand = this.computeCountryValuesBuff("landVsNaval");
     const centralizationVsDecentralization = this.computeCountryValuesBuff(
       "centralizationVsDecentralization",
     );
 
     const rulerAdministrativeAbility = {
+      ...baseCountryProximityBuffs,
       genericModifier:
         (country?.rulerAdministrativeAbility ?? 0) *
         rule.rulerAdministrativeAbilityImpact.value,
@@ -43,10 +51,10 @@ export class ProximityBuffsRecord {
 
   private computeCountryValuesBuff(
     valueKey: keyof ICountryValues,
-  ): Partial<ICountryProximityBuffs> {
+  ): ICountryProximityBuffs {
     const value = this.country?.values[valueKey];
-    if (typeof value !== "number" || value === 0) {
-      return {};
+    if (value === undefined) {
+      throw new Error('unrecognised country value key: "' + valueKey + '"');
     }
 
     const buffToApply: ICountryProximityBuffs =
@@ -55,15 +63,16 @@ export class ProximityBuffsRecord {
         : this.rule.valuesImpact[valueKey][0];
 
     if (!buffToApply || typeof buffToApply !== "object") {
-      console.error(
-        "[ProximityBuffsRecord] Invalid buff definition for",
-        valueKey,
-        buffToApply,
+      throw new Error(
+        "[ProximityBuffsRecord] Invalid buff definition for " +
+          valueKey +
+          ": " +
+          JSON.stringify(buffToApply),
       );
-      return {};
+      return {} as ICountryProximityBuffs;
     }
     const impactFactor = Math.abs(value) / 100;
-    const res: Partial<ICountryProximityBuffs> = {};
+    let res = { ...baseCountryProximityBuffs };
 
     for (const key of Object.keys(buffToApply) as Array<
       keyof ICountryProximityBuffs
@@ -110,9 +119,9 @@ export class ProximityBuffsRecord {
     return Object.entries(this.countryProximityBuffs).reduce(
       (acc, [, buffEffects]) => {
         const newSet = new Set(acc);
-        for (const buffKey of Object.keys(buffEffects) as Array<
-          keyof ICountryProximityBuffs
-        >) {
+        for (const buffKey of ObjectHelper.getTypedEntries(buffEffects)
+          .filter(([, value]) => !!value)
+          .map(([key]) => key)) {
           newSet.add(buffKey);
         }
         return newSet;

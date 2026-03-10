@@ -23,18 +23,16 @@ export function CountrySelectionModal() {
     return {
       capitalLocation: CountriesHelper.getCountryBaseCapitalLocation(
         selectedCountry,
-        gameData?.countriesDataMap ?? {},
+        gameData?.countriesData ?? {},
       ),
       countryLocations:
-        gameData?.countriesDataMap[selectedCountry]?.locations ?? [],
+        gameData?.countriesData[selectedCountry]?.locations ?? [],
     };
-  }, [selectedCountry, gameData?.countriesDataMap]);
+  }, [selectedCountry, gameData?.countriesData]);
 
   const countryHasFlag = useMemo(() => {
-    return (
-      selectedCountry && gameData?.countriesDataMap[selectedCountry]?.flagUrl
-    );
-  }, [selectedCountry, gameData?.countriesDataMap]);
+    return selectedCountry && gameData?.countriesData[selectedCountry]?.flagUrl;
+  }, [selectedCountry, gameData?.countriesData]);
 
   useEffect(() => {
     setFlagLoaded(false);
@@ -43,8 +41,7 @@ export function CountrySelectionModal() {
       setFlagLoaded(true);
     };
     flagImgRef.current = flagImg;
-    flagImg.src =
-      gameData?.countriesDataMap[selectedCountry ?? ""]?.flagUrl ?? "";
+    flagImg.src = gameData?.countriesData[selectedCountry ?? ""]?.flagUrl ?? "";
   }, [selectedCountry]);
 
   return (
@@ -58,7 +55,10 @@ export function CountrySelectionModal() {
           modal.close();
         }}
       ></CountrySelectionList>
-      <div className="w-full py-1 flex flex-col h-full items-center max-w-[400px] mt-4 mx-auto overflow-y-scroll overflow-x-hidden overscroll-none" style={{ scrollbarGutter: "stable" }}>
+      <div
+        className="w-full py-1 flex flex-col h-full items-center max-w-[400px] mt-4 mx-auto overflow-y-scroll overflow-x-hidden overscroll-none"
+        style={{ scrollbarGutter: "stable" }}
+      >
         <div className="w-[50%] mx-auto flex flex-center items-center text-stone-500 block">
           {selectedCountry && countryHasFlag ? (
             flagLoaded ? (

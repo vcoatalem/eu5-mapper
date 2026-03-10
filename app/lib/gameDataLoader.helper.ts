@@ -1,13 +1,17 @@
 import { ArrayHelper } from "@/app/lib/array.helper";
 import { ParserHelper } from "@/app/lib/parser.helper";
-import { INewBuildingTemplate } from "@/app/lib/types/building";
+import {
+  BuildingTemplate,
+  ZodBuildingTemplateArray,
+} from "@/app/lib/types/buildingTemplate";
+import { ICountryData, ZodCountryDataArray } from "@/app/lib/types/country";
+import { ICountryModifierTemplate } from "@/app/lib/types/countryModifiers";
 import {
   BaseRoadRecord,
-  ICountryData,
-  ICountryModifierTemplate,
   ILocationDataMap,
   ILocationIdentifierMap,
 } from "@/app/lib/types/general";
+import { ZodLocationGameDataArray } from "@/app/lib/types/location";
 import { IProximityComputationRule } from "@/app/lib/types/proximityComputationRules";
 import { GameDataFileType } from "@/app/lib/types/versionsManifest";
 import { VersionResolver } from "@/app/lib/versionResolver";
@@ -17,10 +21,10 @@ export interface IGameDataParsedFiles {
     map: ILocationDataMap;
     colorToNameMap: ILocationIdentifierMap;
   };
-  buildingsTemplate: Record<string, INewBuildingTemplate>;
+  buildingsTemplate: Record<string, BuildingTemplate>;
   adjacencyCsv: string;
   proximityComputationRule: IProximityComputationRule;
-  countriesDataMap: Record<string, ICountryData>;
+  countriesData: Record<string, ICountryData>;
   roads: BaseRoadRecord;
   countryModifiersTemplate: Record<string, ICountryModifierTemplate>;
 }
@@ -85,20 +89,36 @@ export class GameDataLoaderHelper {
   }
   private static readonly fileTypeHandlers: FileTypeHandlers = {
     locationData: async (res) => {
-      const map = (await res.json()) as ILocationDataMap;
+      const array = ZodLocationGameDataArray.safeParse(await res.json());
 
-      const colorToNameMap = Object.entries(map).reduce(
-        (acc, [locationName, locationData]) => {
-          const locationDataTyped = locationData;
-          acc[locationDataTyped.hexColor] = locationName;
+      if (array.success === false) {
+        console.error("Failed to parse location data JSON:", array.error);
+        throw new Error("Invalid location data format");
+      }
+
+      const [map, colorToNameMap] = array.data.reduce(
+        (acc, location) => {
+          acc[0][location.name] = location;
+          acc[1][location.hexColor] = location.name;
           return acc;
         },
-        {} as ILocationIdentifierMap,
+        [{}, {}] as [ILocationDataMap, ILocationIdentifierMap],
       );
-      return { map, colorToNameMap } as IGameDataParsedFiles["locationData"];
+      return { map, colorToNameMap };
     },
     buildingsTemplate: async (res) => {
-      return (await res.json()) as Record<string, INewBuildingTemplate>;
+      const array = ZodBuildingTemplateArray.safeParse(await res.json());
+
+      if (array.success === false) {
+        console.error("Failed to parse buildings template JSON:", array.error);
+        throw new Error("Invalid buildings template format");
+      }
+
+      return ArrayHelper.reduceToRecord(
+        array.data,
+        (entry) => entry.name,
+        (entry) => entry,
+      );
     },
     adjacencyCsv: async (res) => {
       return (await res.text()) as string;
@@ -106,8 +126,19 @@ export class GameDataLoaderHelper {
     proximityComputationRule: async (res) => {
       return (await res.json()) as IProximityComputationRule;
     },
-    countriesDataMap: async (res) => {
-      return (await res.json()) as Record<string, ICountryData>;
+    countriesData: async (res) => {
+      const array = ZodCountryDataArray.safeParse(await res.json());
+
+      if (array.success === false) {
+        console.error("Failed to parse countries data JSON:", array.error);
+        throw new Error("Invalid countries data format");
+      }
+
+      return ArrayHelper.reduceToRecord(
+        array.data,
+        (entry) => entry.code,
+        (entry) => entry,
+      );
     },
     countryModifiersTemplate: async (res) => {
       const arr = (await res.json()) as ICountryModifierTemplate[];
@@ -140,7 +171,7 @@ export class GameDataLoaderHelper {
     "buildingsTemplate",
     "adjacencyCsv",
     "proximityComputationRule",
-    "countriesDataMap",
+    "countriesData",
     "roads",
   ];
 
@@ -180,10 +211,10 @@ export class GameDataLoaderHelper {
         map: ILocationDataMap;
         colorToNameMap: ILocationIdentifierMap;
       };
-      buildingsTemplate: Record<string, INewBuildingTemplate>;
+      buildingsTemplate: Record<string, BuildingTemplate>;
       adjacencyCsv: string;
       proximityComputationRule: IProximityComputationRule;
-      countriesDataMap: Record<string, ICountryData>;
+      countriesData: Record<string, ICountryData>;
       roads: BaseRoadRecord;
       countryModifiersTemplate: Record<string, ICountryModifierTemplate>;
     };

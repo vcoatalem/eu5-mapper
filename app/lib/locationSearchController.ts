@@ -2,17 +2,14 @@
 
 import { LocationHierarchyService } from "@/app/lib/locationHierarchy.service";
 import { Observable } from "./observable";
-import {
-  IGameData,
-  ILocationGameData,
-  ILocationIdentifier,
-} from "./types/general";
+import { IGameData, ILocationIdentifier } from "./types/general";
+import { ILocationHierarchy } from "@/app/lib/types/locationHierarchy";
 
 export interface ILocationSearchResult {
   locations: Array<{
     name: string;
-    hierarchyType: keyof ILocationGameData["hierarchy"] | "location";
-    hierarchy: ILocationGameData["hierarchy"];
+    hierarchyType: keyof ILocationHierarchy | "location";
+    hierarchy: ILocationHierarchy;
     locationsInHierarchy: ILocationIdentifier[];
   }>;
 }

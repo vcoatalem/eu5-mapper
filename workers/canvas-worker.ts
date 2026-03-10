@@ -1,11 +1,11 @@
-import type { ICoordinate } from "../app/lib/types/general";
-import {
-  IWorkerTask,
-  IWorkerTaskColorSearchPayload,
-  IWorkerTaskColorSearchResult,
-  IWorkerTaskInitWithImagePayload,
-} from "./types/workerTypes";
+import { IWorkerTask } from "@/workers/types/task";
 import { sendMessage } from "./utils";
+import { ICoordinate } from "@/app/lib/types/coordinate";
+import { ZodWorkerTaskInitWithImagePayload } from "@/workers/types/initWithImage";
+import {
+  IWorkerTaskColorSearchResult,
+  ZodWorkerTaskColorSearchPayload,
+} from "@/workers/types/colorSearch";
 
 (globalThis as any).__workerName = "Canvas Worker";
 
@@ -116,7 +116,7 @@ self.onmessage = function (e: MessageEvent<IWorkerTask>) {
   switch (e.data.type) {
     case "initWithImage":
       try {
-        const payload = e.data.payload as IWorkerTaskInitWithImagePayload;
+        const payload = ZodWorkerTaskInitWithImagePayload.parse(e.data.payload);
 
         canvasWidth = payload.canvasWidth;
         canvasHeight = payload.canvasHeight;
@@ -155,7 +155,7 @@ self.onmessage = function (e: MessageEvent<IWorkerTask>) {
           );
         }
 
-        const payload = e.data.payload as IWorkerTaskColorSearchPayload;
+        const payload = ZodWorkerTaskColorSearchPayload.parse(e.data.payload);
 
         const result: IWorkerTaskColorSearchResult = { result: {} };
 

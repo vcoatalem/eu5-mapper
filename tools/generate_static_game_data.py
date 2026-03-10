@@ -28,6 +28,7 @@ from game_data_utils import (
     parse_location_hierarchy,
     parse_countries_files,
     parse_location_town_setups,
+    parse_country_flag_file,
     load_color_to_name_mapping,
     hex_to_rgb,
     LocationData,
@@ -250,7 +251,7 @@ def generate_game_data_json(
     
     # Parse all data
     _, name_to_color = load_color_to_name_mapping(files.locations_color_mapping)
-    color_to_name = {hex: name for name, (r, g, b) in name_to_color.items() for hex in [f'{r:02x}{g:02x}{b:02x}']}
+
     name_to_color_hex = {name: f'{r:02x}{g:02x}{b:02x}' for name, (r, g, b) in name_to_color.items()}
     
     location_data = parse_location_templates(files.location_data)
@@ -259,13 +260,22 @@ def generate_game_data_json(
     
     hierarchy = parse_location_hierarchy(files.provinces_data)
 
-    #whitelisted_countries = {"SWE", "DAN", "NOR", "ENG", "FRA", "TEU", "BRA", "BOH", "HUN", "POL", "LIT", "MOS", "NOV", "OTT", "RUS", "CAS", "POR", "VEN", "PAP", "ARB", "MOR", "TUN", "DHL", "ARA", "HAB", "KIE", "GEO", "MAM", "OMA", "VIJ", "BYZ", "KOR" }
     # Parse countries file and load all countries (no whitelist), enriching with English names
+    countries = []
     countries_data_map = parse_countries_files(
         files.countries_file,
         country_english_localization_file=files.country_english_localization_file,
         whitelisted_countries=None,
     )
+    countries_flags_map = parse_country_flag_file(files.country_flag_file)
+    for country_key, country_data in countries_data_map.items():
+        country = country_data
+        country.code = country_key
+        flag_url = countries_flags_map.get(country_key)
+        if flag_url:
+            country.flagUrl = flag_url
+        countries.append(country)
+
 
     with open(files.location_centers_file, "r", encoding="utf-8") as centers_file:
         location_centers = json.load(centers_file)
@@ -285,7 +295,7 @@ def generate_game_data_json(
         game_root_path=game_root_path
     )
 
-    whitelisted_buildings = set(buildings_template_map.keys())
+    whitelisted_buildings = set(template.name for template in buildings_template_map)
     print(f"found {len(whitelisted_buildings)} distinct buildings from template generation")
     print("")
     location_ranks, location_buildings = parse_cities_and_buildings_file(
@@ -343,7 +353,7 @@ def generate_game_data_json(
     print("Building location data map...")
     
     # Build locationDataMap and collect development breakdowns
-    location_data_map = {}
+    location_data_list = []
     development_breakdowns = []
     
     for location_name, data in location_data.items():
@@ -376,10 +386,12 @@ def generate_game_data_json(
         
         # Determine if location is ownable
         is_ownable = not (is_non_ownable or is_impassable_mountain or is_lake or is_sea)
-        
-        # Check if location is coastal
+
+        # Check if location is coastal / on river / on lake
         is_coastal = location_name in coastal_locations
-        
+        is_on_river = location_name in river_locations
+        is_on_lake = location_name in lake_locations
+
         # Get river colors for this location
         river_colors_list = location_river_colors.get(location_name, [])
         
@@ -427,19 +439,18 @@ def generate_game_data_json(
             if sec:
                 secondary_coordinates = sec
         
-        location_data_map[location_name] = {
+        location_data_list.append({
             "topography": data.topography,
-            "vegetation": data.vegetation,
-            "climate": data.climate,
-            "naturalHarborSuitability": data.natural_harbor_suitability,
+            **({"vegetation": data.vegetation} if data.vegetation is not None else {}),
             "name": location_name,
             "hexColor": hex_color,
-            "isLake": is_lake,
-            "isSea": is_sea,
             "ownable": is_ownable,
-            "isCoastal": location_name in coastal_locations,
-            "isOnRiver": location_name in river_locations,
-            "isOnLake": location_name in lake_locations,
+            **({"isCoastal": True} if is_coastal else {}),
+            **({"isLake": True} if is_lake else {}),
+            **({"isSea": True} if is_sea else {}),
+            **({"isOnRiver": True} if is_on_river else {}),
+            **({"isOnLake": True} if is_on_lake else {}),
+            **({"naturalHarborSuitability": data.natural_harbor_suitability} if is_coastal else {}),
             "hierarchy": {
                 "continent": location_hierarchy.continent,
                 "subcontinent": location_hierarchy.subcontinent,
@@ -449,14 +460,14 @@ def generate_game_data_json(
             },
             "centerCoordinates": center_dict,
             **({"secondaryCoordinates": secondary_coordinates} if secondary_coordinates is not None else {}),
-            "population": population,
-            "development": development,
-            "rank": rank,
+            **({"population": population} if not is_sea else {}),
+            **({"development": development} if not is_sea else {}),
+            **({"rank": rank} if rank is not None else {}),
             "buildings": sorted(list(
                 set(location_buildings.get(location_name, [])) |
                 set(town_setups.get(location_town_setups.get(location_name, ""), []))
             ))
-        }
+        })
 
     
     # Write development breakdown CSV for debugging
@@ -482,11 +493,9 @@ def generate_game_data_json(
     
     # Write output files
     # Convert CountryData objects to dicts for JSON serialization
-    countries_data_map_serializable = {k: asdict(v) for k, v in countries_data_map.items()}
     output_files = {
-        "location-data-map.json": location_data_map,
-        "color-to-name-map.json": color_to_name,
-        "countries-data-map.json": countries_data_map_serializable,
+        "location-data.json": location_data_list,
+        "countries-data.json": [asdict(country) for country in countries],
         "roads.json": roads
     }
     

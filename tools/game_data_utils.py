@@ -58,6 +58,7 @@ class CountryData:
     capital: str
     name: Optional[str] = None
     flagUrl: Optional[str] = None
+    code: Optional[str] = None
 
 def parse_game_data_file(filepath: str) -> dict:
     """
@@ -509,9 +510,6 @@ def parse_cities_and_buildings_file(cities_buildings_file: str, whitelisted_buil
             - location_ranks: {location_name: rank}
             - location_buildings: {location_name: [building_names]}
     """
-    if whitelisted_buildings is None:
-        whitelisted_buildings = {'wharf', 'fishing_village', 'dock', 'bridge_infrastructure'}
-
     location_ranks: Dict[str, str] = {}
     location_buildings: Dict[str, List[str]] = {}
     parsed = parse_game_data_file(cities_buildings_file)
@@ -520,7 +518,7 @@ def parse_cities_and_buildings_file(cities_buildings_file: str, whitelisted_buil
     locations = parsed.get('locations', {})
     if isinstance(locations, dict):
         for location_name, props in locations.items():
-            if isinstance(props, dict) and 'rank' in props:
+            if isinstance(props, dict) and 'rank' in props and props['rank'] in ['city', 'town', 'rural']:
                 location_ranks[location_name] = props['rank']
 
     # Parse buildings from building_manager block
@@ -789,6 +787,7 @@ def parse_countries_files(
             centralization = 0.0
             land_naval = 0.0
         capital = country.get("capital", "")
+        capital = capital[0] if isinstance(capital, list) and capital else capital # galicia has two capital registered, out parser records this as a list. Needs cleaning
         name = english_names.get(code)
         countriesDict[code] = CountryData(
             locations=locations,
@@ -796,6 +795,18 @@ def parse_countries_files(
             landVsNaval=land_naval,
             capital=capital,
             name=name,
-            flagUrl=None,  # Filled by fetch_country_flags.py via MediaWiki API
+            flagUrl=None,
         )
     return countriesDict
+
+def parse_country_flag_file(country_flag_file: str) -> Dict[str, str]:
+    """Parse country flag file to extract mapping of country code to flag URL."""
+    code_to_flag = {}
+    with open(country_flag_file, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.split(',')
+            if len(line) != 2:
+                continue
+            code, url = line[0].strip(), line[1].strip()
+            code_to_flag[code] = url
+    return code_to_flag

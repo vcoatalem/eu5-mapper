@@ -6,10 +6,10 @@
   "files": {
     "locationData": {
       "1.0.11": {
-        "path": "/1.0.11/game_data/location-data-map.json"
+        "path": "/1.0.11/game_data/location-data.json"
       },
       "1.1.4": {
-        "path": "/1.1.4/game_data/location-data-map.json"
+        "path": "/1.1.4/game_data/location-data.json"
       }
     },
     "buildingsTemplate": {
@@ -36,9 +36,12 @@
         "path": "/1.1.4/game_data/proximity-calculation-rules.json"
       }
     },
-    "countriesDataMap": {
+    "countriesData": {
       "1.0.11": {
-        "path": "/1.0.11/game_data/countries-data-map.json"
+        "path": "/1.0.11/game_data/countries-data.json"
+      },
+      "1.1.4": {
+        "path": "/1.1.4/game_data/countries-data.json"
       }
     },
     "roads": {

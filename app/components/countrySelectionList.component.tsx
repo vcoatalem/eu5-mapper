@@ -1,10 +1,5 @@
 import { useContext, useMemo, useState } from "react";
 import { AppContext } from "../appContextProvider";
-import {
-  ICountryData,
-  ILocationGameData,
-  ILocationIdentifier,
-} from "@/app/lib/types/general";
 import { CountriesHelper } from "@/app/lib/countries.helper";
 import { ArrayHelper } from "@/app/lib/array.helper";
 
@@ -21,13 +16,13 @@ export function CountrySelectionList(props: ICountrySelectionListProps) {
   const { gameData } = useContext(AppContext);
   const [search, setSearch] = useState<string>("");
   const filteredCountries = useMemo(() => {
-    const countries = Object.entries(gameData?.countriesDataMap ?? {});
+    const countries = Object.entries(gameData?.countriesData ?? {});
     const countriesArray = countries
       .filter(([, data]) => data.locations.length > 0)
       .map(([countryKey, countryData]) => {
         const capitalLocation = CountriesHelper.getCountryBaseCapitalLocation(
           countryKey,
-          gameData?.countriesDataMap ?? {},
+          gameData?.countriesData ?? {},
         );
         return {
           countryKey,
@@ -49,7 +44,7 @@ export function CountrySelectionList(props: ICountrySelectionListProps) {
       (country) => country.countryKey,
       (country) => country.countryData,
     );
-  }, [gameData?.countriesDataMap, gameData?.locationDataMap]);
+  }, [gameData?.countriesData, gameData?.locationDataMap]);
 
   const searchedCountries = useMemo(() => {
     return Object.entries(filteredCountries).filter(
@@ -111,7 +106,7 @@ export function CountrySelectionList(props: ICountrySelectionListProps) {
           className="bg-stone-700 hover:bg-stone-800 cursor-pointer rounded-md px-2 py-1 bottom-0 left-0 right-0"
         >
           Choose{" "}
-          {gameData.countriesDataMap[props.selectedCountry]?.name ??
+          {gameData.countriesData[props.selectedCountry]?.name ??
             props.selectedCountry}
         </button>
       )}

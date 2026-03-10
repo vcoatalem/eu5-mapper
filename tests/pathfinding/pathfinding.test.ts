@@ -122,7 +122,7 @@ test.each(referenceFiles)(
     for (const [location, evaluation] of Object.entries(reachable)) {
       if (
         !(location in data) &&
-        gameData.countriesDataMap[countryCode].locations.includes(location)
+        gameData.countriesData[countryCode].locations.includes(location)
       ) {
         // TODO: figure out exactly the cases we want to measure here.
         // location belonging to country has evaluation > 0 but is not in ref file

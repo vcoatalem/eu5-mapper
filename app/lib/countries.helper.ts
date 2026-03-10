@@ -3,7 +3,7 @@ import { IGameData, ILocationIdentifier } from "@/app/lib/types/general";
 export class CountriesHelper {
   public static getCountryBaseCapitalLocation(
     countryCode: string,
-    countriesDataMap: IGameData["countriesDataMap"],
+    countriesDataMap: IGameData["countriesData"],
   ): ILocationIdentifier {
     const country = countriesDataMap[countryCode];
     if (!country) {

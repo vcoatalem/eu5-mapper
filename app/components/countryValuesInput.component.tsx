@@ -8,14 +8,14 @@ import {
   useState,
 } from "react";
 import formStyles from "@/app/components/countryBuffs/forms.module.css";
-import { ICountryInstance } from "@/app/lib/types/countryInstance";
-import { ICountryValues } from "@/app/lib/types/countryValues";
+import { CountryInstance } from "@/app/lib/types/countryInstance";
+import { CountryValues } from "@/app/lib/types/countryValues";
 
 function CountryValueInput({
   valueKey,
   value,
 }: {
-  valueKey: keyof ICountryValues;
+  valueKey: keyof CountryValues;
   value: number;
 }) {
   const [labelMin, labelMax] = valueKey.toLowerCase().split("vs");
@@ -135,7 +135,7 @@ export function CountryValuesInput({
   country,
   className,
 }: {
-  country: ICountryInstance;
+  country: CountryInstance;
   className?: string;
 }) {
   return (

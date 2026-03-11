@@ -5,19 +5,19 @@ import {
 } from "@/app/lib/classes/logicTree";
 import { LocationsHelper } from "@/app/lib/locations.helper";
 import { BuildingIdentifier } from "@/app/lib/types/building";
-import { IBuildingInstance } from "@/app/lib/types/buildingInstance";
+import { BuildingInstance } from "@/app/lib/types/buildingInstance";
 import { BuildingPlacementRestrictions } from "@/app/lib/types/buildingPlacementRestriction";
 import { BuildingTemplate } from "@/app/lib/types/buildingTemplate";
 import { ConstructibleAction } from "@/app/lib/types/constructibleAction";
 import { ConstructibleState } from "@/app/lib/types/constructibleState";
-import { IGameState } from "@/app/lib/types/gameState";
+import { GameState } from "@/app/lib/types/gameState";
+import { GameData, LocationIdentifier } from "@/app/lib/types/general";
 import {
-  BaseRoadRecord,
-  IGameData,
-  ILocationIdentifier,
-} from "@/app/lib/types/general";
-import { ILocationGameData } from "@/app/lib/types/location";
+  ILocationGameData,
+  LocationGameDataMap,
+} from "@/app/lib/types/location";
 import { LocationRank } from "@/app/lib/types/locationRank";
+import { BaseRoadRecord } from "@/app/lib/types/roads";
 
 export class EligibleBuildingService {
   private readonly buildingTemplateMapping: Record<
@@ -28,10 +28,10 @@ export class EligibleBuildingService {
     BuildingIdentifier,
     Array<BuildingIdentifier>
   >;
-  private readonly locationDataMap: IGameData["locationDataMap"];
+  private readonly locationDataMap: LocationGameDataMap;
   private readonly baseRoads: BaseRoadRecord;
 
-  constructor(gameData: IGameData) {
+  constructor(gameData: GameData) {
     this.locationDataMap = gameData.locationDataMap;
     this.baseRoads = gameData.roads;
     console.log(
@@ -39,7 +39,7 @@ export class EligibleBuildingService {
       Object.values(gameData.buildingsTemplate),
     );
     this.buildingTemplateMapping = {};
-    const getLocationData = (id: ILocationIdentifier) =>
+    const getLocationData = (id: LocationIdentifier) =>
       this.locationDataMap[id];
     for (const [templateName, templateData] of Object.entries(
       gameData.buildingsTemplate,
@@ -61,7 +61,7 @@ export class EligibleBuildingService {
   private getBuildingSupportabilityLogicTree(
     buildingTemplate: BuildingTemplate,
     getLocationData: (
-      locationId: ILocationIdentifier,
+      locationId: LocationIdentifier,
     ) => ILocationGameData | undefined,
   ): LogicTree {
     const placementRestrictionTree = buildingTemplate.placementRestriction
@@ -78,7 +78,7 @@ export class EligibleBuildingService {
 
     const locationRankSupportsBuildingTree = {
       type: "leaf" as const,
-      getValue: (gameState: IGameState, location: ILocationIdentifier) =>
+      getValue: (gameState: GameState, location: LocationIdentifier) =>
         EligibleBuildingService.locationLevelSupportsBuilding(
           buildingTemplate,
           gameState.ownedLocations[location]?.rank ?? "rural",
@@ -97,7 +97,7 @@ export class EligibleBuildingService {
   private evaluatePlacementCondition(
     condition: BuildingPlacementRestrictions,
     location: ILocationGameData,
-    gameState: IGameState,
+    gameState: GameState,
   ): boolean {
     switch (condition) {
       case "is_coastal":
@@ -181,7 +181,7 @@ export class EligibleBuildingService {
    */
   private static getRepresentativeTemplateNamesPerFamily(
     templatesByFamily: Record<BuildingIdentifier, BuildingIdentifier[]>,
-    locationBuildings: Record<BuildingIdentifier, IBuildingInstance>,
+    locationBuildings: Record<BuildingIdentifier, BuildingInstance>,
   ): Set<BuildingIdentifier> {
     const names = new Set<BuildingIdentifier>();
     for (const [baseName, memberNames] of Object.entries(templatesByFamily)) {
@@ -194,8 +194,8 @@ export class EligibleBuildingService {
   }
 
   public getEligibleBuildingTemplates(
-    location: ILocationIdentifier,
-    gameState: IGameState,
+    location: LocationIdentifier,
+    gameState: GameState,
   ): BuildingTemplate[] {
     return Object.values(this.buildingTemplateMapping)
       .filter(({ tree }) => {
@@ -205,8 +205,8 @@ export class EligibleBuildingService {
   }
 
   public getConstructibleState(
-    location: ILocationIdentifier,
-    gameState: IGameState,
+    location: LocationIdentifier,
+    gameState: GameState,
   ): ConstructibleState {
     const res: ConstructibleState = {};
     const locationBuildings = gameState.ownedLocations[location].buildings;

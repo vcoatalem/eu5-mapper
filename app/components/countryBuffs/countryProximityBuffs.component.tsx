@@ -1,15 +1,17 @@
 import { AppContext } from "@/app/appContextProvider";
 import { ModifierBuffDisplay } from "@/app/components/countryBuffs/modifierBuffDisplay.component";
 import { ProximityBuffsRecord } from "@/app/lib/classes/countryProximityBuffs";
-import { ICountryInstance } from "@/app/lib/types/countryInstance";
+import { CountryInstance } from "@/app/lib/types/countryInstance";
 import { useContext, useEffect, useMemo, useState } from "react";
 
 interface ICountryProximityBuffsProps {
   className?: string;
-  country: ICountryInstance;
+  country: CountryInstance;
 }
 
-export function CountryProximityBuffs(props: ICountryProximityBuffsProps) {
+export function DisplayCountryProximityBuffs(
+  props: ICountryProximityBuffsProps,
+) {
   const gameData = useContext(AppContext).gameData;
   const [buffRecord, setBuffRecord] = useState<ProximityBuffsRecord | null>(
     null,

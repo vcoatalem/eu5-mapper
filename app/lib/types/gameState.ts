@@ -1,3 +1,4 @@
+import { ZodGameDataVersion } from "@/app/config/gameData.config";
 import { ZodConstructibleLocation } from "@/app/lib/types/constructibleLocation";
 import { ZodCountryInstance } from "@/app/lib/types/countryInstance";
 import { ZodRoadKey, ZodRoadType } from "@/app/lib/types/roads";
@@ -15,7 +16,7 @@ export const ZodGameStateOwnedLocationRecord = z.record(
 );
 
 export const ZodGameState = z.object({
-  version: z.string(),
+  version: ZodGameDataVersion,
   countryCode: z.string().nullable(),
   country: ZodCountryInstance.nullable(),
   roads: z.record(ZodRoadKey, ZodRoadType.nullable()),
@@ -24,11 +25,11 @@ export const ZodGameState = z.object({
   temporaryLocationData: ZodGameStateTemporaryLocationRecord,
 });
 
-export type IGameStateOwnedLocationRecord = z.infer<
+export type GameStateOwnedLocationRecord = z.infer<
   typeof ZodGameStateOwnedLocationRecord
 >;
-export type IGameStateTemporaryLocationRecord = z.infer<
+export type GameStateTemporaryLocationRecord = z.infer<
   typeof ZodGameStateTemporaryLocationRecord
 >;
 
-export type IGameState = z.infer<typeof ZodGameState>;
+export type GameState = z.infer<typeof ZodGameState>;

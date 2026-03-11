@@ -12,7 +12,7 @@ import { TooltipProviderContext } from "./tooltip.provider";
 import { createPortal } from "react-dom";
 import { cameraController } from "../cameraController";
 import styles from "./tooltip.module.css";
-import { ICoordinate } from "@/app/lib/types/coordinate";
+import { Coordinate } from "@/app/lib/types/coordinate";
 
 interface ITooltipDomAnchor {
   type: "dom";
@@ -21,7 +21,7 @@ interface ITooltipDomAnchor {
 
 interface ITooltipCoordinateAnchor {
   type: "coordinate";
-  coordinate: ICoordinate;
+  coordinate: Coordinate;
 }
 
 interface ITooltipContentProps {
@@ -32,7 +32,7 @@ interface ITooltipContentProps {
 export function TooltipContent(props: ITooltipContentProps) {
   const tooltipInstanceContext = useContext(TooltipInstanceContext);
   const tooltipProviderContext = useContext(TooltipProviderContext);
-  const [position, setPosition] = useState<ICoordinate | null>(null);
+  const [position, setPosition] = useState<Coordinate | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
 
   if (!tooltipInstanceContext) {
@@ -62,10 +62,10 @@ export function TooltipContent(props: ITooltipContentProps) {
     const contentRect = contentRef.current.getBoundingClientRect();
     const contentWidth = contentRect.width;
     const contentHeight = contentRect.height;
-    let placement: ICoordinate | null = null;
+    let placement: Coordinate | null = null;
     if (props.anchor.type === "dom") {
       const anchorRect = props.anchor.ref.current?.getBoundingClientRect();
-      const anchorCoordinate: ICoordinate = anchorRect
+      const anchorCoordinate: Coordinate = anchorRect
         ? {
             x: anchorRect.left + anchorRect.width / 2,
             y: anchorRect.top + anchorRect.height / 2,

@@ -4,15 +4,15 @@ import { TooltipContent } from "@/app/lib/tooltip/tooltipContent.component";
 import { TooltipTrigger } from "@/app/lib/tooltip/tooltipTrigger.component";
 import { BuffsHelper } from "@/app/lib/buffs.helper";
 import { useRef } from "react";
-import { IBuffValue } from "@/app/lib/types/buffValue";
-import { ICountryProximityBuffs } from "@/app/lib/types/countryProximityBuffs";
+import { BuffValue } from "@/app/lib/types/buffValue";
+import { CountryProximityBuffs } from "@/app/lib/types/countryProximityBuffs";
 
 export function ModifierBuffDisplay({
   buffKey,
   buffValue,
 }: {
-  buffKey: keyof ICountryProximityBuffs;
-  buffValue: Record<string, IBuffValue>;
+  buffKey: keyof CountryProximityBuffs;
+  buffValue: Record<string, BuffValue>;
 }) {
   const divRef = useRef<HTMLDivElement>(null);
   const buffDisplayableData = countryBuffsMetadata[buffKey];

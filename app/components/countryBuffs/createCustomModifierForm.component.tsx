@@ -6,13 +6,13 @@ import { EditableField } from "@/app/components/editableField.component";
 import formStyles from "@/app/components/countryBuffs/forms.module.css";
 import { validateNonEmptyString } from "@/app/lib/utils/editableFieldValidation.helper";
 import { ObjectHelper } from "@/app/lib/object.helper";
-import { ICountryProximityBuffs } from "@/app/lib/types/countryProximityBuffs";
+import { CountryProximityBuffs } from "@/app/lib/types/countryProximityBuffs";
 
 interface ICreateCustomModifierForm {
   onSubmit: (
     name: string,
     description: string | null,
-    buff: Partial<ICountryProximityBuffs>,
+    buff: Partial<CountryProximityBuffs>,
   ) => void;
   onCancel: () => void;
 }
@@ -20,7 +20,7 @@ interface ICreateCustomModifierForm {
 export function CreateCustomModifierForm(props: ICreateCustomModifierForm) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState<string | null>(null);
-  const [buff, setBuff] = useState<Partial<ICountryProximityBuffs>>({});
+  const [buff, setBuff] = useState<Partial<CountryProximityBuffs>>({});
 
   const allBuffFields = ObjectHelper.getTypedEntries(countryBuffsMetadata).map(
     ([buffKey, buffDisplayableData]) => {

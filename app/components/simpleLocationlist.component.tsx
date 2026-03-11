@@ -6,7 +6,7 @@ import React, {
   useSyncExternalStore,
 } from "react";
 import { gameStateController } from "@/app/lib/gameState.controller";
-import { IGameData, ILocationIdentifier } from "../lib/types/general";
+import { GameData, LocationIdentifier } from "../lib/types/general";
 import { AppContext } from "../appContextProvider";
 import {
   IProximityComputationResults,
@@ -19,17 +19,17 @@ import { FormattedProximityWithPathfindingTooltip } from "@/app/components/forma
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import { IoSearch } from "react-icons/io5";
 import { IConstructibleLocation } from "@/app/lib/types/constructibleLocation";
-import { IGameState } from "@/app/lib/types/gameState";
+import { GameState } from "@/app/lib/types/gameState";
 
 const SimpleLocationListItem = React.memo(function SimpleLocationListItem({
   location,
   gameState,
   proximityComputation,
 }: {
-  location: ILocationIdentifier;
+  location: LocationIdentifier;
   constructible: IConstructibleLocation;
-  gameData: IGameData;
-  gameState: IGameState;
+  gameData: GameData;
+  gameState: GameState;
   proximityComputation: IProximityComputationResults;
 }) {
   return (

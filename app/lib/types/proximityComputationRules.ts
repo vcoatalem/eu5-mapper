@@ -16,8 +16,8 @@ export const ZodProximityComputationRule = z.object({
   baseRiverCost: z.number(),
   baseCostWithMaritimePresence: z.number(),
   baseCostWithoutMaritimePresence: z.number(),
-  topography: z.record(ZodTopography, ZodBuffValue),
-  vegetation: z.record(ZodVegetation, ZodBuffValue),
+  topography: z.partialRecord(ZodTopography, ZodBuffValue),
+  vegetation: z.partialRecord(ZodVegetation, ZodBuffValue),
   developmentImpact: ZodBuffValue,
   harborSuitabilityImpact: ZodBuffValue,
   harborSuitabilityIsMultiplicative: z.boolean(),
@@ -29,9 +29,9 @@ export const ZodProximityComputationRule = z.object({
     ]),
   }),
   rulerAdministrativeAbilityImpact: ZodBuffValue,
-  roadProximityCostReduction: z.record(ZodRoadType, ZodBuffValue),
+  roadProximityCostReduction: z.partialRecord(ZodRoadType, ZodBuffValue),
 });
 
-export type IProximityComputationRule = z.infer<
+export type ProximityComputationRule = z.infer<
   typeof ZodProximityComputationRule
 >;

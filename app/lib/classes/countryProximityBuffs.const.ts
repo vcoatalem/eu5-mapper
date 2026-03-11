@@ -1,9 +1,9 @@
-import { ICountryProximityBuffsMetadata } from "@/app/lib/types/buffValue";
-import { ICountryProximityBuffs } from "@/app/lib/types/countryProximityBuffs";
+import { CountryProximityBuffsMetadata } from "@/app/lib/types/buffValue";
+import { CountryProximityBuffs } from "@/app/lib/types/countryProximityBuffs";
 
 export const countryBuffsMetadata: Record<
-  keyof ICountryProximityBuffs,
-  ICountryProximityBuffsMetadata
+  keyof CountryProximityBuffs,
+  CountryProximityBuffsMetadata
 > = {
   genericModifier: {
     label: "Generic proximity modifier",

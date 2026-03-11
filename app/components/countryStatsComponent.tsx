@@ -6,15 +6,15 @@ import { Loader } from "@/app/components/loader.component";
 import { debouncedProximityComputationController } from "@/app/lib/proximityComputation.controller";
 import { ProximityComputationHelper } from "@/app/lib/proximityComputation.helper";
 import {
-  IGameState,
-  IGameStateOwnedLocationRecord,
+  GameState,
+  GameStateOwnedLocationRecord,
 } from "@/app/lib/types/gameState";
-import { ILocationIdentifier } from "@/app/lib/types/general";
+import { LocationIdentifier } from "@/app/lib/types/general";
 import { NumbersHelper } from "@/app/lib/utils/numbers.helper";
 import { useContext, useMemo, useRef, useSyncExternalStore } from "react";
 
 interface ICountryStatsProps {
-  ownedLocations: IGameStateOwnedLocationRecord;
+  ownedLocations: GameStateOwnedLocationRecord;
   className?: string;
 }
 export function CountryStats(props: ICountryStatsProps) {
@@ -32,10 +32,10 @@ export function CountryStats(props: ICountryStatsProps) {
 
   const { meanProximity, totalPopulation, totalPopulationScaledByProximity } =
     useMemo(() => {
-      const populationByLocation: Record<ILocationIdentifier, number> = {};
-      const proximityByLocations: Record<ILocationIdentifier, number> = {};
+      const populationByLocation: Record<LocationIdentifier, number> = {};
+      const proximityByLocations: Record<LocationIdentifier, number> = {};
       const populationScaledByProximityPerLocation: Record<
-        ILocationIdentifier,
+        LocationIdentifier,
         number
       > = {};
 

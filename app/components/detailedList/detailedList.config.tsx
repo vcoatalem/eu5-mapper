@@ -6,7 +6,7 @@ import { DisplayPop } from "@/app/components/detailedList/displayPop.component";
 import { DisplayProximity } from "@/app/components/detailedList/displayProximity.component";
 import { ILocationDetailedViewData } from "@/app/components/detailedList/detailedLocationListModal.component";
 import { LocationsHelper } from "@/app/lib/locations.helper";
-import { ILocationIdentifier } from "@/app/lib/types/general";
+import { LocationIdentifier } from "@/app/lib/types/general";
 import { FaAnglesDown, FaAnglesUp } from "react-icons/fa6";
 import { PiPlusLight, PiMinusLight } from "react-icons/pi";
 import { DisplayBuildings } from "@/app/components/detailedList/displayBuildings.component";
@@ -17,16 +17,16 @@ import { LocationRank } from "@/app/lib/types/locationRank";
 export type SortOrder = "asc" | "desc" | null;
 
 export interface IDetailedLocationListProps {
-  ownedLocations: Record<ILocationIdentifier, ILocationDetailedViewData>;
-  capitalLocation: ILocationIdentifier | null;
+  ownedLocations: Record<LocationIdentifier, ILocationDetailedViewData>;
+  capitalLocation: LocationIdentifier | null;
   config: IStoredLocationListConfig;
-  togglePin: (location: ILocationIdentifier) => void;
+  togglePin: (location: LocationIdentifier) => void;
   toggleSort: (column: string) => void;
 }
 
 export interface IStoredLocationListConfig {
   sort: { order: SortOrder; column: string } | null;
-  pinnedLocations: Record<ILocationIdentifier, boolean>;
+  pinnedLocations: Record<LocationIdentifier, boolean>;
   search?: string;
   columnVisibility: Record<string, boolean>;
 }

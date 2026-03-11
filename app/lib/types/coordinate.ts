@@ -5,4 +5,4 @@ export const ZodCoordinate = z.object({
   y: z.number(),
 });
 
-export type ICoordinate = z.infer<typeof ZodCoordinate>;
+export type Coordinate = z.infer<typeof ZodCoordinate>;

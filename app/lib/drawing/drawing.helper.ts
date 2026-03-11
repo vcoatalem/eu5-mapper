@@ -1,9 +1,9 @@
-import { ICoordinate } from "@/app/lib/types/coordinate";
+import { Coordinate } from "@/app/lib/types/coordinate";
 
 export class DrawingHelper {
   public static drawCircle(
     ctx: CanvasRenderingContext2D,
-    canvasCoordinate: ICoordinate,
+    canvasCoordinate: Coordinate,
     radius: number,
     color: string,
   ): void {
@@ -18,7 +18,7 @@ export class DrawingHelper {
 
   public static drawSquare(
     ctx: CanvasRenderingContext2D,
-    canvasCoordinate: ICoordinate,
+    canvasCoordinate: Coordinate,
     size: number,
     color: string,
   ): void {
@@ -41,7 +41,7 @@ export class DrawingHelper {
 
   public static drawPentagon(
     ctx: CanvasRenderingContext2D,
-    canvasCoordinate: ICoordinate,
+    canvasCoordinate: Coordinate,
     size: number,
     color: string,
   ): void {
@@ -69,8 +69,8 @@ export class DrawingHelper {
   public static drawLine(
     ctx: CanvasRenderingContext2D,
     drawParams: {
-      canvasCoordFrom: ICoordinate;
-      canvasCoordTo: ICoordinate;
+      canvasCoordFrom: Coordinate;
+      canvasCoordTo: Coordinate;
       lineWidth: number;
       color: string;
     },
@@ -86,7 +86,7 @@ export class DrawingHelper {
 
   public static drawHighlights(
     ctx: CanvasRenderingContext2D,
-    borderCanvas: ICoordinate[][],
+    borderCanvas: Coordinate[][],
     colorFn: (...args: unknown[]) => string = () => "rgba(255,255,255,0.5)",
     colorFnArgs?: unknown[],
   ): void {

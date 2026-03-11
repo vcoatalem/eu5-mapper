@@ -2,13 +2,13 @@ import {
   BuildingPlacementRestrictionConfig,
   BuildingPlacementRestrictions,
 } from "@/app/lib/types/buildingPlacementRestriction";
-import { IGameState } from "@/app/lib/types/gameState";
-import { ILocationIdentifier } from "@/app/lib/types/general";
+import { GameState } from "@/app/lib/types/gameState";
+import { LocationIdentifier } from "@/app/lib/types/general";
 import { ILocationGameData } from "@/app/lib/types/location";
 
 type EvaluationMethod = (
-  gameState: IGameState,
-  location: ILocationIdentifier,
+  gameState: GameState,
+  location: LocationIdentifier,
 ) => boolean;
 
 type LogicLeaf = { type: "leaf"; getValue: EvaluationMethod };
@@ -21,8 +21,8 @@ export type LogicTree = LogicLeaf | LogicOperator;
 
 export function evaluateLogicTree(
   tree: LogicTree,
-  location: ILocationIdentifier,
-  gameState: IGameState,
+  location: LocationIdentifier,
+  gameState: GameState,
 ): boolean {
   if (tree.type === "leaf") {
     // Evaluate leaf (custom logic)
@@ -45,12 +45,12 @@ export class LogicTreeBuilder {
   public static treeFromConditions(
     conditions: BuildingPlacementRestrictionConfig,
     getLocationData: (
-      locationId: ILocationIdentifier,
+      locationId: LocationIdentifier,
     ) => ILocationGameData | undefined,
     evaluateFn: (
       condition: BuildingPlacementRestrictions,
       location: ILocationGameData,
-      gameState: IGameState,
+      gameState: GameState,
     ) => boolean,
   ): LogicTree {
     const root: LogicTree = {

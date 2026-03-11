@@ -12,4 +12,8 @@ export const ZodCountryData = z.object({
 
 export const ZodCountryDataArray = z.array(ZodCountryData);
 
-export type ICountryData = z.infer<typeof ZodCountryData>;
+export type CountryData = z.infer<typeof ZodCountryData>;
+
+export const ZodCountryDataRecord = z.record(z.string(), ZodCountryData);
+
+export type CountryDataRecord = z.infer<typeof ZodCountryDataRecord>;

@@ -1,31 +1,36 @@
-import { columns, IDetailedLocationListProps, SortOrder } from "@/app/components/detailedList/detailedList.config";
-import { ILocationDetailedViewData } from "@/app/components/detailedList/detailedLocationListModal.component";
-import { ILocationIdentifier } from "@/app/lib/types/general";
-import listStyles from "@/app/styles/detailedLocationList.module.css";
 import {
-  useMemo,
-  useState,
-  useEffect,
-} from "react";
-import { FaAnglesDown, FaAnglesUp } from 'react-icons/fa6';
+  columns,
+  IDetailedLocationListProps,
+  SortOrder,
+} from "@/app/components/detailedList/detailedList.config";
+import { ILocationDetailedViewData } from "@/app/components/detailedList/detailedLocationListModal.component";
+import { LocationIdentifier } from "@/app/lib/types/general";
+import listStyles from "@/app/styles/detailedLocationList.module.css";
+import { useMemo, useState, useEffect } from "react";
+import { FaAnglesDown, FaAnglesUp } from "react-icons/fa6";
 
 const minimalColumnWidth = 128; // px
 const lineHeight = 48; // px
 const minListHeightPx = 500;
 const maxListHeightRatio = 4 / 5;
 
-function getMaxLinesAndHeight(): { maxLineDisplayed: number; listHeightPx: number } {
+function getMaxLinesAndHeight(): {
+  maxLineDisplayed: number;
+  listHeightPx: number;
+} {
   if (typeof window === "undefined") {
     return { maxLineDisplayed: 12, listHeightPx: lineHeight * 12 };
   }
-  const listHeightPx = Math.max(minListHeightPx, maxListHeightRatio * window.innerHeight);
+  const listHeightPx = Math.max(
+    minListHeightPx,
+    maxListHeightRatio * window.innerHeight,
+  );
   const maxLineDisplayed = Math.floor(listHeightPx / lineHeight);
   return { maxLineDisplayed, listHeightPx: maxLineDisplayed * lineHeight };
 }
 
-
 function LocationRow(props: {
-  location: ILocationIdentifier;
+  location: LocationIdentifier;
   sort: { order: SortOrder; column: string } | null;
   data: ILocationDetailedViewData;
   extensiveViewProps: IDetailedLocationListProps;
@@ -37,7 +42,11 @@ function LocationRow(props: {
     isPinned ? listStyles.pinnedLine : listStyles.contentLine,
   ].join(" ");
 
-  const columnsToDisplay = columns.filter((col) => col.title === columns[0].title || extensiveViewProps.config.columnVisibility[col.title]);
+  const columnsToDisplay = columns.filter(
+    (col) =>
+      col.title === columns[0].title ||
+      extensiveViewProps.config.columnVisibility[col.title],
+  );
   const totalColumns = columnsToDisplay.reduce((sum, col) => sum + col.cols, 0);
   return (
     <div
@@ -56,8 +65,7 @@ function LocationRow(props: {
           isFirstColumn ? listStyles.stickyColumn : "",
           isSelectedColumn ? listStyles.selectedColumn : "",
           "group",
-        ]
-          .join(" ");
+        ].join(" ");
         return (
           <div
             key={col.title}
@@ -77,7 +85,8 @@ function LocationRow(props: {
 
 export function DetailedLocationList(props: IDetailedLocationListProps) {
   const [scrollY, setScrollY] = useState<number>(0);
-  const [{ maxLineDisplayed, listHeightPx }, setMaxLinesAndHeight] = useState(getMaxLinesAndHeight);
+  const [{ maxLineDisplayed, listHeightPx }, setMaxLinesAndHeight] =
+    useState(getMaxLinesAndHeight);
 
   useEffect(() => {
     const update = () => setMaxLinesAndHeight(getMaxLinesAndHeight());
@@ -86,7 +95,11 @@ export function DetailedLocationList(props: IDetailedLocationListProps) {
     return () => window.removeEventListener("resize", update);
   }, []);
 
-  const columnsToDisplay = columns.filter((col) => col.title === columns[0].title || props.config.columnVisibility[col.title]);
+  const columnsToDisplay = columns.filter(
+    (col) =>
+      col.title === columns[0].title ||
+      props.config.columnVisibility[col.title],
+  );
   const totalColumns = columnsToDisplay.reduce((sum, col) => sum + col.cols, 0);
 
   const {
@@ -122,8 +135,7 @@ export function DetailedLocationList(props: IDetailedLocationListProps) {
 
   const sortedCount = Object.keys(sortedItems).length;
   const pinnedCount = Object.keys(pinnedItems).length;
-  const totalContentHeight =
-    lineHeight * (1 + pinnedCount + sortedCount);
+  const totalContentHeight = lineHeight * (1 + pinnedCount + sortedCount);
 
   const sortedContentOffset = lineHeight * (1 + pinnedCount);
 
@@ -133,8 +145,16 @@ export function DetailedLocationList(props: IDetailedLocationListProps) {
       Math.floor((scrollY - sortedContentOffset) / lineHeight),
     );
     const endIndex = Math.min(sortedCount, startIndex + maxLineDisplayed);
-    return Object.fromEntries(Object.entries(sortedItems).slice(startIndex, endIndex));
-  }, [sortedItems, scrollY, sortedCount, sortedContentOffset, maxLineDisplayed]);
+    return Object.fromEntries(
+      Object.entries(sortedItems).slice(startIndex, endIndex),
+    );
+  }, [
+    sortedItems,
+    scrollY,
+    sortedCount,
+    sortedContentOffset,
+    maxLineDisplayed,
+  ]);
 
   const startIndex = Math.max(
     0,
@@ -160,33 +180,38 @@ export function DetailedLocationList(props: IDetailedLocationListProps) {
             gridTemplateColumns: `repeat(${totalColumns}, minmax(128px, 1fr))`,
           }}
         >
-          {columns.filter((col) => col.title === columns[0].title || props.config.columnVisibility[col.title]).map((col) => {
-            const isFirstColumn = col.title === columns[0].title;
-            const isSelectedColumn = props.config.sort?.column === col.title;
-            const headerCellClasses = [
-              listStyles.headerCell,
-              isFirstColumn ? listStyles.stickyColumn : "",
-              isSelectedColumn ? listStyles.selectedColumn : "",
-            ]
-              .join(" ");
-            return (
-              <button
-                key={col.title}
-                type="button"
-                className={headerCellClasses}
-                style={{ gridColumn: `span ${col.cols}` }}
-                onClick={() => props.toggleSort?.(col.title)}
-              >
-                <span>{col.title}</span>
-                {isSelectedColumn &&
-                  (props.config.sort?.order === "asc" ? (
-                    <FaAnglesUp color="white" size={16} />
-                  ) : (
-                    <FaAnglesDown color="white" size={16} />
-                  ))}
-              </button>
-            );
-          })}
+          {columns
+            .filter(
+              (col) =>
+                col.title === columns[0].title ||
+                props.config.columnVisibility[col.title],
+            )
+            .map((col) => {
+              const isFirstColumn = col.title === columns[0].title;
+              const isSelectedColumn = props.config.sort?.column === col.title;
+              const headerCellClasses = [
+                listStyles.headerCell,
+                isFirstColumn ? listStyles.stickyColumn : "",
+                isSelectedColumn ? listStyles.selectedColumn : "",
+              ].join(" ");
+              return (
+                <button
+                  key={col.title}
+                  type="button"
+                  className={headerCellClasses}
+                  style={{ gridColumn: `span ${col.cols}` }}
+                  onClick={() => props.toggleSort?.(col.title)}
+                >
+                  <span>{col.title}</span>
+                  {isSelectedColumn &&
+                    (props.config.sort?.order === "asc" ? (
+                      <FaAnglesUp color="white" size={16} />
+                    ) : (
+                      <FaAnglesDown color="white" size={16} />
+                    ))}
+                </button>
+              );
+            })}
         </div>
         {/* Sticky Lines (pinned content) */}
         {Object.entries(pinnedItems).length > 0 && (

@@ -1,3 +1,4 @@
+import { ZodHexColor } from "@/app/lib/types/color";
 import { ZodLocationHierarchy } from "@/app/lib/types/locationHierarchy";
 import { ZodLocationRank } from "@/app/lib/types/locationRank";
 import { ZodTopography } from "@/app/lib/types/topography";
@@ -6,7 +7,7 @@ import * as z from "zod";
 
 export const ZodLocationGameData = z.object({
   name: z.string(),
-  hexColor: z.string(),
+  hexColor: ZodHexColor,
   centerCoordinates: z.object({
     x: z.number(),
     y: z.number(),
@@ -38,3 +39,10 @@ export const ZodLocationGameData = z.object({
 export const ZodLocationGameDataArray = z.array(ZodLocationGameData);
 
 export type ILocationGameData = z.infer<typeof ZodLocationGameData>;
+
+export const ZodLocationGameDataRecord = z.record(
+  z.string(),
+  ZodLocationGameData,
+);
+
+export type LocationGameDataMap = z.infer<typeof ZodLocationGameDataRecord>;

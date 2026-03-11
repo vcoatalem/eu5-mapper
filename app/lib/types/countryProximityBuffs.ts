@@ -19,9 +19,9 @@ export const ZodCountryProximityBuffs = z.object({
   hillsMultiplier: z.number().nullable().optional().default(null),
 });
 
-export type ICountryProximityBuffs = z.infer<typeof ZodCountryProximityBuffs>;
+export type CountryProximityBuffs = z.infer<typeof ZodCountryProximityBuffs>;
 
-export const baseCountryProximityBuffs: ICountryProximityBuffs = {
+export const baseCountryProximityBuffs: CountryProximityBuffs = {
   genericModifier: null,
   landModifier: null,
   seaWithMaritimeFlatCostReduction: null,

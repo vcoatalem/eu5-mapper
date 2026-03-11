@@ -1,5 +1,5 @@
 import { Observable } from "./observable";
-import { ILocationIdentifier } from "./types/general";
+import { LocationIdentifier } from "./types/general";
 import { EdgeType } from "./types/pathfinding";
 import { workerManager } from "@/app/lib/workerManager";
 import { gameStateController } from "./gameState.controller";
@@ -7,16 +7,16 @@ import { ZodWorkerTaskcomputeShortestPathFromProximitySourceResult } from "@/wor
 
 export interface IShortestPathResult {
   result: Record<
-    ILocationIdentifier,
+    LocationIdentifier,
     {
       status: "pending" | "completed" | "error" | "needs_update";
       proximityResult: {
         path: Array<{
-          throughLocation: ILocationIdentifier;
+          throughLocation: LocationIdentifier;
           cost: number;
           through: EdgeType;
         }>;
-        sourceLocation: ILocationIdentifier;
+        sourceLocation: LocationIdentifier;
         proximity: number;
       } | null;
     }
@@ -95,7 +95,7 @@ class ShortestPatchController extends Observable<IShortestPathResult> {
   }
 
   public launchComputeShortestPathFromProximitySourceTask(
-    locationName: ILocationIdentifier,
+    locationName: LocationIdentifier,
   ): void {
     if (this.subject.result[locationName]?.status === "completed") {
       return;

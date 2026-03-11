@@ -5,4 +5,4 @@ export const ZodCountryValues = z.object({
   landVsNaval: z.number(),
 });
 
-export type ICountryValues = z.infer<typeof ZodCountryValues>;
+export type CountryValues = z.infer<typeof ZodCountryValues>;

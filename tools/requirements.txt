@@ -1,9 +1,0 @@
-pillow
-numpy
-scipy
-tqdm
-mss
-pyautogui
-pytesseract
-opencv-python
-pyperclip

@@ -2,13 +2,15 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { GameDataVersion } from "@/app/config/gameData.config";
 
 export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
     // Redirect to default version
-    router.replace("/1.1.4");
+    const version: GameDataVersion = "1.1.9";
+    router.replace(`/${version}`);
   }, [router]);
 
   return (

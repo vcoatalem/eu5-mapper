@@ -1,7 +1,7 @@
 import { ILocationHierarchy } from "@/app/lib/types/locationHierarchy";
 import { gameStateController } from "./gameState.controller";
 import { Observable } from "./observable";
-import { ILocationIdentifier } from "./types/general";
+import { LocationIdentifier } from "./types/general";
 
 export type EditMode = "acquire" | "capital" | "road" | "maritime";
 const defaultMode: EditMode = "acquire";
@@ -9,12 +9,12 @@ const defaultMode: EditMode = "acquire";
 type BrushSize = keyof ILocationHierarchy | "location";
 
 /** Per-mode state stored in IEditModeState (no isModeEnabled). */
-type LocationSelection = { selectedLocation: ILocationIdentifier | null };
+type LocationSelection = { selectedLocation: LocationIdentifier | null };
 
 export interface IEditModeState {
   modeEnabled: EditMode;
   capital: LocationSelection & {
-    askConfirmationForLocation?: ILocationIdentifier | null;
+    askConfirmationForLocation?: LocationIdentifier | null;
   };
   road: LocationSelection;
   maritime: LocationSelection;
@@ -28,7 +28,7 @@ export interface IAcquireLocationSlice extends IEditModeSlice {
   brushSize: BrushSize;
 }
 export interface IChangeCapitalSlice extends IEditModeSlice {
-  askConfirmationForLocation?: ILocationIdentifier | null;
+  askConfirmationForLocation?: LocationIdentifier | null;
 }
 
 const baseRoad: LocationSelection = { selectedLocation: null };
@@ -127,7 +127,7 @@ class EditModeController extends Observable<IEditModeState> {
 
   public askForConfirmation(
     mode: EditMode,
-    location: ILocationIdentifier,
+    location: LocationIdentifier,
   ): void {
     switch (mode) {
       case "capital":
@@ -158,7 +158,7 @@ class EditModeController extends Observable<IEditModeState> {
     this.notifyListeners();
   }
 
-  public selectLocation(mode: EditMode, location: ILocationIdentifier): void {
+  public selectLocation(mode: EditMode, location: LocationIdentifier): void {
     switch (mode) {
       case "maritime":
         this.subject = {

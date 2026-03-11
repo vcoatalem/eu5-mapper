@@ -1,6 +1,6 @@
 import { IWorkerTask } from "@/workers/types/task";
 import { sendMessage } from "./utils";
-import { ICoordinate } from "@/app/lib/types/coordinate";
+import { Coordinate } from "@/app/lib/types/coordinate";
 import { ZodWorkerTaskInitWithImagePayload } from "@/workers/types/initWithImage";
 import {
   IWorkerTaskColorSearchResult,
@@ -23,7 +23,7 @@ const scanlineFill = (
   startX: number,
   startY: number,
   task: IWorkerTask,
-): ICoordinate[] => {
+): Coordinate[] => {
   const height = data32.length / width;
   const visited = new Uint8Array(data32.length);
 
@@ -32,13 +32,15 @@ const scanlineFill = (
   const y = Math.floor(startY);
 
   if (x < 0 || x >= width || y < 0 || y >= height) {
-    return [];
+    throw new Error(
+      `Starting coordinates (${startX}, ${startY}) are out of bounds (height: ${height}, width: ${width})`,
+    );
   }
 
   // Get target color (mask alpha channel like getAllCoordinatesOfColor)
   const startIdx = y * width + x;
   const targetColor32 = data32[startIdx] & 0x00ffffff;
-  const coords: ICoordinate[] = [];
+  const coords: Coordinate[] = [];
   const stack: [number, number][] = [[x, y]];
   const maxIterations = width * height;
   let iterations = 0;
@@ -93,11 +95,14 @@ const scanlineFill = (
       task,
       data: null,
     });
-    // No task context here, so can't use sendMessage for this log
-    // (would need to pass task info if needed)
-    self.postMessage({});
   }
 
+  sendMessage(self, {
+    level: "log",
+    message: `scanlineFill completed for start (${startX}, ${startY}), found ${coords.length} coordinates in ${iterations} iterations`,
+    task,
+    data: { results: coords, payload: { startX, startY } },
+  });
   return coords;
 };
 
@@ -149,13 +154,13 @@ self.onmessage = function (e: MessageEvent<IWorkerTask>) {
 
     case "colorSearch":
       try {
+        const payload = ZodWorkerTaskColorSearchPayload.parse(e.data.payload);
+
         if (!pixelData32) {
           throw new Error(
             "Image data not initialized. Must call 'initWithImage' first.",
           );
         }
-
-        const payload = ZodWorkerTaskColorSearchPayload.parse(e.data.payload);
 
         const result: IWorkerTaskColorSearchResult = { result: {} };
 
@@ -163,7 +168,7 @@ self.onmessage = function (e: MessageEvent<IWorkerTask>) {
           for (const [locationName, coordinates] of Object.entries(
             payload.coordinates,
           )) {
-            const foundCoordinates: ICoordinate[] = coordinates.reduce(
+            const foundCoordinates: Coordinate[] = coordinates.reduce(
               (prev, { x, y }) => {
                 const regionCoords = scanlineFill(
                   pixelData32,
@@ -174,7 +179,7 @@ self.onmessage = function (e: MessageEvent<IWorkerTask>) {
                 );
                 return prev.concat(regionCoords);
               },
-              [] as ICoordinate[],
+              [] as Coordinate[],
             );
 
             result.result[locationName] = foundCoordinates;

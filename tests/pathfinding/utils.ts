@@ -1,28 +1,42 @@
 import { CompactGraph } from "@/app/lib/graph";
 import { ParserHelper } from "@/app/lib/parser.helper";
-import { ILocationIdentifier } from "@/app/lib/types/general";
+import { GameData, LocationIdentifier } from "@/app/lib/types/general";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 import { ArrayHelper } from "@/app/lib/array.helper";
-import { ICountryValues } from "@/app/lib/types/countryValues";
+import { CountryValues } from "@/app/lib/types/countryValues";
+import {
+  GameDataVersion,
+  ZodGameDataVersion,
+} from "@/app/config/gameData.config";
 
-const COUNTRY_VALUE_KEYS: Array<keyof ICountryValues> = [
+const COUNTRY_VALUE_KEYS: Array<keyof CountryValues> = [
   "landVsNaval",
   "centralizationVsDecentralization",
 ];
 
+export type ReferenceFile = {
+  name: string;
+  version: GameDataVersion;
+  countryCode: string;
+  rulerAdministrativeAbility: number;
+  modifiers: string[];
+  countryValuesOverrides: Partial<CountryValues>;
+  data: Record<LocationIdentifier, number>;
+};
+
 export interface ReferenceSettings {
   rulerAdministrativeAbility: number;
   modifiers: string[];
-  countryValuesOverrides: Partial<ICountryValues>;
+  countryValuesOverrides: Partial<CountryValues>;
 }
 
 function parseCountryValuesOverrides(
   valuesRaw: string,
-): Partial<ICountryValues> {
-  const overrides: Partial<ICountryValues> = {};
+): Partial<CountryValues> {
+  const overrides: Partial<CountryValues> = {};
   const pairs = valuesRaw
     .split("|")
     .map((s) => s.trim())
@@ -30,7 +44,7 @@ function parseCountryValuesOverrides(
   for (const pair of pairs) {
     const colonIndex = pair.indexOf(":");
     if (colonIndex <= 0) continue;
-    const key = pair.slice(0, colonIndex).trim() as keyof ICountryValues;
+    const key = pair.slice(0, colonIndex).trim() as keyof CountryValues;
     const valueStr = pair.slice(colonIndex + 1).trim();
     if (!COUNTRY_VALUE_KEYS.includes(key)) continue;
     const value = Number(valueStr);
@@ -40,28 +54,19 @@ function parseCountryValuesOverrides(
   return overrides;
 }
 
-export const readReferenceFile = async (
-  path: string,
-): Promise<{
-  countryCode: string;
-  version: string;
-  rulerAdministrativeAbility: number;
-  modifiers: string[];
-  countryValuesOverrides: Partial<ICountryValues>;
-  data: Record<ILocationIdentifier, number>;
-}> => {
-  const f = await fs.readFileSync(path, "utf-8");
+export const readReferenceFileSync = (path: string): ReferenceFile => {
+  const f = fs.readFileSync(path, "utf-8");
   const lines = f.split("\n");
   const headerLine = lines[0];
 
   const headerParts = headerLine.split(",");
   const countryCode = headerParts[2];
   const versionPart = headerParts[3]; // version:<value>
-  const version = versionPart.split(":")[1];
+  const version = ZodGameDataVersion.parse(versionPart.split(":")[1]);
   const fifthColumn = headerParts[4]; // adminAbility:<value>;modifiers:<mod1>|<mod2>|...;values:key1:val1|key2:val2
   let rulerAdministrativeAbility = 50;
   let modifiers: string[] = [];
-  let countryValuesOverrides: Partial<ICountryValues> = {};
+  let countryValuesOverrides: Partial<CountryValues> = {};
 
   for (const segment of fifthColumn.split(";").map((s) => s.trim())) {
     if (segment.startsWith("adminAbility:")) {
@@ -91,6 +96,7 @@ export const readReferenceFile = async (
   );
 
   return {
+    name: path.split("/").slice(-1)[0],
     countryCode,
     version,
     rulerAdministrativeAbility,
@@ -98,13 +104,6 @@ export const readReferenceFile = async (
     countryValuesOverrides,
     data,
   };
-};
-
-export const readAdjacencyFile = async (
-  path: string,
-): Promise<CompactGraph> => {
-  const adjacencyData = await fs.readFileSync(path, "utf-8");
-  return ParserHelper.parseAdjacencyCSV(adjacencyData);
 };
 
 /**
@@ -146,13 +145,13 @@ export async function generateHtmlReport(
   country: string,
   version: string,
   results: Array<{
-    location: ILocationIdentifier;
+    location: LocationIdentifier;
     expected: number;
     actual: number;
     difference: number;
   }>,
   toleratedDifference: number,
-  unrecognisedLocations: ILocationIdentifier[] = [],
+  unrecognisedLocations: LocationIdentifier[] = [],
   settings?: ReferenceSettings,
 ): Promise<void> {
   const totalCount = results.length;
@@ -619,7 +618,7 @@ export async function generateHtmlReport(
           Object.keys(settings.countryValuesOverrides).length > 0
             ? `Values: ${(
                 Object.entries(settings.countryValuesOverrides) as Array<
-                  [keyof ICountryValues, number]
+                  [keyof CountryValues, number]
                 >
               )
                 .map(([k, v]) => `${escapeHtml(k)}: ${v}`)

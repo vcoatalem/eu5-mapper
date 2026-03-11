@@ -1,7 +1,7 @@
 "use client";
 
 import { GameDataLoaderHelper } from "@/app/lib/gameDataLoader.helper";
-import { useParams } from "next/navigation";
+import { useGameDataVersion } from "@/app/[version]/version.guard";
 import { createContext, useEffect, useState } from "react";
 import { IndexedDBWriter } from "./lib/indexeddb/indexeddb-writer";
 import {
@@ -15,43 +15,44 @@ import {
   dbVersion,
 } from "./lib/indexeddb/indexeddb.const";
 import { LocationHierarchyService } from "./lib/locationHierarchy.service";
-import { IGameData } from "./lib/types/general";
-import { GameDataFileType } from "./lib/types/versionsManifest";
-import { VersionResolver } from "./lib/versionResolver";
+import { GameData } from "./lib/types/general";
+import {
+  GameDataFileType,
+  VersionManifest,
+} from "./lib/types/versionsManifest";
 
-interface IImagePaths {
+interface ImagePaths {
   locationsImage: string;
   borderLayer: string;
   terrainLayer: string;
 }
 
-interface IAppContext {
-  gameData: IGameData | null;
-  imagePaths: IImagePaths | null;
+interface AppContext {
+  gameData: GameData | null;
+  imagePaths: ImagePaths | null;
   isLoading: boolean;
   error: string | null;
 }
 
-const emptyContext: IAppContext = {
+const emptyContext: AppContext = {
   gameData: null,
   imagePaths: null,
   isLoading: true,
   error: null,
 };
 
-export const AppContext = createContext<IAppContext>(emptyContext);
+export const AppContext = createContext<AppContext>(emptyContext);
 
 export const AppContextProvider = ({
   children,
 }: {
   children: React.ReactNode;
 }) => {
-  const params = useParams();
-  const version = params?.version as string;
+  const version = useGameDataVersion();
 
   // Game data state
-  const [gameData, setGameData] = useState<IGameData | null>(null);
-  const [imagePaths, setImagePaths] = useState<IImagePaths | null>(null);
+  const [gameData, setGameData] = useState<GameData | null>(null);
+  const [imagePaths, setImagePaths] = useState<ImagePaths | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,10 +62,13 @@ export const AppContextProvider = ({
         setIsLoading(true);
         setError(null);
         console.log(`[AppContext] Loading game data for version ${version}...`);
-        const versionResolver = new VersionResolver();
-        await versionResolver.loadVersionsManifest();
-        const resolveAndPreloadImages = async (): Promise<IImagePaths> => {
-          const imageFileTypes: GameDataFileType[] = [
+        const manifest =
+          await GameDataLoaderHelper.loadManifestForVersion(version);
+
+        const resolveAndPreloadImages = async (
+          versionManifest: VersionManifest,
+        ): Promise<ImagePaths> => {
+          const imageFileTypes: Array<GameDataFileType> = [
             "locationsImage",
             "borderLayer",
             "terrainLayer",
@@ -72,17 +76,15 @@ export const AppContextProvider = ({
 
           const imagePathsEntries = await Promise.all(
             imageFileTypes.map(async (fileType) => {
-              const resolvedVersion = await versionResolver.resolveFileVersion(
-                fileType,
+              const imagePath = GameDataLoaderHelper.getFileUrlForVersion(
                 version,
-              );
-              const imagePath = versionResolver.getFilePath(
                 fileType,
-                resolvedVersion,
+                versionManifest,
               );
 
               await new Promise<void>((resolve, reject) => {
                 const img = new Image();
+                img.crossOrigin = "anonymous";
                 img.onload = () => {
                   console.log(`[AppContext] Preloaded image: ${imagePath}`);
                   resolve();
@@ -101,32 +103,24 @@ export const AppContextProvider = ({
             }),
           );
 
-          // Build IImagePaths object with proper typing
-          const imagePaths: IImagePaths = {
-            locationsImage: "",
-            borderLayer: "",
-            terrainLayer: "",
+          return {
+            locationsImage:
+              imagePathsEntries.find(
+                ([type]) => type === "locationsImage",
+              )?.[1] ?? "",
+            borderLayer:
+              imagePathsEntries.find(([type]) => type === "borderLayer")?.[1] ??
+              "",
+            terrainLayer:
+              imagePathsEntries.find(
+                ([type]) => type === "terrainLayer",
+              )?.[1] ?? "",
           };
-
-          for (const [fileType, path] of imagePathsEntries) {
-            if (
-              fileType === "locationsImage" ||
-              fileType === "borderLayer" ||
-              fileType === "terrainLayer"
-            ) {
-              imagePaths[fileType] = path;
-            }
-          }
-
-          return imagePaths;
         };
 
         const [gameDataFiles, resolvedImagePaths] = await Promise.all([
-          GameDataLoaderHelper.loadGameDataFilesForVersion(
-            version,
-            versionResolver,
-          ),
-          resolveAndPreloadImages(),
+          GameDataLoaderHelper.loadGameDataFilesForVersion(version, manifest),
+          resolveAndPreloadImages(manifest),
         ]);
 
         const {
@@ -138,9 +132,7 @@ export const AppContextProvider = ({
           roads,
         } = gameDataFiles;
 
-        console.log("[AppContext] Parsed roads:", roads);
-
-        const toBePersistedGameData: IGameData = {
+        const toBePersistedGameData: GameData = {
           locationDataMap: locationData.map,
           colorToNameMap: {},
           buildingsTemplate: {},

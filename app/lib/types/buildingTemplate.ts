@@ -22,3 +22,10 @@ export const ZodBuildingTemplate = z.object({
 export const ZodBuildingTemplateArray = z.array(ZodBuildingTemplate);
 
 export type BuildingTemplate = z.infer<typeof ZodBuildingTemplate>;
+
+export const ZodBuildingTemplateRecord = z.record(
+  z.string(),
+  ZodBuildingTemplate,
+);
+
+export type BuildingTemplateRecord = z.infer<typeof ZodBuildingTemplateRecord>;

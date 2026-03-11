@@ -1,11 +1,11 @@
 import { AppContext } from "@/app/appContextProvider";
 import { ObjectHelper } from "@/app/lib/object.helper";
-import { IBuildingInstance } from "@/app/lib/types/buildingInstance";
+import { BuildingInstance } from "@/app/lib/types/buildingInstance";
 import { useContext } from "react";
 
 interface BuildingDescriptionProps {
   buildingTemplateName: string;
-  instance?: IBuildingInstance;
+  instance?: BuildingInstance;
 }
 
 export function BuildingDescription(props: BuildingDescriptionProps) {

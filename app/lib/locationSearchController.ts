@@ -2,7 +2,7 @@
 
 import { LocationHierarchyService } from "@/app/lib/locationHierarchy.service";
 import { Observable } from "./observable";
-import { IGameData, ILocationIdentifier } from "./types/general";
+import { GameData, LocationIdentifier } from "./types/general";
 import { ILocationHierarchy } from "@/app/lib/types/locationHierarchy";
 
 export interface ILocationSearchResult {
@@ -10,12 +10,12 @@ export interface ILocationSearchResult {
     name: string;
     hierarchyType: keyof ILocationHierarchy | "location";
     hierarchy: ILocationHierarchy;
-    locationsInHierarchy: ILocationIdentifier[];
+    locationsInHierarchy: LocationIdentifier[];
   }>;
 }
 
 export class LocationSearchController extends Observable<ILocationSearchResult> {
-  private gameData: IGameData | null = null;
+  private gameData: GameData | null = null;
   private maxResults: number = 10;
 
   constructor() {
@@ -33,7 +33,7 @@ export class LocationSearchController extends Observable<ILocationSearchResult> 
     }
   }
 
-  public init(gameData: IGameData): void {
+  public init(gameData: GameData): void {
     this.gameData = gameData;
     (window as any).__latestGameData = gameData;
   }

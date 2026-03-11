@@ -1,4 +1,21 @@
-import { sendMessage } from "./utils";
+import { ProximityBuffsRecord } from "@/app/lib/classes/countryProximityBuffs";
+import { CompactGraph } from "@/app/lib/graph";
+import { ParserHelper } from "@/app/lib/parser.helper";
+import { ProximityComputationHelper } from "@/app/lib/proximityComputation.helper";
+import { GameData, ZodGameData } from "@/app/lib/types/general";
+import {
+  IWorkerTaskComputeNeighborsResult,
+  ZodWorkerTaskComputeNeighborsPayload,
+} from "@/workers/types/computeNeighbors";
+import {
+  IWorkerTaskComputeProximityResult,
+  ZodWorkerTaskComputeProximityPayload,
+} from "@/workers/types/computeProximity";
+import {
+  IWorkerTaskcomputeShortestPathFromProximitySourceResult,
+  ZodWorkerTaskcomputeShortestPathFromProximitySourcePayload,
+} from "@/workers/types/shortestPath";
+import { ZodWorkerTask } from "@/workers/types/task";
 import { IndexedDBReader } from "../app/lib/indexeddb/indexeddb-reader";
 import {
   dbAdjacencyDataStoreName,
@@ -8,34 +25,13 @@ import {
   dbStoreNames,
   dbVersion,
 } from "../app/lib/indexeddb/indexeddb.const";
-import { IGameData } from "@/app/lib/types/general";
-import { CompactGraph } from "@/app/lib/graph";
-import { ParserHelper } from "@/app/lib/parser.helper";
-import { ProximityComputationHelper } from "@/app/lib/proximityComputation.helper";
-import { ProximityBuffsRecord } from "@/app/lib/classes/countryProximityBuffs";
-import { IWorkerTask, ZodWorkerTask } from "@/workers/types/task";
-import {
-  IWorkerTaskComputeProximityPayload,
-  IWorkerTaskComputeProximityResult,
-  ZodWorkerTaskComputeProximityPayload,
-} from "@/workers/types/computeProximity";
-import {
-  IWorkerTaskComputeNeighborsPayload,
-  IWorkerTaskComputeNeighborsResult,
-  ZodWorkerTaskComputeNeighborsPayload,
-} from "@/workers/types/computeNeighbors";
-import {
-  IWorkerTaskcomputeShortestPathFromProximitySourceResult,
-  ZodWorkerTaskcomputeShortestPathFromProximitySourcePayload,
-} from "@/workers/types/shortestPath";
-import { ZodWorkerMessage } from "@/workers/types/message";
-import { ZodWorkerTaskColorSearchPayload } from "@/workers/types/colorSearch";
+import { sendMessage } from "./utils";
 
 const connection = new IndexedDBReader(dbName, dbVersion, dbStoreNames);
 
 (globalThis as any).__workerName = "Graph Worker";
 
-let gameData: IGameData | null = null;
+let gameData: GameData | null = null;
 let graph: CompactGraph | null = null;
 
 self.onmessage = async function (e: MessageEvent<unknown>) {
@@ -50,9 +46,7 @@ self.onmessage = async function (e: MessageEvent<unknown>) {
           task: taskData,
         });
         gameData = await connection.get(dbGameDataStoreName, dbDataKey).then(
-          (data) => {
-            return data as IGameData;
-          },
+          (data) => ZodGameData.parse(data),
           (error) => {
             throw new Error(`Failed to fetch data from IndexedDB: ${error}`);
           },

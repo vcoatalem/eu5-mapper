@@ -12,7 +12,7 @@ import { StringHelper } from "@/app/lib/utils/string.helper";
 import styles from "@/app/styles/Gui.module.css";
 import { memo, useContext, useMemo, useSyncExternalStore } from "react";
 import { AppContext } from "../appContextProvider";
-import { ILocationIdentifier } from "../lib/types/general";
+import { LocationIdentifier } from "../lib/types/general";
 import { MaritimePresenceIcon } from "@/app/components/indicatorsIcons/maritimePresenceIcon.component";
 import { HarborSuitabilityIcon } from "@/app/components/indicatorsIcons/harborSuitabilityIcon.component";
 import { PopulationIcon } from "@/app/components/indicatorsIcons/populationIcon.component";
@@ -25,7 +25,7 @@ import {
 import { ILocationHierarchy } from "@/app/lib/types/locationHierarchy";
 
 function LocationInfoBox(props: {
-  locationName: ILocationIdentifier;
+  locationName: LocationIdentifier;
   mode: EditMode | null;
 }) {
   const { locationName, mode } = props;
@@ -178,7 +178,7 @@ function LocationInfoBox(props: {
   );
 }
 
-function HierarchyInfoBox(props: { locationNames: ILocationIdentifier[] }) {
+function HierarchyInfoBox(props: { locationNames: LocationIdentifier[] }) {
   const gameState = useSyncExternalStore(
     gameStateController.subscribe.bind(gameStateController),
     () => gameStateController.getSnapshot(),

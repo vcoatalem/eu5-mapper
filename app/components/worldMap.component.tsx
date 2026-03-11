@@ -14,7 +14,7 @@ import React, {
 import { InfoBoxComponent } from "./infoBox.component";
 import { AppContext } from "../appContextProvider";
 import { gameStateController } from "@/app/lib/gameState.controller";
-import { ILocationIdentifier } from "@/app/lib/types/general";
+import { LocationIdentifier } from "@/app/lib/types/general";
 import { DrawingService } from "@/app/lib/drawing.service";
 import { workerManager } from "@/app/lib/workerManager";
 import { LoadingScreenComponent } from "./loadingScreen.component";
@@ -58,8 +58,9 @@ import {
   layerVisibilityController,
 } from "@/app/lib/layerVisibility.controller";
 import { LayerVisibilityEdition } from "@/app/components/layerVisibilityEdition.component";
-import { ICoordinate } from "@/app/lib/types/coordinate";
+import { Coordinate } from "@/app/lib/types/coordinate";
 import { IWorkerTaskInitWithImagePayload } from "@/workers/types/initWithImage";
+import { useGameDataVersion } from "@/app/[version]/version.guard";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
@@ -89,7 +90,7 @@ export function WorldMapComponent() {
   const hasOwnedLocations = gameState?.ownedLocations
     ? !!Object.keys(gameState?.ownedLocations)?.length
     : false;
-  const version = useParams().version as string;
+  const version = useGameDataVersion();
   const loadFileOnStart = useSearchParams().get("file") as string;
   const initializedRef = useRef(false);
   const colorCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -110,9 +111,9 @@ export function WorldMapComponent() {
     null,
   );
   const [selectedLocation, setSelectedLocation] =
-    useState<ILocationIdentifier | null>(null);
+    useState<LocationIdentifier | null>(null);
   const [lastKnownMouseCoordinate, setLastKnownMouseCoordinate] =
-    useState<ICoordinate | null>(null);
+    useState<Coordinate | null>(null);
   // Using ref instead of state: we use forceUpdate() (triggerRender) to trigger render
   // after applying the drag state, so we don't need useState's automatic re-renders.
   // The cursor style can read from ref.current during render, and the zoom controller
@@ -362,6 +363,7 @@ export function WorldMapComponent() {
       }
       if (layer.path) {
         const img = new Image();
+        img.crossOrigin = "anonymous";
         // Track the image for cleanup
         imageLoadHandlersRef.current.push({ img, layer: layer.name });
 
@@ -398,8 +400,6 @@ export function WorldMapComponent() {
               worldMapConfig.height,
             );
             for (let i = 0; i < config.poolSize; i++) {
-              // TODO: make sure this has completed before removing loading screen
-              // Use unique task ID with timestamp to avoid conflicts when re-initializing
               const uniqueTaskId = `initWithImage-${i}-${Date.now()}`;
               const pixelDataCopy = new Uint8ClampedArray(imageData.data);
               const taskPayload: IWorkerTaskInitWithImagePayload = {
@@ -420,8 +420,9 @@ export function WorldMapComponent() {
             `[WorldMapInit] Failed to load image for layer ${layer.name} from path: ${layer.path}`,
             e,
           );
-          // Still increment counter even on error to prevent blocking
-          layersRenderedRef.current++;
+          setInitializationError(
+            "Failed to load game data images. Please try refreshing the page.",
+          );
         };
         console.log(
           `[WorldMapInit] Starting to load image for layer ${layer.name} from: ${layer.path}`,
@@ -510,7 +511,7 @@ export function WorldMapComponent() {
     if (topLayerRef.current) {
       const getLocationsAtPointer = (
         e: MouseEvent,
-      ): ILocationIdentifier[] | Promise<ILocationIdentifier[]> => {
+      ): LocationIdentifier[] | Promise<LocationIdentifier[]> => {
         const locationName = cameraController.getLocationAtPointer(e, gameData);
         if (!locationName) return [];
         const state = editModeController.getSnapshot();
@@ -916,7 +917,10 @@ export function WorldMapComponent() {
             }}
           >
             <div className="pointer-events-auto">
-              <NeighborsPanelComponent baseLocation={selectedLocation!} />
+              <NeighborsPanelComponent
+                baseLocation={selectedLocation!}
+                style={isDraggingRef.current ? { opacity: 0.5 } : undefined}
+              />
             </div>
           </TooltipContent>
         </Tooltip>

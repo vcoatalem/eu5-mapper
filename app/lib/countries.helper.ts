@@ -1,10 +1,11 @@
-import { IGameData, ILocationIdentifier } from "@/app/lib/types/general";
+import { CountryDataRecord } from "@/app/lib/types/country";
+import { GameData, LocationIdentifier } from "@/app/lib/types/general";
 
 export class CountriesHelper {
   public static getCountryBaseCapitalLocation(
     countryCode: string,
-    countriesDataMap: IGameData["countriesData"],
-  ): ILocationIdentifier {
+    countriesDataMap: CountryDataRecord,
+  ): LocationIdentifier {
     const country = countriesDataMap[countryCode];
     if (!country) {
       throw new Error(`Country not found: ${countryCode}`);

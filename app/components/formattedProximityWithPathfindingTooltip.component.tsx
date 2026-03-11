@@ -3,12 +3,12 @@ import { ShortestPathComponent } from "@/app/components/shortestPath.component";
 import { Tooltip } from "@/app/lib/tooltip/tooltip.component";
 import { TooltipContent } from "@/app/lib/tooltip/tooltipContent.component";
 import { TooltipTrigger } from "@/app/lib/tooltip/tooltipTrigger.component";
-import { ILocationIdentifier } from "@/app/lib/types/general";
+import { LocationIdentifier } from "@/app/lib/types/general";
 import { useRef } from "react";
 
 interface IFormattedProximityWithPathfindingTooltip {
   className?: string;
-  location: ILocationIdentifier;
+  location: LocationIdentifier;
   proximity: number;
 }
 

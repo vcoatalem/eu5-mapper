@@ -1,17 +1,17 @@
-import { ICoordinate } from "@/app/lib/types/coordinate";
+import { Coordinate } from "@/app/lib/types/coordinate";
 import { Subject } from "./subject";
-import { ILocationIdentifier } from "./types/general";
+import { LocationIdentifier } from "./types/general";
 
 type HoverEventPayload = {
-  locations: ILocationIdentifier[];
+  locations: LocationIdentifier[];
   type: "search" | null;
-  mouseCoordinate: ICoordinate | null;
+  mouseCoordinate: Coordinate | null;
 };
 
 type ClickEventPayload = {
-  locations: ILocationIdentifier[];
+  locations: LocationIdentifier[];
   type: "acquire" | "goto" | null; // add more types as needed
-  mouseCoordinate: ICoordinate | null;
+  mouseCoordinate: Coordinate | null;
 };
 
 export type HoverActionType = HoverEventPayload["type"];
@@ -46,15 +46,15 @@ export class ActionEventDispatcher {
   }
 
   private static arraysEqual(
-    a: ILocationIdentifier[],
-    b: ILocationIdentifier[],
+    a: LocationIdentifier[],
+    b: LocationIdentifier[],
   ): boolean {
     return a.length === b.length && a.every((loc, i) => loc === b[i]);
   }
 
   private clickedMouseDownLocation: {
-    locations: ILocationIdentifier[];
-    coordinate: ICoordinate | null;
+    locations: LocationIdentifier[];
+    coordinate: Coordinate | null;
   } = { locations: [], coordinate: null };
   private hoverTimer: NodeJS.Timeout | null = null;
 
@@ -67,12 +67,12 @@ export class ActionEventDispatcher {
     element: HTMLElement,
     locationNameFn: (
       e: MouseEvent,
-    ) => ILocationIdentifier[] | Promise<ILocationIdentifier[] | null> | null,
+    ) => LocationIdentifier[] | Promise<LocationIdentifier[] | null> | null,
     type: "search" | null = null,
     prolongedHoverDelay: number = 1500,
   ) {
     const mouseMoveHandler = async (e: MouseEvent) => {
-      const coordinate: ICoordinate = { x: e.clientX, y: e.clientY };
+      const coordinate: Coordinate = { x: e.clientX, y: e.clientY };
       const locationResult = await Promise.resolve(locationNameFn(e));
       const locationNames = locationResult ?? [];
 
@@ -177,7 +177,7 @@ export class ActionEventDispatcher {
     element: HTMLElement,
     locationNameFn: (
       e: MouseEvent,
-    ) => ILocationIdentifier[] | Promise<ILocationIdentifier[]>,
+    ) => LocationIdentifier[] | Promise<LocationIdentifier[]>,
     type: "acquire" | "goto" | null = null, // TODO: add more actions as needed
   ) {
     const maximumClickDistance = 5; // pixels
@@ -237,16 +237,16 @@ export class ActionEventDispatcher {
 
   public dispatchClickAction(
     type: ClickActionType,
-    locations: ILocationIdentifier[],
-    mouseCoordinate: ICoordinate | null,
+    locations: LocationIdentifier[],
+    mouseCoordinate: Coordinate | null,
   ) {
     this.clickedLocationSource.emit({ locations, type, mouseCoordinate });
   }
 
   public dispatchHoverAction(
     type: HoverActionType,
-    locations: ILocationIdentifier[],
-    mouseCoordinate: ICoordinate | null,
+    locations: LocationIdentifier[],
+    mouseCoordinate: Coordinate | null,
   ) {
     this.hoveredLocation.emit({ locations, type, mouseCoordinate });
   }

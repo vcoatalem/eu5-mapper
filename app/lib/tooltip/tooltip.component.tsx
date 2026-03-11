@@ -8,13 +8,13 @@ import {
   useState,
 } from "react";
 import { ITooltipConfig, TooltipProviderContext } from "./tooltip.provider";
-import { ICoordinate } from "@/app/lib/types/coordinate";
+import { Coordinate } from "@/app/lib/types/coordinate";
 
 interface ITooltipProps {
   config?: Partial<ITooltipConfig>;
   forceOpen?: boolean; // override base behavior
   children: React.ReactNode;
-  mouseCoordinates?: ICoordinate; // allow manually setting mouse coordinates for tooltip positioning when forceOpen is true
+  mouseCoordinates?: Coordinate; // allow manually setting mouse coordinates for tooltip positioning when forceOpen is true
   triggerRef?: React.RefObject<HTMLElement | null>; // optional ref to specify the trigger element, if not provided, Tooltip will create its own ref and expect it to be passed to TooltipTrigger
 }
 
@@ -24,7 +24,7 @@ interface ITooltipInstanceContext {
   close: (e: React.MouseEvent) => void;
   triggerRef: React.RefObject<HTMLElement | null>;
   config: ITooltipConfig;
-  mouseCoordinates: ICoordinate;
+  mouseCoordinates: Coordinate;
 }
 
 export const TooltipInstanceContext =
@@ -43,7 +43,7 @@ export function Tooltip(props: ITooltipProps) {
     };
   }, [defaultConfig, props.config]);
   const [isOpen, setIsOpen] = useState(false);
-  const [mouseCoordinates, setMouseCoordinates] = useState<ICoordinate | null>(
+  const [mouseCoordinates, setMouseCoordinates] = useState<Coordinate | null>(
     null,
   );
   const internalTriggerRef = useRef<HTMLElement | null>(null);

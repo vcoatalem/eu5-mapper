@@ -8,11 +8,11 @@ import {
   dbVersion,
 } from "@/app/lib/indexeddb/indexeddb.const";
 import { Observable } from "@/app/lib/observable";
-import { ICountryModifierTemplate } from "@/app/lib/types/countryModifiers";
-import { VersionResolver } from "@/app/lib/versionResolver";
+import { GameDataLoaderHelper } from "@/app/lib/gameDataLoader.helper";
+import { CountryModifierTemplate } from "@/app/lib/types/countryModifiers";
 
 export interface ICountryModifiersTemplatesState {
-  countryModifiersTemplates: Record<string, ICountryModifierTemplate> | null;
+  countryModifiersTemplates: Record<string, CountryModifierTemplate> | null;
   isLoadingCountryModifiersTemplate: boolean;
 }
 
@@ -46,10 +46,7 @@ class CountryModifiersTemplatesController extends Observable<ICountryModifiersTe
             countryModifiersTemplate,
           );
           this.subject.countryModifiersTemplates =
-            countryModifiersTemplate as Record<
-              string,
-              ICountryModifierTemplate
-            >;
+            countryModifiersTemplate as Record<string, CountryModifierTemplate>;
           this.subject.isLoadingCountryModifiersTemplate = false;
           this.notifyListeners();
           return true;
@@ -60,48 +57,23 @@ class CountryModifiersTemplatesController extends Observable<ICountryModifiersTe
   private async fetchCountryModifiersTemplates(
     version: string,
   ): Promise<boolean> {
-    const versionResolver = new VersionResolver();
-    return versionResolver
-      .loadVersionsManifest()
-      .then(() => {
-        return versionResolver
-          .resolveFileVersion("countryModifiersTemplate", version)
-          .then((resolvedVersion) => {
-            const countryModifiersTemplatePath = versionResolver.getFilePath(
-              "countryModifiersTemplate",
-              resolvedVersion,
-            );
-            return fetch(countryModifiersTemplatePath)
-              .then((res) => res.json())
-              .then((countryModifiersTemplate) => {
-                this.subject.countryModifiersTemplates =
-                  countryModifiersTemplate as Record<
-                    string,
-                    ICountryModifierTemplate
-                  >;
-                this.subject.isLoadingCountryModifiersTemplate = false;
-                this.notifyListeners();
-                return true;
-              })
-              .catch((error) => {
-                console.error(
-                  "[CountryModifiersController] Error fetching country modifiers template from server",
-                  error,
-                );
-                return false;
-              });
-          })
-          .catch((error) => {
-            console.error(
-              "[CountryModifiersController] Error resolving file version",
-              error,
-            );
-            return false;
-          });
+    return GameDataLoaderHelper.loadManifestForVersion(version)
+      .then((manifest) =>
+        GameDataLoaderHelper.loadGameDataFileForVersion(
+          version,
+          "countryModifiersTemplate",
+          manifest,
+        ),
+      )
+      .then((countryModifiersTemplate) => {
+        this.subject.countryModifiersTemplates = countryModifiersTemplate;
+        this.subject.isLoadingCountryModifiersTemplate = false;
+        this.notifyListeners();
+        return true;
       })
       .catch((error) => {
         console.error(
-          "[CountryModifiersController] Error loading versions manifest",
+          "[CountryModifiersController] Error loading country modifiers template",
           error,
         );
         return false;
@@ -147,7 +119,7 @@ class CountryModifiersTemplatesController extends Observable<ICountryModifiersTe
     }
   }
 
-  public addModifierTemplate(template: ICountryModifierTemplate): void {
+  public addModifierTemplate(template: CountryModifierTemplate): void {
     if (!this.subject.countryModifiersTemplates) {
       return;
     }

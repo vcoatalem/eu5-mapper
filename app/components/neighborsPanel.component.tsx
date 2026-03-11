@@ -20,6 +20,7 @@ import { validateFloatInRange } from "@/app/lib/utils/editableFieldValidation.he
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import styles from "@/app/styles/button.module.css";
 import {
+  CSSProperties,
   memo,
   useContext,
   useEffect,
@@ -186,9 +187,13 @@ const NeighborPanelListItem = memo(function NeighborPanelListItem({
 
 interface NeighborsPanelProps {
   baseLocation: LocationIdentifier;
+  style?: CSSProperties;
 }
 
-export function NeighborsPanelComponent({ baseLocation }: NeighborsPanelProps) {
+export function NeighborsPanelComponent({
+  baseLocation,
+  style,
+}: NeighborsPanelProps) {
   const gameData = useContext(AppContext).gameData;
   const locationNameRef = useRef<HTMLDivElement>(null);
   const { computationResults } = useSyncExternalStore(
@@ -312,6 +317,7 @@ export function NeighborsPanelComponent({ baseLocation }: NeighborsPanelProps) {
         "max-h-96 min-h-52 overflow-y-auto backdrop-blur-sm px-2 py-1 " +
         (roadEditState.isModeEnabled ? " w-[400px] " : " w-[280px] ")
       }
+      style={style ?? {}}
     >
       <div className="w-full flex flex-row items-center mb-2">
         <div ref={locationNameRef} className="font-semibold text-stone-300">

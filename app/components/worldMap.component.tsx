@@ -399,8 +399,6 @@ export function WorldMapComponent() {
               worldMapConfig.height,
             );
             for (let i = 0; i < config.poolSize; i++) {
-              // TODO: make sure this has completed before removing loading screen
-              // Use unique task ID with timestamp to avoid conflicts when re-initializing
               const uniqueTaskId = `initWithImage-${i}-${Date.now()}`;
               const pixelDataCopy = new Uint8ClampedArray(imageData.data);
               const taskPayload: IWorkerTaskInitWithImagePayload = {
@@ -421,14 +419,14 @@ export function WorldMapComponent() {
             `[WorldMapInit] Failed to load image for layer ${layer.name} from path: ${layer.path}`,
             e,
           );
-          // Still increment counter even on error to prevent blocking
-          layersRenderedRef.current++;
+          setInitializationError(
+            "Failed to load game data images. Please try refreshing the page.",
+          );
         };
         console.log(
           `[WorldMapInit] Starting to load image for layer ${layer.name} from: ${layer.path}`,
         );
         img.src = layer.path;
-        img.crossOrigin = "anonymous";
       } else if (layer.createMethod) {
         layer.createMethod(ctx);
         layersRenderedRef.current++;
@@ -918,7 +916,10 @@ export function WorldMapComponent() {
             }}
           >
             <div className="pointer-events-auto">
-              <NeighborsPanelComponent baseLocation={selectedLocation!} />
+              <NeighborsPanelComponent
+                baseLocation={selectedLocation!}
+                style={isDraggingRef.current ? { opacity: 0.5 } : undefined}
+              />
             </div>
           </TooltipContent>
         </Tooltip>

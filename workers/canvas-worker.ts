@@ -156,25 +156,11 @@ self.onmessage = function (e: MessageEvent<IWorkerTask>) {
       try {
         const payload = ZodWorkerTaskColorSearchPayload.parse(e.data.payload);
 
-        sendMessage(self, {
-          level: "log",
-          message: `Starting color search for ${Object.keys(payload.coordinates).length} locations`,
-          task: e.data,
-          data: null,
-        });
-
         if (!pixelData32) {
           throw new Error(
             "Image data not initialized. Must call 'initWithImage' first.",
           );
         }
-
-        sendMessage(self, {
-          level: "log",
-          message: `Color search payload parsed for ${Object.keys(payload.coordinates).length} locations`,
-          task: e.data,
-          data: { payload },
-        });
 
         const result: IWorkerTaskColorSearchResult = { result: {} };
 

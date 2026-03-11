@@ -10,7 +10,6 @@ interface IImportExportGameStateProps {
 }
 
 export function ImportExportGameState(props: IImportExportGameStateProps) {
-  const params = useParams();
   const gameState = useSyncExternalStore(
     gameStateController.subscribe.bind(gameStateController),
     () => gameStateController.getSnapshot(),

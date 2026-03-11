@@ -1,8 +1,9 @@
+import { useGameDataVersion } from "@/app/[version]/version.guard";
 import { ALL_GAME_DATA_OPTIONS } from "@/app/config/gameData.config";
 import { useParams } from "next/navigation";
 
 export function GameVersionSelector() {
-  const currentVersion = useParams().version as string;
+  const currentVersion = useGameDataVersion();
 
   return (
     <div className="rounded-md border-stone-400 border px-1 py-2 flex flex-row items-center gap-1">

@@ -14,6 +14,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import { useGameDataVersion } from "@/app/[version]/version.guard";
 
 const CANVAS_WIDTH = 400;
 const CANVAS_HEIGHT = 200;
@@ -51,7 +52,7 @@ export function CountrySelectionMinimap(props: ICountrySelectionMinimapProps) {
     () => colorSearchController.getSnapshot(),
   );
 
-  const version = useParams().version as string;
+  const version = useGameDataVersion();
   const [terrainLayerImagePath, setTerrainLayerImagePath] = useState<
     string | null
   >(null);

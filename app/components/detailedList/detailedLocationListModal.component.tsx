@@ -35,6 +35,7 @@ import { ConstructibleState } from "@/app/lib/types/constructibleState";
 import { GameState } from "@/app/lib/types/gameState";
 import { IConstructibleLocation } from "@/app/lib/types/constructibleLocation";
 import { ITemporaryLocationData } from "@/app/lib/types/temporaryLocationData";
+import { useGameDataVersion } from "@/app/[version]/version.guard";
 
 function LocationExtensiveViewModalHeader(props: {
   countryName: string | null;
@@ -156,7 +157,7 @@ export function DetailedLocationListModal() {
       "[DetailedLocationViewModal] must be used within a ModalInstanceContext provider",
     );
   }
-  const version = useParams().version as string;
+  const version = useGameDataVersion();
   const [storedLocationListConfig, setStoredLocationListConfig] =
     useState<IStoredLocationListConfig | null>(null);
 

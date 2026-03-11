@@ -27,6 +27,7 @@ import posthog from "posthog-js";
 import { ObjectHelper } from "@/app/lib/object.helper";
 import { CountryModifierTemplate } from "@/app/lib/types/countryModifiers";
 import { CountryProximityBuffs } from "@/app/lib/types/countryProximityBuffs";
+import { useGameDataVersion } from "@/app/[version]/version.guard";
 
 interface ICountryModifiersModal {
   onClose: () => void;
@@ -144,7 +145,7 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
   const [createCustomModifierFormOpen, setCreateCustomModifierFormOpen] =
     useState(false);
 
-  const version = useParams().version as string;
+  const version = useGameDataVersion();
 
   useEffect(() => {
     if (!version) {

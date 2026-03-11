@@ -43,6 +43,10 @@ const allReferences = referenceFiles.map(readReferenceFileSync);
 const byVersion: Array<{ version: GameDataVersion; refs: ReferenceFile[] }> =
   groupByVersion(allReferences);
 
+afterAll(async () => {
+  await generateIndexFile();
+});
+
 test("found reference files", () => {
   console.log("referenceFiles", referenceFiles);
   expect(referenceFiles.length).toBeGreaterThan(0);
@@ -236,7 +240,3 @@ async function runPathfindingCase(
     );
   }
 }
-
-test("generate index file", async () => {
-  await generateIndexFile();
-});

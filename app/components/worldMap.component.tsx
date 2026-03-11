@@ -708,7 +708,6 @@ export function WorldMapComponent() {
     subscriptionsRef.current.push(prolongedHoverSearchUnsubscribe);
 
     if (topLayerRef.current) {
-      console.log("add drag mouse event listeners");
       topLayerRef.current.addEventListener("mousedown", handleMouseDown);
       topLayerRef.current.addEventListener("mousemove", handleMouseMove);
       topLayerRef.current.addEventListener("mouseup", handleMouseUp);
@@ -787,7 +786,6 @@ export function WorldMapComponent() {
       cameraController.cleanup();
 
       if (topLayerRef.current) {
-        console.log("remove mouse event listeners");
         topLayerRef.current.removeEventListener("mousedown", handleMouseDown);
         topLayerRef.current.removeEventListener("mousemove", handleMouseMove);
         topLayerRef.current.removeEventListener("mouseup", handleMouseUp);

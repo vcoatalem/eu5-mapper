@@ -24,10 +24,6 @@ export function SlowTaskIndicator(props: { className?: string }) {
       workerStatus.lastSlowTask &&
       workerStatus.lastSlowTask?.taskId !== slowTask?.taskId
     ) {
-      console.log(
-        "[SlowTaskIndicator] Setting slow task",
-        workerStatus.lastSlowTask,
-      );
       queueMicrotask(() => setSlowTask(workerStatus.lastSlowTask));
     }
   }, [workerStatus.lastSlowTask]);
@@ -37,10 +33,6 @@ export function SlowTaskIndicator(props: { className?: string }) {
       slowTask &&
       workerStatus.lastCompletedTask?.taskId === slowTask.taskId
     ) {
-      console.log(
-        "[SlowTaskIndicator] Resetting slow task",
-        workerStatus.lastSlowTask,
-      );
       queueMicrotask(() => setSlowTask(null));
     }
   }, [slowTask, workerStatus.lastCompletedTask]);

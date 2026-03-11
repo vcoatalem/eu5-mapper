@@ -7,7 +7,10 @@ import {
 } from "@/app/lib/types/roads";
 import { LocationIdentifier } from "./types/general";
 import { ObjectHelper } from "@/app/lib/object.helper";
-import { GameState } from "@/app/lib/types/gameState";
+import {
+  GameState,
+  GameStateOwnedLocationRecord,
+} from "@/app/lib/types/gameState";
 
 export class RoadsHelper {
   public static roadRecordFromCsv(csvRows: [string, string][]): BaseRoadRecord {

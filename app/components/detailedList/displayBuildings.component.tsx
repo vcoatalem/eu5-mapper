@@ -71,11 +71,6 @@ function DisplayBuilding(props: {
 }
 
 export function DisplayBuildings(props: { data: ILocationDetailedViewData }) {
-  /*    console.log(
-      `[DetailedLocationList] constructibleState for location ${props.data.baseLocationGameData.name}`,
-      props.data.constructibleState,
-    ); */
-
   return (
     <div className="flex flex-row w-full h-full gap-2 items-center ">
       {Object.entries(props.data.constructibleState).map(

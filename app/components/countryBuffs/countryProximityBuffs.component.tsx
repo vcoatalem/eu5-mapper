@@ -40,8 +40,6 @@ export function DisplayCountryProximityBuffs(
     return <div>Loading...</div>;
   }
 
-  console.log({ buffsToDisplay });
-
   return (
     <div className={[props.className].join(" ")}>
       <div className="flex flex-col gap-1">

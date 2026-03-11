@@ -229,9 +229,6 @@ export class ActionEventDispatcher {
         element.removeEventListener(type, handler as EventListener);
       });
       this.elementEventHandlers.delete(element);
-      /*       console.log(
-        `[ActionEventDispatcher] clearEventListenersForElement: total event listeners stored: ${Array.from(this.elementEventHandlers.values()).reduce((acc, arr) => acc + arr.length, 0)}`,
-      ); */
     }
   }
 

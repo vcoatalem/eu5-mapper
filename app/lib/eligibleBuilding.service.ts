@@ -299,7 +299,6 @@ export class EligibleBuildingService {
       }
     }
 
-    /* console.log(`[ConstructibleHelper] new constructible state for location ${location}`, res); */
     return res;
   }
 }

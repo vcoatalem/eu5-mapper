@@ -46,10 +46,6 @@ export class ColorSearchController extends Observable<IColorSearchResult> {
           const data = ZodWorkerTaskColorSearchResult.parse(
             lastCompletedTask.data,
           );
-          console.log(
-            "[ColorSearchController] Received color search result",
-            data,
-          );
           for (const [locationName, coordinates] of Object.entries(
             data.result,
           )) {
@@ -68,15 +64,6 @@ export class ColorSearchController extends Observable<IColorSearchResult> {
     if (!this.gameData) {
       return;
     }
-    console.log(
-      "[ColorSearchController] requestColorSearch",
-      missingLocations,
-      {
-        locationData: missingLocations.map(
-          (loc) => this.gameData?.locationDataMap[loc],
-        ),
-      },
-    );
 
     const notYetQueried = missingLocations.filter(
       (loc) => !this.queriedLocationsColor.has(loc),

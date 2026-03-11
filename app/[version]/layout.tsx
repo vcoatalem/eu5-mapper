@@ -1,6 +1,5 @@
 import { AppContextProvider } from "@/app/appContextProvider";
 import {
-  GameDataVersion,
   ZodGameDataVersion,
 } from "@/app/config/gameData.config";
 import { PopoverContextProvider } from "@/app/lib/popover/popover.provider";
@@ -11,7 +10,7 @@ export default async function VersionLayout({
 }: Readonly<{
   children: React.ReactNode;
   params: Promise<{
-    version: GameDataVersion;
+    version: string;
   }>;
 }>) {
   const { version } = await params;

@@ -4,15 +4,15 @@ import { ImportExportGameState } from "@/app/components/importExportGameState.co
 import { MainActionsBar } from "@/app/components/mainActionsBar.component";
 import { Modal } from "@/app/lib/modal/modal.component";
 import { HashHelper } from "@/app/lib/utils/hash.helper";
+import { useGameDataVersion } from "@/app/[version]/version.guard";
 import buttonStyles from "@/app/styles/button.module.css";
-import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AiOutlineQuestionCircle } from "react-icons/ai";
 import { CiCircleQuestion } from "react-icons/ci";
 
 export function Help({ className = "" }: { className?: string }) {
   const [modalIsOpen, setModalIsOpen] = useState(false);
-  const version = useParams().version as string;
+  const version = useGameDataVersion();
   const versionUnderscored = version.replaceAll(".", "_");
   const gitHash = useMemo(() => HashHelper.getGitHash(), []);
   const s3url = useMemo(

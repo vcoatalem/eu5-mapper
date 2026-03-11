@@ -60,6 +60,7 @@ import {
 import { LayerVisibilityEdition } from "@/app/components/layerVisibilityEdition.component";
 import { Coordinate } from "@/app/lib/types/coordinate";
 import { IWorkerTaskInitWithImagePayload } from "@/workers/types/initWithImage";
+import { useGameDataVersion } from "@/app/[version]/version.guard";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
@@ -89,7 +90,7 @@ export function WorldMapComponent() {
   const hasOwnedLocations = gameState?.ownedLocations
     ? !!Object.keys(gameState?.ownedLocations)?.length
     : false;
-  const version = useParams().version as string;
+  const version = useGameDataVersion();
   const loadFileOnStart = useSearchParams().get("file") as string;
   const initializedRef = useRef(false);
   const colorCanvasRef = useRef<HTMLCanvasElement>(null);

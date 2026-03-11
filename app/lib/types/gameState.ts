@@ -1,3 +1,4 @@
+import { ZodGameDataVersion } from "@/app/config/gameData.config";
 import { ZodConstructibleLocation } from "@/app/lib/types/constructibleLocation";
 import { ZodCountryInstance } from "@/app/lib/types/countryInstance";
 import { ZodRoadKey, ZodRoadType } from "@/app/lib/types/roads";
@@ -15,7 +16,7 @@ export const ZodGameStateOwnedLocationRecord = z.record(
 );
 
 export const ZodGameState = z.object({
-  version: z.string(),
+  version: ZodGameDataVersion,
   countryCode: z.string().nullable(),
   country: ZodCountryInstance.nullable(),
   roads: z.record(ZodRoadKey, ZodRoadType.nullable()),

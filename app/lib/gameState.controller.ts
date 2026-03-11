@@ -19,6 +19,7 @@ import { GameState, ZodGameState } from "@/app/lib/types/gameState";
 import { IConstructibleLocation } from "@/app/lib/types/constructibleLocation";
 import { CountryValues } from "@/app/lib/types/countryValues";
 import { ITemporaryLocationData } from "@/app/lib/types/temporaryLocationData";
+import { GameDataVersion } from "@/app/config/gameData.config";
 
 const baseCountryValues: CountryInstance = {
   templateData: null,
@@ -39,7 +40,7 @@ export class GameStateController extends Observable<GameState> {
     this.subject = {} as GameState;
   }
 
-  public init(gameData: GameData, version: string): void {
+  public init(gameData: GameData, version: GameDataVersion): void {
     this.gameData = gameData;
     this.baseGameState = {
       countryCode: null,
@@ -470,7 +471,7 @@ export class GameStateController extends Observable<GameState> {
     }
   }
 
-  public loadFile(fileContent: string, expectedVersion: string): void {
+  public loadFile(fileContent: string, expectedVersion: GameDataVersion): void {
     const parsedState = ZodGameState.safeParse(JSON.parse(fileContent));
 
     if (!parsedState.success) {

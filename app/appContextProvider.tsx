@@ -1,7 +1,7 @@
 "use client";
 
 import { GameDataLoaderHelper } from "@/app/lib/gameDataLoader.helper";
-import { useParams } from "next/navigation";
+import { useGameDataVersion } from "@/app/[version]/version.guard";
 import { createContext, useEffect, useState } from "react";
 import { IndexedDBWriter } from "./lib/indexeddb/indexeddb-writer";
 import {
@@ -48,8 +48,7 @@ export const AppContextProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const params = useParams();
-  const version = params?.version as string;
+  const version = useGameDataVersion();
 
   // Game data state
   const [gameData, setGameData] = useState<GameData | null>(null);

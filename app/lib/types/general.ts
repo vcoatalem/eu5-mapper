@@ -7,7 +7,7 @@ import { ZodProximityComputationRule } from "./proximityComputationRules";
 
 import { z } from "zod";
 
-export type ILocationIdentifier = string; // location name
+export type LocationIdentifier = string; // location name
 
 export const ZodGameData = z.object({
   locationDataMap: ZodLocationGameDataRecord,

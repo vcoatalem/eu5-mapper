@@ -1,18 +1,16 @@
 import { RoadsHelper } from "@/app/lib/roads.helper";
 import { ObjectHelper } from "@/app/lib/object.helper";
+import { GameData, LocationIdentifier } from "./types/general";
 import {
-  BaseRoadRecord,
-  GameData,
-  LocationDataMap,
-  LocationIdentifier,
-  RoadRecord,
-} from "./types/general";
-import { ILocationGameData } from "@/app/lib/types/location";
+  ILocationGameData,
+  LocationGameDataMap,
+} from "@/app/lib/types/location";
 import { LocationRank } from "@/app/lib/types/locationRank";
 import { IConstructibleLocation } from "@/app/lib/types/constructibleLocation";
 import { GameState } from "@/app/lib/types/gameState";
 import { ITemporaryLocationData } from "@/app/lib/types/temporaryLocationData";
 import { HexColor } from "@/app/lib/types/color";
+import { BaseRoadRecord, RoadRecord } from "@/app/lib/types/roads";
 
 export class LocationsHelper {
   public static locationHasRoad(
@@ -70,7 +68,7 @@ export class LocationsHelper {
 
   public static getLocationPopulation(
     locationIdentifier: LocationIdentifier,
-    locationDataMap: LocationDataMap,
+    locationDataMap: LocationGameDataMap,
     gameState: GameState,
   ): number {
     if (!(locationIdentifier in locationDataMap)) {
@@ -84,7 +82,7 @@ export class LocationsHelper {
 
   public static getLocationDevelopment(
     locationIdentifier: LocationIdentifier,
-    locationDataMap: LocationDataMap,
+    locationDataMap: LocationGameDataMap,
     gameState: GameState,
   ): number {
     if (!(locationIdentifier in locationDataMap)) {

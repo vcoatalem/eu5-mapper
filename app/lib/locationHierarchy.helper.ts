@@ -1,10 +1,10 @@
 import { HierarchyRecord } from "@/app/lib/locationHierarchy.service";
 import { ObjectHelper } from "@/app/lib/object.helper";
-import { LocationDataMap } from "@/app/lib/types/general";
+import { LocationGameDataMap } from "@/app/lib/types/location";
 
 export class LocationHierarchyHelper {
   public static buildHierarchyGroups(
-    locationDataMap: LocationDataMap,
+    locationDataMap: LocationGameDataMap,
   ): HierarchyRecord {
     const groups: HierarchyRecord = {
       continent: {},

@@ -3,6 +3,7 @@ import styles from "@/app/styles/button.module.css";
 import { gameStateController } from "@/app/lib/gameState.controller";
 import { useCallback, useState, useSyncExternalStore } from "react";
 import { Modal } from "@/app/lib/modal/modal.component";
+import { useGameDataVersion } from "@/app/[version]/version.guard";
 
 interface IImportExportGameStateProps {
   isTutorial?: boolean;
@@ -16,7 +17,7 @@ export function ImportExportGameState(props: IImportExportGameStateProps) {
   );
   const [showImportModal, setShowImportModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const version = params?.version as string;
+  const version = useGameDataVersion();
 
   const readFile = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {

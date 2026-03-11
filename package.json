@@ -10,7 +10,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "jest",
-    "inject-commit-sha": "bash scripts/inject-commit-sha.sh"
+    "inject-commit-sha": "bash scripts/inject-commit-sha.sh",
+    "types": "tsc --noEmit"
   },
   "dependencies": {
     "next": "16.1.4",

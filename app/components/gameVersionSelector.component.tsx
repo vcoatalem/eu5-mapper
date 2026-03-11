@@ -1,4 +1,4 @@
-import { GAME_DATA_VERSIONS } from "@/app/config/gameData.config";
+import { ALL_GAME_DATA_OPTIONS } from "@/app/config/gameData.config";
 import { useParams } from "next/navigation";
 
 export function GameVersionSelector() {
@@ -14,7 +14,7 @@ export function GameVersionSelector() {
           window.open(`/${e.target.value}`, "_blank");
         }}
       >
-        {GAME_DATA_VERSIONS.map((version) => (
+        {ALL_GAME_DATA_OPTIONS.map((version) => (
           <option key={version} value={version}>
             {version}
           </option>

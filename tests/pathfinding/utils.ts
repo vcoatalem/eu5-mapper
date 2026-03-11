@@ -1,17 +1,31 @@
 import { CompactGraph } from "@/app/lib/graph";
 import { ParserHelper } from "@/app/lib/parser.helper";
-import { LocationIdentifier } from "@/app/lib/types/general";
+import { GameData, LocationIdentifier } from "@/app/lib/types/general";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 import { ArrayHelper } from "@/app/lib/array.helper";
 import { CountryValues } from "@/app/lib/types/countryValues";
+import {
+  GameDataVersion,
+  ZodGameDataVersion,
+} from "@/app/config/gameData.config";
 
 const COUNTRY_VALUE_KEYS: Array<keyof CountryValues> = [
   "landVsNaval",
   "centralizationVsDecentralization",
 ];
+
+export type ReferenceFile = {
+  name: string;
+  version: GameDataVersion;
+  countryCode: string;
+  rulerAdministrativeAbility: number;
+  modifiers: string[];
+  countryValuesOverrides: Partial<CountryValues>;
+  data: Record<LocationIdentifier, number>;
+};
 
 export interface ReferenceSettings {
   rulerAdministrativeAbility: number;
@@ -40,24 +54,15 @@ function parseCountryValuesOverrides(
   return overrides;
 }
 
-export const readReferenceFile = async (
-  path: string,
-): Promise<{
-  countryCode: string;
-  version: string;
-  rulerAdministrativeAbility: number;
-  modifiers: string[];
-  countryValuesOverrides: Partial<CountryValues>;
-  data: Record<LocationIdentifier, number>;
-}> => {
-  const f = await fs.readFileSync(path, "utf-8");
+export const readReferenceFileSync = (path: string): ReferenceFile => {
+  const f = fs.readFileSync(path, "utf-8");
   const lines = f.split("\n");
   const headerLine = lines[0];
 
   const headerParts = headerLine.split(",");
   const countryCode = headerParts[2];
   const versionPart = headerParts[3]; // version:<value>
-  const version = versionPart.split(":")[1];
+  const version = ZodGameDataVersion.parse(versionPart.split(":")[1]);
   const fifthColumn = headerParts[4]; // adminAbility:<value>;modifiers:<mod1>|<mod2>|...;values:key1:val1|key2:val2
   let rulerAdministrativeAbility = 50;
   let modifiers: string[] = [];
@@ -91,6 +96,7 @@ export const readReferenceFile = async (
   );
 
   return {
+    name: path.split("/").slice(-1)[0],
     countryCode,
     version,
     rulerAdministrativeAbility,
@@ -98,13 +104,6 @@ export const readReferenceFile = async (
     countryValuesOverrides,
     data,
   };
-};
-
-export const readAdjacencyFile = async (
-  path: string,
-): Promise<CompactGraph> => {
-  const adjacencyData = await fs.readFileSync(path, "utf-8");
-  return ParserHelper.parseAdjacencyCSV(adjacencyData);
 };
 
 /**

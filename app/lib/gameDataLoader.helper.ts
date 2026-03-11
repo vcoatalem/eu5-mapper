@@ -302,6 +302,10 @@ export class GameDataLoaderHelper {
           const manifestEntry = this.getManifestEntry(manifest, fileType);
           const fileUrl = this.getGameDataFileUrl(version, manifestEntry.name);
 
+          console.log(
+            `will load file ${manifestEntry.name} from url:`,
+            fileUrl,
+          );
           const res = await this.loadTextFileFromManifest(
             fileUrl,
             manifestEntry.compressed,

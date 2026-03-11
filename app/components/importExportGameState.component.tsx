@@ -4,6 +4,7 @@ import { gameStateController } from "@/app/lib/gameState.controller";
 import { useCallback, useState, useSyncExternalStore } from "react";
 import { Modal } from "@/app/lib/modal/modal.component";
 import { useGameDataVersion } from "@/app/[version]/version.guard";
+import posthog from "posthog-js";
 
 interface IImportExportGameStateProps {
   isTutorial?: boolean;
@@ -26,6 +27,9 @@ export function ImportExportGameState(props: IImportExportGameStateProps) {
       const reader = new FileReader();
 
       reader.onload = (event) => {
+        posthog.capture("import_game_state", {
+          version,
+        });
         try {
           const content = event.target?.result as string;
           gameStateController.loadFile(content, version);
@@ -65,6 +69,9 @@ export function ImportExportGameState(props: IImportExportGameStateProps) {
         className={styles.simpleButton}
         onClick={() => {
           if (props.isTutorial) return;
+          posthog.capture("export_game_state", {
+            version,
+          });
           gameStateController.download();
         }}
       >

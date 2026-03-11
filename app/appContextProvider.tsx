@@ -133,15 +133,6 @@ export const AppContextProvider = ({
           roads,
         } = gameDataFiles;
 
-        console.log("[AppContext] Parsed data:", {
-          locationData,
-          buildingsTemplate,
-          adjacencyCsv,
-          proximityComputationRule,
-          countriesData,
-          roads,
-        });
-
         const toBePersistedGameData: GameData = {
           locationDataMap: locationData.map,
           colorToNameMap: {},

@@ -109,25 +109,29 @@ export class ProximityComputationHelper {
     const result: Record<string, BuffValue> = {};
 
     const baseTopography = rule.topography[location.topography];
-    let topographyValue = baseTopography?.value ?? 0;
-    const buffKey = `${location.topography}Multiplier`;
-    if (
-      ["mountainsMultiplier", "plateauMultiplier", "hillsMultiplier"].includes(
-        buffKey,
-      )
-    ) {
-      const buffs = proximityBuffs.getBuffsOfType(
-        buffKey as keyof CountryProximityBuffs,
-      );
-      if (Object.keys(buffs).length > 0) {
-        const buffSum = BuffsHelper.sumBuffs(Object.values(buffs)) ?? 1;
-        topographyValue *= Math.min(1, buffSum / 100);
+    if (baseTopography) {
+      let topographyValue = baseTopography?.value ?? 0;
+      const buffKey = `${location.topography}Multiplier`;
+      if (
+        [
+          "mountainsMultiplier",
+          "plateauMultiplier",
+          "hillsMultiplier",
+        ].includes(buffKey)
+      ) {
+        const buffs = proximityBuffs.getBuffsOfType(
+          buffKey as keyof CountryProximityBuffs,
+        );
+        if (Object.keys(buffs).length > 0) {
+          const buffSum = BuffsHelper.sumBuffs(Object.values(buffs)) ?? 1;
+          topographyValue *= Math.min(1, buffSum / 100);
+        }
       }
+      result[`topography_${location.topography}`] = {
+        ...baseTopography,
+        value: topographyValue,
+      };
     }
-    result[`topography_${location.topography}`] = {
-      ...baseTopography,
-      value: topographyValue,
-    };
 
     if (location.vegetation && !discardVegetationModifiers) {
       const vegetation = rule.vegetation[location.vegetation];

@@ -19,30 +19,32 @@ import {
   readReferenceFileSync,
   ReferenceFile,
 } from "./utils";
+import { ObjectHelper } from "@/app/lib/object.helper";
 
 const referenceFiles = getAllReferenceFilePaths(
   "tests/pathfinding/references/",
 ); /* .filter((filePath) => filePath.includes("eng") && filePath.includes('1_1_4'));// && filePath.includes('1_0_11')); */
 
 const groupByVersion = <T extends { version: GameDataVersion }>(items: T[]) => {
-  const map = new Map<string, T[]>();
+  const map: Partial<Record<GameDataVersion, T[]>> = {};
   for (const item of items) {
-    const list = map.get(item.version);
-    if (list) list.push(item);
-    else map.set(item.version, [item]);
+    if (item.version in map) {
+      map[item.version]?.push(item);
+    } else {
+      map[item.version] = [item];
+    }
   }
-  return [...map.entries()]
-    .map(([version, refs]) => ({
-      version: ZodGameDataVersion.parse(version),
-      refs,
-    }))
-    .sort((a, b) => a.version.localeCompare(b.version));
+  return ObjectHelper.getTypedEntries(map).map(([version, refs]) => ({
+    version,
+    refs,
+  }));
 };
 
 const allReferences = referenceFiles.map(readReferenceFileSync);
 const byVersion: Array<{ version: GameDataVersion; refs: ReferenceFile[] }> =
   groupByVersion(allReferences);
 
+console.log({ byVersion });
 afterAll(async () => {
   await generateIndexFile();
 });

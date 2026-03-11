@@ -25,7 +25,8 @@ export const ZodLocationGameData = z.object({
   hierarchy: ZodLocationHierarchy,
   naturalHarborSuitability: z.number().optional().default(0), // only specified if isCoastal
   ownable: z.boolean().optional(),
-  isSea: z.boolean().default(false).optional(),
+  isSea: z.boolean().optional().default(false),
+  isSeaAdjacentToLand: z.boolean().optional().default(false), // only specified if isSea
   isLake: z.boolean().optional().default(false),
   isCoastal: z.boolean().optional().default(false),
   isOnRiver: z.boolean().optional().default(false),

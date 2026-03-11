@@ -1,5 +1,5 @@
 import { ILocationSearchResult } from "@/app/lib/locationSearchController";
-import { ILocationDataMap, ILocationIdentifier } from "@/app/lib/types/general";
+import { LocationDataMap, LocationIdentifier } from "@/app/lib/types/general";
 import { IndexedDBReader } from "@/app/lib/indexeddb/indexeddb-reader";
 import { IndexedDBWriter } from "@/app/lib/indexeddb/indexeddb-writer";
 import {
@@ -28,7 +28,7 @@ export type HierarchyRecord = Record<
     string,
     {
       hierarchy: ILocationHierarchy;
-      locations: ILocationIdentifier[];
+      locations: LocationIdentifier[];
     }
   >
 >;
@@ -36,7 +36,7 @@ export type HierarchyRecord = Record<
 export class LocationHierarchyService {
   /** Call once on startup to persist hierarchy groups to IndexedDB. */
   public static async persistToIndexedDB(
-    locationDataMap: ILocationDataMap,
+    locationDataMap: LocationDataMap,
   ): Promise<void> {
     const hierarchyGroups =
       LocationHierarchyHelper.buildHierarchyGroups(locationDataMap);
@@ -96,7 +96,7 @@ export class LocationHierarchyService {
   public static async getAllLocationsInHierarchy(
     hierarchyType: keyof ILocationHierarchy,
     hierarchyValue: string,
-  ): Promise<ILocationIdentifier[]> {
+  ): Promise<LocationIdentifier[]> {
     const reader = new IndexedDBReader(dbName, dbVersion, dbStoreNames);
     const entry = await reader.get(
       dbLocationHierarchyStoreName,

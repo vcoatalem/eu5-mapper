@@ -6,4 +6,4 @@ export const ZodBuildingInstance = z.object({
   level: z.number(),
 });
 
-export type IBuildingInstance = z.infer<typeof ZodBuildingInstance>;
+export type BuildingInstance = z.infer<typeof ZodBuildingInstance>;

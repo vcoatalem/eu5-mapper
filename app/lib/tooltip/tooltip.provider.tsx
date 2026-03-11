@@ -1,8 +1,8 @@
-import { ICoordinate } from "@/app/lib/types/coordinate";
+import { Coordinate } from "@/app/lib/types/coordinate";
 import { createContext, useEffect, useMemo, useState } from "react";
 
 export interface ITooltipConfig {
-  offset: ICoordinate;
+  offset: Coordinate;
   preferredHorizontal: "left" | "right";
   preferredVertical: "top" | "bottom";
   openDelay: number;

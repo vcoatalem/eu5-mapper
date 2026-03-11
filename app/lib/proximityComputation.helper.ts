@@ -2,21 +2,21 @@ import { BuffsHelper } from "@/app/lib/buffs.helper";
 import { LocationsHelper } from "@/app/lib/locations.helper";
 import { ProximityBuffsRecord } from "./classes/countryProximityBuffs";
 import { CompactGraph } from "./graph";
-import { IGameData, ILocationIdentifier } from "./types/general";
+import { GameData, LocationIdentifier } from "./types/general";
 import {
   CostFunction,
   EdgeType,
   PathFindingOptions,
   PathfindingResult,
 } from "./types/pathfinding";
-import { IProximityComputationRule } from "./types/proximityComputationRules";
+import { ProximityComputationRule } from "./types/proximityComputationRules";
 import { RoadsHelper } from "@/app/lib/roads.helper";
 import { RoadType } from "@/app/lib/types/roads";
 import { ILocationGameData } from "@/app/lib/types/location";
-import { IBuffValue } from "@/app/lib/types/buffValue";
-import { ICountryProximityBuffs } from "@/app/lib/types/countryProximityBuffs";
+import { BuffValue } from "@/app/lib/types/buffValue";
+import { CountryProximityBuffs } from "@/app/lib/types/countryProximityBuffs";
 import { IConstructibleLocation } from "@/app/lib/types/constructibleLocation";
-import { IGameState } from "@/app/lib/types/gameState";
+import { GameState } from "@/app/lib/types/gameState";
 import { ITemporaryLocationData } from "@/app/lib/types/temporaryLocationData";
 
 /** Only this key is applied as percentageMultiplier (cost *= 1 + value/100); all other percentage modifiers are additive (percentageIncrease). */
@@ -27,7 +27,7 @@ const HARBOR_CAPACITY_MODIFIER_KEY = "harborCapacityImpact";
  * Uses PathFindingOptions for consistent logging across all methods
  */
 const logProximityComputation = (
-  location: ILocationIdentifier | ILocationIdentifier[],
+  location: LocationIdentifier | LocationIdentifier[],
   options: PathFindingOptions,
   message?: string,
   data?: Record<string, unknown>,
@@ -72,8 +72,8 @@ export type ReducedProximityModifiers = {
  * divide modifiers into flat, percentage multiplier and percentage increase
  */
 export function reduceBuffValuesToEffective(
-  modifiers: Record<string, IBuffValue>,
-  rule: IProximityComputationRule,
+  modifiers: Record<string, BuffValue>,
+  rule: ProximityComputationRule,
 ): ReducedProximityModifiers {
   let flatCostReduction = 0;
   let percentageMultiplier = 1;
@@ -100,13 +100,13 @@ export function reduceBuffValuesToEffective(
 export class ProximityComputationHelper {
   public static getEnvironmentalProximityCostIncreasePercentage = (
     location: ILocationGameData,
-    gameData: IGameData,
+    gameData: GameData,
     proximityBuffs: ProximityBuffsRecord,
     discardVegetationModifiers: boolean,
     options: PathFindingOptions,
-  ): Record<string, IBuffValue> => {
+  ): Record<string, BuffValue> => {
     const rule = gameData.proximityComputationRule;
-    const result: Record<string, IBuffValue> = {};
+    const result: Record<string, BuffValue> = {};
 
     const baseTopography = rule.topography[location.topography];
     let topographyValue = baseTopography?.value ?? 0;
@@ -117,7 +117,7 @@ export class ProximityComputationHelper {
       )
     ) {
       const buffs = proximityBuffs.getBuffsOfType(
-        buffKey as keyof ICountryProximityBuffs,
+        buffKey as keyof CountryProximityBuffs,
       );
       if (Object.keys(buffs).length > 0) {
         const buffSum = BuffsHelper.sumBuffs(Object.values(buffs)) ?? 1;
@@ -150,14 +150,14 @@ export class ProximityComputationHelper {
     location: ILocationGameData,
     locationConstructibleData: IConstructibleLocation,
     locationTemporaryData: ITemporaryLocationData | null,
-    gameData: IGameData,
+    gameData: GameData,
     behaviour: {
       discardVegetationModifiers: boolean;
       discardVegetationAndTopographyModifiers: boolean;
     },
     proximityBuffs: ProximityBuffsRecord,
     options: PathFindingOptions,
-  ): Record<string, IBuffValue> => {
+  ): Record<string, BuffValue> => {
     if (location.isSea || location.isLake || !location.ownable) {
       return {};
     }
@@ -188,7 +188,7 @@ export class ProximityComputationHelper {
     const landModifiersFromBuffs =
       proximityBuffs.getBuffsOfType("landModifier");
 
-    const result: Record<string, IBuffValue> = {
+    const result: Record<string, BuffValue> = {
       ...environmental,
       developmentImpact:
         rule.developmentImpact.type === "percentage"
@@ -213,9 +213,9 @@ export class ProximityComputationHelper {
   };
 
   public static getLocalProximitySourceLocations(
-    gameState: IGameState,
-  ): Record<ILocationIdentifier, number> {
-    const proximitySourceLocations: Record<ILocationIdentifier, number> = {};
+    gameState: GameState,
+  ): Record<LocationIdentifier, number> {
+    const proximitySourceLocations: Record<LocationIdentifier, number> = {};
     for (const locationName of Object.keys(gameState.ownedLocations)) {
       if (gameState.capitalLocation === locationName) {
         proximitySourceLocations[locationName] = 100;
@@ -238,7 +238,7 @@ export class ProximityComputationHelper {
 
   private static getFlatProximityCost(
     edgeType: EdgeType,
-    rule: IProximityComputationRule,
+    rule: ProximityComputationRule,
     maritimePresence: number,
     roadToDestination: RoadType | null,
     proximityBuffs: ProximityBuffsRecord,
@@ -292,15 +292,15 @@ export class ProximityComputationHelper {
   }
 
   private static getTransportationModeProximityCostModifiers(
-    from: ILocationIdentifier,
-    to: ILocationIdentifier,
+    from: LocationIdentifier,
+    to: LocationIdentifier,
     transportationMode: "land" | "naval" | "harbor" | "coastal",
-    gameData: IGameData,
-    gameState: IGameState,
+    gameData: GameData,
+    gameState: GameState,
     roadType: RoadType | null,
     proximityBuffs: ProximityBuffsRecord,
     options: PathFindingOptions,
-  ): Record<string, IBuffValue> {
+  ): Record<string, BuffValue> {
     switch (transportationMode) {
       case "land":
         if (from in gameState.ownedLocations || options.allowUnownedLocations) {
@@ -329,7 +329,7 @@ export class ProximityComputationHelper {
         );
         const harborImpact = rule.harborSuitabilityImpact.value;
         const harborValue = harborCapacity * harborImpact * 100;
-        const harborMod: Record<string, IBuffValue> = {
+        const harborMod: Record<string, BuffValue> = {
           [HARBOR_CAPACITY_MODIFIER_KEY]: {
             ...rule.harborSuitabilityImpact,
             value: harborValue,
@@ -367,15 +367,15 @@ export class ProximityComputationHelper {
   }
 
   private static getPercentageProximityCostModifiers(
-    from: ILocationIdentifier,
-    to: ILocationIdentifier,
+    from: LocationIdentifier,
+    to: LocationIdentifier,
     edgeType: EdgeType,
-    gameData: IGameData,
-    gameState: IGameState,
+    gameData: GameData,
+    gameState: GameState,
     proximityBuffs: ProximityBuffsRecord,
     options: PathFindingOptions,
     roadType: RoadType | null,
-  ): Record<string, IBuffValue> {
+  ): Record<string, BuffValue> {
     const rule = gameData.proximityComputationRule;
 
     const toLocationData = gameData.locationDataMap[to];
@@ -409,13 +409,13 @@ export class ProximityComputationHelper {
   }
 
   public static getProximityCostFunction(
-    gameState: IGameState,
-    gameData: IGameData,
+    gameState: GameState,
+    gameData: GameData,
     options: PathFindingOptions,
   ): CostFunction {
     return (
-      from: ILocationIdentifier,
-      to: ILocationIdentifier,
+      from: LocationIdentifier,
+      to: LocationIdentifier,
       edgeType: EdgeType,
       throughSeaLocation?: string, // special handling for "through_sea" edges
     ) => {
@@ -528,13 +528,13 @@ export class ProximityComputationHelper {
   }
 
   public static getPathFromClosestProximitySource(
-    target: ILocationIdentifier,
-    gameState: IGameState,
-    gameData: IGameData,
+    target: LocationIdentifier,
+    gameState: GameState,
+    gameData: GameData,
     adjacencyGraph: CompactGraph,
     pathfindingOptions: PathFindingOptions,
   ): {
-    sourceLocation: ILocationIdentifier;
+    sourceLocation: LocationIdentifier;
     proximity: number;
     path: NonNullable<ReturnType<typeof adjacencyGraph.getShortestPath>>;
   } | null {
@@ -542,7 +542,7 @@ export class ProximityComputationHelper {
       ProximityComputationHelper.getLocalProximitySourceLocations(gameState);
 
     const shortestPaths: Array<{
-      sourceLocation: ILocationIdentifier;
+      sourceLocation: LocationIdentifier;
       path: NonNullable<ReturnType<typeof adjacencyGraph.getShortestPath>>;
       proximity: number;
     }> = [];
@@ -586,8 +586,8 @@ export class ProximityComputationHelper {
   }
 
   public static getGameStateProximityComputation = (
-    gameState: IGameState,
-    gameData: IGameData,
+    gameState: GameState,
+    gameData: GameData,
     adjacencyGraph: CompactGraph,
     options: PathFindingOptions,
   ): PathfindingResult => {
@@ -630,9 +630,9 @@ export class ProximityComputationHelper {
   };
 
   public static getGameStateLocationNeighborsProximity = (
-    location: ILocationIdentifier,
-    gameState: IGameState,
-    gameData: IGameData,
+    location: LocationIdentifier,
+    gameState: GameState,
+    gameData: GameData,
     adjacencyGraph: CompactGraph,
     options: PathFindingOptions,
   ): PathfindingResult => {

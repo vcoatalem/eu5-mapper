@@ -5,13 +5,13 @@ import { TooltipTrigger } from "@/app/lib/tooltip/tooltipTrigger.component";
 import { TooltipContent } from "@/app/lib/tooltip/tooltipContent.component";
 import { EditableField } from "@/app/components/editableField.component";
 import { validateFloatInRange } from "@/app/lib/utils/editableFieldValidation.helper";
-import { ICountryProximityBuffs } from "@/app/lib/types/countryProximityBuffs";
-import { ICountryProximityBuffsMetadata } from "@/app/lib/types/buffValue";
+import { CountryProximityBuffs } from "@/app/lib/types/countryProximityBuffs";
+import { CountryProximityBuffsMetadata } from "@/app/lib/types/buffValue";
 
 interface IBuffEditableFieldProps {
   buff: number;
-  buffKey: keyof ICountryProximityBuffs;
-  buffDisplayableData: ICountryProximityBuffsMetadata;
+  buffKey: keyof CountryProximityBuffs;
+  buffDisplayableData: CountryProximityBuffsMetadata;
   setBuff: (value: number) => void;
 }
 

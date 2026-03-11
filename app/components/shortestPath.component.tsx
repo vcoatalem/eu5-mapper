@@ -4,48 +4,61 @@ import {
   IShortestPathResult,
   shortestPathController,
 } from "@/app/lib/shortestPath.controller";
-import { ILocationIdentifier } from "@/app/lib/types/general";
+import { LocationIdentifier } from "@/app/lib/types/general";
 import { Loader } from "./loader.component";
 import { FormatedProximityCost } from "./formatedProximityCost.component";
 import { FormatedProximity } from "@/app/components/formatedProximity.component";
 import { StringHelper } from "@/app/lib/utils/string.helper";
 
 interface IShortestPathComponentProps {
-  location: ILocationIdentifier;
+  location: LocationIdentifier;
   className?: string;
 }
 
 function ShortestPathDisplay(props: {
-  location: ILocationIdentifier;
+  location: LocationIdentifier;
   proximityResult: NonNullable<
-    IShortestPathResult["result"][ILocationIdentifier]["proximityResult"]
+    IShortestPathResult["result"][LocationIdentifier]["proximityResult"]
   >;
 }) {
   const { proximityResult } = props;
   if (proximityResult.sourceLocation === props.location) {
     return (
-      <span>{StringHelper.formatLocationName(props.location)} is a proximity source (<FormatedProximity
-        proximity={proximityResult.proximity}
-      ></FormatedProximity>)</span>
-    )
+      <span>
+        {StringHelper.formatLocationName(props.location)} is a proximity source
+        (
+        <FormatedProximity
+          proximity={proximityResult.proximity}
+        ></FormatedProximity>
+        )
+      </span>
+    );
   }
   return (
     <div>
       <span className="text-md">
-        <b>{StringHelper.formatLocationName(proximityResult.sourceLocation)}</b> is the closest proximity source (<FormatedProximity
+        <b>{StringHelper.formatLocationName(proximityResult.sourceLocation)}</b>{" "}
+        is the closest proximity source (
+        <FormatedProximity
           proximity={proximityResult.proximity}
-        ></FormatedProximity>)
+        ></FormatedProximity>
+        )
       </span>
       <hr className="my-2 border-white border-1"></hr>
       <div className="flex flex-col gap-2">
         {proximityResult.path.map((step, index) => (
           <span key={index} className="flex flex-row items-center gap-1">
-            {StringHelper.formatLocationName(index === 0 ? proximityResult.sourceLocation : proximityResult.path[index - 1].throughLocation)}
+            {StringHelper.formatLocationName(
+              index === 0
+                ? proximityResult.sourceLocation
+                : proximityResult.path[index - 1].throughLocation,
+            )}
             {" → "}
-            {StringHelper.formatLocationName(step.throughLocation)}
-            (<FormatedProximityCost
+            {StringHelper.formatLocationName(step.throughLocation)}(
+            <FormatedProximityCost
               proximityCost={step.cost}
-            ></FormatedProximityCost> via {step.through})
+            ></FormatedProximityCost>{" "}
+            via {step.through})
           </span>
         ))}
       </div>

@@ -2,20 +2,21 @@ import { RoadsHelper } from "@/app/lib/roads.helper";
 import { ObjectHelper } from "@/app/lib/object.helper";
 import {
   BaseRoadRecord,
-  IGameData,
-  ILocationDataMap,
-  ILocationIdentifier,
+  GameData,
+  LocationDataMap,
+  LocationIdentifier,
   RoadRecord,
 } from "./types/general";
 import { ILocationGameData } from "@/app/lib/types/location";
 import { LocationRank } from "@/app/lib/types/locationRank";
 import { IConstructibleLocation } from "@/app/lib/types/constructibleLocation";
-import { IGameState } from "@/app/lib/types/gameState";
+import { GameState } from "@/app/lib/types/gameState";
 import { ITemporaryLocationData } from "@/app/lib/types/temporaryLocationData";
+import { HexColor } from "@/app/lib/types/color";
 
 export class LocationsHelper {
   public static locationHasRoad(
-    location: ILocationIdentifier,
+    location: LocationIdentifier,
     baseRoads: BaseRoadRecord,
     stateRoads: RoadRecord,
   ): boolean {
@@ -68,9 +69,9 @@ export class LocationsHelper {
   }
 
   public static getLocationPopulation(
-    locationIdentifier: ILocationIdentifier,
-    locationDataMap: ILocationDataMap,
-    gameState: IGameState,
+    locationIdentifier: LocationIdentifier,
+    locationDataMap: LocationDataMap,
+    gameState: GameState,
   ): number {
     if (!(locationIdentifier in locationDataMap)) {
       return 0;
@@ -82,9 +83,9 @@ export class LocationsHelper {
   }
 
   public static getLocationDevelopment(
-    locationIdentifier: ILocationIdentifier,
-    locationDataMap: ILocationDataMap,
-    gameState: IGameState,
+    locationIdentifier: LocationIdentifier,
+    locationDataMap: LocationDataMap,
+    gameState: GameState,
   ): number {
     if (!(locationIdentifier in locationDataMap)) {
       return 0;
@@ -109,8 +110,8 @@ export class LocationsHelper {
   }
 
   public static findLocationName(
-    hexColor: string,
-    gameData: IGameData,
+    hexColor: HexColor,
+    gameData: GameData,
   ): string | null {
     if (!gameData) {
       return null;

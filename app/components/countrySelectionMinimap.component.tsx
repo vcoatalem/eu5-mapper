@@ -1,11 +1,19 @@
 import { AppContext } from "@/app/appContextProvider";
 import { Loader } from "@/app/components/loader.component";
+import { GameDataLoaderHelper } from "@/app/lib/gameDataLoader.helper";
 import { colorSearchController } from "@/app/lib/colorSeach.controller";
-import { ILocationIdentifier } from "@/app/lib/types/general";
-import { VersionResolver } from "@/app/lib/versionResolver";
+import { LocationIdentifier } from "@/app/lib/types/general";
 import Image from "next/image";
 import { useParams } from "next/navigation";
-import { useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 const CANVAS_WIDTH = 400;
 const CANVAS_HEIGHT = 200;
@@ -30,19 +38,23 @@ function worldToCanvas(
 }
 
 interface ICountrySelectionMinimapProps {
-  capitalLocation: ILocationIdentifier;
-  countryLocations: ILocationIdentifier[];
+  capitalLocation: LocationIdentifier;
+  countryLocations: LocationIdentifier[];
   className?: string;
   viewW: number;
   viewH: number;
 }
 
 export function CountrySelectionMinimap(props: ICountrySelectionMinimapProps) {
-
-  const colorSearchResult = useSyncExternalStore(colorSearchController.subscribe.bind(colorSearchController), () => colorSearchController.getSnapshot());
+  const colorSearchResult = useSyncExternalStore(
+    colorSearchController.subscribe.bind(colorSearchController),
+    () => colorSearchController.getSnapshot(),
+  );
 
   const version = useParams().version as string;
-  const [terrainLayerImagePath, setTerrainLayerImagePath] = useState<string | null>(null);
+  const [terrainLayerImagePath, setTerrainLayerImagePath] = useState<
+    string | null
+  >(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawCanvasRef = useRef<HTMLCanvasElement>(null);
   const terrainImageRef = useRef<HTMLImageElement | null>(null);
@@ -62,9 +74,10 @@ export function CountrySelectionMinimap(props: ICountrySelectionMinimapProps) {
   }, [colorSearchResult, props.countryLocations]);
 
   useEffect(() => {
-    if (!colorSearchResult.result || props.countryLocations.length === 0) return;
+    if (!colorSearchResult.result || props.countryLocations.length === 0)
+      return;
     const missing = props.countryLocations.filter(
-      (loc) => !colorSearchResult.result![loc]?.coordinates
+      (loc) => !colorSearchResult.result![loc]?.coordinates,
     );
     if (missing.length > 0) {
       colorSearchController.requestColorSearch(missing);
@@ -75,9 +88,8 @@ export function CountrySelectionMinimap(props: ICountrySelectionMinimapProps) {
 
   const capitalCoordinates = useMemo(() => {
     if (!gameData || !props.capitalLocation) return null;
-    return gameData.locationDataMap[props.capitalLocation]?.centerCoordinates
-  }, [gameData, props.capitalLocation])
-
+    return gameData.locationDataMap[props.capitalLocation]?.centerCoordinates;
+  }, [gameData, props.capitalLocation]);
 
   const drawTerrain = useCallback(() => {
     const canvas = canvasRef.current;
@@ -123,19 +135,21 @@ export function CountrySelectionMinimap(props: ICountrySelectionMinimapProps) {
     canvasRef.current.height = CANVAS_HEIGHT;
     drawTerrain();
 
-    const resolver = new VersionResolver();
-    resolver.loadVersionsManifest().then(() => {
-      resolver.resolveFileVersion("terrainLayer", version).then((version) => {
-        const terrainLayerPath = resolver.getFilePath("terrainLayer", version);
-        setTerrainLayerImagePath(terrainLayerPath);
-        const img = new window.Image();
-        img.src = terrainLayerPath;
-        img.onload = () => {
-          setTerrainRendered(true);
-          terrainImageRef.current = img;
-          drawTerrain();
-        };
-      });
+    GameDataLoaderHelper.loadManifestForVersion(version).then((manifest) => {
+      const terrainLayerPath = GameDataLoaderHelper.getFileUrlForVersion(
+        version,
+        "terrainLayer",
+        manifest,
+      );
+      setTerrainLayerImagePath(terrainLayerPath);
+      const img = new window.Image();
+      img.crossOrigin = "anonymous";
+      img.src = terrainLayerPath;
+      img.onload = () => {
+        setTerrainRendered(true);
+        terrainImageRef.current = img;
+        drawTerrain();
+      };
     });
   }, [version, drawTerrain]);
 
@@ -157,7 +171,14 @@ export function CountrySelectionMinimap(props: ICountrySelectionMinimapProps) {
     const { x: cx, y: cy } = capitalCoordinates;
     ctx.fillStyle = "#ffffff";
     for (const coord of coordinatesToColor) {
-      const pixel = worldToCanvas(coord.x, coord.y, cx, cy, props.viewW, props.viewH);
+      const pixel = worldToCanvas(
+        coord.x,
+        coord.y,
+        cx,
+        cy,
+        props.viewW,
+        props.viewH,
+      );
       if (pixel) {
         ctx.fillRect(pixel.x, pixel.y, 1, 1);
       }
@@ -165,11 +186,34 @@ export function CountrySelectionMinimap(props: ICountrySelectionMinimapProps) {
   }, [coordinatesToColor, capitalCoordinates, props.viewW, props.viewH]);
 
   return (
-    <div className={`${props.className} block relative`} style={{ width: `${CANVAS_WIDTH}px`, height: `${CANVAS_HEIGHT}px` }}>
-      <div className="relative" style={{ width: `${CANVAS_WIDTH}px`, height: `${CANVAS_HEIGHT}px` }}>
-        <canvas ref={drawCanvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} className="block absolute top-0 left-0 z-1"></canvas>
-        <canvas ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} className="block absolute top-0 left-0 z-0">
-          {terrainLayerImagePath && <Image src={terrainLayerImagePath} alt="terrain layer" width={300} height={200} />}
+    <div
+      className={`${props.className} block relative`}
+      style={{ width: `${CANVAS_WIDTH}px`, height: `${CANVAS_HEIGHT}px` }}
+    >
+      <div
+        className="relative"
+        style={{ width: `${CANVAS_WIDTH}px`, height: `${CANVAS_HEIGHT}px` }}
+      >
+        <canvas
+          ref={drawCanvasRef}
+          width={CANVAS_WIDTH}
+          height={CANVAS_HEIGHT}
+          className="block absolute top-0 left-0 z-1"
+        ></canvas>
+        <canvas
+          ref={canvasRef}
+          width={CANVAS_WIDTH}
+          height={CANVAS_HEIGHT}
+          className="block absolute top-0 left-0 z-0"
+        >
+          {terrainLayerImagePath && (
+            <Image
+              src={terrainLayerImagePath}
+              alt="terrain layer"
+              width={300}
+              height={200}
+            />
+          )}
         </canvas>
         {!terrainRendered && (
           <div className="absolute inset-0 flex items-center justify-center z-2 bg-stone-900/80">

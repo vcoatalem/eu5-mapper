@@ -1,20 +1,20 @@
 import { ZodType, z } from "zod";
 
-export interface ICountryProximityBuffsMetadata {
+export interface CountryProximityBuffsMetadata {
   label: string;
-  valueDefinition: IBuffValueDescriptor;
+  valueDefinition: BuffValueDescriptor;
 }
 
-type IBuffValueDescriptor = {
+type BuffValueDescriptor = {
   type: "flat" | "percentage";
   description: string;
 };
-type IBuffPercentageValue = { type: "percentage"; value: number };
-type IBuffFlatValue = { type: "flat"; value: number };
+type BuffPercentageValue = { type: "percentage"; value: number };
+type BuffFlatValue = { type: "flat"; value: number };
 
-export type IBuffValue = IBuffPercentageValue | IBuffFlatValue;
+export type BuffValue = BuffPercentageValue | BuffFlatValue;
 
-export const ZodBuffValue: ZodType<IBuffValue> = z.union([
+export const ZodBuffValue: ZodType<BuffValue> = z.union([
   z.object({
     type: z.literal("percentage"),
     value: z.number(),

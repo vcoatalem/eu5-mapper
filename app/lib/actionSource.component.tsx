@@ -6,11 +6,11 @@ import {
   type HoverActionType,
   type ClickActionType,
 } from "./actionEventDispatcher";
-import type { ILocationIdentifier } from "./types/general";
+import type { LocationIdentifier } from "./types/general";
 
 export type LocationsInput = (
   e?: MouseEvent,
-) => ILocationIdentifier[] | Promise<ILocationIdentifier[] | null> | null;
+) => LocationIdentifier[] | Promise<LocationIdentifier[] | null> | null;
 
 export type HoverConfig = {
   type?: HoverActionType;

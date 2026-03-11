@@ -30,7 +30,7 @@ import {
 import { ActionSource } from "../lib/actionSource.component";
 import { debouncedProximityComputationController } from "../lib/proximityComputation.controller";
 import { ProximityComputationHelper } from "../lib/proximityComputation.helper";
-import { IGameData, ILocationIdentifier } from "../lib/types/general";
+import { GameData, LocationIdentifier } from "../lib/types/general";
 import { EdgeType } from "../lib/types/pathfinding";
 import { FormatedProximityCost } from "./formatedProximityCost.component";
 import { Loader } from "./loader.component";
@@ -52,9 +52,9 @@ const NeighborPanelListItemRoadMode = memo(
     through,
     owned,
   }: {
-    baseLocation: ILocationIdentifier;
-    neighborLocation: ILocationIdentifier;
-    gameData: IGameData;
+    baseLocation: LocationIdentifier;
+    neighborLocation: LocationIdentifier;
+    gameData: GameData;
     road: RoadType | null;
     cost: number;
     computationStatus: "pending" | "completed" | "error" | "needs_update";
@@ -146,8 +146,8 @@ const NeighborPanelListItem = memo(function NeighborPanelListItem({
   through,
   owned,
 }: {
-  baseLocation: ILocationIdentifier;
-  neighborLocation: ILocationIdentifier;
+  baseLocation: LocationIdentifier;
+  neighborLocation: LocationIdentifier;
   cost: number;
   computationStatus: "pending" | "completed" | "error" | "needs_update";
   through: EdgeType;
@@ -185,7 +185,7 @@ const NeighborPanelListItem = memo(function NeighborPanelListItem({
 });
 
 interface NeighborsPanelProps {
-  baseLocation: ILocationIdentifier;
+  baseLocation: LocationIdentifier;
 }
 
 export function NeighborsPanelComponent({ baseLocation }: NeighborsPanelProps) {

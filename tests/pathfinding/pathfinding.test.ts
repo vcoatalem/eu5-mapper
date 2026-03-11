@@ -4,11 +4,10 @@ import {
   getAllReferenceFilePaths,
   generateIndexFile,
 } from "./utils";
-import { IGameData, ILocationIdentifier } from "@/app/lib/types/general";
+import { GameData, LocationIdentifier } from "@/app/lib/types/general";
 import { GameStateController } from "@/app/lib/gameState.controller";
 import { ProximityComputationHelper } from "@/app/lib/proximityComputation.helper";
 import { ParserHelper } from "@/app/lib/parser.helper";
-import { VersionResolver } from "@/app/lib/versionResolver";
 import { GameDataLoaderHelper } from "@/app/lib/gameDataLoader.helper";
 
 const referenceFiles = getAllReferenceFilePaths(
@@ -32,19 +31,12 @@ test.each(referenceFiles)(
       countryValuesOverrides,
     } = await readReferenceFile(filePath);
 
-    const versionResolver = new VersionResolver();
-    await versionResolver.loadVersionsManifest();
-
     const gameDataFiles =
-      await GameDataLoaderHelper.loadGameDataFilesForVersion(
-        version,
-        versionResolver,
-        [
-          ...GameDataLoaderHelper.defaultGameDataFileTypes,
-          "countryModifiersTemplate",
-        ],
-      );
-    const gameData: IGameData = {
+      await GameDataLoaderHelper.loadGameDataFilesForVersion(version, [
+        ...GameDataLoaderHelper.defaultGameDataFileTypes,
+        "countryModifiersTemplate",
+      ]);
+    const gameData: GameData = {
       locationDataMap: gameDataFiles.locationData.map,
       colorToNameMap: {},
       ...gameDataFiles,
@@ -99,11 +91,11 @@ test.each(referenceFiles)(
     // assert
 
     const differences: Record<
-      ILocationIdentifier,
+      LocationIdentifier,
       { expected: number; actual: number }
     > = {};
 
-    const unrecognisedLocations: ILocationIdentifier[] = [];
+    const unrecognisedLocations: LocationIdentifier[] = [];
 
     for (const [location, expectedProximity] of Object.entries(data)) {
       if (location in gameData.locationDataMap) {
@@ -136,7 +128,7 @@ test.each(referenceFiles)(
     }
 
     const results: Array<{
-      location: ILocationIdentifier;
+      location: LocationIdentifier;
       expected: number;
       actual: number;
       difference: number;

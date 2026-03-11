@@ -1,16 +1,27 @@
-import { RoadKey, RoadType, ZodRoadKey } from "@/app/lib/types/roads";
 import {
   BaseRoadRecord,
-  ILocationIdentifier,
+  RoadKey,
   RoadRecord,
-} from "./types/general";
+  RoadType,
+  ZodRoadKey,
+} from "@/app/lib/types/roads";
+import { LocationIdentifier } from "./types/general";
 import { ObjectHelper } from "@/app/lib/object.helper";
-import { IGameState } from "@/app/lib/types/gameState";
+import { GameState } from "@/app/lib/types/gameState";
 
 export class RoadsHelper {
+  public static roadRecordFromCsv(csvRows: [string, string][]): BaseRoadRecord {
+    const record: BaseRoadRecord = {};
+    for (const [from, to] of csvRows) {
+      const key = this.buildOrderedRoadKey(from, to);
+      record[key] = "gravel_road";
+    }
+    return record;
+  }
+
   public static buildOrderedRoadKey(
-    fromLocation: ILocationIdentifier,
-    toLocation: ILocationIdentifier,
+    fromLocation: LocationIdentifier,
+    toLocation: LocationIdentifier,
   ): RoadKey {
     return ZodRoadKey.parse(
       fromLocation.localeCompare(toLocation) < 0
@@ -37,7 +48,7 @@ export class RoadsHelper {
   }
 
   public static getOwnedRoads(
-    ownedLocations: IGameState["ownedLocations"],
+    ownedLocations: GameState["ownedLocations"],
     baseRoads: BaseRoadRecord,
     stateRoads: RoadRecord,
   ): Record<RoadKey, RoadType> {
@@ -52,7 +63,7 @@ export class RoadsHelper {
   }
 
   public static areAllOwnedRoadsOfType(
-    ownedLocations: IGameState["ownedLocations"],
+    ownedLocations: GameState["ownedLocations"],
     baseRoads: BaseRoadRecord,
     stateRoads: RoadRecord,
     type: RoadType,
@@ -68,8 +79,8 @@ export class RoadsHelper {
   }
 
   public static getRoad(
-    fromLocation: ILocationIdentifier,
-    toLocation: ILocationIdentifier,
+    fromLocation: LocationIdentifier,
+    toLocation: LocationIdentifier,
     baseRoads: BaseRoadRecord,
     stateRoads: RoadRecord,
   ): RoadType | null {

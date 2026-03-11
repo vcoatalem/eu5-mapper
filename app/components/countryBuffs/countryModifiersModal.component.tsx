@@ -1,7 +1,7 @@
 import { AppContext } from "@/app/appContextProvider";
 import { ButtonWithTooltip } from "@/app/components/buttonWithTooltip.component";
 import { BuffDisplay } from "@/app/components/countryBuffs/buffDisplay.component";
-import { CountryProximityBuffs } from "@/app/components/countryBuffs/countryProximityBuffs.component";
+import { DisplayCountryProximityBuffs } from "@/app/components/countryBuffs/countryProximityBuffs.component";
 import { CreateCustomModifierForm } from "@/app/components/countryBuffs/createCustomModifierForm.component";
 import { CountryStats } from "@/app/components/countryStatsComponent";
 import { CountryValuesInput } from "@/app/components/countryValuesInput.component";
@@ -25,21 +25,21 @@ import { FaArrowUp, FaPlus, FaSquare } from "react-icons/fa6";
 import { FiDelete } from "react-icons/fi";
 import posthog from "posthog-js";
 import { ObjectHelper } from "@/app/lib/object.helper";
-import { ICountryModifierTemplate } from "@/app/lib/types/countryModifiers";
-import { ICountryProximityBuffs } from "@/app/lib/types/countryProximityBuffs";
+import { CountryModifierTemplate } from "@/app/lib/types/countryModifiers";
+import { CountryProximityBuffs } from "@/app/lib/types/countryProximityBuffs";
 
 interface ICountryModifiersModal {
   onClose: () => void;
 }
 
 interface IModifierItemProps {
-  template: ICountryModifierTemplate;
-  onHover: (template: ICountryModifierTemplate | null) => void;
+  template: CountryModifierTemplate;
+  onHover: (template: CountryModifierTemplate | null) => void;
   isSelected?: boolean;
-  onSelect?: (template: ICountryModifierTemplate | null) => void;
+  onSelect?: (template: CountryModifierTemplate | null) => void;
   preventSelect?: boolean;
   isEnabled?: boolean | null;
-  onDelete?: (template: ICountryModifierTemplate) => void;
+  onDelete?: (template: CountryModifierTemplate) => void;
   className?: string;
 }
 
@@ -138,9 +138,9 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
   const [countryModifiersOpen, setCountryModifiersOpen] = useState(false);
   const [countryValuesOpen, setCountryValuesOpen] = useState(false);
   const [selectedModifier, setSelectedModifier] =
-    useState<ICountryModifierTemplate | null>(null);
+    useState<CountryModifierTemplate | null>(null);
   const [hoveredModifier, setHoveredModifier] =
-    useState<ICountryModifierTemplate | null>(null);
+    useState<CountryModifierTemplate | null>(null);
   const [createCustomModifierFormOpen, setCreateCustomModifierFormOpen] =
     useState(false);
 
@@ -160,7 +160,7 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
     (
       name: string,
       description: string | null,
-      buff: Partial<ICountryProximityBuffs>,
+      buff: Partial<CountryProximityBuffs>,
     ) => {
       if (!gameState.country) {
         return;
@@ -206,12 +206,12 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
     (
       name: string,
       description: string | null,
-      buff: Partial<ICountryProximityBuffs>,
+      buff: Partial<CountryProximityBuffs>,
     ) => {
       if (!gameData) {
         return;
       }
-      const buffWithAllKeys: ICountryProximityBuffs = {
+      const buffWithAllKeys: CountryProximityBuffs = {
         genericModifier: buff.genericModifier ?? 0,
         landModifier: buff.landModifier ?? 0,
         seaWithMaritimeFlatCostReduction:
@@ -223,7 +223,7 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
         plateauMultiplier: buff.plateauMultiplier ?? 0,
         hillsMultiplier: buff.hillsMultiplier ?? 0,
       };
-      const template: ICountryModifierTemplate = {
+      const template: CountryModifierTemplate = {
         name,
         description: description ?? "",
         buff: buffWithAllKeys,
@@ -468,9 +468,9 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
                 <b>Country Buffs Breakdown</b>
               </h1>
               <hr className="w-full border-stone-600 border-b-1 flex-0 my-2"></hr>
-              <CountryProximityBuffs
+              <DisplayCountryProximityBuffs
                 country={gameState.country}
-              ></CountryProximityBuffs>
+              ></DisplayCountryProximityBuffs>
             </div>
           )}
         </div>

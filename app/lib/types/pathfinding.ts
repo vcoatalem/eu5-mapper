@@ -1,4 +1,4 @@
-import { ILocationIdentifier } from "./general";
+import { LocationIdentifier } from "./general";
 import { z } from "zod";
 
 // TODO: might need to make edges directional.
@@ -73,6 +73,6 @@ export type CostFunction = (
 
 export type PathFindingOptions = {
   allowUnownedLocations?: boolean;
-  logForLocations?: ILocationIdentifier[];
+  logForLocations?: LocationIdentifier[];
   logMethod?: (message: string, data: Record<string, unknown>) => void;
 };

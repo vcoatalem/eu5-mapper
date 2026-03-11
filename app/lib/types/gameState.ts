@@ -24,11 +24,11 @@ export const ZodGameState = z.object({
   temporaryLocationData: ZodGameStateTemporaryLocationRecord,
 });
 
-export type IGameStateOwnedLocationRecord = z.infer<
+export type GameStateOwnedLocationRecord = z.infer<
   typeof ZodGameStateOwnedLocationRecord
 >;
-export type IGameStateTemporaryLocationRecord = z.infer<
+export type GameStateTemporaryLocationRecord = z.infer<
   typeof ZodGameStateTemporaryLocationRecord
 >;
 
-export type IGameState = z.infer<typeof ZodGameState>;
+export type GameState = z.infer<typeof ZodGameState>;

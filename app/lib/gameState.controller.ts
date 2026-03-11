@@ -5,22 +5,22 @@ import { EligibleBuildingService } from "@/app/lib/eligibleBuilding.service";
 import { cameraController } from "./cameraController";
 import { RoadsHelper } from "./roads.helper";
 import { Observable } from "./observable";
-import { IGameData, ILocationIdentifier } from "./types/general";
+import { GameData, LocationIdentifier } from "./types/general";
 import { ObjectHelper } from "@/app/lib/object.helper";
 import { RoadKey, RoadType } from "@/app/lib/types/roads";
 import { ArrayHelper } from "@/app/lib/array.helper";
 import { ConstructibleAction } from "@/app/lib/types/constructibleAction";
 import {
   baseCountryProximityBuffs,
-  ICountryProximityBuffs,
+  CountryProximityBuffs,
 } from "@/app/lib/types/countryProximityBuffs";
-import { ICountryInstance } from "@/app/lib/types/countryInstance";
-import { IGameState, ZodGameState } from "@/app/lib/types/gameState";
+import { CountryInstance } from "@/app/lib/types/countryInstance";
+import { GameState, ZodGameState } from "@/app/lib/types/gameState";
 import { IConstructibleLocation } from "@/app/lib/types/constructibleLocation";
-import { ICountryValues } from "@/app/lib/types/countryValues";
+import { CountryValues } from "@/app/lib/types/countryValues";
 import { ITemporaryLocationData } from "@/app/lib/types/temporaryLocationData";
 
-const baseCountryValues: ICountryInstance = {
+const baseCountryValues: CountryInstance = {
   templateData: null,
   values: {
     centralizationVsDecentralization: 0,
@@ -30,16 +30,16 @@ const baseCountryValues: ICountryInstance = {
   modifiers: {},
 };
 
-export class GameStateController extends Observable<IGameState> {
-  private gameData: IGameData | null = null;
-  private baseGameState: IGameState | null = null;
+export class GameStateController extends Observable<GameState> {
+  private gameData: GameData | null = null;
+  private baseGameState: GameState | null = null;
 
   constructor() {
     super();
-    this.subject = {} as IGameState;
+    this.subject = {} as GameState;
   }
 
-  public init(gameData: IGameData, version: string): void {
+  public init(gameData: GameData, version: string): void {
     this.gameData = gameData;
     this.baseGameState = {
       countryCode: null,
@@ -66,7 +66,7 @@ export class GameStateController extends Observable<IGameState> {
     return !storedLocation;
   }
 
-  public toggleLocationsOwnership(locationNames: ILocationIdentifier[]): void {
+  public toggleLocationsOwnership(locationNames: LocationIdentifier[]): void {
     if (!this.subject) return;
     const toAcquire = locationNames.filter(
       (locationName) =>
@@ -82,14 +82,14 @@ export class GameStateController extends Observable<IGameState> {
   }
 
   public acquireLocations(
-    locationNames: ILocationIdentifier[],
+    locationNames: LocationIdentifier[],
     notify: boolean = true,
   ): void {
     if (!this.gameData) {
       return;
     }
 
-    const toAdd: Record<ILocationIdentifier, IConstructibleLocation> = {};
+    const toAdd: Record<LocationIdentifier, IConstructibleLocation> = {};
     for (const location of locationNames) {
       const locationData = this.gameData.locationDataMap[location];
       if (!locationData?.ownable) {
@@ -137,7 +137,7 @@ export class GameStateController extends Observable<IGameState> {
     this.notifyListeners();
   }
 
-  public abandonLocations(locationNames: ILocationIdentifier[]): void {
+  public abandonLocations(locationNames: LocationIdentifier[]): void {
     if (!this.subject) return;
     for (const locationName of locationNames) {
       delete this.subject.ownedLocations[locationName];
@@ -195,7 +195,7 @@ export class GameStateController extends Observable<IGameState> {
   }
 
   public handleBuildingAction(
-    location: ILocationIdentifier,
+    location: LocationIdentifier,
     action: ConstructibleAction,
   ): void {
     console.log(
@@ -318,7 +318,7 @@ export class GameStateController extends Observable<IGameState> {
     this.notifyListeners();
   }
 
-  public changeCountryValues(value: Partial<ICountryValues>): void {
+  public changeCountryValues(value: Partial<CountryValues>): void {
     if (!this.subject.country?.values) {
       return;
     }
@@ -353,7 +353,7 @@ export class GameStateController extends Observable<IGameState> {
     name: string,
     toUpdate: {
       description?: string;
-      buff?: Partial<ICountryProximityBuffs>;
+      buff?: Partial<CountryProximityBuffs>;
       enabled?: boolean;
     },
   ): void {
@@ -414,7 +414,7 @@ export class GameStateController extends Observable<IGameState> {
   public changeRoadTypeBulk(
     changes: Array<{ key: RoadKey; type: RoadType | null }>,
   ): void {
-    const roads: IGameState["roads"] = { ...this.subject.roads };
+    const roads: GameState["roads"] = { ...this.subject.roads };
     for (const { key, type } of changes) {
       const [from, to] = key.split("-");
       roads[RoadsHelper.buildOrderedRoadKey(from, to)] = type;
@@ -424,7 +424,7 @@ export class GameStateController extends Observable<IGameState> {
   }
 
   public changeAllOwnedRoadsToType(type: RoadType): void {
-    const baseRoads = this.gameData?.roads ?? ({} as IGameData["roads"]);
+    const baseRoads = this.gameData?.roads ?? ({} as GameData["roads"]);
     const ownedRoads = RoadsHelper.getOwnedRoads(
       this.subject.ownedLocations,
       baseRoads,
@@ -439,7 +439,7 @@ export class GameStateController extends Observable<IGameState> {
   }
 
   public changeTemporaryLocationData(
-    location: ILocationIdentifier,
+    location: LocationIdentifier,
     data: Partial<ITemporaryLocationData>,
   ): void {
     let existingData = this.subject.temporaryLocationData[location];
@@ -456,7 +456,7 @@ export class GameStateController extends Observable<IGameState> {
   }
 
   public resetTemporaryLocationData(
-    location: ILocationIdentifier,
+    location: LocationIdentifier,
     key: keyof ITemporaryLocationData,
   ): void {
     if (this.subject.temporaryLocationData[location]) {

@@ -1,9 +1,10 @@
 import { LocationsHelper } from "@/app/lib/locations.helper";
 import { RefObject } from "react";
 import { Observable } from "./observable";
-import type { IGameData } from "./types/general";
-import { ILocationIdentifier } from "./types/general";
-import { ICoordinate } from "@/app/lib/types/coordinate";
+import type { GameData } from "./types/general";
+import { LocationIdentifier } from "./types/general";
+import { Coordinate } from "@/app/lib/types/coordinate";
+import { ZodHexColor } from "@/app/lib/types/color";
 
 export const zoomLevels = {
   maxedOut: 0.1,
@@ -207,8 +208,8 @@ export class CameraController extends Observable<IZoomState> {
 
   public getLocationAtPointer(
     event: MouseEvent,
-    gameData: IGameData,
-  ): ILocationIdentifier | null {
+    gameData: GameData,
+  ): LocationIdentifier | null {
     if (!this.colorCanvas || !gameData) return null;
     const rect = this.colorCanvas.current?.getBoundingClientRect();
 
@@ -235,12 +236,13 @@ export class CameraController extends Observable<IZoomState> {
       parseInt(`${imageData.data[2]}`),
     ];
 
-    const hexStr = [
-      r.toString(16).padStart(2, "0"),
-      g.toString(16).padStart(2, "0"),
-      b.toString(16).padStart(2, "0"),
-    ].join("");
-
+    const hexStr = ZodHexColor.parse(
+      [
+        r.toString(16).padStart(2, "0"),
+        g.toString(16).padStart(2, "0"),
+        b.toString(16).padStart(2, "0"),
+      ].join(""),
+    );
     const locationName =
       LocationsHelper.findLocationName(hexStr, gameData) ?? null;
     return locationName;
@@ -255,9 +257,9 @@ export class CameraController extends Observable<IZoomState> {
    * @param duration Animation duration in ms (default 600)
    */
   public panToCoordinate = (
-    coordinate: ICoordinate,
+    coordinate: Coordinate,
     duration = 600,
-    offset?: ICoordinate,
+    offset?: Coordinate,
   ): Promise<void> => {
     if (!this.colorCanvas || !this.container) {
       return Promise.resolve();
@@ -423,15 +425,15 @@ export class CameraController extends Observable<IZoomState> {
     baseX: number,
     baseY: number,
     containerRect: DOMRect,
-    offset: ICoordinate = { x: 0, y: 0 },
-    tooltipSize: ICoordinate = { x: 200, y: 200 },
+    offset: Coordinate = { x: 0, y: 0 },
+    tooltipSize: Coordinate = { x: 200, y: 200 },
     screenOffset = this.baseScreenOffset,
-    mouseCoordinate: ICoordinate = { x: 0, y: 0 },
+    mouseCoordinate: Coordinate = { x: 0, y: 0 },
     preferredPlacement?: {
       horizontal: "left" | "right";
       vertical: "top" | "bottom";
     },
-  ): ICoordinate | null {
+  ): Coordinate | null {
     const rawLeft = containerRect.left;
     const rawRight = containerRect.right;
     const rawTop = containerRect.top;
@@ -576,15 +578,15 @@ export class CameraController extends Observable<IZoomState> {
    * (affected by camera zoom and pan).
    */
   public getTooltipScreenPositionForLocation(
-    anchorCoordinate: ICoordinate,
-    offset: ICoordinate = { x: 0, y: 0 },
-    tooltipSize: ICoordinate,
-    mouseCoordinate?: ICoordinate,
+    anchorCoordinate: Coordinate,
+    offset: Coordinate = { x: 0, y: 0 },
+    tooltipSize: Coordinate,
+    mouseCoordinate?: Coordinate,
     preferredPlacement?: {
       horizontal: "left" | "right";
       vertical: "top" | "bottom";
     },
-  ): ICoordinate | null {
+  ): Coordinate | null {
     if (!this.colorCanvas || !this.container) return null;
     const colorCanvas = this.colorCanvas.current;
     const container = this.container.current;
@@ -615,15 +617,15 @@ export class CameraController extends Observable<IZoomState> {
    * DOM coordinates (e.g. clientX / clientY from a DOM element or event).
    */
   public getTooltipScreenPositionForScreenCoordinate(
-    anchorCoordinate: ICoordinate,
-    offset: ICoordinate = { x: 0, y: 0 },
-    tooltipSize: ICoordinate,
-    mouseCoordinate: ICoordinate,
+    anchorCoordinate: Coordinate,
+    offset: Coordinate = { x: 0, y: 0 },
+    tooltipSize: Coordinate,
+    mouseCoordinate: Coordinate,
     preferredPlacement?: {
       horizontal: "left" | "right";
       vertical: "top" | "bottom";
     },
-  ): ICoordinate | null {
+  ): Coordinate | null {
     if (!this.container) return null;
     const container = this.container.current;
     if (!container) return null;

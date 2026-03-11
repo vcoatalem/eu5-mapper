@@ -1,14 +1,14 @@
 import { CompactGraph } from "@/app/lib/graph";
 import { ParserHelper } from "@/app/lib/parser.helper";
-import { ILocationIdentifier } from "@/app/lib/types/general";
+import { LocationIdentifier } from "@/app/lib/types/general";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 import { ArrayHelper } from "@/app/lib/array.helper";
-import { ICountryValues } from "@/app/lib/types/countryValues";
+import { CountryValues } from "@/app/lib/types/countryValues";
 
-const COUNTRY_VALUE_KEYS: Array<keyof ICountryValues> = [
+const COUNTRY_VALUE_KEYS: Array<keyof CountryValues> = [
   "landVsNaval",
   "centralizationVsDecentralization",
 ];
@@ -16,13 +16,13 @@ const COUNTRY_VALUE_KEYS: Array<keyof ICountryValues> = [
 export interface ReferenceSettings {
   rulerAdministrativeAbility: number;
   modifiers: string[];
-  countryValuesOverrides: Partial<ICountryValues>;
+  countryValuesOverrides: Partial<CountryValues>;
 }
 
 function parseCountryValuesOverrides(
   valuesRaw: string,
-): Partial<ICountryValues> {
-  const overrides: Partial<ICountryValues> = {};
+): Partial<CountryValues> {
+  const overrides: Partial<CountryValues> = {};
   const pairs = valuesRaw
     .split("|")
     .map((s) => s.trim())
@@ -30,7 +30,7 @@ function parseCountryValuesOverrides(
   for (const pair of pairs) {
     const colonIndex = pair.indexOf(":");
     if (colonIndex <= 0) continue;
-    const key = pair.slice(0, colonIndex).trim() as keyof ICountryValues;
+    const key = pair.slice(0, colonIndex).trim() as keyof CountryValues;
     const valueStr = pair.slice(colonIndex + 1).trim();
     if (!COUNTRY_VALUE_KEYS.includes(key)) continue;
     const value = Number(valueStr);
@@ -47,8 +47,8 @@ export const readReferenceFile = async (
   version: string;
   rulerAdministrativeAbility: number;
   modifiers: string[];
-  countryValuesOverrides: Partial<ICountryValues>;
-  data: Record<ILocationIdentifier, number>;
+  countryValuesOverrides: Partial<CountryValues>;
+  data: Record<LocationIdentifier, number>;
 }> => {
   const f = await fs.readFileSync(path, "utf-8");
   const lines = f.split("\n");
@@ -61,7 +61,7 @@ export const readReferenceFile = async (
   const fifthColumn = headerParts[4]; // adminAbility:<value>;modifiers:<mod1>|<mod2>|...;values:key1:val1|key2:val2
   let rulerAdministrativeAbility = 50;
   let modifiers: string[] = [];
-  let countryValuesOverrides: Partial<ICountryValues> = {};
+  let countryValuesOverrides: Partial<CountryValues> = {};
 
   for (const segment of fifthColumn.split(";").map((s) => s.trim())) {
     if (segment.startsWith("adminAbility:")) {
@@ -146,13 +146,13 @@ export async function generateHtmlReport(
   country: string,
   version: string,
   results: Array<{
-    location: ILocationIdentifier;
+    location: LocationIdentifier;
     expected: number;
     actual: number;
     difference: number;
   }>,
   toleratedDifference: number,
-  unrecognisedLocations: ILocationIdentifier[] = [],
+  unrecognisedLocations: LocationIdentifier[] = [],
   settings?: ReferenceSettings,
 ): Promise<void> {
   const totalCount = results.length;
@@ -619,7 +619,7 @@ export async function generateHtmlReport(
           Object.keys(settings.countryValuesOverrides).length > 0
             ? `Values: ${(
                 Object.entries(settings.countryValuesOverrides) as Array<
-                  [keyof ICountryValues, number]
+                  [keyof CountryValues, number]
                 >
               )
                 .map(([k, v]) => `${escapeHtml(k)}: ${v}`)

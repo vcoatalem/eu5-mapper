@@ -20,3 +20,9 @@ export const allRoadTypes: readonly RoadType[] = [
   "modern_road",
   "rail_road",
 ];
+
+export const ZodBaseRoadRecord = z.record(ZodRoadKey, ZodRoadType);
+export const ZodRoadRecord = z.record(ZodRoadKey, ZodRoadType.nullable());
+
+export type BaseRoadRecord = z.infer<typeof ZodBaseRoadRecord>;
+export type RoadRecord = z.infer<typeof ZodRoadRecord>;

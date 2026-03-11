@@ -1,4 +1,4 @@
-import { CountryProximityBuffs } from "@/app/components/countryBuffs/countryProximityBuffs.component";
+import { DisplayCountryProximityBuffs } from "@/app/components/countryBuffs/countryProximityBuffs.component";
 import { FoldableMenu } from "@/app/components/foldableMenu.component";
 import { gameStateController } from "@/app/lib/gameState.controller";
 import { useContext, useState, useSyncExternalStore } from "react";
@@ -41,10 +41,10 @@ export function CountryOverview() {
           setCountryProximityBuffsExpanded(!countryProximityBuffsExpanded)
         }
       >
-        <CountryProximityBuffs
+        <DisplayCountryProximityBuffs
           className="pl-2"
           country={country}
-        ></CountryProximityBuffs>
+        ></DisplayCountryProximityBuffs>
       </FoldableMenu>
     </>
   );

@@ -18,4 +18,4 @@ export const ZodCountryInstance = z.object({
   ),
 });
 
-export type ICountryInstance = z.infer<typeof ZodCountryInstance>;
+export type CountryInstance = z.infer<typeof ZodCountryInstance>;

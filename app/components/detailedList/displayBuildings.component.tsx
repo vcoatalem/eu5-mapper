@@ -7,12 +7,12 @@ import { Tooltip } from "@/app/lib/tooltip/tooltip.component";
 import { TooltipContent } from "@/app/lib/tooltip/tooltipContent.component";
 import { TooltipTrigger } from "@/app/lib/tooltip/tooltipTrigger.component";
 import { ConstructibleState } from "@/app/lib/types/constructibleState";
-import { ILocationIdentifier } from "@/app/lib/types/general";
+import { LocationIdentifier } from "@/app/lib/types/general";
 import Image from "next/image";
 import { useRef } from "react";
 
 function DisplayBuilding(props: {
-  location: ILocationIdentifier;
+  location: LocationIdentifier;
   buildingTemplateName: string;
   buildingData: ConstructibleState[string];
 }) {

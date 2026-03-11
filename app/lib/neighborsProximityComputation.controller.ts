@@ -1,5 +1,5 @@
 import { Observable } from "./observable";
-import { ILocationIdentifier } from "./types/general";
+import { LocationIdentifier } from "./types/general";
 import { workerManager } from "@/app/lib/workerManager";
 import { gameStateController } from "@/app/lib/gameState.controller";
 import { PathfindingResult } from "./types/pathfinding";
@@ -8,7 +8,7 @@ import { ZodWorkerTaskComputeNeighborsResult } from "@/workers/types/computeNeig
 
 type NeighborsProximityComputationResults = {
   computationResults: Record<
-    ILocationIdentifier,
+    LocationIdentifier,
     {
       neighbors: PathfindingResult;
       status: "pending" | "completed" | "error" | "needs_update"; // TODO : detect when result expire and need to be recomputed
@@ -72,7 +72,7 @@ class NeighborProximityComputationController extends Observable<NeighborsProximi
     });
   }
 
-  public launchGetNeighborsProximity(locationName: ILocationIdentifier): void {
+  public launchGetNeighborsProximity(locationName: LocationIdentifier): void {
     if (this.subject.computationResults[locationName]?.status === "pending") {
       // job is still running, wait for it to complete
       return;

@@ -1,7 +1,7 @@
-import { IBuffValue } from "@/app/lib/types/buffValue";
+import { BuffValue } from "@/app/lib/types/buffValue";
 
 export class BuffsHelper {
-  public static sumBuffs(buffs: IBuffValue[]): number {
+  public static sumBuffs(buffs: BuffValue[]): number {
     if (buffs.length === 0) {
       return 0;
     }

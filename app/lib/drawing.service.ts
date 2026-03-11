@@ -3,7 +3,7 @@ import {
   IProximityComputationResults,
   proximityComputationController,
 } from "@/app/lib/proximityComputation.controller";
-import { IGameData, ILocationIdentifier } from "./types/general";
+import { GameData, LocationIdentifier } from "./types/general";
 import { ObservableCombiner } from "./observableCombiner";
 import { DrawingHelper } from "./drawing/drawing.helper";
 import {
@@ -28,8 +28,8 @@ import { ObjectHelper } from "@/app/lib/object.helper";
 import { RoadsHelper } from "@/app/lib/roads.helper";
 import { ArrayHelper } from "@/app/lib/array.helper";
 import { LocationRank } from "@/app/lib/types/locationRank";
-import { IGameState } from "@/app/lib/types/gameState";
-import { ICoordinate } from "@/app/lib/types/coordinate";
+import { GameState } from "@/app/lib/types/gameState";
+import { Coordinate } from "@/app/lib/types/coordinate";
 
 enum CanvasName {
   areas = "areas",
@@ -44,9 +44,9 @@ type CanvasRecord = Record<CanvasName, CanvasRenderingContext2D>;
 export class DrawingService {
   private canvasRecord: CanvasRecord;
   private mapInfos: { width: number; height: number };
-  private gameData: IGameData | null = null;
+  private gameData: GameData | null = null;
   private drawingCallbackBuffer: Partial<
-    Record<CanvasName, () => ILocationIdentifier[] | null> // returned identifiers are those of locations for which coordinates need to be fetched
+    Record<CanvasName, () => LocationIdentifier[] | null> // returned identifiers are those of locations for which coordinates need to be fetched
   > = {};
   private reDraw: Subject<Date> = new Subject<Date>();
 
@@ -57,7 +57,7 @@ export class DrawingService {
     indicatorDrawingCanvas: HTMLCanvasElement,
     maritimePresenceDrawingCanvas: HTMLCanvasElement,
     mapInfos: { width: number; height: number },
-    gameData: IGameData,
+    gameData: GameData,
   ) {
     this.mapInfos = mapInfos;
     this.gameData = gameData;
@@ -150,7 +150,7 @@ export class DrawingService {
       for (const [canvasName, callback] of ObjectHelper.getTypedEntries(
         this.drawingCallbackBuffer,
       )) {
-        const missingCoordinates = callback() as ILocationIdentifier[];
+        const missingCoordinates = callback() as LocationIdentifier[];
         if (!missingCoordinates?.length) {
           delete this.drawingCallbackBuffer[canvasName];
         } else {
@@ -163,9 +163,9 @@ export class DrawingService {
   }
 
   private drawAreas(
-    gameState: IGameState,
+    gameState: GameState,
     proximityEvaluation: IProximityComputationResults,
-  ): ILocationIdentifier[] {
+  ): LocationIdentifier[] {
     const imageData = this.canvasRecord["areas"].createImageData(
       this.mapInfos.width,
       this.mapInfos.height,
@@ -173,12 +173,11 @@ export class DrawingService {
 
     const data = imageData.data;
 
-    const missingCoordinates: ILocationIdentifier[] = [];
+    const missingCoordinates: LocationIdentifier[] = [];
     const colorSearchResult = colorSearchController.getSnapshot().result;
     for (const location of Object.keys(gameState.ownedLocations)) {
-      const entry = colorSearchResult[location];
-      const coordinates = entry?.coordinates;
-      if (!coordinates?.length) {
+      const searchResult = colorSearchResult[location];
+      if (!searchResult) {
         missingCoordinates.push(location);
         continue;
       }
@@ -189,7 +188,7 @@ export class DrawingService {
 
       const [r, g, b] = color;
 
-      for (const { x, y } of coordinates) {
+      for (const { x, y } of searchResult.coordinates) {
         const index = (y * this.mapInfos.width + x) * 4;
         data[index] = r; // R
         data[index + 1] = g; // G
@@ -211,7 +210,7 @@ export class DrawingService {
     ctx: CanvasRenderingContext2D,
     level: LocationRank,
     zoom: IZoomState,
-    coordinate: ICoordinate,
+    coordinate: Coordinate,
     isCapital: boolean,
   ): void {
     const color = isCapital ? capitalColor : defaultAreaColor;
@@ -237,7 +236,7 @@ export class DrawingService {
     }
   }
 
-  private drawConstructibles(gameState: IGameState, zoom: IZoomState): null {
+  private drawConstructibles(gameState: GameState, zoom: IZoomState): null {
     this.canvasRecord["constructibles"].clearRect(
       0,
       0,
@@ -274,7 +273,7 @@ export class DrawingService {
     return null;
   }
 
-  private drawRoads(gameState: IGameState): null {
+  private drawRoads(gameState: GameState): null {
     if (!this.gameData) {
       return null;
     }
@@ -299,9 +298,14 @@ export class DrawingService {
     ];
     for (const [key, type] of roadsToDraw) {
       const [from, to] = key.split("-");
-      const fromCoordinates =
-        this.gameData.locationDataMap[from].centerCoordinates;
-      const toCoordinates = this.gameData.locationDataMap[to].centerCoordinates;
+      /* console.log("[DrawingService] Drawing road", { from, to, type }); */
+      const fromLocationData = this.gameData.locationDataMap[from];
+      const toLocationData = this.gameData.locationDataMap[to];
+      if (!fromLocationData || !toLocationData) {
+        continue;
+      }
+      const fromCoordinates = fromLocationData.centerCoordinates;
+      const toCoordinates = toLocationData.centerCoordinates;
       if (fromCoordinates && toCoordinates) {
         const roadColor = ColorHelper.getRoadHexColor(type);
         drawCallbacks.push(() =>
@@ -319,19 +323,19 @@ export class DrawingService {
   }
 
   private drawHighlighted(
-    locations: ILocationIdentifier[],
-  ): ILocationIdentifier[] {
-    const toHighlight: Record<ILocationIdentifier, ICoordinate[]> = {};
-    const missingCoordinates: ILocationIdentifier[] = [];
+    locations: LocationIdentifier[],
+  ): LocationIdentifier[] {
+    const toHighlight: Record<LocationIdentifier, Coordinate[]> = {};
+    const missingCoordinates: LocationIdentifier[] = [];
 
     const colorSearchResult = colorSearchController.getSnapshot().result;
     for (const location of locations) {
-      const coords = colorSearchResult[location]?.coordinates;
+      const searchResult = colorSearchResult[location];
 
-      if (!coords?.length) {
+      if (!searchResult) {
         missingCoordinates.push(location);
       } else {
-        toHighlight[location] = coords;
+        toHighlight[location] = searchResult.coordinates;
       }
     }
 
@@ -362,25 +366,28 @@ export class DrawingService {
 
   private drawMaritimePresence(
     maritimePresenceData: Record<
-      ILocationIdentifier,
+      LocationIdentifier,
       { maritimePresence?: number }
     >,
-  ): ILocationIdentifier[] {
+  ): LocationIdentifier[] {
     const toHighlight: Record<
-      ILocationIdentifier,
-      { coordinates: ICoordinate[]; maritimePresence?: number }
+      LocationIdentifier,
+      { coordinates: Coordinate[]; maritimePresence?: number }
     > = {};
-    const missingCoordinates: ILocationIdentifier[] = [];
+    const missingCoordinates: LocationIdentifier[] = [];
 
     const colorSearchResult = colorSearchController.getSnapshot().result;
     for (const [location, { maritimePresence }] of Object.entries(
       maritimePresenceData,
     )) {
-      const coords = colorSearchResult[location]?.coordinates;
-      if (!coords?.length) {
+      const searchResult = colorSearchResult[location];
+      if (!searchResult) {
         missingCoordinates.push(location);
       } else {
-        toHighlight[location] = { coordinates: coords, maritimePresence };
+        toHighlight[location] = {
+          coordinates: searchResult.coordinates,
+          maritimePresence,
+        };
       }
     }
 

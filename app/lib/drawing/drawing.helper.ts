@@ -81,7 +81,6 @@ export class DrawingHelper {
     ctx.strokeStyle = drawParams.color;
     ctx.lineWidth = drawParams.lineWidth;
     ctx.stroke();
-    //console.log("drawLine done", { canvasCoordFrom, canvasCoordTo });
   }
 
   public static drawHighlights(

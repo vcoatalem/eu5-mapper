@@ -90,7 +90,6 @@ export class DrawingService {
     );
 
     colorSearchController.subscribe(() => {
-      /* console.log("[DrawingService] colorSearchController subscription triggered"); */
       this.reDraw.emit(new Date());
     });
 
@@ -100,7 +99,6 @@ export class DrawingService {
     ])
       .debounce(10)
       .subscribe(({ values: [gameState, proximityEvaluation] }) => {
-        /* console.log("[DrawingService] gameState x ProximityEvaluation subscription triggered", { gameState, proximityEvaluation }); */
         this.drawingCallbackBuffer["areas"] = () =>
           this.drawAreas(gameState, proximityEvaluation);
         this.drawingCallbackBuffer["roads"] = () => this.drawRoads(gameState);
@@ -298,7 +296,6 @@ export class DrawingService {
     ];
     for (const [key, type] of roadsToDraw) {
       const [from, to] = key.split("-");
-      /* console.log("[DrawingService] Drawing road", { from, to, type }); */
       const fromLocationData = this.gameData.locationDataMap[from];
       const toLocationData = this.gameData.locationDataMap[to];
       if (!fromLocationData || !toLocationData) {

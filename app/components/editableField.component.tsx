@@ -17,7 +17,9 @@ import {
 import { FaCheck } from "react-icons/fa6";
 import { RiResetRightLine } from "react-icons/ri";
 
-export interface IEditableFieldProps<TValue extends { toString: () => string }> {
+export interface IEditableFieldProps<
+  TValue extends { toString: () => string },
+> {
   value: TValue;
   baseValue: TValue;
   onValidate: (value: TValue) => void;
@@ -32,7 +34,9 @@ export interface IEditableFieldProps<TValue extends { toString: () => string }> 
   placeholder?: string;
 }
 
-export function EditableField<TValue extends { toString: () => string }>(props: IEditableFieldProps<TValue>) {
+export function EditableField<TValue extends { toString: () => string }>(
+  props: IEditableFieldProps<TValue>,
+) {
   const divRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [editingRaw, setEditingRaw] = useState<string | null>(null);
@@ -40,7 +44,6 @@ export function EditableField<TValue extends { toString: () => string }>(props: 
   const [isStartingEdition, setIsStartingEdition] = useState(false);
 
   const startEditing = useCallback(() => {
-    console.log("[EditableField] starting edition");
     setHasValidationError(false);
     setIsStartingEdition(true);
     setEditingRaw(props.value?.toString() ?? "");
@@ -57,7 +60,6 @@ export function EditableField<TValue extends { toString: () => string }>(props: 
   }, [isStartingEdition]);
 
   const tryCompleteEdition = useCallback(() => {
-    console.log("[EditableField] trying to complete edition");
     if (editingRaw === null) return;
     if (props.validate) {
       const result = props.validate(editingRaw);
@@ -76,13 +78,11 @@ export function EditableField<TValue extends { toString: () => string }>(props: 
   }, [editingRaw, props]);
 
   const cancelEdition = useCallback(() => {
-    console.log("[EditableField] canceling edition");
     setEditingRaw(null);
     setHasValidationError(false);
   }, []);
 
   const handleBlur = useCallback(() => {
-    console.log("[EditableField] handling blur");
     if (hasValidationError) {
       cancelEdition();
       return;
@@ -116,16 +116,21 @@ export function EditableField<TValue extends { toString: () => string }>(props: 
   const displayBaseValue = props.baseValue?.toString() ?? "";
 
   return (
-    <div className={["flex flex-row items-center gap-2 min-w-0", props.className].filter(Boolean).join(" ")}>
+    <div
+      className={["flex flex-row items-center gap-2 min-w-0", props.className]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <div ref={divRef} className="flex-1 min-w-0" tabIndex={1}>
         <Tooltip triggerRef={inputRef}>
           <TooltipTrigger>
             {editingRaw !== null ? (
               <input
-                placeholder={props.placeholder}                id={"editable-field-input"}
+                placeholder={props.placeholder}
+                id={"editable-field-input"}
                 className={[
                   "w-full min-w-0",
-                  (hasValidationError ? "ring-2 ring-red-500 outline-none" : ""),
+                  hasValidationError ? "ring-2 ring-red-500 outline-none" : "",
                 ].join(" ")}
                 ref={inputRef}
                 type="text"
@@ -145,7 +150,8 @@ export function EditableField<TValue extends { toString: () => string }>(props: 
                   }
                 }}
               />
-            ) : (props.placeholder && (!displayValue || displayValue === displayBaseValue)) ? (
+            ) : props.placeholder &&
+              (!displayValue || displayValue === displayBaseValue) ? (
               <span className="text-stone-400">{props.placeholder}</span>
             ) : (
               props.children
@@ -195,4 +201,3 @@ export function EditableField<TValue extends { toString: () => string }>(props: 
     </div>
   );
 }
-

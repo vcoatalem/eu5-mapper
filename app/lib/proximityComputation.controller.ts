@@ -21,7 +21,6 @@ export class ProximityComputationController extends Observable<IProximityComputa
   }
 
   public init(): void {
-    console.log("[proximityComputationController] init");
     this.unsubscribeWorkerManager?.();
     this.unsubscribeGameState?.();
     this.unsubscribeWorkerManager = null;

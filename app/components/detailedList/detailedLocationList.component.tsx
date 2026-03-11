@@ -129,7 +129,6 @@ export function DetailedLocationList(props: IDetailedLocationListProps) {
       ),
     };
 
-    /* console.log({ sortedItems: res.sortedItems, pinnedItems: res.pinnedItems }); */
     return res;
   }, [props.ownedLocations, props.config]);
 

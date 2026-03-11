@@ -116,7 +116,7 @@ export class LocationsHelper {
     }
     const name = gameData?.colorToNameMap[hexColor];
     if (!name) {
-      console.log("could not find name for color", hexColor);
+      console.log("could not location find name for color", hexColor);
       return null;
     }
     return name;

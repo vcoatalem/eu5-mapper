@@ -124,7 +124,6 @@ export class GameStateController extends Observable<GameState> {
       this.subject.capitalLocation = locationNames[0];
     }
     if (notify) {
-      console.log("[GameStateController] will notify listeners...");
       this.notifyListeners();
     }
   }
@@ -199,11 +198,6 @@ export class GameStateController extends Observable<GameState> {
     location: LocationIdentifier,
     action: ConstructibleAction,
   ): void {
-    console.log(
-      "[GameStateController] handling building action",
-      location,
-      action,
-    );
     switch (action.type) {
       case "build":
         const locationConstructibleData = this.subject.ownedLocations[location];

@@ -39,8 +39,8 @@ export function DisplayDevelopment(props: { data: ILocationDetailedViewData }) {
           style={{
             color: isModified
               ? ColorHelper.rgbToHex(
-                ...ColorHelper.getEvaluationColor(isHigher ? 30 : 70),
-              )
+                  ...ColorHelper.getEvaluationColor(isHigher ? 30 : 70),
+                )
               : "white",
           }}
         >

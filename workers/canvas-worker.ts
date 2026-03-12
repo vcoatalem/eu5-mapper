@@ -97,12 +97,6 @@ const scanlineFill = (
     });
   }
 
-  sendMessage(self, {
-    level: "log",
-    message: `scanlineFill completed for start (${startX}, ${startY}), found ${coords.length} coordinates in ${iterations} iterations`,
-    task,
-    data: { results: coords, payload: { startX, startY } },
-  });
   return coords;
 };
 

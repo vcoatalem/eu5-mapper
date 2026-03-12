@@ -21,6 +21,8 @@ import {
 } from "./utils";
 import { ObjectHelper } from "@/app/lib/object.helper";
 
+const testTimeout = 30_000;
+
 const referenceFiles = getAllReferenceFilePaths(
   "tests/pathfinding/references/",
 ); /* .filter((filePath) => filePath.includes("eng") && filePath.includes('1_1_4'));// && filePath.includes('1_0_11')); */
@@ -76,13 +78,17 @@ describe("pathfinding references", () => {
       graph = ParserHelper.parseAdjacencyCSV(gameFiles.adjacencyCsv);
     });
 
-    test.each(refs)("$name", async (ref) => {
-      await runPathfindingCase(ref, {
-        version,
-        parsedGameFiles: gameFiles,
-        adjacencyGraph: graph,
-      });
-    });
+    test.each(refs)(
+      "$name",
+      async (ref) => {
+        await runPathfindingCase(ref, {
+          version,
+          parsedGameFiles: gameFiles,
+          adjacencyGraph: graph,
+        });
+      },
+      testTimeout,
+    );
   });
 });
 

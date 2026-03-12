@@ -353,6 +353,7 @@ export function NeighborsPanelComponent({
                 alt={vegetationAtLocation ?? ""}
                 width={16}
                 height={16}
+                unoptimized
               />
             </TooltipTrigger>
             <TooltipContent anchor={{ type: "dom", ref: locationNameRef }}>

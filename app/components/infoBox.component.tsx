@@ -95,6 +95,7 @@ function LocationInfoBox(props: {
             alt={locationData.topography}
             width={24}
             height={24}
+            unoptimized
           />{" "}
           {locationData.topography}
         </span>
@@ -109,6 +110,7 @@ function LocationInfoBox(props: {
                   alt={locationData.vegetation}
                   width={24}
                   height={24}
+                  unoptimized
                 />{" "}
                 {locationData.vegetation}
               </span>

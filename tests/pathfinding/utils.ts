@@ -1067,7 +1067,7 @@ export async function generateIndexFile(): Promise<void> {
                     </td>
                     <td>${getSuccessBadge(report.successRate)} ${report.successRate.toFixed(2)}%</td>
                     <td>${getSignBadge(report.signAccuracy)} ${report.signAccuracy.toFixed(2)}%</td>
-                    <td class="score ${scoreClass}">${report.averageAbsoluteDifference.toFixed(2)}</td>
+                    <td class="score ${scoreClass}">${report.averageAbsoluteDifference?.toFixed(2)}</td>
                     <td>${report.totalCount}</td>
                     <td style="color: #059669; font-weight: 600;">${report.proximityCorrectCount}</td>
                     <td style="color: #2563eb; font-weight: 600;">${report.signCorrectCount}</td>

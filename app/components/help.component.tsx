@@ -35,7 +35,7 @@ export function Help({ className = "" }: { className?: string }) {
       >
         <p className="flex flex-row items-center">
           <CiCircleQuestion color="white" size={24}></CiCircleQuestion>{" "}
-          <span className="ml-1">Help</span>
+          <span className="ml-1 hidden md:block">Help</span>
         </p>
       </button>
 

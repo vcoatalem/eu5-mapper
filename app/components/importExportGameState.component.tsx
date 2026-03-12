@@ -5,6 +5,8 @@ import { useCallback, useState, useSyncExternalStore } from "react";
 import { Modal } from "@/app/lib/modal/modal.component";
 import { useGameDataVersion } from "@/app/[version]/version.guard";
 import posthog from "posthog-js";
+import { IoMdDownload } from "react-icons/io";
+import { MdFileUpload } from "react-icons/md";
 
 interface IImportExportGameStateProps {
   isTutorial?: boolean;
@@ -56,17 +58,24 @@ export function ImportExportGameState(props: IImportExportGameStateProps) {
   return (
     <div className="flex flex-row items-center gap-2">
       <button
-        className={styles.simpleButton}
+        className={[
+          styles.simpleButton,
+          "flex flex-row gap-1 items-center",
+        ].join(" ")}
         onClick={() => {
           if (props.isTutorial) return;
           setShowImportModal(true);
         }}
       >
-        Load State
+        <MdFileUpload size={24} color="white" />
+        <span className="hidden md:block">Load</span>
       </button>
       <button
         disabled={!gameState.capitalLocation}
-        className={styles.simpleButton}
+        className={[
+          styles.simpleButton,
+          "flex flex-row items-center gap-1",
+        ].join(" ")}
         onClick={() => {
           if (props.isTutorial) return;
           posthog.capture("export_game_state", {
@@ -75,7 +84,8 @@ export function ImportExportGameState(props: IImportExportGameStateProps) {
           gameStateController.download();
         }}
       >
-        Save State
+        <IoMdDownload size={24} color="white" />
+        <span className="hidden md:block">Save</span>
       </button>
       <Modal isOpen={showImportModal} onClose={() => setShowImportModal(false)}>
         <div className="min-h-[30vh] min-w-[400px] flex flex-col gap-2 items-center">

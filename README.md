@@ -26,7 +26,7 @@ As of today, the app used multiple GB worth of RAM to display the world map. Tha
 
 ### 3. Game fidelity control
 
-The test suite in `test/pathfinding` allows to automatically test fidelity of eu5mapper with eu5.exe.
+The test suite in `test/pathfinding` allows to automatically test fidelity of eu5mapper to eu5.exe.
 It essentially compares reference proximity data manually collected from the game, with the results of the pathfinding algorithm.
 
 This is critical to ensure game mechanics are properly implemented.

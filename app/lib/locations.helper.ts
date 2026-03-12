@@ -45,13 +45,13 @@ export class LocationsHelper {
   private static getDefaultMaritimePresence(
     locationData: ILocationGameData,
   ): number {
-    if (locationData.topography === "ocean") {
-      return 0;
+    if (locationData.isSeaAdjacentToLand) {
+      return 50;
     }
     if (locationData.isLake) {
       return 100;
     }
-    return 50;
+    return 0;
   }
 
   public static getLocationMaritimePresence(

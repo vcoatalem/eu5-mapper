@@ -95,7 +95,6 @@ export function WorldMapComponent() {
   const initializedRef = useRef(false);
   const colorCanvasRef = useRef<HTMLCanvasElement>(null);
   const terrainCanvasRef = useRef<HTMLCanvasElement>(null);
-  const blackCanvasRef = useRef<HTMLCanvasElement>(null);
   const borderCanvasRef = useRef<HTMLCanvasElement>(null);
   const areaDrawingCanvasRef = useRef<HTMLCanvasElement>(null);
   const topLayerRef = useRef<HTMLCanvasElement>(null);
@@ -177,11 +176,6 @@ export function WorldMapComponent() {
     [],
   );
 
-  const createBlackCanvas = (ctx: CanvasRenderingContext2D) => {
-    ctx.fillStyle = "#4a4a4a";
-    ctx.fillRect(0, 0, worldMapConfig.width, worldMapConfig.height);
-  };
-
   const createTransparentCanvas = () => {
     // by default, canvas is transparent
     return;
@@ -204,12 +198,6 @@ export function WorldMapComponent() {
         zIndex: 0,
         path: imagePaths?.locationsImage,
         initializeWorkerCanvas: true,
-      },
-      {
-        name: CanvasName.background,
-        ref: blackCanvasRef,
-        zIndex: 1,
-        createMethod: createBlackCanvas,
       },
       {
         name: CanvasName.border,
@@ -253,6 +241,14 @@ export function WorldMapComponent() {
         zIndex: 5,
         createMethod: createTransparentCanvas,
       },
+      /*  BOMB to show the impact of canvas on memory usage
+      usage is shown in app monitor, not browser. probably because it is GPU memory (rendered),not JS heap
+     ...Array.from({ length: 100 }, (_, i) => ({
+        name: `extraLayer${i + 1}` as CanvasName,
+        ref: React.createRef<HTMLCanvasElement>(),
+        zIndex: 66 + i,
+        createMethod: createBlackCanvas,
+      })), */
     ],
     [
       imagePaths?.locationsImage,
@@ -852,23 +848,39 @@ export function WorldMapComponent() {
             return <></>;
         }
       })()}
-      {layers.map((layer) => (
-        <canvas
-          ref={layer.ref}
-          height={worldMapConfig.height}
-          width={worldMapConfig.width}
-          key={layer.zIndex}
-          className="absolute"
+      <div
+        className="relative h-screen w-screen"
+        style={{
+          height: worldMapConfig.height,
+          width: worldMapConfig.width,
+        }}
+      >
+        <div
+          id="background"
+          className="absolute block w-full h-full"
           style={{
-            zIndex: layer.zIndex,
-            imageRendering: "pixelated",
-            visibility: getLayerVisibilityClass(
-              layer.name,
-              layerVisibilityState,
-            ),
+            backgroundColor: "#4a4a4a",
+            zIndex: 1,
           }}
-        />
-      ))}
+        ></div>
+        {layers.map((layer) => (
+          <canvas
+            ref={layer.ref}
+            height={worldMapConfig.height}
+            width={worldMapConfig.width}
+            key={layer.zIndex}
+            className="absolute"
+            style={{
+              zIndex: layer.zIndex,
+              imageRendering: "pixelated",
+              visibility: getLayerVisibilityClass(
+                layer.name,
+                layerVisibilityState,
+              ),
+            }}
+          />
+        ))}
+      </div>
 
       <div className={`${isLoading ? "hidden" : "visible"}`}>
         <GuiElement className="fixed top-2 max-h-12 left-5 right-5 z-50">

@@ -112,11 +112,9 @@ export const readReferenceFileSync = (path: string): ReferenceFile => {
  * @returns Array of file paths to all CSV files found in the references folder
  */
 export const getAllReferenceFilePaths = (
-  referencesFolderPath?: string,
+  referencesFolderPath: string,
 ): string[] => {
-  const basePath =
-    referencesFolderPath ||
-    path.join(process.cwd(), "tests/pathfinding/references");
+  const basePath = path.join(process.cwd(), "tests/pathfinding/references");
 
   const csvFiles: string[] = [];
 

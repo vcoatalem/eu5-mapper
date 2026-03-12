@@ -24,11 +24,12 @@ Obvious killer feature, but not sure how feasible; [pdx unlimiter](https://githu
 
 As of today, the app used multiple GB worth of RAM to display the world map. That is simply not good enough, and causes crash / restart on lower end machines or Safari Browser.
 
-### 3. Quality Insurance
+### 3. Game fidelity control
 
-The test suite in `test/pathfinding` is run on every commit. It essentially compares reference proximity data manually collected from the game, with the results of the pathfinding algorithm to check.
+The test suite in `test/pathfinding` allows to automatically test fidelity of eu5mapper with eu5.exe.
+It essentially compares reference proximity data manually collected from the game, with the results of the pathfinding algorithm.
 
-This is critical to ensure fidelity to the game mechanics.
+This is critical to ensure game mechanics are properly implemented.
 
 The way reference file (e.g [this one](/tests/pathfinding/references/1.0.11/eng_1_0_11.csv)) are created, is by starting a new game in 1337 and noting proximity of each location of that country in the csv file matching the format.
 

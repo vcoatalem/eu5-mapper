@@ -43,7 +43,7 @@ export function Help({ className = "" }: { className?: string }) {
         <div className="w-full max-h-[50vh]">
           <div className="max-h-[50vh] overflow-y-auto flex flex-col gap-2">
             <h3 className="text-yellow-500">
-              <b>EUV Mapper</b> is a helping tool for Europa Universalis V to
+              <b>EU5 Mapper</b> is a helping tool for Europa Universalis 5 to
               help vizualise how proximity inside countries.
             </h3>
 

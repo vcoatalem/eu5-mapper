@@ -18,7 +18,7 @@ import { LocationIdentifier } from "@/app/lib/types/general";
 import { DrawingService } from "@/app/lib/drawing.service";
 import { workerManager } from "@/app/lib/workerManager";
 import { LoadingScreenComponent } from "./loadingScreen.component";
-import { cameraController, zoomLevels } from "@/app/lib/cameraController";
+import { cameraController } from "@/app/lib/cameraController";
 import { proximityComputationController } from "@/app/lib/proximityComputation.controller";
 import { SimpleLocationList } from "./simpleLocationlist.component";
 import { GuiElement } from "./guiElement";
@@ -45,7 +45,7 @@ import { MainActionsBar } from "./mainActionsBar.component";
 import { RoadList } from "./roads/roadList.component";
 import { SlowTaskIndicator } from "@/app/components/slowTaskIndicator.component";
 import { LocationSearchBar } from "@/app/components/locationSearchBar.component";
-import { useParams, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { LocationsHelper } from "@/app/lib/locations.helper";
 import { CountryStats } from "@/app/components/countryStatsComponent";
 import {
@@ -61,6 +61,7 @@ import { LayerVisibilityEdition } from "@/app/components/layerVisibilityEdition.
 import { Coordinate } from "@/app/lib/types/coordinate";
 import { IWorkerTaskInitWithImagePayload } from "@/workers/types/initWithImage";
 import { useGameDataVersion } from "@/app/[version]/version.guard";
+import { parsePlainTextSaveGameFile } from "@/app/lib/jomini/parse";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
@@ -92,6 +93,7 @@ export function WorldMapComponent() {
     : false;
   const version = useGameDataVersion();
   const loadFileOnStart = useSearchParams().get("file") as string;
+  const loadGameSaveOnStart = useSearchParams().get("savegame") as string;
   const initializedRef = useRef(false);
   const colorCanvasRef = useRef<HTMLCanvasElement>(null);
   const terrainCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -724,10 +726,14 @@ export function WorldMapComponent() {
     shortestPathController.init();
     layerVisibilityController.init();
 
-    // dev mode: boot game state from public/test-gamefile.json for quick reloaded
+    // dev mode: boot game state from public for quick feedback loop
     if (loadFileOnStart) {
       fetch(`/saves/${loadFileOnStart}`).then((res) =>
         res.text().then((txt) => gameStateController.loadFile(txt, version)),
+      );
+    } else if (loadGameSaveOnStart) {
+      fetch(`/game_saves_plain_text/${loadGameSaveOnStart}`).then((res) =>
+        res.text().then((txt) => parsePlainTextSaveGameFile(txt)),
       );
     }
 

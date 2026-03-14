@@ -14,6 +14,7 @@
     "types": "tsc --noEmit"
   },
   "dependencies": {
+    "jomini": "^0.10.0",
     "next": "16.1.4",
     "posthog-js": "^1.353.0",
     "react": "19.2.3",

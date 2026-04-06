@@ -61,7 +61,6 @@ import { LayerVisibilityEdition } from "@/app/components/layerVisibilityEdition.
 import { Coordinate } from "@/app/lib/types/coordinate";
 import { IWorkerTaskInitWithImagePayload } from "@/workers/types/initWithImage";
 import { useGameDataVersion } from "@/app/[version]/version.guard";
-import { parsePlainTextSaveGameFile } from "@/app/lib/jomini/parse";
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
@@ -93,7 +92,6 @@ export function WorldMapComponent() {
     : false;
   const version = useGameDataVersion();
   const loadFileOnStart = useSearchParams().get("file") as string;
-  const loadGameSaveOnStart = useSearchParams().get("savegame") as string;
   const initializedRef = useRef(false);
   const colorCanvasRef = useRef<HTMLCanvasElement>(null);
   const terrainCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -730,10 +728,6 @@ export function WorldMapComponent() {
     if (loadFileOnStart) {
       fetch(`/saves/${loadFileOnStart}`).then((res) =>
         res.text().then((txt) => gameStateController.loadFile(txt, version)),
-      );
-    } else if (loadGameSaveOnStart) {
-      fetch(`/game_saves_plain_text/${loadGameSaveOnStart}`).then((res) =>
-        res.text().then((txt) => parsePlainTextSaveGameFile(txt)),
       );
     }
 

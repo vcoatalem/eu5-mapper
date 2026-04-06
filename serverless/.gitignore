@@ -1,0 +1,7 @@
+node_modules/
+dist/
+rakaly-lambda/dist/
+rakaly-lambda/.test-image
+.serverless/
+.env.dev
+.env.prod

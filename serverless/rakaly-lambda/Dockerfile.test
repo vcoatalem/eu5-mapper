@@ -1,0 +1,4 @@
+FROM node:22
+RUN mkdir -p /opt/bin
+COPY rakaly /opt/bin/rakaly
+RUN chmod +x /opt/bin/rakaly

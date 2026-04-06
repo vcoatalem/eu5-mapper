@@ -1,0 +1,199 @@
+service: eu5mapper-save-import
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  region: eu-west-1
+  stage: ${opt:stage, 'dev'}
+  httpApi:
+    cors: true
+  ecr:
+    images:
+      rakaly:
+        path: ./rakaly-lambda # SLS builds this Dockerfile; run `make prepare` first
+
+plugins:
+  - serverless-iam-roles-per-function
+  - serverless-s3-local
+  - serverless-offline
+
+custom:
+  # ── Bucket names (single source of truth) ───────────────────────────────────
+  uploadsBucket: eu5mapper-saves-uploads-${self:provider.stage}
+  meltedBucket: eu5mapper-saves-melted-${self:provider.stage}
+  convertedBucket: eu5mapper-saves-converted-${self:provider.stage}
+
+  # ── serverless-offline ───────────────────────────────────────────────────────
+  serverless-offline:
+    httpPort: 3001
+    lambdaPort: 3002
+    noPrependStageInUrl: true
+    # Offline note: S3 event triggers (rakaly, jomini) are not fired automatically
+    # in offline mode. Use the HTTP fallback endpoints /invoke/rakaly and
+    # /invoke/jomini to test those handlers locally.
+
+  # ── serverless-s3-local ──────────────────────────────────────────────────────
+  s3:
+    host: localhost
+    port: 4569
+    directory: /tmp/s3-local-eu5mapper
+    buckets:
+      - ${self:custom.uploadsBucket}
+      - ${self:custom.meltedBucket}
+      - ${self:custom.convertedBucket}
+
+# ── Functions ──────────────────────────────────────────────────────────────────
+
+functions:
+  presign:
+    handler: dist/presign-lambda/handler.handler
+    runtime: nodejs22.x
+    timeout: 10
+    description: "Returns pre-signed S3 URLs for save file upload and result polling"
+    environment:
+      UPLOADS_BUCKET: ${self:custom.uploadsBucket}
+      CONVERTED_BUCKET: ${self:custom.convertedBucket}
+    package:
+      individually: true
+      patterns:
+        - "!./**"
+        - "dist/presign-lambda/**"
+    events:
+      - httpApi:
+          path: /upload-url
+          method: GET
+    iamRoleStatements:
+      - Effect: Allow
+        Action: [s3:PutObject]
+        Resource: "arn:aws:s3:::${self:custom.uploadsBucket}/*"
+      - Effect: Allow
+        Action: [s3:GetObject]
+        Resource: "arn:aws:s3:::${self:custom.convertedBucket}/*"
+
+  rakaly:
+    image:
+      name: rakaly
+    architecture: x86_64
+    timeout: 300
+    memorySize: 2048
+    ephemeralStorageSize: 2048
+    description: "Runs rakaly binary to unmelt a .eu5 save; gzips and stores output"
+    environment:
+      RAKALY_PATH: /opt/bin/rakaly
+      RAKALY_ARGS: "melt --unknown-key stringify --to-stdout"
+      MELTED_BUCKET: ${self:custom.meltedBucket}
+    events:
+      - httpApi: # HTTP fallback for local testing / manual invocation
+          path: /invoke/rakaly
+          method: POST
+    iamRoleStatements:
+      - Effect: Allow
+        Action: [s3:GetObject]
+        Resource: "arn:aws:s3:::${self:custom.uploadsBucket}/*"
+      - Effect: Allow
+        Action: [s3:ListBucket]
+        Resource: "arn:aws:s3:::${self:custom.uploadsBucket}"
+      - Effect: Allow
+        Action: [s3:PutObject]
+        Resource: "arn:aws:s3:::${self:custom.meltedBucket}/*"
+
+  jomini:
+    handler: dist/jomini-lambda/handler.handler
+    runtime: nodejs22.x
+    timeout: 60
+    memorySize: 3000 # 3008 hard aws limit
+    description: "Parses a melted .txt.gz save file and writes structured JSON"
+    environment:
+      CONVERTED_BUCKET: ${self:custom.convertedBucket}
+    package:
+      individually: true
+      patterns:
+        - "!./**"
+        - "dist/jomini-lambda/**"
+        - "node_modules/jomini/**" # jomini is external in esbuild (WASM)
+        - "node_modules/zod/**" # zod is external in esbuild
+    events:
+      - httpApi: # HTTP fallback for local testing / manual invocation
+          path: /invoke/jomini
+          method: POST
+    iamRoleStatements:
+      - Effect: Allow
+        Action: [s3:GetObject]
+        Resource: "arn:aws:s3:::${self:custom.meltedBucket}/*"
+      - Effect: Allow
+        Action: [s3:ListBucket]
+        Resource: "arn:aws:s3:::${self:custom.meltedBucket}"
+      - Effect: Allow
+        Action: [s3:PutObject]
+        Resource: "arn:aws:s3:::${self:custom.convertedBucket}/*"
+
+# ── AWS Resources ──────────────────────────────────────────────────────────────
+
+resources:
+  Resources:
+    # Permissions must exist before the buckets that reference the Lambda ARNs
+    RakalyLambdaInvokePermission:
+      Type: AWS::Lambda::Permission
+      Properties:
+        FunctionName: !GetAtt RakalyLambdaFunction.Arn
+        Action: lambda:InvokeFunction
+        Principal: s3.amazonaws.com
+        SourceAccount: !Ref AWS::AccountId
+        SourceArn: !Sub "arn:aws:s3:::${self:custom.uploadsBucket}"
+
+    JominiLambdaInvokePermission:
+      Type: AWS::Lambda::Permission
+      Properties:
+        FunctionName: !GetAtt JominiLambdaFunction.Arn
+        Action: lambda:InvokeFunction
+        Principal: s3.amazonaws.com
+        SourceAccount: !Ref AWS::AccountId
+        SourceArn: !Sub "arn:aws:s3:::${self:custom.meltedBucket}"
+
+    UploadsBucket:
+      Type: AWS::S3::Bucket
+      DependsOn: RakalyLambdaInvokePermission
+      Properties:
+        BucketName: ${self:custom.uploadsBucket}
+        CorsConfiguration:
+          CorsRules:
+            - AllowedOrigins: ["*"] # tighten to eu5mapper.com before going live
+              AllowedMethods: [PUT]
+              AllowedHeaders: ["*"]
+              MaxAge: 3000
+        LifecycleConfiguration:
+          Rules:
+            - Status: Enabled
+              ExpirationInDays: 1
+        NotificationConfiguration:
+          LambdaConfigurations:
+            - Event: "s3:ObjectCreated:*"
+              Function: !GetAtt RakalyLambdaFunction.Arn
+
+    MeltedBucket:
+      Type: AWS::S3::Bucket
+      DependsOn: JominiLambdaInvokePermission
+      Properties:
+        BucketName: ${self:custom.meltedBucket}
+        LifecycleConfiguration:
+          Rules:
+            - Status: Enabled
+              ExpirationInDays: 1
+        NotificationConfiguration:
+          LambdaConfigurations:
+            - Event: "s3:ObjectCreated:*"
+              Function: !GetAtt JominiLambdaFunction.Arn
+
+    ConvertedBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.convertedBucket}
+        LifecycleConfiguration:
+          Rules:
+            - Status: Enabled
+              ExpirationInDays: 7
+
+  Outputs:
+    PresignApiUrl:
+      Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+      Description: "Set NEXT_PUBLIC_PRESIGN_API_URL to this value in your .env.local"

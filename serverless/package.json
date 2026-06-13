@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "npm run build:presign && npm run build:jomini && npm run build:rakaly",
+    "build": "npm run build:shared && npm run build:presign && npm run build:jomini && npm run build:rakaly",
+    "build:shared": "tsc -p ../shared/tsconfig.json",
     "build:presign": "esbuild presign-lambda/handler.ts --bundle --platform=node --target=node22 --external:@aws-sdk/* --outfile=dist/presign-lambda/handler.js",
     "build:jomini": "esbuild jomini-lambda/handler.ts --bundle --platform=node --target=node22 --external:@aws-sdk/* --external:jomini --external:zod --alias:@shared=../shared --outfile=dist/jomini-lambda/handler.js",
     "build:rakaly": "esbuild rakaly-lambda/handler.ts --bundle --platform=node --target=node22 --external:@aws-sdk/* --outfile=rakaly-lambda/dist/handler.js",

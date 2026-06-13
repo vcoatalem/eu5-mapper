@@ -51,6 +51,7 @@ __pycache__/
 *.cpython-314.pyc
 
 workers/dist/*
+shared/dist/*
 
 tests/pathfinding/output/*
 

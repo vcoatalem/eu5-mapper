@@ -1,0 +1,6 @@
+serverless/tests/fixtures filter=lfs diff=lfs merge=lfs -text
+serverless/tests/fixtures/SP_BRI_1395.eu5 filter=lfs diff=lfs merge=lfs -text
+serverless/tests/fixtures/SP_BRI_1395.melted.txt.gz filter=lfs diff=lfs merge=lfs -text
+serverless/tests/fixtures/SP_SAR.eu5 filter=lfs diff=lfs merge=lfs -text
+serverless/tests/fixtures/SP_SAR.melted.txt filter=lfs diff=lfs merge=lfs -text
+serverless/tests/fixtures/SP_SAR.melted.txt.gz filter=lfs diff=lfs merge=lfs -text

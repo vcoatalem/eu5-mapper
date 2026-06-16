@@ -1,4 +1,4 @@
-import React, { forwardRef, MouseEventHandler } from "react";
+import { forwardRef, MouseEventHandler } from "react";
 import { ColorHelper } from "../lib/drawing/color.helper";
 import { greenToRedGradient } from "../lib/drawing/greenToRedGradient.const";
 
@@ -33,3 +33,5 @@ export const FormatedProximity = forwardRef<
     </span>
   );
 });
+
+FormatedProximity.displayName = "FormatedProximity";

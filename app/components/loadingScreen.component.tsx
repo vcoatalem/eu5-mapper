@@ -33,11 +33,10 @@ export function LoadingScreenComponent({
       const animate = () => {
         const elapsed = Date.now() - startTime;
         const progressRatio = Math.min(elapsed / duration, 1);
-        
         // Easing function for smooth animation (ease-out)
         const easeOut = 1 - Math.pow(1 - progressRatio, 3);
-        const currentProgress = startProgress + (targetProgress - startProgress) * easeOut;
-        
+        const currentProgress =
+          startProgress + (targetProgress - startProgress) * easeOut;
         currentProgressRef.current = currentProgress;
         setAnimatedProgress(currentProgress);
 
@@ -62,7 +61,7 @@ export function LoadingScreenComponent({
   }, [progress]);
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black z-50 font-mono">
+    <div className="fixed inset-0 flex items-center justify-center bg-black z-[9999] font-mono">
       <div className="flex flex-col items-center gap-6 w-full max-w-md px-8 mt-[30%]">
         {/* Progress Bar Container */}
         {progress !== undefined && (
@@ -98,11 +97,10 @@ export function LoadingScreenComponent({
           </button>
         )}
 
-          {/* Copyright Notice */}
-          <div className="mt-8">
-            <CopyrightNotice />
-          </div>
-
+        {/* Copyright Notice */}
+        <div className="mt-8">
+          <CopyrightNotice />
+        </div>
       </div>
     </div>
   );

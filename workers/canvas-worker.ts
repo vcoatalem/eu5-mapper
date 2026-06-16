@@ -1,12 +1,13 @@
-import { IWorkerTask } from "@/workers/types/task";
-import { sendMessage } from "./utils";
 import { Coordinate } from "@/app/lib/types/coordinate";
-import { ZodWorkerTaskInitWithImagePayload } from "@/workers/types/initWithImage";
 import {
   IWorkerTaskColorSearchResult,
   ZodWorkerTaskColorSearchPayload,
 } from "@/workers/types/colorSearch";
+import { ZodWorkerTaskInitWithImagePayload } from "@/workers/types/initWithImage";
+import { IWorkerTask } from "@/workers/types/task";
+import { sendMessage } from "./utils";
 
+//eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).__workerName = "Canvas Worker";
 
 /**
@@ -102,7 +103,6 @@ const scanlineFill = (
 
 let pixelData32: Uint32Array; // Uint32Array for fast pixel access
 let canvasWidth: number;
-let canvasHeight: number;
 
 self.onmessage = function (e: MessageEvent<IWorkerTask>) {
   sendMessage(self, {
@@ -118,7 +118,6 @@ self.onmessage = function (e: MessageEvent<IWorkerTask>) {
         const payload = ZodWorkerTaskInitWithImagePayload.parse(e.data.payload);
 
         canvasWidth = payload.canvasWidth;
-        canvasHeight = payload.canvasHeight;
 
         // Receive ArrayBuffer and wrap in Uint8ClampedArray
         const pixelDataBuffer = payload.pixelDataBuffer;
@@ -139,7 +138,7 @@ self.onmessage = function (e: MessageEvent<IWorkerTask>) {
       } catch (err) {
         sendMessage(self, {
           data: null,
-          message: `something went wrong during worker init: ${(err as any).message}`,
+          message: `something went wrong during worker init: ${(err as Error)?.message}`,
           level: "error",
           task: e.data,
         });
@@ -180,7 +179,7 @@ self.onmessage = function (e: MessageEvent<IWorkerTask>) {
           }
         } catch (err) {
           sendMessage(self, {
-            message: `Scanline fill failed: ${(err as any).message}`,
+            message: `Scanline fill failed: ${(err as Error)?.message}`,
             level: "error",
             task: e.data,
           });

@@ -1,9 +1,15 @@
 "use client";
 
-import React, { useContext, useEffect, useRef, useState } from "react";
 import { PopoverContext } from "@/app/lib/popover/popover.provider";
-import popoverStyles from "./popover.module.css";
+import React, {
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
+import popoverStyles from "./popover.module.css";
 
 export interface IPopoverRenderTriggerProps {
   isOpen: boolean;
@@ -45,7 +51,7 @@ export function Popover({
     }
   }, [popoverContext, isOpen]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isOpen && triggerRef.current && panelRef.current) {
       const triggerRect = triggerRef.current.getBoundingClientRect();
       const panelRect = panelRef.current.getBoundingClientRect();
@@ -72,6 +78,8 @@ export function Popover({
           break;
       }
 
+
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPanelPositionStyle({
         top: Math.max(top, 0),
         left: Math.max(left, 0),

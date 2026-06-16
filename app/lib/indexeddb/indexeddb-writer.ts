@@ -17,7 +17,7 @@ export class IndexedDBWriter {
     if (this.db) return this.db;
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, this.version);
-      request.onupgradeneeded = (event) => {
+      request.onupgradeneeded = () => {
         const db = request.result;
         this.storeNames.forEach((storeName) => {
           if (!db.objectStoreNames.contains(storeName)) {
@@ -33,21 +33,25 @@ export class IndexedDBWriter {
     });
   }
 
-  async put(storeName: string, key: IDBValidKey, value: unknown): Promise<void> {
+  async put(
+    storeName: string,
+    key: IDBValidKey,
+    value: unknown,
+  ): Promise<void> {
     const db = await this.open();
     return new Promise((resolve, reject) => {
-      const tx = db.transaction(storeName, 'readwrite');
+      const tx = db.transaction(storeName, "readwrite");
       const store = tx.objectStore(storeName);
       const request = store.put(value, key);
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
   }
-  
+
   async clearStore(storeName: string): Promise<void> {
     const db = await this.open();
     return new Promise((resolve, reject) => {
-      const tx = db.transaction(storeName, 'readwrite');
+      const tx = db.transaction(storeName, "readwrite");
       const store = tx.objectStore(storeName);
       const request = store.clear();
       request.onsuccess = () => resolve();

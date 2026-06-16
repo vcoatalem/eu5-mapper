@@ -1,14 +1,11 @@
-import { useEffect, useSyncExternalStore } from "react";
-import {
-  debouncedShortestPathController,
-  IShortestPathResult,
-  shortestPathController,
-} from "@/app/lib/shortestPath.controller";
-import { LocationIdentifier } from "@/app/lib/types/general";
-import { Loader } from "./loader.component";
-import { FormatedProximityCost } from "./formatedProximityCost.component";
 import { FormatedProximity } from "@/app/components/formatedProximity.component";
+import { useGameEngine, useModel } from "@/app/lib/gameEngineContext";
+import { IShortestPathResult } from "@/app/lib/shortestPath.model";
+import { LocationIdentifier } from "@/app/lib/types/general";
 import { StringHelper } from "@/app/lib/utils/string.helper";
+import { useEffect } from "react";
+import { FormatedProximityCost } from "./formatedProximityCost.component";
+import { Loader } from "./loader.component";
 
 interface IShortestPathComponentProps {
   location: LocationIdentifier;
@@ -44,7 +41,7 @@ function ShortestPathDisplay(props: {
         ></FormatedProximity>
         )
       </span>
-      <hr className="my-2 border-white border-1"></hr>
+      <hr className="my-2 border-white border"></hr>
       <div className="flex flex-col gap-2">
         {proximityResult.path.map((step, index) => (
           <span key={index} className="flex flex-row items-center gap-1">
@@ -67,12 +64,8 @@ function ShortestPathDisplay(props: {
 }
 
 export function ShortestPathComponent(props: IShortestPathComponentProps) {
-  const { result } = useSyncExternalStore(
-    debouncedShortestPathController.subscribe.bind(
-      debouncedShortestPathController,
-    ),
-    () => debouncedShortestPathController.getSnapshot(),
-  );
+  const { shortestPathController } = useGameEngine();
+  const { result } = useModel("debouncedShortestPath");
 
   const locationResult = result?.[props.location];
 
@@ -85,7 +78,7 @@ export function ShortestPathComponent(props: IShortestPathComponentProps) {
         props.location,
       );
     }
-  }, [props.location]);
+  }, [props.location, locationResult, shortestPathController]);
 
   return (
     <div className={props.className ?? ""}>

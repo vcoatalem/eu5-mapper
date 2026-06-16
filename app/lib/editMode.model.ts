@@ -1,10 +1,13 @@
 import { ILocationHierarchy } from "@/app/lib/types/locationHierarchy";
-import { gameStateController } from "./gameState.controller";
+import { GameStateModel } from "./gameState.model";
 import { Observable } from "./observable";
 import { LocationIdentifier } from "./types/general";
 
 export type EditMode = "acquire" | "capital" | "road" | "maritime";
 const defaultMode: EditMode = "acquire";
+
+export const ACQUIRE_BRUSH_SIZES = ["location", "province", "area"] as const;
+export type AcquireBrushSize = (typeof ACQUIRE_BRUSH_SIZES)[number];
 
 type BrushSize = keyof ILocationHierarchy | "location";
 
@@ -42,8 +45,8 @@ const baseAcquire: IEditModeState["acquireLocations"] = {
   brushSize: "location",
 };
 
-class EditModeController extends Observable<IEditModeState> {
-  constructor() {
+export class EditModeModel extends Observable<IEditModeState> {
+  constructor(private gameState: GameStateModel) {
     super();
     this.reset();
   }
@@ -141,7 +144,6 @@ class EditModeController extends Observable<IEditModeState> {
         this.notifyListeners();
         break;
       default:
-        // no handling for other modes
         return;
     }
   }
@@ -149,7 +151,7 @@ class EditModeController extends Observable<IEditModeState> {
   public confirmChangeCapital(): void {
     const loc = this.subject.capital.askConfirmationForLocation;
     if (this.subject.modeEnabled !== "capital" || !loc) return;
-    gameStateController.changeCapital(loc);
+    this.gameState.changeCapital(loc);
     this.subject = {
       ...this.subject,
       modeEnabled: defaultMode,
@@ -179,7 +181,6 @@ class EditModeController extends Observable<IEditModeState> {
         };
         break;
       default:
-        // no handling for other modes
         return;
     }
     this.notifyListeners();
@@ -206,7 +207,6 @@ class EditModeController extends Observable<IEditModeState> {
         };
         break;
       default:
-        // no handling for other modes
         return;
     }
     this.notifyListeners();
@@ -214,7 +214,7 @@ class EditModeController extends Observable<IEditModeState> {
 
   public setBrushSize(
     mode: EditMode,
-    size: "location" | "province" | "area",
+    size: AcquireBrushSize,
   ): void {
     switch (mode) {
       case "acquire":
@@ -227,7 +227,6 @@ class EditModeController extends Observable<IEditModeState> {
         };
         break;
       default:
-        // no handling for other modes
         return;
     }
     this.notifyListeners();
@@ -268,5 +267,3 @@ export function acquireLocationSliceFromState(
     isModeEnabled: state.modeEnabled === "acquire",
   };
 }
-
-export const editModeController = new EditModeController();

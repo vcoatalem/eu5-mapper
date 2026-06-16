@@ -248,5 +248,3 @@ export class ActionEventDispatcher {
     this.hoveredLocation.emit({ locations, type, mouseCoordinate });
   }
 }
-
-export const actionEventDispatcher = new ActionEventDispatcher();

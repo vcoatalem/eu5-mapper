@@ -1,16 +1,14 @@
-import { CompactGraph } from "@/app/lib/graph";
-import { ParserHelper } from "@/app/lib/parser.helper";
-import { GameData, LocationIdentifier } from "@/app/lib/types/general";
-import fs from "fs";
-import fsPromises from "fs/promises";
-import path from "path";
-import crypto from "crypto";
-import { ArrayHelper } from "@/app/lib/array.helper";
-import { CountryValues } from "@/app/lib/types/countryValues";
 import {
   GameDataVersion,
   ZodGameDataVersion,
 } from "@/app/config/gameData.config";
+import { ArrayHelper } from "@/app/lib/array.helper";
+import { CountryValues } from "@/app/lib/types/countryValues";
+import { LocationIdentifier } from "@/app/lib/types/general";
+import crypto from "crypto";
+import fs from "fs";
+import fsPromises from "fs/promises";
+import path from "path";
 
 const COUNTRY_VALUE_KEYS: Array<keyof CountryValues> = [
   "landVsNaval",
@@ -111,9 +109,7 @@ export const readReferenceFileSync = (path: string): ReferenceFile => {
  * @param referencesFolderPath - Optional path to the references folder. Defaults to tests/pathfinding/references
  * @returns Array of file paths to all CSV files found in the references folder
  */
-export const getAllReferenceFilePaths = (
-  referencesFolderPath: string,
-): string[] => {
+export const getAllReferenceFilePaths = (): string[] => {
   const basePath = path.join(process.cwd(), "tests/pathfinding/references");
 
   const csvFiles: string[] = [];

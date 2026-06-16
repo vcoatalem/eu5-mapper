@@ -1,38 +1,33 @@
-import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
-import { ColorHelper } from "@/app/lib/drawing/color.helper";
-import {
-  acquireLocationSliceFromState,
-  EditMode,
-  editModeController,
-} from "@/app/lib/editMode.controller";
-import { gameStateController } from "@/app/lib/gameState.controller";
-import { LocationsHelper } from "@/app/lib/locations.helper";
-import { NumbersHelper } from "@/app/lib/utils/numbers.helper";
-import { StringHelper } from "@/app/lib/utils/string.helper";
-import styles from "@/app/styles/Gui.module.css";
-import { memo, useContext, useMemo, useSyncExternalStore } from "react";
-import { AppContext } from "../appContextProvider";
-import { LocationIdentifier } from "../lib/types/general";
-import { MaritimePresenceIcon } from "@/app/components/indicatorsIcons/maritimePresenceIcon.component";
-import { HarborSuitabilityIcon } from "@/app/components/indicatorsIcons/harborSuitabilityIcon.component";
-import { PopulationIcon } from "@/app/components/indicatorsIcons/populationIcon.component";
 import { DevelopmentIcon } from "@/app/components/indicatorsIcons/developmentIcon.component";
-import Image from "next/image";
+import { HarborSuitabilityIcon } from "@/app/components/indicatorsIcons/harborSuitabilityIcon.component";
+import { MaritimePresenceIcon } from "@/app/components/indicatorsIcons/maritimePresenceIcon.component";
+import { PopulationIcon } from "@/app/components/indicatorsIcons/populationIcon.component";
+import { ColorHelper } from "@/app/lib/drawing/color.helper";
 import {
   getTopographyIcon,
   getVegetationIcon,
 } from "@/app/lib/drawing/getImages";
+import {
+  acquireLocationSliceFromState,
+  EditMode,
+} from "@/app/lib/editMode.model";
+import { useHoveredLocation, useModel } from "@/app/lib/gameEngineContext";
+import { LocationsHelper } from "@/app/lib/locations.helper";
 import { ILocationHierarchy } from "@/app/lib/types/locationHierarchy";
+import { NumbersHelper } from "@/app/lib/utils/numbers.helper";
+import { StringHelper } from "@/app/lib/utils/string.helper";
+import styles from "@/app/styles/Gui.module.css";
+import Image from "next/image";
+import { memo, useContext, useMemo } from "react";
+import { AppContext } from "../appContextProvider";
+import { LocationIdentifier } from "../lib/types/general";
 
 function LocationInfoBox(props: {
   locationName: LocationIdentifier;
   mode: EditMode | null;
 }) {
   const { locationName, mode } = props;
-  const gameState = useSyncExternalStore(
-    gameStateController.subscribe.bind(gameStateController),
-    () => gameStateController.getSnapshot(),
-  );
+  const gameState = useModel("gameStateController");
   const { gameData } = useContext(AppContext);
   const locationData = gameData?.locationDataMap?.[locationName ?? ""];
   const temporaryData =
@@ -61,7 +56,7 @@ function LocationInfoBox(props: {
         return { label: "Not Ownable", active: false };
       }
     }
-  }, [mode, locationData?.ownable, owned]);
+  }, [mode, locationData, owned]);
 
   const harborCapacity = useMemo(
     () =>
@@ -181,15 +176,9 @@ function LocationInfoBox(props: {
 }
 
 function HierarchyInfoBox(props: { locationNames: LocationIdentifier[] }) {
-  const gameState = useSyncExternalStore(
-    gameStateController.subscribe.bind(gameStateController),
-    () => gameStateController.getSnapshot(),
-  );
+  const gameState = useModel("gameStateController");
   const gameData = useContext(AppContext)?.gameData;
-  const editModeState = useSyncExternalStore(
-    editModeController.subscribe.bind(editModeController),
-    () => editModeController.getSnapshot(),
-  );
+  const editModeState = useModel("editModeController");
   const editModeAcquire = useMemo(
     () => acquireLocationSliceFromState(editModeState),
     [editModeState],
@@ -322,19 +311,8 @@ const Container = memo(function Container(props: {
 });
 
 export function InfoBoxComponent() {
-  const hoveredLocation = useSyncExternalStore(
-    actionEventDispatcher.hoveredLocation.subscribe.bind(
-      actionEventDispatcher.hoveredLocation,
-    ),
-    () => {
-      return actionEventDispatcher.hoveredLocation.getSnapshot();
-    },
-  );
-
-  const mapEditMode = useSyncExternalStore(
-    editModeController.subscribe.bind(editModeController),
-    () => editModeController.getSnapshot(),
-  );
+  const hoveredLocation = useHoveredLocation();
+  const mapEditMode = useModel("editModeController");
 
   const { gameData } = useContext(AppContext);
   if (!gameData) {

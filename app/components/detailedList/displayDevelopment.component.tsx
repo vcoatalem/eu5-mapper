@@ -1,11 +1,12 @@
 import { ILocationDetailedViewData } from "@/app/components/detailedList/detailedLocationListModal.component";
 import { EditableField } from "@/app/components/editableField.component";
 import { ColorHelper } from "@/app/lib/drawing/color.helper";
-import { gameStateController } from "@/app/lib/gameState.controller";
+import { useGameEngine } from "@/app/lib/gameEngineContext";
 import { validateFloatInRange } from "@/app/lib/utils/editableFieldValidation.helper";
 import { useMemo } from "react";
 
 export function DisplayDevelopment(props: { data: ILocationDetailedViewData }) {
+  const { gameStateController } = useGameEngine();
   const { dev, isModified, isHigher } = useMemo(() => {
     const baseDev = props.data.baseLocationGameData.development ?? 0;
     const tempDev = props.data.temporaryLocationData.development;

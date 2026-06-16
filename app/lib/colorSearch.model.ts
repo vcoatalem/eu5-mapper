@@ -9,17 +9,11 @@ import {
   ZodWorkerTaskColorSearchResult,
 } from "@/workers/types/colorSearch";
 
-interface IColorSearchResult {
-  result: Record<
-    LocationIdentifier,
-    {
-      coordinates: Array<Coordinate>;
-      status: "pending" | "completed" | "error";
-    }
-  >;
+export interface IColorSearchDelta {
+  completedLocations: Array<{ loc: LocationIdentifier; coords: Coordinate[] }>;
 }
 
-export class ColorSearchController extends Observable<IColorSearchResult> {
+export class ColorSearchModel extends Observable<IColorSearchDelta> {
   private mapConfig: typeof worldMapConfig = worldMapConfig;
   private gameData: GameData | null = null;
   private queriedLocationsColor: Set<LocationIdentifier> = new Set();
@@ -27,60 +21,41 @@ export class ColorSearchController extends Observable<IColorSearchResult> {
 
   constructor() {
     super();
-    this.subject = { result: {} };
+    this.subject = { completedLocations: [] };
   }
 
   public init(mapConfig: typeof worldMapConfig, gameData: GameData): void {
     this.unsubscribeWorkerManager?.();
     this.unsubscribeWorkerManager = null;
-
     this.mapConfig = mapConfig;
     this.gameData = gameData;
+    this.queriedLocationsColor.clear();
 
     this.unsubscribeWorkerManager = workerManager.subscribe(
       ({ lastCompletedTask }) => {
-        if (!lastCompletedTask) {
+        if (!lastCompletedTask || lastCompletedTask.type !== "colorSearch")
           return;
-        }
-        if (lastCompletedTask.type === "colorSearch") {
-          const data = ZodWorkerTaskColorSearchResult.parse(
-            lastCompletedTask.data,
-          );
-          for (const [locationName, coordinates] of Object.entries(
-            data.result,
-          )) {
-            this.subject.result[locationName] = {
-              coordinates: coordinates,
-              status: "completed",
-            };
-          }
-          this.notifyListeners();
-        }
+        const data = ZodWorkerTaskColorSearchResult.parse(
+          lastCompletedTask.data,
+        );
+        this.subject = {
+          completedLocations: Object.entries(data.result).map(
+            ([loc, coords]) => ({ loc, coords }),
+          ),
+        };
+        this.notifyListeners();
       },
     );
   }
 
   public requestColorSearch(missingLocations: LocationIdentifier[]): void {
-    if (!this.gameData) {
-      return;
-    }
-
+    if (!this.gameData) return;
     const notYetQueried = missingLocations.filter(
       (loc) => !this.queriedLocationsColor.has(loc),
     );
-    if (notYetQueried.length === 0) {
-      return;
-    }
+    if (notYetQueried.length === 0) return;
+    for (const loc of notYetQueried) this.queriedLocationsColor.add(loc);
 
-    for (const missingLocation of notYetQueried) {
-      this.subject.result[missingLocation] = {
-        coordinates: [],
-        status: "pending",
-      };
-    }
-    this.notifyListeners();
-
-    const taskId = `colorSearch-${Date.now()}`;
     const taskPayload: IWorkerTaskColorSearchPayload = {
       canvasWidth: this.mapConfig.width,
       canvasHeight: this.mapConfig.height,
@@ -89,24 +64,18 @@ export class ColorSearchController extends Observable<IColorSearchResult> {
         (loc) => loc,
         (loc) => {
           const locData = this.gameData?.locationDataMap[loc];
-          if (!locData) {
+          if (!locData)
             throw new Error(`Location data not found for location: ${loc}`);
-          }
-          return locData?.secondaryCoordinates?.length
+          return locData.secondaryCoordinates?.length
             ? locData.secondaryCoordinates
             : [locData.centerCoordinates];
         },
       ),
     };
-    for (const missingLocation of notYetQueried) {
-      this.queriedLocationsColor.add(missingLocation);
-    }
     workerManager.queueTask({
-      id: taskId,
+      id: `colorSearch-${Date.now()}`,
       type: "colorSearch",
       payload: taskPayload,
     });
   }
 }
-
-export const colorSearchController = new ColorSearchController();

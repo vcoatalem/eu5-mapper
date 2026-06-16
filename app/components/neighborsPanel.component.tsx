@@ -3,22 +3,24 @@ import { EditableField } from "@/app/components/editableField.component";
 import { FormattedProximityWithPathfindingTooltip } from "@/app/components/formattedProximityWithPathfindingTooltip.component";
 import { RoadStepper } from "@/app/components/roads/roadStepper.component";
 import { ColorHelper } from "@/app/lib/drawing/color.helper";
+import { getVegetationIcon } from "@/app/lib/drawing/getImages";
 import {
-  editModeController,
   maritimeSliceFromState,
   roadSliceFromState,
-} from "@/app/lib/editMode.controller";
-import { gameStateController } from "@/app/lib/gameState.controller";
+} from "@/app/lib/editMode.model";
+import { useGameEngine, useModel } from "@/app/lib/gameEngineContext";
 import { LocationsHelper } from "@/app/lib/locations.helper";
-import {
-  debouncedNeighborsProximityComputationController,
-  neighborsProximityComputationController,
-} from "@/app/lib/neighborsProximityComputation.controller";
+import { NeighborsProximityResults } from "@/app/lib/neighborsProximityComputation.model";
+import { IProximityComputationResults } from "@/app/lib/proximityComputation.model";
 import { RoadsHelper } from "@/app/lib/roads.helper";
+import { Tooltip } from "@/app/lib/tooltip/tooltip.component";
+import { TooltipContent } from "@/app/lib/tooltip/tooltipContent.component";
+import { TooltipTrigger } from "@/app/lib/tooltip/tooltipTrigger.component";
 import { RoadType } from "@/app/lib/types/roads";
 import { validateFloatInRange } from "@/app/lib/utils/editableFieldValidation.helper";
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import styles from "@/app/styles/button.module.css";
+import Image from "next/image";
 import {
   CSSProperties,
   memo,
@@ -26,21 +28,14 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useSyncExternalStore,
 } from "react";
+import { BiWater } from "react-icons/bi";
 import { ActionSource } from "../lib/actionSource.component";
-import { debouncedProximityComputationController } from "../lib/proximityComputation.controller";
 import { ProximityComputationHelper } from "../lib/proximityComputation.helper";
 import { GameData, LocationIdentifier } from "../lib/types/general";
 import { EdgeType } from "../lib/types/pathfinding";
 import { FormatedProximityCost } from "./formatedProximityCost.component";
 import { Loader } from "./loader.component";
-import { BiWater } from "react-icons/bi";
-import { Tooltip } from "@/app/lib/tooltip/tooltip.component";
-import { TooltipTrigger } from "@/app/lib/tooltip/tooltipTrigger.component";
-import { TooltipContent } from "@/app/lib/tooltip/tooltipContent.component";
-import Image from "next/image";
-import { getVegetationIcon } from "@/app/lib/drawing/getImages";
 
 const NeighborPanelListItemRoadMode = memo(
   function NeighborPanelListItemBuildMode({
@@ -51,7 +46,6 @@ const NeighborPanelListItemRoadMode = memo(
     cost,
     computationStatus,
     through,
-    owned,
   }: {
     baseLocation: LocationIdentifier;
     neighborLocation: LocationIdentifier;
@@ -140,7 +134,6 @@ const NeighborPanelListItemRoadMode = memo(
 );
 
 const NeighborPanelListItem = memo(function NeighborPanelListItem({
-  baseLocation,
   neighborLocation,
   cost,
   computationStatus,
@@ -196,24 +189,16 @@ export function NeighborsPanelComponent({
 }: NeighborsPanelProps) {
   const gameData = useContext(AppContext).gameData;
   const locationNameRef = useRef<HTMLDivElement>(null);
-  const { computationResults } = useSyncExternalStore(
-    debouncedNeighborsProximityComputationController.subscribe.bind(
-      debouncedNeighborsProximityComputationController,
-    ),
-    () => debouncedNeighborsProximityComputationController.getSnapshot(),
-  );
-
-  const gameState = useSyncExternalStore(
-    gameStateController.subscribe.bind(gameStateController),
-    () => {
-      return gameStateController.getSnapshot();
-    },
-  );
-
-  const editModeState = useSyncExternalStore(
-    editModeController.subscribe.bind(editModeController),
-    () => editModeController.getSnapshot(),
-  );
+  const {
+    neighborsProximityController,
+    editModeController,
+    gameStateController,
+  } = useGameEngine();
+  const { computationResults } = useModel(
+    "debouncedNeighborsProximity",
+  ) as NeighborsProximityResults;
+  const gameState = useModel("gameStateController");
+  const editModeState = useModel("editModeController");
   const maritimePresenceEditState = useMemo(
     () => maritimeSliceFromState(editModeState),
     [editModeState],
@@ -222,13 +207,9 @@ export function NeighborsPanelComponent({
     () => roadSliceFromState(editModeState),
     [editModeState],
   );
-
-  const globalProximityResult = useSyncExternalStore(
-    debouncedProximityComputationController.subscribe.bind(
-      debouncedProximityComputationController,
-    ),
-    () => debouncedProximityComputationController.getSnapshot(),
-  );
+  const globalProximityResult = useModel(
+    "debouncedProximity",
+  ) as IProximityComputationResults;
 
   const neighborLocationResult = computationResults?.[baseLocation];
 
@@ -238,11 +219,9 @@ export function NeighborsPanelComponent({
       (!neighborLocationResult ||
         neighborLocationResult.status === "needs_update")
     ) {
-      neighborsProximityComputationController.launchGetNeighborsProximity(
-        baseLocation,
-      );
+      neighborsProximityController.launchGetNeighborsProximity(baseLocation);
     }
-  }, [neighborLocationResult]);
+  }, [neighborLocationResult, baseLocation, neighborsProximityController]);
 
   const adjacentLocations = useMemo(
     () =>

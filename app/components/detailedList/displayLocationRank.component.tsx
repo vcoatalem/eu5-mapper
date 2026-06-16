@@ -1,13 +1,15 @@
 import { ILocationDetailedViewData } from "@/app/components/detailedList/detailedLocationListModal.component";
-import { gameStateController } from "@/app/lib/gameState.controller";
+import { useGameEngine } from "@/app/lib/gameEngineContext";
 import { LocationsHelper } from "@/app/lib/locations.helper";
 import { Tooltip } from "@/app/lib/tooltip/tooltip.component";
 import { TooltipContent } from "@/app/lib/tooltip/tooltipContent.component";
 import { TooltipTrigger } from "@/app/lib/tooltip/tooltipTrigger.component";
 import styles from "@/app/styles/button.module.css";
+import { ZodLocationRank } from "@/app/lib/types/locationRank";
 import { useRef } from "react";
 
 export function DisplayRank(props: { data: ILocationDetailedViewData }) {
+  const { gameStateController } = useGameEngine();
   const spanRef = useRef<HTMLSpanElement>(null);
   return (
     <span ref={spanRef}>
@@ -25,7 +27,7 @@ export function DisplayRank(props: { data: ILocationDetailedViewData }) {
             value={props.data.constructibleData.rank}
             style={{ outline: "none", border: "none", appearance: "none" }}
           >
-            {["rural", "town", "city"].map((rank) => (
+            {ZodLocationRank.options.map((rank) => (
               <option style={{ outline: "none" }} key={rank} value={rank}>
                 {rank}
               </option>

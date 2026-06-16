@@ -2,7 +2,7 @@ import { BuildingDescription } from "@/app/components/buildingDescription.compon
 import { ButtonWithTooltip } from "@/app/components/buttonWithTooltip.component";
 import { actionsMetadata } from "@/app/components/detailedList/detailedList.config";
 import { ILocationDetailedViewData } from "@/app/components/detailedList/detailedLocationListModal.component";
-import { gameStateController } from "@/app/lib/gameState.controller";
+import { useGameEngine } from "@/app/lib/gameEngineContext";
 import { Tooltip } from "@/app/lib/tooltip/tooltip.component";
 import { TooltipContent } from "@/app/lib/tooltip/tooltipContent.component";
 import { TooltipTrigger } from "@/app/lib/tooltip/tooltipTrigger.component";
@@ -19,6 +19,7 @@ function DisplayBuilding(props: {
   const { instance, possibleActions } = props.buildingData;
   const hasInstance = !!instance;
   const divRef = useRef<HTMLDivElement>(null);
+  const { gameStateController } = useGameEngine();
   return (
     <div
       ref={divRef}

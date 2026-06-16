@@ -4,13 +4,11 @@
 export class IndexedDBReader {
   private dbName: string;
   private version: number;
-  private storeNames: string[];
   private db: IDBDatabase | null = null;
 
-  constructor(dbName: string, version: number, storeNames: string[]) {
+  constructor(dbName: string, version: number) {
     this.dbName = dbName;
     this.version = version;
-    this.storeNames = storeNames;
   }
 
   async open(): Promise<IDBDatabase> {
@@ -28,7 +26,7 @@ export class IndexedDBReader {
     });
   }
 
-  async get(storeName: string, key: IDBValidKey): Promise<any> {
+  async get(storeName: string, key: IDBValidKey): Promise<unknown> {
     const db = await this.open();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(storeName, 'readonly');

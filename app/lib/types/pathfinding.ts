@@ -1,11 +1,6 @@
 import { LocationIdentifier } from "./general";
 import { z } from "zod";
 
-// TODO: might need to make edges directional.
-// rivers seem to NOT bi directional (e.g pest -> buda is river, buda -> pest is land)
-
-// TODO: it seems like through-sea edges actually apply land costs ?
-
 export interface EdgeInfo {
   exists: boolean;
   type: EdgeType;
@@ -31,7 +26,7 @@ export interface GraphStats {
   portEdges: number;
   lakeEdges: number;
   portRiverEdges: number;
-  throughSeaEdges: number; // TODO: through sea edges are unidirectional. i.e taking them in other direction counts as a "land" proximity
+  throughSeaEdges: number;
   coastalEdges: number;
   unknownEdges: number;
 }

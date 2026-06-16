@@ -3,15 +3,12 @@ import { FormatedProximity } from "@/app/components/formatedProximity.component"
 import { PopulationIcon } from "@/app/components/indicatorsIcons/populationIcon.component";
 import { ProximityIcon } from "@/app/components/indicatorsIcons/proximityIcon.component";
 import { Loader } from "@/app/components/loader.component";
-import { debouncedProximityComputationController } from "@/app/lib/proximityComputation.controller";
+import { useModel } from "@/app/lib/gameEngineContext";
 import { ProximityComputationHelper } from "@/app/lib/proximityComputation.helper";
-import {
-  GameState,
-  GameStateOwnedLocationRecord,
-} from "@/app/lib/types/gameState";
+import { GameStateOwnedLocationRecord } from "@/app/lib/types/gameState";
 import { LocationIdentifier } from "@/app/lib/types/general";
 import { NumbersHelper } from "@/app/lib/utils/numbers.helper";
-import { useContext, useMemo, useRef, useSyncExternalStore } from "react";
+import { useContext, useMemo, useRef } from "react";
 
 interface ICountryStatsProps {
   ownedLocations: GameStateOwnedLocationRecord;
@@ -22,12 +19,7 @@ export function CountryStats(props: ICountryStatsProps) {
   const totalPopDivRef = useRef<HTMLDivElement>(null);
   const popProxDivRef = useRef<HTMLDivElement>(null);
   const { ownedLocations } = props;
-  const proximityComputation = useSyncExternalStore(
-    debouncedProximityComputationController.subscribe.bind(
-      debouncedProximityComputationController,
-    ),
-    () => debouncedProximityComputationController.getSnapshot(),
-  );
+  const proximityComputation = useModel("debouncedProximity");
   const gameData = useContext(AppContext).gameData;
 
   const { meanProximity, totalPopulation, totalPopulationScaledByProximity } =

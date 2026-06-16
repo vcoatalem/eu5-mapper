@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { workerManager } from "@/app/lib/workerManager";
 import { Loader } from "@/app/components/loader.component";
 import { Tooltip } from "@/app/lib/tooltip/tooltip.component";
-import { TooltipTrigger } from "@/app/lib/tooltip/tooltipTrigger.component";
 import { TooltipContent } from "@/app/lib/tooltip/tooltipContent.component";
+import { TooltipTrigger } from "@/app/lib/tooltip/tooltipTrigger.component";
+import { workerManager } from "@/app/lib/workerManager";
 import { TaskType } from "@/workers/types/task";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 export function SlowTaskIndicator(props: { className?: string }) {
   const [slowTask, setSlowTask] = useState<{
@@ -26,7 +26,7 @@ export function SlowTaskIndicator(props: { className?: string }) {
     ) {
       queueMicrotask(() => setSlowTask(workerStatus.lastSlowTask));
     }
-  }, [workerStatus.lastSlowTask]);
+  }, [workerStatus.lastSlowTask, slowTask]);
 
   useEffect(() => {
     if (

@@ -1,10 +1,9 @@
 import { AppContext } from "@/app/appContextProvider";
 import { Loader } from "@/app/components/loader.component";
-import { GameDataLoaderHelper } from "@/app/lib/gameDataLoader.helper";
-import { colorSearchController } from "@/app/lib/colorSeach.controller";
+import { useGameEngine } from "@/app/lib/gameEngineContext";
+import { Coordinate } from "@/app/lib/types/coordinate";
 import { LocationIdentifier } from "@/app/lib/types/general";
-import Image from "next/image";
-import { useParams } from "next/navigation";
+import { get2dContext } from "@/app/lib/utils/canvasUtils";
 import {
   useCallback,
   useContext,
@@ -12,9 +11,7 @@ import {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
 } from "react";
-import { useGameDataVersion } from "@/app/[version]/version.guard";
 
 const CANVAS_WIDTH = 400;
 const CANVAS_HEIGHT = 200;
@@ -47,45 +44,43 @@ interface ICountrySelectionMinimapProps {
 }
 
 export function CountrySelectionMinimap(props: ICountrySelectionMinimapProps) {
-  const colorSearchResult = useSyncExternalStore(
-    colorSearchController.subscribe.bind(colorSearchController),
-    () => colorSearchController.getSnapshot(),
-  );
+  const { colorSearchController } = useGameEngine();
+  // Accumulate color-search deltas into a per-location coordinate map
+  const [locationCoordsMap, setLocationCoordsMap] = useState<
+    Map<LocationIdentifier, Coordinate[]>
+  >(() => new Map());
 
-  const version = useGameDataVersion();
-  const [terrainLayerImagePath, setTerrainLayerImagePath] = useState<
-    string | null
-  >(null);
+  useEffect(() => {
+    // Request coords for any locations not yet known
+    const missing = props.countryLocations.filter(
+      (loc) => !locationCoordsMap.has(loc),
+    );
+    if (missing.length > 0) colorSearchController.requestColorSearch(missing);
+
+    return colorSearchController.subscribe(({ completedLocations }) => {
+      setLocationCoordsMap((prev) => {
+        const next = new Map(prev);
+        for (const { loc, coords } of completedLocations) next.set(loc, coords);
+        return next;
+      });
+    });
+  }, [props.countryLocations, colorSearchController, locationCoordsMap]);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawCanvasRef = useRef<HTMLCanvasElement>(null);
   const terrainImageRef = useRef<HTMLImageElement | null>(null);
   const [terrainRendered, setTerrainRendered] = useState(false);
 
   const coordinatesToColor = useMemo(() => {
-    if (!colorSearchResult.result) {
-      return [];
-    }
-    const coordinates: Array<{ x: number; y: number }> = [];
+    const coordinates: Coordinate[] = [];
     for (const location of props.countryLocations) {
-      if (colorSearchResult.result[location]?.coordinates) {
-        coordinates.push(...colorSearchResult.result[location].coordinates);
-      }
+      const coords = locationCoordsMap.get(location);
+      if (coords) coordinates.push(...coords);
     }
     return coordinates;
-  }, [colorSearchResult, props.countryLocations]);
+  }, [locationCoordsMap, props.countryLocations]);
 
-  useEffect(() => {
-    if (!colorSearchResult.result || props.countryLocations.length === 0)
-      return;
-    const missing = props.countryLocations.filter(
-      (loc) => !colorSearchResult.result![loc]?.coordinates,
-    );
-    if (missing.length > 0) {
-      colorSearchController.requestColorSearch(missing);
-    }
-  }, [colorSearchResult, props.countryLocations]);
-
-  const { gameData } = useContext(AppContext);
+  const { gameData, imagePaths } = useContext(AppContext);
 
   const capitalCoordinates = useMemo(() => {
     if (!gameData || !props.capitalLocation) return null;
@@ -96,8 +91,7 @@ export function CountrySelectionMinimap(props: ICountrySelectionMinimapProps) {
     const canvas = canvasRef.current;
     const img = terrainImageRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const ctx = get2dContext(canvas);
 
     const { viewW, viewH } = props;
 
@@ -130,29 +124,21 @@ export function CountrySelectionMinimap(props: ICountrySelectionMinimapProps) {
   }, [capitalCoordinates, props]);
 
   useEffect(() => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || !imagePaths) return;
     queueMicrotask(() => setTerrainRendered(false));
     canvasRef.current.width = CANVAS_WIDTH;
     canvasRef.current.height = CANVAS_HEIGHT;
     drawTerrain();
 
-    GameDataLoaderHelper.loadManifestForVersion(version).then((manifest) => {
-      const terrainLayerPath = GameDataLoaderHelper.getFileUrlForVersion(
-        version,
-        "terrainLayer",
-        manifest,
-      );
-      setTerrainLayerImagePath(terrainLayerPath);
-      const img = new window.Image();
-      img.crossOrigin = "anonymous";
-      img.src = terrainLayerPath;
-      img.onload = () => {
-        setTerrainRendered(true);
-        terrainImageRef.current = img;
-        drawTerrain();
-      };
-    });
-  }, [version, drawTerrain]);
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.src = imagePaths.terrainLayer;
+    img.onload = () => {
+      setTerrainRendered(true);
+      terrainImageRef.current = img;
+      drawTerrain();
+    };
+  }, [imagePaths?.terrainLayer, drawTerrain, imagePaths]);
 
   useEffect(() => {
     drawTerrain();
@@ -162,8 +148,7 @@ export function CountrySelectionMinimap(props: ICountrySelectionMinimapProps) {
     const canvas = drawCanvasRef.current;
     if (!canvas || !capitalCoordinates) return;
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const ctx = get2dContext(canvas);
 
     ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
@@ -206,16 +191,7 @@ export function CountrySelectionMinimap(props: ICountrySelectionMinimapProps) {
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
           className="block absolute top-0 left-0 z-0"
-        >
-          {terrainLayerImagePath && (
-            <Image
-              src={terrainLayerImagePath}
-              alt="terrain layer"
-              width={300}
-              height={200}
-            />
-          )}
-        </canvas>
+        />
         {!terrainRendered && (
           <div className="absolute inset-0 flex items-center justify-center z-2 bg-stone-900/80">
             <Loader className="mx-auto" size={32} />

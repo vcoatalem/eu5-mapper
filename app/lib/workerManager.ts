@@ -58,7 +58,7 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
           this.handleWorkerMessage(event.data, worker),
         );
         worker.addEventListener("error", (event) =>
-          this.handleWorkerError(event, worker),
+          this.handleWorkerError(event),
         );
         workers.push(worker);
         assignments.set(worker, null);
@@ -273,7 +273,7 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
    */
   public clearAssignments(): void {
     // Clear timeouts for all active tasks
-    for (const [taskId, timeout] of this.taskTimeouts.entries()) {
+    for (const [, timeout] of this.taskTimeouts.entries()) {
       clearTimeout(timeout);
     }
     this.taskTimeouts.clear();
@@ -388,7 +388,7 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
     }
   }
 
-  private handleWorkerError(event: ErrorEvent, worker: Worker): void {
+  private handleWorkerError(event: ErrorEvent): void {
     console.error("[WorkerManager] Worker error:", event);
     // In production, would need more sophisticated error recovery
   }
@@ -405,4 +405,8 @@ class WorkerManager extends Observable<IWorkerManagerStatus> {
   }
 }
 
+// Intentional singleton: Web Worker pools are expensive OS-level resources
+// that should persist across GameEngine instances (e.g. game version
+// switches), not be spun up/torn down with each engine's lifecycle.
+// eslint-disable-next-line no-restricted-syntax
 export const workerManager = new WorkerManager();

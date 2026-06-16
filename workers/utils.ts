@@ -15,7 +15,8 @@ export const sendMessage = (
     taskType: payload.task.type,
     taskId: payload.task.id,
     message: payload.message
-      ? `[${(globalThis as any).__workerName}] ${payload.message}`
+      ? //eslint-disable-next-line @typescript-eslint/no-explicit-any
+        `[${(globalThis as any).__workerName}] ${payload.message}`
       : "",
   };
   if (payload.data !== undefined) {

@@ -2,13 +2,10 @@ import React, {
   useContext,
   useRef,
   useState,
-  useSyncExternalStore,
 } from "react";
 import { AppContext } from "../appContextProvider";
-import {
-  ILocationSearchResult,
-  locationSearchController,
-} from "@/app/lib/locationSearchController";
+import { ILocationSearchResult } from "@/app/lib/locationSearch.model";
+import { useGameEngine, useModel } from "@/app/lib/gameEngineContext";
 import { GuiElement } from "./guiElement";
 import { ActionSource } from "@/app/lib/actionSource.component";
 import { StringHelper } from "@/app/lib/utils/string.helper";
@@ -43,10 +40,8 @@ const LocationSearchResultItem = React.memo(function LocationSearchResultItem({
 
 export function LocationSearchBar(props: { className?: string }) {
   const { gameData } = useContext(AppContext);
-  const locationSearchResult = useSyncExternalStore(
-    locationSearchController.subscribe.bind(locationSearchController),
-    () => locationSearchController.getSnapshot(),
-  );
+  const locationSearchResult = useModel("locationSearchController");
+  const { locationSearchController } = useGameEngine();
 
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);

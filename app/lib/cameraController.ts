@@ -1,14 +1,19 @@
+import { worldMapConfig } from "@/app/components/worldMap.config";
+import { LocationColorIndex } from "@/app/lib/locationColorIndex";
 import { LocationsHelper } from "@/app/lib/locations.helper";
+import { Coordinate } from "@/app/lib/types/coordinate";
+import {
+  asScreen,
+  CameraTransform,
+  screenToMap,
+} from "@/app/lib/types/coordinateSpaces";
 import { RefObject } from "react";
 import { Observable } from "./observable";
 import type { GameData } from "./types/general";
 import { LocationIdentifier } from "./types/general";
-import { Coordinate } from "@/app/lib/types/coordinate";
-import { ZodHexColor } from "@/app/lib/types/color";
 
 export const zoomLevels = {
-  maxedOut: 0.1,
-  strongOut: 0.3,
+  minOut: 0.5,
   lightOut: 0.7,
   normal: 1,
   lightIn: 1.5,
@@ -22,6 +27,7 @@ export interface IZoomState {
   oldZoomLevel: number;
   zoomLevel: number;
   zoomIndex: number;
+  isDragging: boolean;
 }
 
 export type ZoomListener = (zoom: IZoomState) => void;
@@ -29,15 +35,12 @@ export type ZoomListener = (zoom: IZoomState) => void;
 export class CameraController extends Observable<IZoomState> {
   // Zoom state
   private currentZoomIndex: number;
-  private isDraggingCheck: (() => boolean) | null = null;
   private wheelHandler: ((e: WheelEvent) => void) | null = null;
   private currentElement: HTMLElement | null = null;
 
-  // Camera state
   private container: RefObject<HTMLDivElement | null> | null = null;
-  private colorCanvas: RefObject<HTMLCanvasElement | null> | null = null;
-  private colorCanvasContext: CanvasRenderingContext2D | null = null;
-  private layers: Array<{ ref: RefObject<HTMLCanvasElement | null> }> = [];
+  private world: RefObject<HTMLDivElement | null> | null = null;
+  private locationColorIndex: LocationColorIndex | null = null;
 
   private panAnimationState: {
     animating: boolean;
@@ -52,15 +55,21 @@ export class CameraController extends Observable<IZoomState> {
   } | null = null;
 
   private panEndListeners: Array<() => void> = [];
+  private panStartListeners: Array<() => void> = [];
 
-  /**
-   * Subscribe to be notified when a pan animation completes. Use this to trigger side effects at the end of camera panning (e.g recomputing tooltip position)
-   **/
   public subscribePanEnd(callback: () => void): () => void {
     this.panEndListeners.push(callback);
     return () => {
       const i = this.panEndListeners.indexOf(callback);
       if (i >= 0) this.panEndListeners.splice(i, 1);
+    };
+  }
+
+  public subscribePanStart(callback: () => void): () => void {
+    this.panStartListeners.push(callback);
+    return () => {
+      const i = this.panStartListeners.indexOf(callback);
+      if (i >= 0) this.panStartListeners.splice(i, 1);
     };
   }
 
@@ -71,57 +80,69 @@ export class CameraController extends Observable<IZoomState> {
       oldZoomLevel: zoomSteps[this.currentZoomIndex],
       zoomLevel: zoomSteps[this.currentZoomIndex],
       zoomIndex: this.currentZoomIndex,
+      isDragging: false,
     };
+  }
+
+  public setDragging(value: boolean): void {
+    this.subject = { ...this.subject, isDragging: value };
+    this.notifyListeners();
   }
 
   /**
    * Initialize camera-related refs and contexts.
    */
+  /** New-architecture init: world div + hitSurface + locationColorIndex. */
   public initCamera(
     container: RefObject<HTMLDivElement | null>,
-    colorCanvasRef: RefObject<HTMLCanvasElement | null>,
-    layers: Array<{ ref: RefObject<HTMLCanvasElement | null> }>,
+    worldRef: RefObject<HTMLDivElement | null>,
+    hitSurfaceRef: RefObject<HTMLDivElement | null>,
+    locationColorIndex: LocationColorIndex,
   ): void {
-    if (
-      !container.current ||
-      !colorCanvasRef.current ||
-      layers.some((layer) => !layer.ref.current)
-    ) {
-      throw new Error(
-        "[CameraService]: Cannot initialize CameraService, missing some input refs",
-      );
+    if (!container.current || !worldRef.current || !hitSurfaceRef.current) {
+      throw new Error("[CameraController] initCamera: missing refs");
     }
-
     this.container = container;
-    this.colorCanvas = colorCanvasRef;
-    this.layers = layers;
-    this.colorCanvasContext =
-      colorCanvasRef.current.getContext("2d", {
-        willReadFrequently: true,
-      }) ?? null;
-
-    if (!this.colorCanvasContext) {
-      throw new Error(
-        "[CameraService]: Cannot get 2D context from color canvas",
-      );
-    }
+    this.world = worldRef;
+    this.locationColorIndex = locationColorIndex;
   }
 
-  public setDraggingCheck(checkFn: () => boolean): void {
-    this.isDraggingCheck = checkFn;
+  public getCameraTransform(): CameraTransform {
+    const el = this.world?.current;
+    if (!el || !this.container?.current) {
+      return {
+        left: 0,
+        top: 0,
+        zoom: this.getSnapshot().zoomLevel,
+        containerLeft: 0,
+        containerTop: 0,
+      };
+    }
+    const cr = this.container.current.getBoundingClientRect();
+    return {
+      left: parseFloat(el.style.left) || 0,
+      top: parseFloat(el.style.top) || 0,
+      zoom: this.getSnapshot().zoomLevel,
+      containerLeft: cr.left,
+      containerTop: cr.top,
+    };
   }
 
   /**
    * Initialize zoom controller on the given element.
    */
   public init(element: HTMLElement): void {
-    // Clean up previous initialization if any
-    this.cleanup();
+    // Remove previous wheel listener only; do not wipe camera refs (set by initCamera)
+    if (this.currentElement && this.wheelHandler) {
+      this.currentElement.removeEventListener("wheel", this.wheelHandler);
+      this.currentElement = null;
+      this.wheelHandler = null;
+    }
 
     this.currentElement = element;
     this.wheelHandler = (e: WheelEvent) => {
       // Prevent zoom while dragging
-      if (this.isDraggingCheck && this.isDraggingCheck()) {
+      if (this.subject.isDragging) {
         return;
       }
       if (e.deltaY < 0) {
@@ -140,6 +161,9 @@ export class CameraController extends Observable<IZoomState> {
       this.currentElement = null;
       this.wheelHandler = null;
     }
+    this.world = null;
+    this.locationColorIndex = null;
+    this.container = null;
   }
 
   private updateZoomState(oldZoomLevel: number): void {
@@ -147,6 +171,7 @@ export class CameraController extends Observable<IZoomState> {
       zoomIndex: this.currentZoomIndex,
       oldZoomLevel: oldZoomLevel,
       zoomLevel: zoomSteps[this.currentZoomIndex],
+      isDragging: this.subject.isDragging,
     };
     this.applyZoomLevel(this.subject.zoomLevel, this.subject.oldZoomLevel);
     this.notifyListeners();
@@ -154,7 +179,7 @@ export class CameraController extends Observable<IZoomState> {
 
   public zoomIn(): void {
     // Prevent zoom while dragging
-    if (this.isDraggingCheck && this.isDraggingCheck()) {
+    if (this.subject.isDragging) {
       return;
     }
     const currentZoomLevel = zoomSteps[this.currentZoomIndex];
@@ -167,7 +192,7 @@ export class CameraController extends Observable<IZoomState> {
 
   public zoomOut(): void {
     // Prevent zoom while dragging
-    if (this.isDraggingCheck && this.isDraggingCheck()) {
+    if (this.subject.isDragging) {
       return;
     }
     const currentZoomLevel = zoomSteps[this.currentZoomIndex];
@@ -179,7 +204,7 @@ export class CameraController extends Observable<IZoomState> {
   }
 
   public zoomTo(zoomLevel: number): void {
-    if (this.isDraggingCheck && this.isDraggingCheck()) {
+    if (this.subject.isDragging) {
       return;
     }
     if (Object.values(zoomLevels).includes(zoomLevel)) {
@@ -203,6 +228,7 @@ export class CameraController extends Observable<IZoomState> {
       zoomIndex: this.currentZoomIndex,
       zoomLevel: zoomLevel,
       oldZoomLevel: zoomLevel,
+      isDragging: this.subject.isDragging,
     };
   }
 
@@ -210,45 +236,47 @@ export class CameraController extends Observable<IZoomState> {
     event: MouseEvent,
     gameData: GameData,
   ): LocationIdentifier | null {
-    if (!this.colorCanvas || !gameData) return null;
-    const rect = this.colorCanvas.current?.getBoundingClientRect();
+    if (!gameData) return null;
 
-    const relX = event.clientX - (rect?.left ?? 0);
-    const relY = event.clientY - (rect?.top ?? 0);
-
-    const imageX = relX / this.getSnapshot().zoomLevel;
-    const imageY = relY / this.getSnapshot().zoomLevel;
-
-    const imageData = this.colorCanvasContext?.getImageData(
-      imageX,
-      imageY,
-      1,
-      1,
-    );
-
-    if (!imageData) {
-      return null;
+    // New path: use offscreen LocationColorIndex for synchronous pixel read
+    if (this.locationColorIndex) {
+      const cameraTransform = this.getCameraTransform();
+      const map = screenToMap(
+        asScreen(event.clientX, event.clientY),
+        cameraTransform,
+      );
+      const W = worldMapConfig.width,
+        H = worldMapConfig.height;
+      if (map.x < 0 || map.x >= W || map.y < 0 || map.y >= H) return null;
+      const hex = this.locationColorIndex.getColorAt(map);
+      if (!hex) return null;
+      return LocationsHelper.findLocationName(hex, gameData) ?? null;
     }
 
-    const [r, g, b] = [
-      parseInt(`${imageData.data[0]}`),
-      parseInt(`${imageData.data[1]}`),
-      parseInt(`${imageData.data[2]}`),
-    ];
-
-    const hexStr = ZodHexColor.parse(
-      [
-        r.toString(16).padStart(2, "0"),
-        g.toString(16).padStart(2, "0"),
-        b.toString(16).padStart(2, "0"),
-      ].join(""),
-    );
-    const locationName =
-      LocationsHelper.findLocationName(hexStr, gameData) ?? null;
-    return locationName;
+    return null;
   }
 
   // Smooth pan animation state
+
+  /**
+   * Pans the map to a location's center coordinates, looked up from gameData.
+   * No-ops if the location is missing or has no known coordinates.
+   */
+  public panToLocation(
+    gameData: GameData,
+    location: LocationIdentifier,
+    duration = 0,
+  ): Promise<void> {
+    const coordinate = gameData.locationDataMap[location]?.centerCoordinates;
+    if (!coordinate) {
+      console.error(
+        "[CameraController] panToLocation: missing coordinates for",
+        location,
+      );
+      return Promise.resolve();
+    }
+    return this.panToCoordinate(coordinate, duration);
+  }
 
   /**
    * Smoothly pans the map so that the given (x, y) coordinates become the center of the viewport.
@@ -261,37 +289,35 @@ export class CameraController extends Observable<IZoomState> {
     duration = 600,
     offset?: Coordinate,
   ): Promise<void> => {
-    if (!this.colorCanvas || !this.container) {
-      return Promise.resolve();
-    }
-    const colorCanvas = this.colorCanvas.current;
+    const movingEl: HTMLElement | null = this.world?.current ?? null;
+    if (!movingEl || !this.container?.current) return Promise.resolve();
+
     const container = this.container.current;
-    if (!colorCanvas || !container) {
-      return Promise.resolve();
-    }
     const containerRect = container.getBoundingClientRect();
     const centerX = containerRect.width / 2;
     const centerY = containerRect.height / 2;
     const zoom = this.getSnapshot().zoomLevel;
 
-    // If an offset is provided, shift the logical target point by that offset
-    // so that the camera centers on (coordinate + offset).
     const effectiveX = coordinate.x + (offset?.x ?? 0);
     const effectiveY = coordinate.y + (offset?.y ?? 0);
 
     const targetLeft = centerX - effectiveX * zoom;
     const targetTop = centerY - effectiveY * zoom;
-    // Use current left/top from style
-    const startLeft = parseFloat(colorCanvas.style.left) || 0;
-    const startTop = parseFloat(colorCanvas.style.top) || 0;
+    const startLeft = parseFloat(movingEl.style.left) || 0;
+    const startTop = parseFloat(movingEl.style.top) || 0;
 
-    // If there is an ongoing animation, cancel it and resolve its promise
-    if (this.panAnimationState && this.panAnimationState.rafId) {
+    if (this.panAnimationState?.rafId) {
       cancelAnimationFrame(this.panAnimationState.rafId);
-      if (this.panAnimationState.resolve) {
-        this.panAnimationState.resolve();
-      }
+      this.panAnimationState.resolve?.();
     }
+
+    console.debug(
+      "[cam] panToCoordinate start — target:",
+      coordinate,
+      "isDragging:",
+      this.subject.isDragging,
+    );
+    for (const notify of this.panStartListeners) notify();
 
     return new Promise<void>((resolve) => {
       this.panAnimationState = {
@@ -310,7 +336,6 @@ export class CameraController extends Observable<IZoomState> {
         if (!this.panAnimationState) return;
         const elapsed = now - this.panAnimationState.startTime;
         const t = Math.min(1, elapsed / this.panAnimationState.duration);
-        // Ease in-out cubic
         const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
         const left =
           this.panAnimationState.startLeft +
@@ -322,25 +347,18 @@ export class CameraController extends Observable<IZoomState> {
           (this.panAnimationState.targetTop - this.panAnimationState.startTop) *
             ease;
 
-        this.layers.forEach((layer) => {
-          const canvas = layer.ref.current;
-          if (canvas) {
-            canvas.style.left = left + "px";
-            canvas.style.top = top + "px";
-          }
-        });
+        if (this.world?.current) {
+          this.world.current.style.left = left + "px";
+          this.world.current.style.top = top + "px";
+        }
 
         if (t < 1) {
           this.panAnimationState.rafId = requestAnimationFrame(animate);
         } else {
           const state = this.panAnimationState;
           this.panAnimationState = null;
-          for (const notify of this.panEndListeners) {
-            notify();
-          }
-          if (state && state.resolve) {
-            state.resolve();
-          }
+          for (const notify of this.panEndListeners) notify();
+          state?.resolve?.();
         }
       };
 
@@ -349,52 +367,23 @@ export class CameraController extends Observable<IZoomState> {
   };
 
   public applyZoomLevel = (newZoom: number, oldZoom: number) => {
-    if (
-      !this.colorCanvas ||
-      !this.container ||
-      this.colorCanvas.current === null ||
-      this.container.current === null
-    )
-      return;
-    const colorCanvas = this.colorCanvas.current;
+    if (!this.container?.current) return;
     const container = this.container.current;
-
     const containerRect = container.getBoundingClientRect();
-
-    // Calculate center of viewport
     const centerX = containerRect.width / 2;
     const centerY = containerRect.height / 2;
-
-    // Get current position from style (source of truth)
-    const currentLeft = parseFloat(colorCanvas.style.left);
-    const currentTop = parseFloat(colorCanvas.style.top);
-
-    if (isNaN(currentLeft) || isNaN(currentTop)) {
-      console.warn(
-        "[CameraService]: Invalid left or top position when applying zoom level",
-      );
-    }
-
-    // Ensure oldZoom is valid (fallback to 1 if invalid)
     const validOldZoom = oldZoom > 0 ? oldZoom : 1;
 
-    // Calculate the point on the canvas that's at the center of the viewport
+    if (!this.world?.current) return;
+    const worldEl = this.world.current;
+    const currentLeft = parseFloat(worldEl.style.left) || 0;
+    const currentTop = parseFloat(worldEl.style.top) || 0;
     const canvasCenterX = (centerX - currentLeft) / validOldZoom;
     const canvasCenterY = (centerY - currentTop) / validOldZoom;
-
-    // Calculate new position so that the same canvas point remains at the viewport center
-    const newLeft = centerX - canvasCenterX * newZoom;
-    const newTop = centerY - canvasCenterY * newZoom;
-
-    this.layers.forEach(({ ref }) => {
-      const canvas = ref.current;
-      if (canvas) {
-        canvas.style.transform = `scale(${newZoom})`;
-        canvas.style.transformOrigin = "0 0";
-        canvas.style.left = newLeft + "px";
-        canvas.style.top = newTop + "px";
-      }
-    });
+    worldEl.style.transform = `scale(${newZoom})`;
+    worldEl.style.transformOrigin = "0 0";
+    worldEl.style.left = centerX - canvasCenterX * newZoom + "px";
+    worldEl.style.top = centerY - canvasCenterY * newZoom + "px";
   };
 
   baseScreenOffset = { left: 60, top: 40, bottom: 5, right: 0 };
@@ -529,12 +518,16 @@ export class CameraController extends Observable<IZoomState> {
 
     let panelLeft: number;
     let panelTop: number;
-    let usedPlacement: PlacementName | "clamped";
 
     if (chosen) {
+      console.debug(
+        "[CameraController] Tooltip placement chosen:",
+        chosen.name,
+        chosen.panelLeft,
+        chosen.panelTop,
+      );
       panelLeft = chosen.panelLeft;
       panelTop = chosen.panelTop;
-      usedPlacement = chosen.name;
     } else {
       // If none of the quadrants can contain the tooltip fully while also
       // respecting the mouse constraint, fall back to bottom-right and clamp
@@ -564,8 +557,6 @@ export class CameraController extends Observable<IZoomState> {
       if (mouseCoordinate && overlapsMouse(panelLeft, panelTop)) {
         return null;
       }
-
-      usedPlacement = "clamped";
     }
 
     const x = panelLeft;
@@ -587,15 +578,15 @@ export class CameraController extends Observable<IZoomState> {
       vertical: "top" | "bottom";
     },
   ): Coordinate | null {
-    if (!this.colorCanvas || !this.container) return null;
-    const colorCanvas = this.colorCanvas.current;
+    if (!this.container?.current) return null;
+    const movingEl = this.world?.current;
+    if (!movingEl) return null;
     const container = this.container.current;
-    if (!colorCanvas || !container) return null;
 
     const containerRect = container.getBoundingClientRect();
     const zoom = this.getSnapshot().zoomLevel;
-    const currentLeft = parseFloat(colorCanvas.style.left) || 0;
-    const currentTop = parseFloat(colorCanvas.style.top) || 0;
+    const currentLeft = parseFloat(movingEl.style.left) || 0;
+    const currentTop = parseFloat(movingEl.style.top) || 0;
 
     const baseX = containerRect.left + currentLeft + anchorCoordinate.x * zoom;
     const baseY = containerRect.top + currentTop + anchorCoordinate.y * zoom;
@@ -646,5 +637,3 @@ export class CameraController extends Observable<IZoomState> {
     );
   }
 }
-
-export const cameraController = new CameraController();

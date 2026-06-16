@@ -2,7 +2,7 @@ import { Observable } from "./observable";
 import { LocationIdentifier } from "./types/general";
 import { EdgeType } from "./types/pathfinding";
 import { workerManager } from "@/app/lib/workerManager";
-import { gameStateController } from "./gameState.controller";
+import { GameStateModel } from "./gameState.model";
 import { ZodWorkerTaskcomputeShortestPathFromProximitySourceResult } from "@/workers/types/shortestPath";
 
 export interface IShortestPathResult {
@@ -23,11 +23,11 @@ export interface IShortestPathResult {
   >;
 }
 
-class ShortestPatchController extends Observable<IShortestPathResult> {
+export class ShortestPathModel extends Observable<IShortestPathResult> {
   private unsubscribeWorkerManager: (() => void) | null = null;
   private unsubscribeGameState: (() => void) | null = null;
 
-  public constructor() {
+  public constructor(private gameState: GameStateModel) {
     super();
     this.subject = {
       result: {},
@@ -69,7 +69,7 @@ class ShortestPatchController extends Observable<IShortestPathResult> {
         };
 
         console.log(
-          "[ShortestPathController] Received shortest path result for location",
+          "[ShortestPathModel] Received shortest path result for location",
           {
             location: data.location,
             shortestPath: data.shortestPath,
@@ -79,7 +79,7 @@ class ShortestPatchController extends Observable<IShortestPathResult> {
       },
     );
 
-    this.unsubscribeGameState = gameStateController.subscribe(() => {
+    this.unsubscribeGameState = this.gameState.subscribe(() => {
       let changed = false;
       for (const locationName in this.subject.result) {
         const currentStatus = this.subject.result[locationName].status;
@@ -112,13 +112,8 @@ class ShortestPatchController extends Observable<IShortestPathResult> {
       type: "computeShortestPathFromProximitySource",
       payload: {
         targetLocationName: locationName,
-        gameState: gameStateController.getSnapshot(),
+        gameState: this.gameState.getSnapshot(),
       },
     });
   }
 }
-
-export const shortestPathController = new ShortestPatchController();
-
-export const debouncedShortestPathController =
-  shortestPathController.debounce(10);

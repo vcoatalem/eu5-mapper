@@ -1,9 +1,10 @@
 import { AppContext } from "@/app/appContextProvider";
+import { RoadBulkActionPopover } from "@/app/components/roads/roadBulkActionPopover.component";
 import { RoadStepper } from "@/app/components/roads/roadStepper.component";
-import { gameStateController } from "@/app/lib/gameState.controller";
+import { useModel } from "@/app/lib/gameEngineContext";
 import { ObjectHelper } from "@/app/lib/object.helper";
 import { RoadKey, RoadType, ZodRoadKey } from "@/app/lib/types/roads";
-import React, { useContext, useMemo, useSyncExternalStore } from "react";
+import React, { useContext, useMemo } from "react";
 import { IoSearch } from "react-icons/io5";
 import { ActionSource } from "../../lib/actionSource.component";
 import { RoadsHelper } from "../../lib/roads.helper";
@@ -11,7 +12,6 @@ import { Tooltip } from "../../lib/tooltip/tooltip.component";
 import { TooltipContent } from "../../lib/tooltip/tooltipContent.component";
 import { TooltipTrigger } from "../../lib/tooltip/tooltipTrigger.component";
 import { StringHelper } from "../../lib/utils/string.helper";
-import { RoadBulkActionPopover } from "@/app/components/roads/roadBulkActionPopover.component";
 
 const RoadItem = React.memo(function RoadItem({
   roadKey,
@@ -35,7 +35,7 @@ const RoadItem = React.memo(function RoadItem({
         <Tooltip config={{ openDelay: 1000 }}>
           <TooltipTrigger>
             <ActionSource
-              locations={(e) => [from, to]}
+              locations={() => [from, to]}
               hover={{}}
               click={{ type: "goto" }}
             >
@@ -63,15 +63,12 @@ const RoadItem = React.memo(function RoadItem({
 
 export function RoadList({ className }: { className?: string }) {
   const { gameData } = useContext(AppContext);
-  const gameState = useSyncExternalStore(
-    gameStateController.subscribe.bind(gameStateController),
-    () => gameStateController.getSnapshot(),
-  );
+  const gameState = useModel("gameStateController");
 
   const [search, setSearch] = React.useState<string | null>(null);
 
-  const baseRoads = gameData?.roads ?? {};
-  const stateRoads = gameState?.roads ?? {};
+  const baseRoads = useMemo(() => gameData?.roads ?? {}, [gameData?.roads]);
+  const stateRoads = useMemo(() => gameState?.roads ?? {}, [gameState?.roads]);
 
   const filteredRoadsEntries = useMemo(() => {
     const entries = RoadsHelper.getOwnedRoads(
@@ -119,7 +116,6 @@ export function RoadList({ className }: { className?: string }) {
       <hr className="mt-2 mb-1"></hr>
       <div className="flex flex-col gap-1 overflow-y-scroll max-h-[60vh] pb-16">
         {" "}
-        {/* // max height is set here to avoid overflow of the list in the context of the gui. Find something */}
         {ObjectHelper.getTypedEntries(filteredRoadsEntries)
           .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
           .map(([key, type]) => (

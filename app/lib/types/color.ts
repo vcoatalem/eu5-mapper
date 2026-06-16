@@ -11,6 +11,12 @@ export const ZodHexColor = z
 
 export type HexColor = z.infer<typeof ZodHexColor>;
 
+export function hexColorFromRgb(r: number, g: number, b: number): HexColor {
+  return (r.toString(16).padStart(2, "0") +
+    g.toString(16).padStart(2, "0") +
+    b.toString(16).padStart(2, "0")) as unknown as HexColor;
+}
+
 export const ZodColorToLocIdentifierMap = z.record(ZodHexColor, z.string());
 
 export type ColorToLocIdentifierMap = z.infer<

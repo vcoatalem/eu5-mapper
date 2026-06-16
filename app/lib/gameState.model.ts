@@ -2,7 +2,6 @@
 
 import { CountriesHelper } from "@/app/lib/countries.helper";
 import { EligibleBuildingService } from "@/app/lib/eligibleBuilding.service";
-import { cameraController } from "./cameraController";
 import { RoadsHelper } from "./roads.helper";
 import { Observable } from "./observable";
 import { GameData, LocationIdentifier } from "./types/general";
@@ -31,7 +30,7 @@ const baseCountryValues: CountryInstance = {
   modifiers: {},
 };
 
-export class GameStateController extends Observable<GameState> {
+export class GameStateModel extends Observable<GameState> {
   private gameData: GameData | null = null;
   private baseGameState: GameState | null = null;
 
@@ -185,7 +184,7 @@ export class GameStateController extends Observable<GameState> {
           if (buildingName in eligibleBuildings) {
             return true;
           }
-          return buildingInstance.template.buildable; // for now, we don't want to allow destroy un buildable buildings (usually special buildings) as we don't handle their buildability yet)
+          return buildingInstance.template.buildable;
         })
         .map(([name]) => name),
     );
@@ -301,12 +300,6 @@ export class GameStateController extends Observable<GameState> {
           rulerAdministrativeAbility: 50,
           modifiers: {},
         };
-      }
-
-      const capitalCoordinates =
-        this.gameData?.locationDataMap[capitalLocation].centerCoordinates;
-      if (capitalCoordinates) {
-        cameraController.panToCoordinate(capitalCoordinates, 0); // TODO: do this in a subscription to gameState instead
       }
     }
 
@@ -482,15 +475,10 @@ export class GameStateController extends Observable<GameState> {
     }
     this.subject = parsedState.data;
     this.notifyListeners();
-    const capitalCoordinates =
-      this.gameData?.locationDataMap[this.subject.capitalLocation ?? ""]
-        ?.centerCoordinates;
-    if (capitalCoordinates) {
-      cameraController.panToCoordinate(capitalCoordinates, 0);
-    }
   }
 
   public download(): void {
+    if (!this.subject.capitalLocation) return;
     const filename = `${this.subject.countryCode ?? "unknown_country"}-${this.subject.version.replaceAll(".", "_")}-${new Date().toISOString()}.json`;
     const fileContent = JSON.stringify({ ...this.subject });
     const blob = new Blob([fileContent], { type: "application/json" });
@@ -505,6 +493,3 @@ export class GameStateController extends Observable<GameState> {
     URL.revokeObjectURL(url);
   }
 }
-export const gameStateController = new GameStateController();
-
-export const debouncedGameStateController = gameStateController.debounce(50);

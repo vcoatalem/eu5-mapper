@@ -1,5 +1,3 @@
-import { ILocationSearchResult } from "@/app/lib/locationSearchController";
-import { LocationIdentifier } from "@/app/lib/types/general";
 import { IndexedDBReader } from "@/app/lib/indexeddb/indexeddb-reader";
 import { IndexedDBWriter } from "@/app/lib/indexeddb/indexeddb-writer";
 import {
@@ -9,10 +7,12 @@ import {
   dbStoreNames,
   dbVersion,
 } from "@/app/lib/indexeddb/indexeddb.const";
-import { StringHelper } from "@/app/lib/utils/string.helper";
 import { LocationHierarchyHelper } from "@/app/lib/locationHierarchy.helper";
-import { ILocationHierarchy } from "@/app/lib/types/locationHierarchy";
+import { ILocationSearchResult } from "@/app/lib/locationSearch.model";
+import { LocationIdentifier } from "@/app/lib/types/general";
 import { LocationGameDataMap } from "@/app/lib/types/location";
+import { ILocationHierarchy } from "@/app/lib/types/locationHierarchy";
+import { StringHelper } from "@/app/lib/utils/string.helper";
 
 const HIERARCHY_ITEM_KEY_SEP = "\u001e";
 
@@ -58,9 +58,9 @@ export class LocationHierarchyService {
   }
 
   private static async getFromIndexedDB(): Promise<HierarchyRecord> {
-    const reader = new IndexedDBReader(dbName, dbVersion, dbStoreNames);
+    const reader = new IndexedDBReader(dbName, dbVersion);
     const data = await reader.get(dbLocationHierarchyStoreName, dbDataKey);
-    return data ?? {};
+    return data as HierarchyRecord ?? {};
   }
 
   public static async getNonLocationHierarchyMatches(
@@ -98,11 +98,11 @@ export class LocationHierarchyService {
     hierarchyType: keyof ILocationHierarchy,
     hierarchyValue: string,
   ): Promise<LocationIdentifier[]> {
-    const reader = new IndexedDBReader(dbName, dbVersion, dbStoreNames);
+    const reader = new IndexedDBReader(dbName, dbVersion);
     const entry = await reader.get(
       dbLocationHierarchyStoreName,
       hierarchyItemKey(hierarchyType, hierarchyValue),
-    );
+    ) as { locations: LocationIdentifier[] } | undefined;
     return entry?.locations ?? [];
   }
 }

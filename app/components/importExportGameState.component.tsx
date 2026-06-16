@@ -1,10 +1,10 @@
-import { useParams } from "next/navigation";
-import styles from "@/app/styles/button.module.css";
-import { gameStateController } from "@/app/lib/gameState.controller";
-import { useCallback, useState, useSyncExternalStore } from "react";
-import { Modal } from "@/app/lib/modal/modal.component";
 import { useGameDataVersion } from "@/app/[version]/version.guard";
+import { AppContext } from "@/app/appContextProvider";
+import { useGameEngine } from "@/app/lib/gameEngineContext";
+import { Modal } from "@/app/lib/modal/modal.component";
+import styles from "@/app/styles/button.module.css";
 import posthog from "posthog-js";
+import { useCallback, useContext, useState } from "react";
 import { IoMdDownload } from "react-icons/io";
 import { MdFileUpload } from "react-icons/md";
 
@@ -13,10 +13,8 @@ interface IImportExportGameStateProps {
 }
 
 export function ImportExportGameState(props: IImportExportGameStateProps) {
-  const gameState = useSyncExternalStore(
-    gameStateController.subscribe.bind(gameStateController),
-    () => gameStateController.getSnapshot(),
-  );
+  const { gameStateController, cameraController } = useGameEngine();
+  const { gameData } = useContext(AppContext);
   const [showImportModal, setShowImportModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const version = useGameDataVersion();
@@ -35,6 +33,11 @@ export function ImportExportGameState(props: IImportExportGameStateProps) {
         try {
           const content = event.target?.result as string;
           gameStateController.loadFile(content, version);
+          const gameStateSnapshot = gameStateController.getSnapshot();
+          const capitalLocation = gameStateSnapshot.capitalLocation;
+          if (capitalLocation && gameData) {
+            cameraController.panToLocation(gameData, capitalLocation);
+          }
           setShowImportModal(false);
           setError(null);
         } catch (error) {
@@ -49,7 +52,7 @@ export function ImportExportGameState(props: IImportExportGameStateProps) {
 
       reader.readAsText(file);
     },
-    [version],
+    [version, gameStateController, cameraController, gameData],
   );
 
   if (!version) {
@@ -71,7 +74,6 @@ export function ImportExportGameState(props: IImportExportGameStateProps) {
         <span className="hidden md:block">Load</span>
       </button>
       <button
-        disabled={!gameState.capitalLocation}
         className={[
           styles.simpleButton,
           "flex flex-row items-center gap-1",
@@ -88,7 +90,7 @@ export function ImportExportGameState(props: IImportExportGameStateProps) {
         <span className="hidden md:block">Save</span>
       </button>
       <Modal isOpen={showImportModal} onClose={() => setShowImportModal(false)}>
-        <div className="min-h-[30vh] min-w-[400px] flex flex-col gap-2 items-center">
+        <div className="min-h-[30vh] min-w-100 flex flex-col gap-2 items-center">
           <h1 className="font-bold text-xl">Import a Game State file</h1>
           <span className="text-stone-600 text-center">
             {`You may import a JSON file exported through the "Save State" button`}

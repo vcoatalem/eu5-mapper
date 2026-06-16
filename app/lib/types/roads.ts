@@ -14,12 +14,7 @@ export const ZodRoadType = z.enum([
   "rail_road",
 ]);
 export type RoadType = z.infer<typeof ZodRoadType>;
-export const allRoadTypes: readonly RoadType[] = [
-  "gravel_road",
-  "paved_road",
-  "modern_road",
-  "rail_road",
-];
+export const allRoadTypes = ZodRoadType.options;
 
 export const ZodBaseRoadRecord = z.record(ZodRoadKey, ZodRoadType);
 export const ZodRoadRecord = z.record(ZodRoadKey, ZodRoadType.nullable());

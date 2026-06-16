@@ -4,10 +4,10 @@ import { CountrySelectionModal } from "@/app/components/countrySelectionModal.co
 import { GameVersionSelector } from "@/app/components/gameVersionSelector.component";
 import { ImportExportGameState } from "@/app/components/importExportGameState.component";
 import { Help } from "@/app/components/help.component";
-import { useContext, useState, useSyncExternalStore } from "react";
+import { useContext, useState } from "react";
 import { PiCopyrightLight } from "react-icons/pi";
 import { AppContext } from "../appContextProvider";
-import { gameStateController } from "../lib/gameState.controller";
+import { useModel } from "../lib/gameEngineContext";
 import { Modal } from "../lib/modal/modal.component";
 import styles from "../styles/Gui.module.css";
 import buttonStyles from "../styles/button.module.css";
@@ -15,11 +15,7 @@ import { PosthogSurveyButton } from "@/app/components/posthogSurveyButton.compon
 import { PosthogHelper } from "@/app/lib/utils/posthog.helper";
 
 function RegularHeader() {
-  const gameState = useSyncExternalStore(
-    // TODO: put a special subject in gameStateController for Country changes ?
-    gameStateController.subscribe.bind(gameStateController),
-    () => gameStateController.getSnapshot(),
-  );
+  const gameState = useModel("gameStateController");
 
   const [chooseCountryModalOpen, setChooseCountryModalOpen] = useState(false);
   const [showCopyrightNotice, setShowCopyrightNotice] = useState(false);

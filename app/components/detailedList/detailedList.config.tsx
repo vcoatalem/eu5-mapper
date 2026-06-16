@@ -1,18 +1,18 @@
+import { ILocationDetailedViewData } from "@/app/components/detailedList/detailedLocationListModal.component";
+import { DisplayBuildings } from "@/app/components/detailedList/displayBuildings.component";
 import { DisplayDevelopment } from "@/app/components/detailedList/displayDevelopment.component";
 import { DisplayHarborSuitability } from "@/app/components/detailedList/displayHarborSuitability.component";
 import { DisplayLocation } from "@/app/components/detailedList/displayLocation.component";
 import { DisplayRank } from "@/app/components/detailedList/displayLocationRank.component";
 import { DisplayPop } from "@/app/components/detailedList/displayPop.component";
 import { DisplayProximity } from "@/app/components/detailedList/displayProximity.component";
-import { ILocationDetailedViewData } from "@/app/components/detailedList/detailedLocationListModal.component";
-import { LocationsHelper } from "@/app/lib/locations.helper";
-import { LocationIdentifier } from "@/app/lib/types/general";
-import { FaAnglesDown, FaAnglesUp } from "react-icons/fa6";
-import { PiPlusLight, PiMinusLight } from "react-icons/pi";
-import { DisplayBuildings } from "@/app/components/detailedList/displayBuildings.component";
 import { ArrayHelper } from "@/app/lib/array.helper";
+import { LocationsHelper } from "@/app/lib/locations.helper";
 import { ConstructibleAction } from "@/app/lib/types/constructibleAction";
+import { LocationIdentifier } from "@/app/lib/types/general";
 import { LocationRank } from "@/app/lib/types/locationRank";
+import { FaAnglesDown, FaAnglesUp } from "react-icons/fa6";
+import { PiMinusLight, PiPlusLight } from "react-icons/pi";
 
 export type SortOrder = "asc" | "desc" | null;
 
@@ -166,7 +166,8 @@ export const columns: Array<{
     title: "Buildings",
     cols: 6,
     displayComponent: DisplayBuildings,
-    sortBy: (a, b) => 0, // no sorting for now
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    sortBy: (_a, _b) => 0, //  no sorting for now
   },
 ];
 
@@ -178,7 +179,7 @@ export const defaultStoredLocationListConfig: IStoredLocationListConfig = {
     ...ArrayHelper.reduceToRecord(
       columns,
       (col) => col.title,
-      (_col) => true,
+      () => true,
     ),
   },
 };

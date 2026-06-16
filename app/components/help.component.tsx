@@ -1,10 +1,8 @@
-import { CopyrightNotice } from "@/app/components/copyrightNotice.component";
-import { CountryStats } from "@/app/components/countryStatsComponent";
+import { useGameDataVersion } from "@/app/[version]/version.guard";
 import { ImportExportGameState } from "@/app/components/importExportGameState.component";
 import { MainActionsBar } from "@/app/components/mainActionsBar.component";
 import { Modal } from "@/app/lib/modal/modal.component";
 import { HashHelper } from "@/app/lib/utils/hash.helper";
-import { useGameDataVersion } from "@/app/[version]/version.guard";
 import buttonStyles from "@/app/styles/button.module.css";
 import { useMemo, useState } from "react";
 import { AiOutlineQuestionCircle } from "react-icons/ai";
@@ -51,17 +49,15 @@ export function Help({ className = "" }: { className?: string }) {
 
             <div className="flex flex-col bg-blue-500/20 rounded-md px-2 py-1">
               <p>
-                - The proximity computation algorithm was created by
-                reverse-engineering most of the game's mechanics.
+                {`- The proximity computation algorithm was created by reverse-engineering most of the game's mechanics.`}
               </p>
               <p>
-                - While it is a good approximation, it may not be entirely
-                accurate.
+                {`- While it is a good approximation, it may not be entirely accurate`}
               </p>
               <p className="mr-16">
-                - Automated tests are run whenever the algorithm changes to
+                {` - Automated tests are run whenever the algorithm changes to
                 compare in-app results with in-game proximity computation, to
-                make sure the app does not stray too far from the truth.
+                make sure the app does not stray too far from the truth.`}
               </p>
 
               <hr className="border-stone-500 mt-2"></hr>
@@ -72,7 +68,7 @@ export function Help({ className = "" }: { className?: string }) {
               >
                 <AiOutlineQuestionCircle size={24} color="white" />
                 <span className="text-sm hover:text-yellow-500">
-                  See the latest performance report for version{" "}
+                  {`See the latest performance report for version `}
                   <b className="text-stone-400">{version}</b>
                 </span>
               </a>
@@ -80,8 +76,7 @@ export function Help({ className = "" }: { className?: string }) {
 
             <div className="flex flex-row mt-4 items-center">
               <div className="mr-20 text-stone-400">
-                Use the toolbar to interact with the game: changing capital,
-                creating buildings, roads, advances, ...
+                {`Use the toolbar to interact with the game: changing capital, creating buildings, roads, advances, ...`}
               </div>
               <div className="bg-blue-500/20 rounded-md px-2 py-1">
                 <MainActionsBar isTutorial={true}></MainActionsBar>
@@ -95,8 +90,7 @@ export function Help({ className = "" }: { className?: string }) {
                 ></ImportExportGameState>
               </div>
               <span className="ml-6 text-stone-400">
-                Use the import/export feature save your setup, and resume it
-                next time
+                {`Use the import/export feature save your setup, and resume it next time`}
               </span>
             </div>
 

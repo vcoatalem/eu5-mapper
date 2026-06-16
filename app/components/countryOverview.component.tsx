@@ -1,18 +1,15 @@
 import { DisplayCountryProximityBuffs } from "@/app/components/countryBuffs/countryProximityBuffs.component";
 import { FoldableMenu } from "@/app/components/foldableMenu.component";
-import { gameStateController } from "@/app/lib/gameState.controller";
-import { useContext, useState, useSyncExternalStore } from "react";
+import { useContext, useState } from "react";
 import { AppContext } from "../appContextProvider";
 import { CountryValuesInput } from "./countryValuesInput.component";
+import { useModel } from "@/app/lib/gameEngineContext";
 
 export function CountryOverview() {
   const [countryMenuExpanded, setCountryMenuExpanded] = useState(false);
   const [countryProximityBuffsExpanded, setCountryProximityBuffsExpanded] =
     useState(false);
-  const gameState = useSyncExternalStore(
-    gameStateController.subscribe.bind(gameStateController),
-    () => gameStateController.getSnapshot(),
-  );
+  const gameState = useModel("gameStateController");
 
   const { gameData } = useContext(AppContext);
 

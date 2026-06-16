@@ -1,16 +1,9 @@
-import {
-  BaseRoadRecord,
-  RoadKey,
-  RoadRecord,
-  RoadType,
-  ZodRoadKey,
-} from "@/app/lib/types/roads";
-import { LocationIdentifier } from "./types/general";
 import { ObjectHelper } from "@/app/lib/object.helper";
 import {
   GameState,
-  GameStateOwnedLocationRecord,
 } from "@/app/lib/types/gameState";
+import { BaseRoadRecord, RoadKey, RoadRecord, RoadType, ZodRoadKey } from "@/app/lib/types/roads";
+import { LocationIdentifier } from "./types/general";
 
 export class RoadsHelper {
   public static roadRecordFromCsv(csvRows: [string, string][]): BaseRoadRecord {

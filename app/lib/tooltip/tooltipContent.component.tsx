@@ -1,3 +1,5 @@
+import { useGameEngine } from "@/app/lib/gameEngineContext";
+import { Coordinate } from "@/app/lib/types/coordinate";
 import {
   useCallback,
   useContext,
@@ -7,12 +9,10 @@ import {
   useRef,
   useState,
 } from "react";
-import { TooltipInstanceContext } from "./tooltip.component";
-import { TooltipProviderContext } from "./tooltip.provider";
 import { createPortal } from "react-dom";
-import { cameraController } from "../cameraController";
+import { TooltipInstanceContext } from "./tooltip.component";
 import styles from "./tooltip.module.css";
-import { Coordinate } from "@/app/lib/types/coordinate";
+import { TooltipProviderContext } from "./tooltip.provider";
 
 interface ITooltipDomAnchor {
   type: "dom";
@@ -32,6 +32,7 @@ interface ITooltipContentProps {
 export function TooltipContent(props: ITooltipContentProps) {
   const tooltipInstanceContext = useContext(TooltipInstanceContext);
   const tooltipProviderContext = useContext(TooltipProviderContext);
+  const { cameraController } = useGameEngine();
   const [position, setPosition] = useState<Coordinate | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
 
@@ -94,6 +95,7 @@ export function TooltipContent(props: ITooltipContentProps) {
     tooltipInstanceContext.isOpen,
     tooltipInstanceContext.mouseCoordinates,
     preferredPlacement,
+    cameraController,
   ]);
 
   useLayoutEffect(() => {
@@ -116,7 +118,7 @@ export function TooltipContent(props: ITooltipContentProps) {
     });
     // When the camera pans, the map moves, making tooltip position invalid. Need recomputing
     return unsubscribe;
-  }, [props.anchor.type, recomputePosition]);
+  }, [props.anchor.type, recomputePosition, cameraController]);
 
   if (!tooltipInstanceContext.isOpen) {
     return null;

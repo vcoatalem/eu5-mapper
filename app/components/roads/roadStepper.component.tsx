@@ -1,8 +1,8 @@
 import { ButtonWithTooltip } from "@/app/components/buttonWithTooltip.component";
+import { useGameEngine } from "@/app/lib/gameEngineContext";
 import { RoadKey, RoadType } from "@/app/lib/types/roads";
 import { useMemo, useRef } from "react";
 import { FaAnglesDown, FaAnglesUp } from "react-icons/fa6";
-import { gameStateController } from "@/app/lib/gameState.controller";
 import { getRoadIcon } from "@/app/lib/drawing/getImages";
 import Image from "next/image";
 import { Tooltip } from "@/app/lib/tooltip/tooltip.component";
@@ -21,6 +21,7 @@ export function RoadStepper({
   className,
 }: IRoadStepperProps) {
   const divRef = useRef<HTMLDivElement>(null);
+  const { gameStateController } = useGameEngine();
 
   const upgradeType = useMemo(() => {
     switch (roadType) {

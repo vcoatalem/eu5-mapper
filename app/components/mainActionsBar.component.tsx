@@ -1,44 +1,46 @@
 import { ButtonWithTooltip } from "@/app/components/buttonWithTooltip.component";
 import { CountryModifiersModal } from "@/app/components/countryBuffs/countryModifiersModal.component";
-import { EditMode, editModeController } from "@/app/lib/editMode.controller";
+import { EditMode, ACQUIRE_BRUSH_SIZES } from "@/app/lib/editMode.model";
 import { Popover } from "@/app/lib/popover/popover.component";
 import buttonStyles from "@/app/styles/button.module.css";
 import Image from "next/image";
-import { useCallback, useState, useSyncExternalStore } from "react";
+import { useCallback, useState } from "react";
 import { Modal } from "../lib/modal/modal.component";
 import { DetailedLocationListModal } from "./detailedList/detailedLocationListModal.component";
+import { useGameEngine, useModel } from "@/app/lib/gameEngineContext";
 
 interface IMainActionsBarProps {
   isTutorial?: boolean;
 }
 
 export function MainActionsBar({ isTutorial }: IMainActionsBarProps) {
-  const editModeState = useSyncExternalStore(
-    editModeController.subscribe.bind(editModeController),
-    () => editModeController.getSnapshot(),
-  );
+  const editModeState = useModel("editModeController");
+  const { editModeController } = useGameEngine();
 
   const [isDetailedLocationViewOpen, setIsDetailedLocationViewOpen] =
     useState(false);
 
   const [isCountryBuffsModalOpen, setIsCountryBuffsModalOpen] = useState(false);
 
-  const toggleMode = useCallback((mode: EditMode) => {
-    switch (mode) {
-      case "capital":
-        editModeController.toggleCapitalMode();
-        break;
-      case "road":
-        editModeController.toggleRoadMode();
-        break;
-      case "maritime":
-        editModeController.toggleMaritimeMode();
-        break;
-      case "acquire":
-        editModeController.enableAcquireMode();
-        break;
-    }
-  }, []);
+  const toggleMode = useCallback(
+    (mode: EditMode) => {
+      switch (mode) {
+        case "capital":
+          editModeController.toggleCapitalMode();
+          break;
+        case "road":
+          editModeController.toggleRoadMode();
+          break;
+        case "maritime":
+          editModeController.toggleMaritimeMode();
+          break;
+        case "acquire":
+          editModeController.enableAcquireMode();
+          break;
+      }
+    },
+    [editModeController],
+  );
 
   return (
     <div className="flex flex-row gap-2 items-center">
@@ -71,7 +73,7 @@ export function MainActionsBar({ isTutorial }: IMainActionsBarProps) {
         )}
       >
         <div className="flex flex-col gap-2">
-          {(["location", "province", "area"] as const).map((size) => (
+          {ACQUIRE_BRUSH_SIZES.map((size) => (
             <button
               key={size}
               className={[
@@ -236,7 +238,7 @@ export function MainActionsBar({ isTutorial }: IMainActionsBarProps) {
             </button>
             <button
               onClick={() => editModeController.toggleCapitalMode()}
-              className="border border white px-2 py-1 min-w-16 hover:bg-stone-600 text-white rounded-md font-bold"
+              className="border white px-2 py-1 min-w-16 hover:bg-stone-600 text-white rounded-md font-bold"
             >
               Cancel
             </button>

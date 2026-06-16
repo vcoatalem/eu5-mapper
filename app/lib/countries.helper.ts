@@ -1,5 +1,5 @@
 import { CountryDataRecord } from "@/app/lib/types/country";
-import { GameData, LocationIdentifier } from "@/app/lib/types/general";
+import { LocationIdentifier } from "@/app/lib/types/general";
 
 export class CountriesHelper {
   public static getCountryBaseCapitalLocation(

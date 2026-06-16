@@ -1,14 +1,14 @@
-import { countryBuffsMetadata } from "@/app/lib/classes/countryProximityBuffs.const";
-import { GameData } from "../types/general";
 import { ArrayHelper } from "@/app/lib/array.helper";
+import { countryBuffsMetadata } from "@/app/lib/classes/countryProximityBuffs.const";
 import { ObjectHelper } from "@/app/lib/object.helper";
+import { BuffValue } from "@/app/lib/types/buffValue";
+import { CountryInstance } from "@/app/lib/types/countryInstance";
 import {
   baseCountryProximityBuffs,
   CountryProximityBuffs,
 } from "@/app/lib/types/countryProximityBuffs";
-import { BuffValue } from "@/app/lib/types/buffValue";
 import { CountryValues } from "@/app/lib/types/countryValues";
-import { CountryInstance } from "@/app/lib/types/countryInstance";
+import { GameData } from "../types/general";
 
 export class ProximityBuffsRecord {
   private countryProximityBuffs: Record<string, CountryProximityBuffs> = {};
@@ -91,7 +91,7 @@ export class ProximityBuffsRecord {
 
       const buffToApplyValue = buffToApply[key];
       if (buffToApplyValue) {
-        res[key] = buffToApplyValue * impactFactor;
+        res = { ...res, [key]: buffToApplyValue * impactFactor };
       }
     }
     return res;

@@ -1,27 +1,27 @@
 import { Observable } from "./observable";
 import { LocationIdentifier } from "./types/general";
 import { workerManager } from "@/app/lib/workerManager";
-import { gameStateController } from "@/app/lib/gameState.controller";
+import { GameStateModel } from "@/app/lib/gameState.model";
 import { PathfindingResult } from "./types/pathfinding";
 import { ArrayHelper } from "@/app/lib/array.helper";
 import { ZodWorkerTaskComputeNeighborsResult } from "@/workers/types/computeNeighbors";
 
-type NeighborsProximityComputationResults = {
+export type NeighborsProximityResults = {
   computationResults: Record<
     LocationIdentifier,
     {
       neighbors: PathfindingResult;
-      status: "pending" | "completed" | "error" | "needs_update"; // TODO : detect when result expire and need to be recomputed
+      status: "pending" | "completed" | "error" | "needs_update";
     }
   >;
 };
 
-class NeighborProximityComputationController extends Observable<NeighborsProximityComputationResults> {
+export class NeighborsProximityModel extends Observable<NeighborsProximityResults> {
   private lastCompletedTaskId: string | null = null;
   private unsubscribeWorkerManager: (() => void) | null = null;
   private unsubscribeGameState: (() => void) | null = null;
 
-  constructor() {
+  constructor(private gameState: GameStateModel) {
     super();
     this.subject = {
       computationResults: {},
@@ -55,9 +55,7 @@ class NeighborProximityComputationController extends Observable<NeighborsProximi
       },
     );
 
-    this.unsubscribeGameState = gameStateController.subscribe(() => {
-      // invalidate all results
-
+    this.unsubscribeGameState = this.gameState.subscribe(() => {
       this.subject = {
         computationResults: ArrayHelper.reduceToRecord(
           Object.entries(this.subject.computationResults),
@@ -74,7 +72,6 @@ class NeighborProximityComputationController extends Observable<NeighborsProximi
 
   public launchGetNeighborsProximity(locationName: LocationIdentifier): void {
     if (this.subject.computationResults[locationName]?.status === "pending") {
-      // job is still running, wait for it to complete
       return;
     }
     if (this.subject.computationResults[locationName]?.status === "completed") {
@@ -93,14 +90,8 @@ class NeighborProximityComputationController extends Observable<NeighborsProximi
       type: "computeNeighbors",
       payload: {
         locationName,
-        gameState: gameStateController.getSnapshot(), //TODO: find better than this
+        gameState: this.gameState.getSnapshot(),
       },
     });
   }
 }
-
-export const neighborsProximityComputationController =
-  new NeighborProximityComputationController();
-
-export const debouncedNeighborsProximityComputationController =
-  neighborsProximityComputationController.debounce(100);

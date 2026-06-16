@@ -1,11 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import {
-  actionEventDispatcher,
-  type HoverActionType,
-  type ClickActionType,
-} from "./actionEventDispatcher";
+import type { HoverActionType, ClickActionType } from "./actionEventDispatcher";
+import { useGameEngine } from "./gameEngineContext";
 import type { LocationIdentifier } from "./types/general";
 
 export type LocationsInput = (
@@ -56,13 +53,14 @@ export const ActionSource = React.forwardRef(function ActionSource<
   ref: React.Ref<T>,
 ) {
   const internalRef = useRef<T | null>(null);
+  const { actionEventsController } = useGameEngine();
 
   useEffect(() => {
     const el = internalRef.current as unknown as HTMLElement | null;
     if (!el) return;
 
     if (hover) {
-      actionEventDispatcher.registerHoverActionSource(
+      actionEventsController.registerHoverActionSource(
         el,
         locations,
         hover.type ?? null,
@@ -71,7 +69,7 @@ export const ActionSource = React.forwardRef(function ActionSource<
     }
 
     if (click) {
-      actionEventDispatcher.registerClickActionSource(
+      actionEventsController.registerClickActionSource(
         el,
         (e) => Promise.resolve(locations(e)).then((r) => r ?? []),
         click.type ?? null,
@@ -79,13 +77,13 @@ export const ActionSource = React.forwardRef(function ActionSource<
     }
 
     return () => {
-      actionEventDispatcher.clearEventListenersForElement(el);
+      actionEventsController.clearEventListenersForElement(el);
     };
     // We intentionally do not include `hover` / `click` objects in deps to
     // avoid re-registering handlers on every render; callers should pass
     // stable values (or memoized callbacks) for `locations` when needed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locations]);
+  }, [locations, actionEventsController]);
 
   const child = React.Children.only(children) as React.ReactElement<{
     ref?: React.Ref<T>;

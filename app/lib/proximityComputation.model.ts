@@ -1,22 +1,19 @@
-import { debouncedGameStateController } from "@/app/lib/gameState.controller";
+import { GameState } from "@/app/lib/types/gameState";
+import { ZodWorkerTaskComputeProximityResult } from "@/workers/types/computeProximity";
 import { Observable } from "./observable";
 import { GraphStats, PathfindingResult } from "./types/pathfinding";
 import { workerManager } from "./workerManager";
-import {
-  ZodWorkerTaskComputeProximityPayload,
-  ZodWorkerTaskComputeProximityResult,
-} from "@/workers/types/computeProximity";
 
 export interface IProximityComputationResults {
   result: PathfindingResult;
   status: "pending" | "completed" | "error" | "updating";
 }
 
-export class ProximityComputationController extends Observable<IProximityComputationResults> {
+export class ProximityComputationModel extends Observable<IProximityComputationResults> {
   private unsubscribeWorkerManager: (() => void) | null = null;
   private unsubscribeGameState: (() => void) | null = null;
 
-  constructor() {
+  constructor(private debouncedGameState: Observable<GameState>) {
     super();
   }
 
@@ -40,7 +37,7 @@ export class ProximityComputationController extends Observable<IProximityComputa
         )?.graphStats;
         if (workerManagerStatus.lastCompletedTask?.type === "initGraphWorker") {
           console.log(
-            `[ProximityComputationController] Adjacency graph built:`,
+            `[ProximityComputationModel] Adjacency graph built:`,
             stats,
           );
           console.log(`  - Nodes: ${stats.nodes}`);
@@ -63,14 +60,14 @@ export class ProximityComputationController extends Observable<IProximityComputa
           this.subject.result = data.result;
           this.subject.status = "completed";
           console.log(
-            "[ProximityComputationController] Proximity computation completed",
+            "[ProximityComputationModel] Proximity computation completed",
             { newState: this.subject },
           );
           this.notifyListeners();
         }
       },
     );
-    this.unsubscribeGameState = debouncedGameStateController.subscribe(
+    this.unsubscribeGameState = this.debouncedGameState.subscribe(
       (gameState) => {
         this.subject.status = "updating";
         this.notifyListeners();
@@ -85,9 +82,3 @@ export class ProximityComputationController extends Observable<IProximityComputa
     );
   }
 }
-
-export const proximityComputationController =
-  new ProximityComputationController();
-
-export const debouncedProximityComputationController =
-  proximityComputationController.debounce(100);

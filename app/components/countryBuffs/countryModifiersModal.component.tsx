@@ -7,10 +7,12 @@ import { CountryStats } from "@/app/components/countryStatsComponent";
 import { CountryValuesInput } from "@/app/components/countryValuesInput.component";
 import { FoldableMenu } from "@/app/components/foldableMenu.component";
 import { Loader } from "@/app/components/loader.component";
-import { countryModifiersTemplatesController } from "@/app/lib/countryModifiers.controller";
-import { gameStateController } from "@/app/lib/gameState.controller";
+import { useGameEngine, useModel } from "@/app/lib/gameEngineContext";
+import { ObjectHelper } from "@/app/lib/object.helper";
+import { CountryModifierTemplate } from "@/app/lib/types/countryModifiers";
+import { CountryProximityBuffs } from "@/app/lib/types/countryProximityBuffs";
 import buttonStyles from "@/app/styles/button.module.css";
-import { useParams } from "next/navigation";
+import posthog from "posthog-js";
 import {
   useCallback,
   useContext,
@@ -18,16 +20,10 @@ import {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
 } from "react";
 import { FaCheckSquare } from "react-icons/fa";
 import { FaArrowUp, FaPlus, FaSquare } from "react-icons/fa6";
 import { FiDelete } from "react-icons/fi";
-import posthog from "posthog-js";
-import { ObjectHelper } from "@/app/lib/object.helper";
-import { CountryModifierTemplate } from "@/app/lib/types/countryModifiers";
-import { CountryProximityBuffs } from "@/app/lib/types/countryProximityBuffs";
-import { useGameDataVersion } from "@/app/[version]/version.guard";
 
 interface ICountryModifiersModal {
   onClose: () => void;
@@ -124,17 +120,9 @@ function ModifierItem({
 
 export function CountryModifiersModal(props: ICountryModifiersModal) {
   const { gameData } = useContext(AppContext);
-  const gameState = useSyncExternalStore(
-    gameStateController.subscribe.bind(gameStateController),
-    () => gameStateController.getSnapshot(),
-  );
-
-  const countryModifierTemplates = useSyncExternalStore(
-    countryModifiersTemplatesController.subscribe.bind(
-      countryModifiersTemplatesController,
-    ),
-    () => countryModifiersTemplatesController.getSnapshot(),
-  );
+  const engine = useGameEngine();
+  const gameState = useModel("gameStateController");
+  const countryModifierTemplates = useModel("countryModifiersController");
 
   const [countryModifiersOpen, setCountryModifiersOpen] = useState(false);
   const [countryValuesOpen, setCountryValuesOpen] = useState(false);
@@ -145,17 +133,11 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
   const [createCustomModifierFormOpen, setCreateCustomModifierFormOpen] =
     useState(false);
 
-  const version = useGameDataVersion();
-
   useEffect(() => {
-    if (!version) {
-      throw new Error("[CreateCustomModifierForm] version not found");
-    }
-    countryModifiersTemplatesController.init(version);
     if (Object.keys(gameState.country?.modifiers ?? {}).length > 0) {
       queueMicrotask(() => setCountryModifiersOpen(true));
     }
-  }, [version]);
+  }, [gameState.country?.modifiers]);
 
   const addModifier = useCallback(
     (
@@ -166,7 +148,7 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
       if (!gameState.country) {
         return;
       }
-      gameStateController.changeCountryModifier(name, {
+      engine.gameStateController.changeCountryModifier(name, {
         description: description ?? "",
         buff,
         enabled: true,
@@ -176,7 +158,7 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
         setSelectedModifier(null);
       });
     },
-    [gameState],
+    [gameState, engine.gameStateController],
   );
 
   const removeBuff = useCallback(
@@ -184,9 +166,9 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
       if (!gameState.country) {
         return;
       }
-      gameStateController.removeCountryModifier(name);
+      engine.gameStateController.removeCountryModifier(name);
     },
-    [gameState],
+    [gameState, engine.gameStateController],
   );
 
   const toggleBuff = useCallback(
@@ -195,12 +177,16 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
         return;
       }
       if (gameState.country?.modifiers[name]?.enabled) {
-        gameStateController.changeCountryModifier(name, { enabled: false });
+        engine.gameStateController.changeCountryModifier(name, {
+          enabled: false,
+        });
       } else {
-        gameStateController.changeCountryModifier(name, { enabled: true });
+        engine.gameStateController.changeCountryModifier(name, {
+          enabled: true,
+        });
       }
     },
-    [gameState],
+    [gameState, engine.gameStateController],
   );
 
   const createAndSelectCustomModifier = useCallback(
@@ -230,8 +216,8 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
         buff: buffWithAllKeys,
       };
       posthog.capture("custom_modifier_created", { name, description, buff });
-      countryModifiersTemplatesController.addModifierTemplate(template);
-      gameStateController.changeCountryModifier(name, {
+      engine.countryModifiersController.addModifierTemplate(template);
+      engine.gameStateController.changeCountryModifier(name, {
         description: description ?? "",
         buff: buff,
         enabled: true,
@@ -251,6 +237,8 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
       setCreateCustomModifierFormOpen,
       setCountryModifiersOpen,
       setHoveredModifier,
+      engine.countryModifiersController,
+      engine.gameStateController,
     ],
   );
 
@@ -301,14 +289,14 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
         </button>
       </div>
 
-      <hr className="w-full border-stone-600 border-b-1 flex-0 my-2"></hr>
+      <hr className="w-full border-stone-600 border-b flex-0 my-2"></hr>
 
       {/* BODY */}
       <div className="flex flex-row items-stretch flex-1 min-h-0 overflow-hidden">
         {/* LEFT SIDE: LIST OF BUFFS FOR THE COUNTRY + TEMPLATE LIBRARY */}
-        <div className="w-[45%] h-full min-h-0 border-stone-600 border-r-1 p-2 flex flex-col gap-2 shrink-0">
+        <div className="w-[45%] h-full min-h-0 border-stone-600 border-r p-2 flex flex-col gap-2 shrink-0">
           {/* COUNTRY MODIFIERS */}
-          <div className="flex flex-col h-[50%] gap-2 border-stone-600 border-1 overflow-y-scroll">
+          <div className="flex flex-col h-[50%] gap-2 border-stone-600 border overflow-y-scroll">
             <FoldableMenu
               title={
                 <>
@@ -356,13 +344,13 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
           </div>
 
           {/* BUFF TEMPLATES */}
-          <div className="relative flex flex-col max-h-[50%] flex-1 border-stone-600 border-1 overflow-y-auto overflow-x-hidden overscroll-none">
+          <div className="relative flex flex-col max-h-[50%] flex-1 border-stone-600 border overflow-y-auto overflow-x-hidden overscroll-none">
             {countryModifierTemplates.isLoadingCountryModifiersTemplate ? (
               <div className="flex flex-col items-center justify-center flex-1">
                 <Loader size={52} />
               </div>
             ) : (
-              <div className="flex flex-row-reverse items-center gap-2 sticky top-0 left-0 right-0 z-10 bg-black border-stone-600 border-b-1">
+              <div className="flex flex-row-reverse items-center gap-2 sticky top-0 left-0 right-0 z-10 bg-black border-stone-600 border-b">
                 <ButtonWithTooltip
                   tooltip={
                     selectedModifier
@@ -426,7 +414,7 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
         <div className="w-[55%] h-full min-h-0 min-w-0 p-2 flex flex-col">
           {/* SELECTED BUFF DETAILS + CREATE NEW MODIFIER FORM */}
           <div
-            className={`flex flex-col min-h-0 min-w-0 border-stone-600 border-1 p-2 overflow-hidden shrink ${createCustomModifierFormOpen ? "flex-1" : "flex-[0_0_50%]"}`}
+            className={`flex flex-col min-h-0 min-w-0 border-stone-600 border p-2 overflow-hidden shrink ${createCustomModifierFormOpen ? "flex-1" : "flex-[0_0_50%]"}`}
           >
             {(createCustomModifierFormOpen && (
               <CreateCustomModifierForm
@@ -446,7 +434,7 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
                       {showcasedModifier.description}
                     </p>
                   )}
-                  <hr className="w-full border-stone-600 border-b-1 flex-0 my-2"></hr>
+                  <hr className="w-full border-stone-600 border-b flex-0 my-2"></hr>
                   {showcasedModifier.buff &&
                     ObjectHelper.getTypedEntries(showcasedModifier.buff)
                       .filter(([, value]) => value !== null)
@@ -464,11 +452,11 @@ export function CountryModifiersModal(props: ICountryModifiersModal) {
           </div>
           {/* COUNTRY BUFFS BREAKDOWN - hidden when creating a new modifier */}
           {!createCustomModifierFormOpen && (
-            <div className="flex-1 min-h-0 border-stone-600 border-1 p-2 flex flex-col overflow-hidden">
+            <div className="flex-1 min-h-0 border-stone-600 border p-2 flex flex-col overflow-hidden">
               <h1>
                 <b>Country Buffs Breakdown</b>
               </h1>
-              <hr className="w-full border-stone-600 border-b-1 flex-0 my-2"></hr>
+              <hr className="w-full border-stone-600 border-b flex-0 my-2"></hr>
               <DisplayCountryProximityBuffs
                 country={gameState.country}
               ></DisplayCountryProximityBuffs>

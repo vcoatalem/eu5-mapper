@@ -1,11 +1,9 @@
-import {
-  getLayerVisibilityClass,
-  layerVisibilityController,
-} from "@/app/lib/layerVisibility.controller";
+import { useGameEngine, useModel } from "@/app/lib/gameEngineContext";
+import { getLayerVisibilityClass } from "@/app/lib/layerVisibility.model";
 import { ObjectHelper } from "@/app/lib/object.helper";
 import { Popover } from "@/app/lib/popover/popover.component";
 import stylesButton from "@/app/styles/button.module.css";
-import { useMemo, useSyncExternalStore } from "react";
+import { useMemo } from "react";
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa6";
 
 interface ILayerVisibilityEditionProps {
@@ -15,10 +13,8 @@ interface ILayerVisibilityEditionProps {
 export function LayerVisibilityEdition({
   className,
 }: ILayerVisibilityEditionProps) {
-  const layerVisibilityState = useSyncExternalStore(
-    layerVisibilityController.subscribe.bind(layerVisibilityController),
-    () => layerVisibilityController.getSnapshot(),
-  );
+  const layerVisibilityState = useModel("layerVisibilityController");
+  const { layerVisibilityController } = useGameEngine();
 
   const someLayersHidden = useMemo(() => {
     return Object.values(layerVisibilityState.layerVisibility).some(
@@ -47,7 +43,7 @@ export function LayerVisibilityEdition({
     >
       <div className="flex flex-col gap-2">
         {ObjectHelper.getTypedEntries(layerVisibilityState.layerVisibility).map(
-          ([layerName, visibility]) => (
+          ([layerName]) => (
             <button
               disabled={
                 layerVisibilityState.layerVisibility[layerName]?.forced !==

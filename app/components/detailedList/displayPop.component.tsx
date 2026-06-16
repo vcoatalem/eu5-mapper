@@ -1,11 +1,12 @@
 import { ILocationDetailedViewData } from "@/app/components/detailedList/detailedLocationListModal.component";
 import { EditableField } from "@/app/components/editableField.component";
 import { ColorHelper } from "@/app/lib/drawing/color.helper";
-import { gameStateController } from "@/app/lib/gameState.controller";
+import { useGameEngine } from "@/app/lib/gameEngineContext";
 import { NumbersHelper } from "@/app/lib/utils/numbers.helper";
 import { validatePositiveInteger } from "@/app/lib/utils/editableFieldValidation.helper";
 
 export function DisplayPop(props: { data: ILocationDetailedViewData }) {
+  const { gameStateController } = useGameEngine();
   const { pop, basePop } = {
     pop:
       props.data.temporaryLocationData.population ??

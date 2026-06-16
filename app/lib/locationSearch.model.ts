@@ -1,9 +1,7 @@
-"use client";
-
 import { LocationHierarchyService } from "@/app/lib/locationHierarchy.service";
+import { ILocationHierarchy } from "@/app/lib/types/locationHierarchy";
 import { Observable } from "./observable";
 import { GameData, LocationIdentifier } from "./types/general";
-import { ILocationHierarchy } from "@/app/lib/types/locationHierarchy";
 
 export interface ILocationSearchResult {
   locations: Array<{
@@ -14,33 +12,30 @@ export interface ILocationSearchResult {
   }>;
 }
 
-export class LocationSearchController extends Observable<ILocationSearchResult> {
+export class LocationSearchModel extends Observable<ILocationSearchResult> {
   private gameData: GameData | null = null;
   private maxResults: number = 10;
 
   constructor() {
     super();
     this.subject = { locations: [] };
-    if (typeof module !== "undefined" && (module as any).hot) {
-      // HMR handle
+    /*  if (typeof module !== "undefined" && (module as any).hot) {
       const latestGameData = (window as any).__latestGameData;
       if (latestGameData) {
-        console.log(
-          "[LocationSearchController] handle HMR for LocationSearchController",
-        );
+        console.log("[LocationSearchModel] handle HMR for LocationSearchModel");
         this.init(latestGameData);
       }
-    }
+    } */
   }
 
   public init(gameData: GameData): void {
     this.gameData = gameData;
-    (window as any).__latestGameData = gameData;
+    /* (window as any).__latestGameData = gameData; */
   }
 
   public async search(query: string): Promise<void> {
     if (!this.gameData) {
-      throw new Error("[LocationSearchController] Not initialized");
+      throw new Error("[LocationSearchModel] Not initialized");
     }
     if (!query || query.trim().length === 0) {
       this.subject = { locations: [] };
@@ -65,12 +60,10 @@ export class LocationSearchController extends Observable<ILocationSearchResult> 
       locations.push(
         ...nonLocationHierarchyMatches
           .flatMap((match) => match.locations)
-          .filter((loc) => loc.hierarchyType !== "continent"), //exclude continents for now, to avoid performance issues in client
+          .filter((loc) => loc.hierarchyType !== "continent"),
       );
     }
     this.subject = { locations };
     this.notifyListeners();
   }
 }
-
-export const locationSearchController = new LocationSearchController();

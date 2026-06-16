@@ -1,13 +1,11 @@
-import {
-  GameDataVersion,
-  ZodGameDataVersion,
-} from "@/app/config/gameData.config";
+import { GameDataVersion } from "@/app/config/gameData.config";
 import {
   GameDataLoaderHelper,
   IGameDataParsedFiles,
 } from "@/app/lib/gameDataLoader.helper";
-import { GameStateController } from "@/app/lib/gameState.controller";
+import { GameStateModel } from "@/app/lib/gameState.model";
 import { CompactGraph } from "@/app/lib/graph";
+import { ObjectHelper } from "@/app/lib/object.helper";
 import { ParserHelper } from "@/app/lib/parser.helper";
 import { ProximityComputationHelper } from "@/app/lib/proximityComputation.helper";
 import { GameData, LocationIdentifier } from "@/app/lib/types/general";
@@ -19,13 +17,12 @@ import {
   readReferenceFileSync,
   ReferenceFile,
 } from "./utils";
-import { ObjectHelper } from "@/app/lib/object.helper";
 
 const testTimeout = 30_000;
 
-const referenceFiles = getAllReferenceFilePaths(
-  "tests/pathfinding/references/",
-); /* .filter((filePath) => filePath.includes("eng") && filePath.includes('1_1_4'));// && filePath.includes('1_0_11')); */
+const referenceFiles =
+  getAllReferenceFilePaths(); /* .filter((filePath) => filePath.includes("eng") && filePath.includes('1_1_4'));// && filePath.includes('1_0_11')); */
+/* "tests/pathfinding/references/", */
 
 const groupByVersion = <T extends { version: GameDataVersion }>(items: T[]) => {
   const map: Partial<Record<GameDataVersion, T[]>> = {};
@@ -110,7 +107,7 @@ async function runPathfindingCase(
     colorToNameMap: {}, // not needed for pathfinding
   };
 
-  const gameStateController = new GameStateController();
+  const gameStateController = new GameStateModel();
   gameStateController.init(gameData, version);
   gameStateController.reset(ref.countryCode);
   gameStateController.changeCountryRulerAdministrativeAbility(

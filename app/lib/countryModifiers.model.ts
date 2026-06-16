@@ -1,3 +1,4 @@
+import { GameDataLoaderHelper } from "@/app/lib/gameDataLoader.helper";
 import { IndexedDBReader } from "@/app/lib/indexeddb/indexeddb-reader";
 import { IndexedDBWriter } from "@/app/lib/indexeddb/indexeddb-writer";
 import {
@@ -8,7 +9,6 @@ import {
   dbVersion,
 } from "@/app/lib/indexeddb/indexeddb.const";
 import { Observable } from "@/app/lib/observable";
-import { GameDataLoaderHelper } from "@/app/lib/gameDataLoader.helper";
 import { CountryModifierTemplate } from "@/app/lib/types/countryModifiers";
 
 export interface ICountryModifiersTemplatesState {
@@ -16,7 +16,7 @@ export interface ICountryModifiersTemplatesState {
   isLoadingCountryModifiersTemplate: boolean;
 }
 
-class CountryModifiersTemplatesController extends Observable<ICountryModifiersTemplatesState> {
+export class CountryModifiersModel extends Observable<ICountryModifiersTemplatesState> {
   constructor() {
     super();
     this.subject = {
@@ -29,7 +29,6 @@ class CountryModifiersTemplatesController extends Observable<ICountryModifiersTe
     const indexedDBReader = new IndexedDBReader(
       dbName,
       dbVersion,
-      dbStoreNames,
     );
 
     return indexedDBReader
@@ -42,7 +41,7 @@ class CountryModifiersTemplatesController extends Observable<ICountryModifiersTe
           return false;
         } else {
           console.log(
-            "[CountryModifiersController] Country modifiers template found in indexedDB",
+            "[CountryModifiersModel] Country modifiers template found in indexedDB",
             countryModifiersTemplate,
           );
           this.subject.countryModifiersTemplates =
@@ -73,7 +72,7 @@ class CountryModifiersTemplatesController extends Observable<ICountryModifiersTe
       })
       .catch((error) => {
         console.error(
-          "[CountryModifiersController] Error loading country modifiers template",
+          "[CountryModifiersModel] Error loading country modifiers template",
           error,
         );
         return false;
@@ -101,12 +100,12 @@ class CountryModifiersTemplatesController extends Observable<ICountryModifiersTe
           )
           .then(() => {
             console.log(
-              "[CountryModifiersController] Country modifiers templates set from server and persisted to indexedDB",
+              "[CountryModifiersModel] Country modifiers templates set from server and persisted to indexedDB",
             );
           })
           .catch((error: unknown) => {
             console.error(
-              "[CountryModifiersController] Error persisting country modifiers templates to indexedDB",
+              "[CountryModifiersModel] Error persisting country modifiers templates to indexedDB",
               error,
             );
           });
@@ -114,7 +113,7 @@ class CountryModifiersTemplatesController extends Observable<ICountryModifiersTe
       } else {
         this.subject.isLoadingCountryModifiersTemplate = false;
         this.notifyListeners();
-        throw new Error("[CountryModifiersController] Could not set templates");
+        throw new Error("[CountryModifiersModel] Could not set templates");
       }
     }
   }
@@ -127,6 +126,3 @@ class CountryModifiersTemplatesController extends Observable<ICountryModifiersTe
     this.notifyListeners();
   }
 }
-
-export const countryModifiersTemplatesController =
-  new CountryModifiersTemplatesController();

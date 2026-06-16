@@ -1,41 +1,32 @@
-import {
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  useSyncExternalStore,
-} from "react";
-import { ModalInstanceContext } from "@/app/lib/modal/modal.component";
-import { gameStateController } from "@/app/lib/gameState.controller";
-import { AppContext } from "../../appContextProvider";
-import { CountryStats } from "../countryStatsComponent";
-import { LocationIdentifier } from "../../lib/types/general";
-import { DetailedLocationList } from "./detailedLocationList.component";
-import { StringHelper } from "@/app/lib/utils/string.helper";
-import { proximityComputationController } from "@/app/lib/proximityComputation.controller";
-import { IoSearch } from "react-icons/io5";
-import { ProximityComputationHelper } from "@/app/lib/proximityComputation.helper";
-import { EligibleBuildingService } from "@/app/lib/eligibleBuilding.service";
-import { HiOutlineCog6Tooth } from "react-icons/hi2";
-import styles from "@/app/styles/button.module.css";
+import { useGameDataVersion } from "@/app/[version]/version.guard";
 import {
   columns,
   IStoredLocationListConfig,
   loadConfigFromLocalStorage,
   saveConfigToLocalStorage,
 } from "@/app/components/detailedList/detailedList.config";
-import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
-import { useParams } from "next/navigation";
 import { Loader } from "@/app/components/loader.component";
-import { Popover } from "@/app/lib/popover/popover.component";
+import { EligibleBuildingService } from "@/app/lib/eligibleBuilding.service";
+import { useModel } from "@/app/lib/gameEngineContext";
+import { ModalInstanceContext } from "@/app/lib/modal/modal.component";
 import { ObjectHelper } from "@/app/lib/object.helper";
-import { ILocationGameData } from "@/app/lib/types/location";
+import { Popover } from "@/app/lib/popover/popover.component";
+import { ProximityComputationHelper } from "@/app/lib/proximityComputation.helper";
+import { IConstructibleLocation } from "@/app/lib/types/constructibleLocation";
 import { ConstructibleState } from "@/app/lib/types/constructibleState";
 import { GameState } from "@/app/lib/types/gameState";
-import { IConstructibleLocation } from "@/app/lib/types/constructibleLocation";
+import { ILocationGameData } from "@/app/lib/types/location";
 import { ITemporaryLocationData } from "@/app/lib/types/temporaryLocationData";
-import { useGameDataVersion } from "@/app/[version]/version.guard";
+import { StringHelper } from "@/app/lib/utils/string.helper";
+import styles from "@/app/styles/button.module.css";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
+import { HiOutlineCog6Tooth } from "react-icons/hi2";
+import { IoSearch } from "react-icons/io5";
+import { AppContext } from "../../appContextProvider";
+import { LocationIdentifier } from "../../lib/types/general";
+import { CountryStats } from "../countryStatsComponent";
+import { DetailedLocationList } from "./detailedLocationList.component";
 
 function LocationExtensiveViewModalHeader(props: {
   countryName: string | null;
@@ -141,16 +132,8 @@ export interface ILocationDetailedViewData {
 
 export function DetailedLocationListModal() {
   const modalInstanceContext = useContext(ModalInstanceContext);
-  const gameState = useSyncExternalStore(
-    gameStateController.subscribe.bind(gameStateController),
-    () => gameStateController.getSnapshot(),
-  );
-  const proximityComputation = useSyncExternalStore(
-    proximityComputationController.subscribe.bind(
-      proximityComputationController,
-    ),
-    () => proximityComputationController.getSnapshot(),
-  );
+  const gameState = useModel("gameStateController");
+  const proximityComputation = useModel("proximityController");
   const gameData = useContext(AppContext).gameData;
   if (!modalInstanceContext) {
     throw new Error(
@@ -232,7 +215,7 @@ export function DetailedLocationListModal() {
         storedLocationListConfig,
       );
     }
-  }, [storedLocationListConfig]);
+  }, [gameState.countryCode, storedLocationListConfig, version]);
 
   const eligibleBuildingService = useMemo(
     () => (gameData && new EligibleBuildingService(gameData)) || null,

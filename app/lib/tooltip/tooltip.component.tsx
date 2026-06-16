@@ -1,3 +1,4 @@
+import { Coordinate } from "@/app/lib/types/coordinate";
 import {
   createContext,
   useCallback,
@@ -8,7 +9,6 @@ import {
   useState,
 } from "react";
 import { ITooltipConfig, TooltipProviderContext } from "./tooltip.provider";
-import { Coordinate } from "@/app/lib/types/coordinate";
 
 interface ITooltipProps {
   config?: Partial<ITooltipConfig>;
@@ -78,6 +78,7 @@ export function Tooltip(props: ITooltipProps) {
 
   useEffect(() => {
     if (props.forceOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsOpen(true);
     } else {
       setIsOpen(false);
@@ -86,6 +87,8 @@ export function Tooltip(props: ITooltipProps) {
 
   useEffect(() => {
     if (props.mouseCoordinates) {
+      console.log("tooltip mouseCoordinates changed", props.mouseCoordinates);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMouseCoordinates(props.mouseCoordinates);
     }
   }, [props.mouseCoordinates]);

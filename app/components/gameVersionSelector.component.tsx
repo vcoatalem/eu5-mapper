@@ -1,6 +1,5 @@
 import { useGameDataVersion } from "@/app/[version]/version.guard";
 import { ALL_GAME_DATA_OPTIONS } from "@/app/config/gameData.config";
-import { useParams } from "next/navigation";
 
 export function GameVersionSelector() {
   const currentVersion = useGameDataVersion();

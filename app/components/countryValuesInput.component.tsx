@@ -1,4 +1,7 @@
-import { gameStateController } from "@/app/lib/gameState.controller";
+import formStyles from "@/app/components/countryBuffs/forms.module.css";
+import { useGameEngine } from "@/app/lib/gameEngineContext";
+import { CountryInstance } from "@/app/lib/types/countryInstance";
+import { CountryValues } from "@/app/lib/types/countryValues";
 import {
   ChangeEvent,
   useCallback,
@@ -7,9 +10,6 @@ import {
   useRef,
   useState,
 } from "react";
-import formStyles from "@/app/components/countryBuffs/forms.module.css";
-import { CountryInstance } from "@/app/lib/types/countryInstance";
-import { CountryValues } from "@/app/lib/types/countryValues";
 
 function CountryValueInput({
   valueKey,
@@ -18,13 +18,14 @@ function CountryValueInput({
   valueKey: keyof CountryValues;
   value: number;
 }) {
+  const { gameStateController } = useGameEngine();
   const [labelMin, labelMax] = valueKey.toLowerCase().split("vs");
   const labelMinFormatted = useMemo(() => {
     return labelMin.charAt(0).toUpperCase() + labelMin.slice(1);
-  }, [valueKey]);
+  }, [labelMin]);
   const labelMaxFormatted = useMemo(() => {
     return labelMax.charAt(0).toUpperCase() + labelMax.slice(1);
-  }, [valueKey]);
+  }, [labelMax]);
   const currentValueSide = useMemo(() => (value > 0 ? "max" : "min"), [value]);
   const displayedValue = useMemo(() => Math.abs(value), [value]);
   const [inputValue, setInputValue] = useState<string>(
@@ -49,13 +50,13 @@ function CountryValueInput({
         [valueKey]: currentValueSide === "min" ? -newValue : newValue,
       });
     },
-    [currentValueSide, valueKey],
+    [currentValueSide, valueKey, gameStateController],
   );
   const changeValueSide = useCallback(() => {
     gameStateController.changeCountryValues({
       [valueKey]: -value,
     });
-  }, [value, valueKey]);
+  }, [value, valueKey, gameStateController]);
   return (
     <div className="flex flex-row gap-2 items-center border-b border-stone-600 pb-2">
       <select
@@ -84,6 +85,7 @@ function CountryValueInput({
 }
 
 function RulerAdministrativeSkillInput({ value }: { value: number }) {
+  const { gameStateController } = useGameEngine();
   const [inputValue, setInputValue] = useState<string>(value.toString());
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -103,7 +105,7 @@ function RulerAdministrativeSkillInput({ value }: { value: number }) {
 
       gameStateController.changeCountryRulerAdministrativeAbility(newValue);
     },
-    [],
+    [gameStateController],
   );
 
   return (

@@ -27,7 +27,7 @@ export function DisplayCountryProximityBuffs(
       props.country,
     );
     queueMicrotask(() => setBuffRecord(buffRecord));
-  }, [gameData, countrySignature]);
+  }, [gameData, countrySignature, props.country]);
 
   const buffsToDisplay = useMemo(() => {
     if (!buffRecord) {

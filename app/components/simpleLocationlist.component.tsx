@@ -1,25 +1,16 @@
-import React, {
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  useSyncExternalStore,
-} from "react";
-import { gameStateController } from "@/app/lib/gameState.controller";
-import { GameData, LocationIdentifier } from "../lib/types/general";
-import { AppContext } from "../appContextProvider";
-import {
-  IProximityComputationResults,
-  proximityComputationController,
-} from "../lib/proximityComputation.controller";
-import { ProximityComputationHelper } from "../lib/proximityComputation.helper";
-import { ActionSource } from "@/app/lib/actionSource.component";
-import { FoldableMenu } from "./foldableMenu.component";
 import { FormattedProximityWithPathfindingTooltip } from "@/app/components/formattedProximityWithPathfindingTooltip.component";
-import { StringHelper } from "@/app/lib/utils/string.helper";
-import { IoSearch } from "react-icons/io5";
+import { ActionSource } from "@/app/lib/actionSource.component";
+import { useModel } from "@/app/lib/gameEngineContext";
 import { IConstructibleLocation } from "@/app/lib/types/constructibleLocation";
 import { GameState } from "@/app/lib/types/gameState";
+import { StringHelper } from "@/app/lib/utils/string.helper";
+import React, { useContext, useEffect, useMemo, useState } from "react";
+import { IoSearch } from "react-icons/io5";
+import { AppContext } from "../appContextProvider";
+import { ProximityComputationHelper } from "../lib/proximityComputation.helper";
+import { IProximityComputationResults } from "../lib/proximityComputation.model";
+import { GameData, LocationIdentifier } from "../lib/types/general";
+import { FoldableMenu } from "./foldableMenu.component";
 
 const SimpleLocationListItem = React.memo(function SimpleLocationListItem({
   location,
@@ -64,16 +55,8 @@ const SimpleLocationListItem = React.memo(function SimpleLocationListItem({
 });
 
 export function SimpleLocationList() {
-  const gameState = useSyncExternalStore(
-    gameStateController.subscribe.bind(gameStateController),
-    () => gameStateController.getSnapshot(),
-  );
-  const proximityComputation = useSyncExternalStore(
-    proximityComputationController.subscribe.bind(
-      proximityComputationController,
-    ),
-    () => proximityComputationController.getSnapshot(),
-  );
+  const gameState = useModel("gameStateController");
+  const proximityComputation = useModel("proximityController");
   const { gameData } = useContext(AppContext);
 
   const [search, setSearch] = useState("");
@@ -94,7 +77,7 @@ export function SimpleLocationList() {
     return entries.filter(([locationName]) =>
       locationName.toLowerCase().includes(searchLower),
     );
-  }, [search, gameState.ownedLocations, ownedLocationKeys.length]);
+  }, [search, gameState.ownedLocations]);
 
   // Auto-expand when search has results
   // This is a legitimate side effect: syncing UI state (expansion) with user input (search)

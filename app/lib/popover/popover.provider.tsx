@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, createContext, useEffect, useCallback } from "react";
+import { createContext, useCallback, useEffect, useState } from "react";
 
 interface IPopoverContext {
   clickedElement: HTMLElement | null;
@@ -32,6 +32,7 @@ export function PopoverContextProvider({
 
   useEffect(() => {
     const rootEl = document.getElementById("popover-root");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPopoverContext((prev) => ({
       clickedElement: prev?.clickedElement ?? null,
       rootElement: rootEl,

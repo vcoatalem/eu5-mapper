@@ -1,8 +1,7 @@
 import { ButtonWithTooltip } from "@/app/components/buttonWithTooltip.component";
 import { IDetailedLocationListProps } from "@/app/components/detailedList/detailedList.config";
 import { ILocationDetailedViewData } from "@/app/components/detailedList/detailedLocationListModal.component";
-import { actionEventDispatcher } from "@/app/lib/actionEventDispatcher";
-import { gameStateController } from "@/app/lib/gameState.controller";
+import { useGameEngine } from "@/app/lib/gameEngineContext";
 import { useModal } from "@/app/lib/modal/modal.component";
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import Image from "next/image";
@@ -14,6 +13,7 @@ export function DisplayLocation(props: {
   data: ILocationDetailedViewData;
   extensiveViewProps: IDetailedLocationListProps;
 }) {
+  const { gameStateController, actionEventsController } = useGameEngine();
   const modalControls = useModal();
   const isCapital = useMemo(
     () =>
@@ -38,9 +38,7 @@ export function DisplayLocation(props: {
       }
       onClick={() =>
         !isCapital
-          ? gameStateController.changeCapital(
-            props.data.baseLocationGameData.name,
-          )
+          ? gameStateController.changeCapital(props.data.baseLocationGameData.name)
           : null
       }
       showOnHover={true}
@@ -72,7 +70,19 @@ export function DisplayLocation(props: {
       key={"goto-btn-" + props.data.baseLocationGameData.name}
       showOnHover={true}
       tooltip={<span>See location</span>}
-      onClick={() => { modalControls.close(); actionEventDispatcher.dispatchClickAction("goto", [props.data.baseLocationGameData.name], null); actionEventDispatcher.dispatchHoverAction("search", [props.data.baseLocationGameData.name], null); }}
+      onClick={() => {
+        modalControls.close();
+        actionEventsController.dispatchClickAction(
+          "goto",
+          [props.data.baseLocationGameData.name],
+          null,
+        );
+        actionEventsController.dispatchHoverAction(
+          "search",
+          [props.data.baseLocationGameData.name],
+          null,
+        );
+      }}
     >
       <FaRegEye color="white" size={16}></FaRegEye>
     </ButtonWithTooltip>

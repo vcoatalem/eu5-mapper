@@ -22,13 +22,13 @@ import {
   dbDataKey,
   dbGameDataStoreName,
   dbName,
-  dbStoreNames,
   dbVersion,
 } from "../app/lib/indexeddb/indexeddb.const";
 import { sendMessage } from "./utils";
 
-const connection = new IndexedDBReader(dbName, dbVersion, dbStoreNames);
+const connection = new IndexedDBReader(dbName, dbVersion);
 
+//eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).__workerName = "Graph Worker";
 
 let gameData: GameData | null = null;
@@ -53,7 +53,7 @@ self.onmessage = async function (e: MessageEvent<unknown>) {
         );
         graph = await connection.get(dbAdjacencyDataStoreName, dbDataKey).then(
           (data) => {
-            return ParserHelper.parseAdjacencyCSV(data);
+            return ParserHelper.parseAdjacencyCSV(String(data));
           },
           (error) => {
             throw new Error(
@@ -72,6 +72,7 @@ self.onmessage = async function (e: MessageEvent<unknown>) {
         });
       } catch (err) {
         sendMessage(self, {
+          //eslint-disable-next-line @typescript-eslint/no-explicit-any
           message: `Error initializing graph worker: ${(err as any).message}`,
           level: "error",
           task: taskData,
@@ -150,7 +151,7 @@ self.onmessage = async function (e: MessageEvent<unknown>) {
         });
       } catch (err) {
         sendMessage(self, {
-          message: `Error during proximity computation: ${(err as any).message}`,
+          message: `Error during proximity computation: ${(err as Error)?.message}`,
           level: "error",
           task: taskData,
         });
@@ -200,7 +201,7 @@ self.onmessage = async function (e: MessageEvent<unknown>) {
         });
       } catch (err) {
         sendMessage(self, {
-          message: `Error during neighbors computation: ${(err as any).message}`,
+          message: `Error during neighbors computation: ${(err as Error)?.message}`,
           level: "error",
           task: taskData,
         });
@@ -259,7 +260,7 @@ self.onmessage = async function (e: MessageEvent<unknown>) {
         });
       } catch (err) {
         sendMessage(self, {
-          message: `Error during shortest path to proximity source computation: ${(err as any).message}`,
+          message: `Error during shortest path to proximity source computation: ${(err as Error)?.message}`,
           level: "error",
           task: taskData,
         });

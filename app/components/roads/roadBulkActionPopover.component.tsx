@@ -1,28 +1,26 @@
+import { AppContext } from "@/app/appContextProvider";
 import { ButtonWithTooltip } from "@/app/components/buttonWithTooltip.component";
+import { ArrayHelper } from "@/app/lib/array.helper";
+import { getRoadIcon } from "@/app/lib/drawing/getImages";
+import { useGameEngine, useModel } from "@/app/lib/gameEngineContext";
 import { Popover } from "@/app/lib/popover/popover.component";
+import { RoadsHelper } from "@/app/lib/roads.helper";
 import { allRoadTypes, RoadType } from "@/app/lib/types/roads";
 import buttonStyles from "@/app/styles/button.module.css";
-import { RoadsHelper } from "@/app/lib/roads.helper";
-import { useContext, useMemo, useSyncExternalStore } from "react";
-import { gameStateController } from "@/app/lib/gameState.controller";
-import { AppContext } from "@/app/appContextProvider";
 import Image from "next/image";
-import { getRoadIcon } from "@/app/lib/drawing/getImages";
+import { useContext, useMemo } from "react";
 import { IoIosHammer } from "react-icons/io";
-import { ArrayHelper } from "@/app/lib/array.helper";
 
-interface IRoadBulkActionPopoverProps {}
-
-export function RoadBulkActionPopover({}: IRoadBulkActionPopoverProps) {
+export function RoadBulkActionPopover() {
   const gameData = useContext(AppContext).gameData;
+  const { gameStateController } = useGameEngine();
+  const gameStateSnapshot = useModel("gameStateController");
 
-  const gameState = useSyncExternalStore(
-    gameStateController.subscribe.bind(gameStateController),
-    () => gameStateController.getSnapshot(),
+  const baseRoads = useMemo(() => gameData?.roads ?? {}, [gameData?.roads]);
+  const stateRoads = useMemo(
+    () => gameStateSnapshot?.roads ?? {},
+    [gameStateSnapshot],
   );
-
-  const baseRoads = gameData?.roads ?? {};
-  const stateRoads = gameState?.roads ?? {};
 
   const areAllRoadsOfType: Record<RoadType, boolean> = useMemo(() => {
     return ArrayHelper.reduceToRecord(
@@ -30,13 +28,13 @@ export function RoadBulkActionPopover({}: IRoadBulkActionPopoverProps) {
       (type) => type,
       (type) =>
         RoadsHelper.areAllOwnedRoadsOfType(
-          gameState.ownedLocations,
+          gameStateSnapshot.ownedLocations,
           baseRoads,
           stateRoads,
           type,
         ),
     );
-  }, [gameState.ownedLocations, baseRoads, stateRoads]);
+  }, [gameStateSnapshot.ownedLocations, baseRoads, stateRoads]);
 
   return (
     <Popover

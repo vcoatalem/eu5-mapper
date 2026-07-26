@@ -65,6 +65,45 @@ const versionManifestShape = Object.fromEntries(
   ]),
 ) as Record<VersionManifestFileKey, typeof ZodVersionManifestEntry>;
 
-export const ZodVersionManifest = z.object(versionManifestShape);
+export const ZodTileLayerManifest = z.array(z.array(ZodVersionManifestEntry));
+
+export const ZodTilesManifest = z.object({
+  terrain: ZodTileLayerManifest,
+  border: ZodTileLayerManifest,
+});
+
+export type TilesManifest = z.infer<typeof ZodTilesManifest>;
+
+export const ZodTileGridMetadata = z.object({
+  tileSize: z.number().int().positive(),
+  cols: z.number().int().positive(),
+  rows: z.number().int().positive(),
+});
+
+export type TileGridMetadata = z.infer<typeof ZodTileGridMetadata>;
+
+export const ZodManifestMetadata = z.object({
+  tileGrid: ZodTileGridMetadata,
+});
+
+export type ManifestMetadata = z.infer<typeof ZodManifestMetadata>;
+
+export const ZodVersionManifest = z
+  .object({
+    ...versionManifestShape,
+    tiles: ZodTilesManifest.optional(),
+    metadata: ZodManifestMetadata.optional(),
+  })
+  .refine(
+    (m) => {
+      if (!m.tiles || !m.metadata) return true; // backward-compat: pre-tiling manifests have neither
+      const { rows, cols } = m.metadata.tileGrid;
+      return [m.tiles.terrain, m.tiles.border].every(
+        (layer) =>
+          layer.length === rows && layer.every((row) => row.length === cols),
+      );
+    },
+    { message: "tiles matrix dimensions do not match metadata.tileGrid" },
+  );
 
 export type VersionManifest = z.infer<typeof ZodVersionManifest>;

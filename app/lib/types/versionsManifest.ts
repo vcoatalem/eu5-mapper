@@ -91,12 +91,11 @@ export type ManifestMetadata = z.infer<typeof ZodManifestMetadata>;
 export const ZodVersionManifest = z
   .object({
     ...versionManifestShape,
-    tiles: ZodTilesManifest.optional(),
-    metadata: ZodManifestMetadata.optional(),
+    tiles: ZodTilesManifest,
+    metadata: ZodManifestMetadata,
   })
   .refine(
     (m) => {
-      if (!m.tiles || !m.metadata) return true; // backward-compat: pre-tiling manifests have neither
       const { rows, cols } = m.metadata.tileGrid;
       return [m.tiles.terrain, m.tiles.border].every(
         (layer) =>

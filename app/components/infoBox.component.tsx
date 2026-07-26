@@ -17,10 +17,14 @@ import { ILocationHierarchy } from "@/app/lib/types/locationHierarchy";
 import { NumbersHelper } from "@/app/lib/utils/numbers.helper";
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import styles from "@/app/styles/Gui.module.css";
-import Image from "next/image";
 import { memo, useContext, useMemo } from "react";
 import { AppContext } from "../appContextProvider";
 import { LocationIdentifier } from "../lib/types/general";
+
+// Topography/vegetation icons below use plain <img>, not next/image: this component remounts
+// on every hover, and /_next/image re-validates (304) on every remount instead of serving from
+// disk cache. A raw <img> against /gui/icons/... gets a real disk-cache hit, via the immutable
+// Cache-Control set for /gui/:path* in next.config.ts.
 
 function LocationInfoBox(props: {
   locationName: LocationIdentifier;
@@ -84,13 +88,13 @@ function LocationInfoBox(props: {
       <div className="flex items-center gap-4 text-sm">
         <span className="flex items-center gap-1 min-w-12 text-sm text-stone-400">
           {" "}
-          <Image
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             className="min-w-6"
             src={getTopographyIcon(locationData.topography)}
             alt={locationData.topography}
             width={24}
             height={24}
-            unoptimized
           />{" "}
           {locationData.topography}
         </span>
@@ -99,13 +103,13 @@ function LocationInfoBox(props: {
             {locationData.vegetation && (
               <span className="flex items-center gap-1 min-w-12 text-sm text-stone-400">
                 {" "}
-                <Image
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   className="min-w-6"
                   src={getVegetationIcon(locationData.vegetation)}
                   alt={locationData.vegetation}
                   width={24}
                   height={24}
-                  unoptimized
                 />{" "}
                 {locationData.vegetation}
               </span>

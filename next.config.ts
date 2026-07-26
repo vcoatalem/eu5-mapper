@@ -6,6 +6,20 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [new URL(`${GAME_DATA_CDN_URL}/**/*`)],
   },
+  // files in /gui should not be replaced. If they need changing, they should be renamed instead.
+  async headers() {
+    return [
+      {
+        source: "/gui/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -1,4 +1,5 @@
 import { Observable } from "@/app/lib/observable";
+import type { Model, ModelInitArgs } from "@/app/lib/types/model";
 import { LayerName, ALL_LAYER_NAMES } from "@/app/lib/types/coordinateSpaces";
 import { CameraController, zoomLevels } from "@/app/lib/cameraController";
 import { DETAIL_TILE_MIN_ZOOM } from "@/app/components/worldMap.config";
@@ -12,18 +13,25 @@ export interface ILayerVisibilityState {
   >;
 }
 
+export interface LayerVisibilityInitArgs extends ModelInitArgs {
+  camera: CameraController;
+}
+
 const KNOWN_LAYER_NAMES = new Set<LayerName>(ALL_LAYER_NAMES);
 
 const localStorageKey = "layerVisibility";
 
-export class LayerVisibilityModel extends Observable<ILayerVisibilityState> {
+export class LayerVisibilityModel
+  extends Observable<ILayerVisibilityState>
+  implements Model<ILayerVisibilityState, LayerVisibilityInitArgs>
+{
   public constructor() {
     super();
     this.loadFromLocalStorage();
   }
 
-  public init(camera: CameraController) {
-    camera.subscribe(({ zoomLevel, oldZoomLevel }) => {
+  public init({ camera, params }: LayerVisibilityInitArgs): void {
+    params.createManagedSubscription(camera, ({ zoomLevel, oldZoomLevel }) => {
       let changed = false;
 
       // Border: auto-hide below zoomLevels.normal

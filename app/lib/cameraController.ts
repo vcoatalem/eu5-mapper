@@ -9,6 +9,7 @@ import {
 } from "@/app/lib/types/coordinateSpaces";
 import { RefObject } from "react";
 import { Observable } from "./observable";
+import type { ModelInitParams } from "./types/model";
 import type { GameData } from "./types/general";
 import { LocationIdentifier } from "./types/general";
 
@@ -32,11 +33,17 @@ export interface IZoomState {
 
 export type ZoomListener = (zoom: IZoomState) => void;
 
+export interface CameraControllerInitArgs {
+  container: RefObject<HTMLDivElement | null>;
+  worldRef: RefObject<HTMLDivElement | null>;
+  hitSurfaceRef: RefObject<HTMLDivElement | null>;
+  locationColorIndex: LocationColorIndex;
+  params: ModelInitParams;
+}
+
 export class CameraController extends Observable<IZoomState> {
   // Zoom state
   private currentZoomIndex: number;
-  private wheelHandler: ((e: WheelEvent) => void) | null = null;
-  private currentElement: HTMLElement | null = null;
 
   private container: RefObject<HTMLDivElement | null> | null = null;
   private world: RefObject<HTMLDivElement | null> | null = null;
@@ -89,24 +96,6 @@ export class CameraController extends Observable<IZoomState> {
     this.notifyListeners();
   }
 
-  /**
-   * Initialize camera-related refs and contexts.
-   */
-  /** New-architecture init: world div + hitSurface + locationColorIndex. */
-  public initCamera(
-    container: RefObject<HTMLDivElement | null>,
-    worldRef: RefObject<HTMLDivElement | null>,
-    hitSurfaceRef: RefObject<HTMLDivElement | null>,
-    locationColorIndex: LocationColorIndex,
-  ): void {
-    if (!container.current || !worldRef.current || !hitSurfaceRef.current) {
-      throw new Error("[CameraController] initCamera: missing refs");
-    }
-    this.container = container;
-    this.world = worldRef;
-    this.locationColorIndex = locationColorIndex;
-  }
-
   public getCameraTransform(): CameraTransform {
     const el = this.world?.current;
     if (!el || !this.container?.current) {
@@ -129,18 +118,23 @@ export class CameraController extends Observable<IZoomState> {
   }
 
   /**
-   * Initialize zoom controller on the given element.
+   * Initialize camera refs, contexts, and the wheel-zoom listener.
    */
-  public init(element: HTMLElement): void {
-    // Remove previous wheel listener only; do not wipe camera refs (set by initCamera)
-    if (this.currentElement && this.wheelHandler) {
-      this.currentElement.removeEventListener("wheel", this.wheelHandler);
-      this.currentElement = null;
-      this.wheelHandler = null;
+  public init({
+    container,
+    worldRef,
+    hitSurfaceRef,
+    locationColorIndex,
+    params,
+  }: CameraControllerInitArgs): void {
+    if (!container.current || !worldRef.current || !hitSurfaceRef.current) {
+      throw new Error("[CameraController] init: missing refs");
     }
+    this.container = container;
+    this.world = worldRef;
+    this.locationColorIndex = locationColorIndex;
 
-    this.currentElement = element;
-    this.wheelHandler = (e: WheelEvent) => {
+    params.createManagedEventListener(hitSurfaceRef.current, "wheel", (e) => {
       // Prevent zoom while dragging
       if (this.subject.isDragging) {
         return;
@@ -150,20 +144,7 @@ export class CameraController extends Observable<IZoomState> {
       } else {
         this.zoomOut();
       }
-    };
-
-    element.addEventListener("wheel", this.wheelHandler, { passive: true });
-  }
-
-  public cleanup(): void {
-    if (this.currentElement && this.wheelHandler) {
-      this.currentElement.removeEventListener("wheel", this.wheelHandler);
-      this.currentElement = null;
-      this.wheelHandler = null;
-    }
-    this.world = null;
-    this.locationColorIndex = null;
-    this.container = null;
+    });
   }
 
   private updateZoomState(oldZoomLevel: number): void {

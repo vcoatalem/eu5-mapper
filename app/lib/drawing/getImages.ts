@@ -1,8 +1,9 @@
 import { RoadType } from "@/app/lib/types/roads";
 import { Topography } from "@/app/lib/types/topography";
 import { Vegetation } from "@/app/lib/types/vegetation";
+import { assertNever } from "@/app/lib/utils/assertNever";
 
-export function getVegetationIcon(vegetation: Vegetation | null): string {
+export function getVegetationIcon(vegetation: Vegetation): string {
   switch (vegetation) {
     case "forest":
       return "/gui/icons/vegetation_forest.png";
@@ -19,7 +20,7 @@ export function getVegetationIcon(vegetation: Vegetation | null): string {
     case "sparse":
       return "/gui/icons/vegetation_sparse.png";
     default:
-      return "/icons/question.svg";
+      return assertNever(vegetation);
   }
 }
 
@@ -42,11 +43,27 @@ export function getTopographyIcon(topography: Topography): string {
     case "inland_sea":
       return "/gui/icons/topography_ocean.png";
     case "high_lakes":
+    case "lakes":
       return "/gui/icons/topography_lakes.png";
     case "flatland":
       return "/gui/icons/topography_flatland.png";
-    default:
+    case "atoll":
+      return "/gui/icons/topography_atoll.png";
+    case "salt_pans":
+      return "/gui/icons/topography_salt_pans.png";
+    case "deep_ocean":
+      return "/gui/icons/topography_deep_ocean.png";
+    case "ocean_wasteland":
+    case "mountain_wasteland":
+    case "dune_wasteland":
+    case "flatland_wasteland":
+    case "hills_wasteland":
+    case "mesa_wasteland":
+    case "plateau_wasteland":
+    case "wetlands_wasteland":
       return "/gui/icons/impassable_terrain.png";
+    default:
+      return assertNever(topography);
   }
 }
 
@@ -63,6 +80,6 @@ export function getRoadIcon(road: RoadType | null): string {
     case null:
       return "/gui/icons/gravel_road.png";
     default:
-      return "/icons/question.svg";
+      return assertNever(road);
   }
 }

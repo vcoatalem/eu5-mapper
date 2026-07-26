@@ -1,6 +1,7 @@
 import { worldMapConfig } from "@/app/components/worldMap.config";
 import { ArrayHelper } from "@/app/lib/array.helper";
 import { Observable } from "@/app/lib/observable";
+import type { Model, ModelInitArgs } from "@/app/lib/types/model";
 import { Coordinate } from "@/app/lib/types/coordinate";
 import { GameData, LocationIdentifier } from "@/app/lib/types/general";
 import { workerManager } from "@/app/lib/workerManager";
@@ -13,39 +14,42 @@ export interface IColorSearchDelta {
   completedLocations: Array<{ loc: LocationIdentifier; coords: Coordinate[] }>;
 }
 
-export class ColorSearchModel extends Observable<IColorSearchDelta> {
+export interface ColorSearchInitArgs extends ModelInitArgs {
+  mapConfig: typeof worldMapConfig;
+  gameData: GameData;
+}
+
+export class ColorSearchModel
+  extends Observable<IColorSearchDelta>
+  implements Model<IColorSearchDelta, ColorSearchInitArgs>
+{
   private mapConfig: typeof worldMapConfig = worldMapConfig;
   private gameData: GameData | null = null;
   private queriedLocationsColor: Set<LocationIdentifier> = new Set();
-  private unsubscribeWorkerManager: (() => void) | null = null;
 
   constructor() {
     super();
     this.subject = { completedLocations: [] };
   }
 
-  public init(mapConfig: typeof worldMapConfig, gameData: GameData): void {
-    this.unsubscribeWorkerManager?.();
-    this.unsubscribeWorkerManager = null;
+  public init({ mapConfig, gameData, params }: ColorSearchInitArgs): void {
     this.mapConfig = mapConfig;
     this.gameData = gameData;
     this.queriedLocationsColor.clear();
 
-    this.unsubscribeWorkerManager = workerManager.subscribe(
-      ({ lastCompletedTask }) => {
-        if (!lastCompletedTask || lastCompletedTask.type !== "colorSearch")
-          return;
-        const data = ZodWorkerTaskColorSearchResult.parse(
-          lastCompletedTask.data,
-        );
-        this.subject = {
-          completedLocations: Object.entries(data.result).map(
-            ([loc, coords]) => ({ loc, coords }),
-          ),
-        };
-        this.notifyListeners();
-      },
-    );
+    params.createManagedSubscription(workerManager, ({ lastCompletedTask }) => {
+      if (!lastCompletedTask || lastCompletedTask.type !== "colorSearch")
+        return;
+      const data = ZodWorkerTaskColorSearchResult.parse(
+        lastCompletedTask.data,
+      );
+      this.subject = {
+        completedLocations: Object.entries(data.result).map(
+          ([loc, coords]) => ({ loc, coords }),
+        ),
+      };
+      this.notifyListeners();
+    });
   }
 
   public requestColorSearch(missingLocations: LocationIdentifier[]): void {

@@ -134,7 +134,7 @@ function MapOverlays() {
 
 export function WorldMapComponent() {
   const context = useContext(AppContext);
-  const { gameData, imagePaths, error: gameDataLoadingError } = context;
+  const { gameData, imagePaths, tileUrls, error: gameDataLoadingError } = context;
   const version = useGameDataVersion();
   const loadFileOnStart = useSearchParams().get("file") as string;
 
@@ -194,10 +194,11 @@ export function WorldMapComponent() {
         }}
       />
 
-      {gameData && imagePaths ? (
+      {gameData && imagePaths && tileUrls ? (
         <GameEngineProvider
           gameData={gameData}
           imagePaths={imagePaths}
+          tileUrls={tileUrls}
           version={version}
           domRefs={domRefs}
           loadFileOnStart={loadFileOnStart}

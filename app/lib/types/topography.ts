@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 export const ZodTopography = z.enum([
-  "unknown",
   "hills",
   "wetlands",
   "mountains",

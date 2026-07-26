@@ -1,6 +1,7 @@
 import { GameState } from "@/app/lib/types/gameState";
 import { ZodWorkerTaskComputeProximityResult } from "@/workers/types/computeProximity";
 import { Observable } from "./observable";
+import type { Model, ModelInitArgs } from "./types/model";
 import { GraphStats, PathfindingResult } from "./types/pathfinding";
 import { workerManager } from "./workerManager";
 
@@ -9,76 +10,73 @@ export interface IProximityComputationResults {
   status: "pending" | "completed" | "error" | "updating";
 }
 
-export class ProximityComputationModel extends Observable<IProximityComputationResults> {
-  private unsubscribeWorkerManager: (() => void) | null = null;
-  private unsubscribeGameState: (() => void) | null = null;
-
+export class ProximityComputationModel
+  extends Observable<IProximityComputationResults>
+  implements Model<IProximityComputationResults>
+{
   constructor(private debouncedGameState: Observable<GameState>) {
     super();
   }
 
-  public init(): void {
-    this.unsubscribeWorkerManager?.();
-    this.unsubscribeGameState?.();
-    this.unsubscribeWorkerManager = null;
-    this.unsubscribeGameState = null;
-
+  public init({ params }: ModelInitArgs): void {
     this.subject = {
       result: {},
       status: "pending",
     };
     this.notifyListeners();
-    this.unsubscribeWorkerManager = workerManager.subscribe(
-      (workerManagerStatus) => {
-        const stats = (
-          workerManagerStatus.lastCompletedTask?.data as {
-            graphStats: GraphStats;
-          }
-        )?.graphStats;
-        if (workerManagerStatus.lastCompletedTask?.type === "initGraphWorker") {
-          console.log(
-            `[ProximityComputationModel] Adjacency graph built:`,
-            stats,
-          );
-          console.log(`  - Nodes: ${stats.nodes}`);
-          console.log(`  - Total edges: ${stats.edges}`);
-          console.log(`  - River edges: ${stats.riverEdges}`);
-          console.log(`  - Land edges: ${stats.landEdges}`);
-          console.log(`  - Sea edges: ${stats.seaEdges}`);
-          console.log(`  - Port edges: ${stats.portEdges}`);
-          console.log(`  - Lake edges: ${stats.lakeEdges}`);
-          console.log(`  - Port-River edges: ${stats.portRiverEdges}`);
-          console.log(`  - Through-Sea edges: ${stats.throughSeaEdges}`);
-          console.log(`  - Coastal edges: ${stats.coastalEdges}`);
-          console.log(`  - Unknown edges: ${stats.unknownEdges}`);
-        } else if (
-          workerManagerStatus.lastCompletedTask?.type === "computeProximity"
-        ) {
-          const data = ZodWorkerTaskComputeProximityResult.parse(
-            workerManagerStatus.lastCompletedTask.data,
-          );
-          this.subject.result = data.result;
-          this.subject.status = "completed";
-          console.log(
-            "[ProximityComputationModel] Proximity computation completed",
-            { newState: this.subject },
-          );
-          this.notifyListeners();
+    params.createManagedSubscription(workerManager, (workerManagerStatus) => {
+      const stats = (
+        workerManagerStatus.lastCompletedTask?.data as {
+          graphStats: GraphStats;
         }
-      },
-    );
-    this.unsubscribeGameState = this.debouncedGameState.subscribe(
-      (gameState) => {
-        this.subject.status = "updating";
+      )?.graphStats;
+      if (workerManagerStatus.lastCompletedTask?.type === "initGraphWorker") {
+        console.log(
+          `[ProximityComputationModel] Adjacency graph built:`,
+          stats,
+        );
+        console.log(`  - Nodes: ${stats.nodes}`);
+        console.log(`  - Total edges: ${stats.edges}`);
+        console.log(`  - River edges: ${stats.riverEdges}`);
+        console.log(`  - Land edges: ${stats.landEdges}`);
+        console.log(`  - Sea edges: ${stats.seaEdges}`);
+        console.log(`  - Port edges: ${stats.portEdges}`);
+        console.log(`  - Lake edges: ${stats.lakeEdges}`);
+        console.log(`  - Port-River edges: ${stats.portRiverEdges}`);
+        console.log(`  - Through-Sea edges: ${stats.throughSeaEdges}`);
+        console.log(`  - Coastal edges: ${stats.coastalEdges}`);
+        console.log(`  - Unknown edges: ${stats.unknownEdges}`);
+      } else if (
+        workerManagerStatus.lastCompletedTask?.type === "computeProximity"
+      ) {
+        const data = ZodWorkerTaskComputeProximityResult.parse(
+          workerManagerStatus.lastCompletedTask.data,
+        );
+        this.subject.result = data.result;
+        this.subject.status = "completed";
+        console.log(
+          "[ProximityComputationModel] Proximity computation completed",
+          { newState: this.subject },
+        );
         this.notifyListeners();
-        workerManager.queueTask({
-          id: `computeProximity-${Date.now()}`,
-          type: "computeProximity",
-          payload: {
-            gameState: gameState,
-          },
-        });
-      },
-    );
+      }
+    });
+    params.createManagedSubscription(this.debouncedGameState, (gameState) => {
+      this.subject.status = "updating";
+      this.notifyListeners();
+      if (Object.keys(gameState.ownedLocations).length === 0) {
+        this.subject.result = {};
+        this.subject.status = "completed";
+        this.notifyListeners();
+        return;
+      }
+      workerManager.queueTask({
+        id: `computeProximity-${Date.now()}`,
+        type: "computeProximity",
+        payload: {
+          gameState: gameState,
+        },
+      });
+    });
   }
 }

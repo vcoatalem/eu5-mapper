@@ -2,6 +2,17 @@ import { useContext, useMemo, useState } from "react";
 import { AppContext } from "../appContextProvider";
 import { CountriesHelper } from "@/app/lib/countries.helper";
 import { ArrayHelper } from "@/app/lib/array.helper";
+import { FoldableMenu } from "@/app/components/foldableMenu.component";
+
+const OTHER_SUBCONTINENT = "Other";
+
+// These sections always sort first, in this exact order; everything else follows alphabetically.
+const PRIORITY_SUBCONTINENTS = [
+  "western_europe",
+  "eastern_europe",
+  "middle_east",
+  "north_africa",
+];
 
 interface ICountrySelectionListProps {
   selectedCountry: string | null;
@@ -15,6 +26,9 @@ interface ICountrySelectionListProps {
 export function CountrySelectionList(props: ICountrySelectionListProps) {
   const { gameData } = useContext(AppContext);
   const [search, setSearch] = useState<string>("");
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
+    () => new Set(),
+  );
   const filteredCountries = useMemo(() => {
     const countries = Object.entries(gameData?.countriesData ?? {});
     const countriesArray = countries
@@ -57,6 +71,39 @@ export function CountrySelectionList(props: ICountrySelectionListProps) {
     );
   }, [filteredCountries, search]);
 
+  const groupedBySubcontinent = useMemo(() => {
+    const groups = new Map<string, typeof searchedCountries>();
+    for (const entry of searchedCountries) {
+      const subcontinent =
+        entry[1].capitalHierarchy.subcontinent || OTHER_SUBCONTINENT;
+      const bucket = groups.get(subcontinent) ?? [];
+      bucket.push(entry);
+      groups.set(subcontinent, bucket);
+    }
+    for (const bucket of groups.values()) {
+      bucket.sort((a, b) => a[1].name.localeCompare(b[1].name));
+    }
+    return [...groups.entries()].sort(([a], [b]) => {
+      const aPriority = PRIORITY_SUBCONTINENTS.indexOf(a);
+      const bPriority = PRIORITY_SUBCONTINENTS.indexOf(b);
+      if (aPriority !== -1 || bPriority !== -1) {
+        if (aPriority === -1) return 1;
+        if (bPriority === -1) return -1;
+        return aPriority - bPriority;
+      }
+      return a.localeCompare(b);
+    });
+  }, [searchedCountries]);
+
+  const toggleSection = (subcontinent: string) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(subcontinent)) next.delete(subcontinent);
+      else next.add(subcontinent);
+      return next;
+    });
+  };
+
   if (!gameData) return <></>;
 
   return (
@@ -76,27 +123,29 @@ export function CountrySelectionList(props: ICountrySelectionListProps) {
       />
       <hr className="w-full"></hr>
       <div className="h-full overflow-y-scroll overflow-x-hidden min-w-0">
-        {searchedCountries.map(([countryKey, countryData]) => (
-          <div
-            key={countryKey}
-            className={
-              "px-2 py-1 hover:bg-stone-700 cursor-pointer rounded-md flex flex-row items-center gap-2 min-w-0 mr-4 " +
-              (props.selectedCountry === countryKey ? "bg-stone-700" : "")
-            }
-            onClick={() => props.onSelect(countryKey)}
+        {groupedBySubcontinent.map(([subcontinent, countries]) => (
+          <FoldableMenu
+            key={subcontinent}
+            title={`${subcontinent} (${countries.length})`}
+            isExpanded={!collapsedSections.has(subcontinent)}
+            onToggle={() => toggleSection(subcontinent)}
           >
-            <span className="min-w-0 truncate">{countryData.name}</span>
-            <span className="text-stone-500 text-sm flex-none">
-              ({countryKey})
-            </span>
-            <span className="text-stone-500 text-sm ml-auto flex-none shrink-0">
-              {countryData.capitalHierarchy.subcontinent ??
-                countryData.capitalHierarchy.region ??
-                countryData.capitalHierarchy.area ??
-                countryData.capitalHierarchy.province ??
-                ""}
-            </span>
-          </div>
+            {countries.map(([countryKey, countryData]) => (
+              <div
+                key={countryKey}
+                className={
+                  "px-2 py-1 hover:bg-stone-700 cursor-pointer rounded-md flex flex-row items-center gap-2 min-w-0 mr-4 " +
+                  (props.selectedCountry === countryKey ? "bg-stone-700" : "")
+                }
+                onClick={() => props.onSelect(countryKey)}
+              >
+                <span className="min-w-0 truncate">{countryData.name}</span>
+                <span className="text-stone-500 text-sm flex-none">
+                  ({countryKey})
+                </span>
+              </div>
+            ))}
+          </FoldableMenu>
         ))}
       </div>
 

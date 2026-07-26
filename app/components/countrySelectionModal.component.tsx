@@ -85,22 +85,11 @@ export function CountrySelectionModal() {
         </div>
 
         {capitalLocation && (
-          <>
-            <CountrySelectionMinimap
-              className="w-full bg-black py-2 justify-self-center mx-auto"
-              capitalLocation={capitalLocation}
-              countryLocations={countryLocations}
-              viewW={3600}
-              viewH={1800}
-            ></CountrySelectionMinimap>
-            <CountrySelectionMinimap
-              className="w-full bg-black py-2 justify-self-center mx-auto"
-              capitalLocation={capitalLocation}
-              countryLocations={countryLocations}
-              viewW={1200}
-              viewH={600}
-            ></CountrySelectionMinimap>
-          </>
+          <CountrySelectionMinimap
+            className="bg-black py-2 justify-self-center mx-auto"
+            capitalLocation={capitalLocation}
+            countryLocations={countryLocations}
+          ></CountrySelectionMinimap>
         )}
       </div>
     </div>

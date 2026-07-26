@@ -20,7 +20,6 @@ import { RoadType } from "@/app/lib/types/roads";
 import { validateFloatInRange } from "@/app/lib/utils/editableFieldValidation.helper";
 import { StringHelper } from "@/app/lib/utils/string.helper";
 import styles from "@/app/styles/button.module.css";
-import Image from "next/image";
 import {
   CSSProperties,
   memo,
@@ -36,6 +35,11 @@ import { GameData, LocationIdentifier } from "../lib/types/general";
 import { EdgeType } from "../lib/types/pathfinding";
 import { FormatedProximityCost } from "./formatedProximityCost.component";
 import { Loader } from "./loader.component";
+
+// The vegetation icon below uses a plain <img>, not next/image: this panel remounts on every
+// hover/pan, and /_next/image re-validates (304) on every remount instead of serving from disk
+// cache. A raw <img> against /gui/icons/... gets a real disk-cache hit, via the immutable
+// Cache-Control set for /gui/:path* in next.config.ts.
 
 const NeighborPanelListItemRoadMode = memo(
   function NeighborPanelListItemBuildMode({
@@ -318,7 +322,9 @@ export function NeighborsPanelComponent({
             )}
           </span>
         )}
-        {vegetationProximityModifier && roadEditState.isModeEnabled ? (
+        {vegetationProximityModifier &&
+        roadEditState.isModeEnabled &&
+        vegetationAtLocation ? (
           <Tooltip
             config={{
               preferredHorizontal: "left",
@@ -326,13 +332,13 @@ export function NeighborsPanelComponent({
             }}
           >
             <TooltipTrigger>
-              <Image
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 className="ml-2 cursor-help"
                 src={getVegetationIcon(vegetationAtLocation)}
                 alt={vegetationAtLocation ?? ""}
                 width={16}
                 height={16}
-                unoptimized
               />
             </TooltipTrigger>
             <TooltipContent anchor={{ type: "dom", ref: locationNameRef }}>

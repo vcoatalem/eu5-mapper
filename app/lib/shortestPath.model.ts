@@ -1,4 +1,5 @@
 import { Observable } from "./observable";
+import type { Model, ModelInitArgs } from "./types/model";
 import { LocationIdentifier } from "./types/general";
 import { EdgeType } from "./types/pathfinding";
 import { workerManager } from "@/app/lib/workerManager";
@@ -23,10 +24,10 @@ export interface IShortestPathResult {
   >;
 }
 
-export class ShortestPathModel extends Observable<IShortestPathResult> {
-  private unsubscribeWorkerManager: (() => void) | null = null;
-  private unsubscribeGameState: (() => void) | null = null;
-
+export class ShortestPathModel
+  extends Observable<IShortestPathResult>
+  implements Model<IShortestPathResult>
+{
   public constructor(private gameState: GameStateModel) {
     super();
     this.subject = {
@@ -35,51 +36,44 @@ export class ShortestPathModel extends Observable<IShortestPathResult> {
     this.notifyListeners();
   }
 
-  public init(): void {
-    this.unsubscribeWorkerManager?.();
-    this.unsubscribeGameState?.();
-    this.unsubscribeWorkerManager = null;
-    this.unsubscribeGameState = null;
+  public init({ params }: ModelInitArgs): void {
+    params.createManagedSubscription(workerManager, ({ lastCompletedTask }) => {
+      if (!lastCompletedTask) return;
+      if (lastCompletedTask.type !== "computeShortestPathFromProximitySource")
+        return;
 
-    this.unsubscribeWorkerManager = workerManager.subscribe(
-      ({ lastCompletedTask }) => {
-        if (!lastCompletedTask) return;
-        if (lastCompletedTask.type !== "computeShortestPathFromProximitySource")
-          return;
-
-        const data =
-          ZodWorkerTaskcomputeShortestPathFromProximitySourceResult.parse(
-            lastCompletedTask.data,
-          );
-        const shortestPath = data.shortestPath;
-
-        this.subject.result[data.location] = {
-          status: "completed",
-          proximityResult: shortestPath
-            ? {
-                path: shortestPath.path.map((step) => ({
-                  throughLocation: step.to,
-                  cost: step.cost,
-                  through: step.edgeType,
-                })),
-                sourceLocation: shortestPath.sourceLocation,
-                proximity: shortestPath.proximity,
-              }
-            : null,
-        };
-
-        console.log(
-          "[ShortestPathModel] Received shortest path result for location",
-          {
-            location: data.location,
-            shortestPath: data.shortestPath,
-          },
+      const data =
+        ZodWorkerTaskcomputeShortestPathFromProximitySourceResult.parse(
+          lastCompletedTask.data,
         );
-        this.notifyListeners();
-      },
-    );
+      const shortestPath = data.shortestPath;
 
-    this.unsubscribeGameState = this.gameState.subscribe(() => {
+      this.subject.result[data.location] = {
+        status: "completed",
+        proximityResult: shortestPath
+          ? {
+              path: shortestPath.path.map((step) => ({
+                throughLocation: step.to,
+                cost: step.cost,
+                through: step.edgeType,
+              })),
+              sourceLocation: shortestPath.sourceLocation,
+              proximity: shortestPath.proximity,
+            }
+          : null,
+      };
+
+      console.log(
+        "[ShortestPathModel] Received shortest path result for location",
+        {
+          location: data.location,
+          shortestPath: data.shortestPath,
+        },
+      );
+      this.notifyListeners();
+    });
+
+    params.createManagedSubscription(this.gameState, () => {
       let changed = false;
       for (const locationName in this.subject.result) {
         const currentStatus = this.subject.result[locationName].status;

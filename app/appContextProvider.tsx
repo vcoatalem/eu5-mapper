@@ -1,6 +1,8 @@
 "use client";
 
+import { TILE_SIZE, COLS, ROWS } from "@/app/components/worldMap.config";
 import { GameDataLoaderHelper } from "@/app/lib/gameDataLoader.helper";
+import { TileUrlGrid } from "@/app/lib/tiling/tileTypes";
 import { useGameDataVersion } from "@/app/[version]/version.guard";
 import { createContext, useEffect, useState } from "react";
 import { IndexedDBWriter } from "./lib/indexeddb/indexeddb-writer";
@@ -16,20 +18,16 @@ import {
 } from "./lib/indexeddb/indexeddb.const";
 import { LocationHierarchyService } from "./lib/locationHierarchy.service";
 import { GameData } from "./lib/types/general";
-import {
-  GameDataFileType,
-  VersionManifest,
-} from "./lib/types/versionsManifest";
+import { VersionManifest } from "./lib/types/versionsManifest";
 
 interface ImagePaths {
   locationsImage: string;
-  borderLayer: string;
-  terrainLayer: string;
 }
 
 interface AppContext {
   gameData: GameData | null;
   imagePaths: ImagePaths | null;
+  tileUrls: TileUrlGrid | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -37,9 +35,20 @@ interface AppContext {
 const emptyContext: AppContext = {
   gameData: null,
   imagePaths: null,
+  tileUrls: null,
   isLoading: true,
   error: null,
 };
+
+function assertTileGridMatchesManifest(manifest: VersionManifest): void {
+  const { tileSize, cols, rows } = manifest.metadata.tileGrid;
+  if (tileSize !== TILE_SIZE || cols !== COLS || rows !== ROWS) {
+    throw new Error(
+      `[AppContext] manifest.metadata.tileGrid {tileSize:${tileSize},cols:${cols},rows:${rows}} ` +
+        `does not match app config {tileSize:${TILE_SIZE},cols:${COLS},rows:${ROWS}}`,
+    );
+  }
+}
 
 export const AppContext = createContext<AppContext>(emptyContext);
 
@@ -53,6 +62,7 @@ export const AppContextProvider = ({
   // Game data state
   const [gameData, setGameData] = useState<GameData | null>(null);
   const [imagePaths, setImagePaths] = useState<ImagePaths | null>(null);
+  const [tileUrls, setTileUrls] = useState<TileUrlGrid | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,58 +74,39 @@ export const AppContextProvider = ({
         console.log(`[AppContext] Loading game data for version ${version}...`);
         const manifest =
           await GameDataLoaderHelper.loadManifestForVersion(version);
+        assertTileGridMatchesManifest(manifest);
+        const resolvedTileUrls = GameDataLoaderHelper.buildTileUrlGrid(
+          version,
+          manifest,
+        );
 
+        // Only `locationsImage` is still fetched as a whole image (out of scope for
+        // per-tile fetching — locations.png is a point-query color/ID map, not tile-shaped).
         const resolveAndPreloadImages = async (
           versionManifest: VersionManifest,
         ): Promise<ImagePaths> => {
-          const imageFileTypes: Array<GameDataFileType> = [
+          const imagePath = GameDataLoaderHelper.getFileUrlForVersion(
+            version,
             "locationsImage",
-            "borderLayer",
-            "terrainLayer",
-          ];
-
-          const imagePathsEntries = await Promise.all(
-            imageFileTypes.map(async (fileType) => {
-              const imagePath = GameDataLoaderHelper.getFileUrlForVersion(
-                version,
-                fileType,
-                versionManifest,
-              );
-
-              await new Promise<void>((resolve, reject) => {
-                const img = new Image();
-                img.crossOrigin = "anonymous";
-                img.onload = () => {
-                  console.log(`[AppContext] Preloaded image: ${imagePath}`);
-                  resolve();
-                };
-                img.onerror = (e) => {
-                  const error = new Error(
-                    `Failed to preload image: ${imagePath}`,
-                  );
-                  console.error(`[AppContext] ${error.message}`, e);
-                  reject(error);
-                };
-                img.src = imagePath;
-              });
-
-              return [fileType, imagePath];
-            }),
+            versionManifest,
           );
 
-          return {
-            locationsImage:
-              imagePathsEntries.find(
-                ([type]) => type === "locationsImage",
-              )?.[1] ?? "",
-            borderLayer:
-              imagePathsEntries.find(([type]) => type === "borderLayer")?.[1] ??
-              "",
-            terrainLayer:
-              imagePathsEntries.find(
-                ([type]) => type === "terrainLayer",
-              )?.[1] ?? "",
-          };
+          await new Promise<void>((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = () => {
+              console.log(`[AppContext] Preloaded image: ${imagePath}`);
+              resolve();
+            };
+            img.onerror = (e) => {
+              const error = new Error(`Failed to preload image: ${imagePath}`);
+              console.error(`[AppContext] ${error.message}`, e);
+              reject(error);
+            };
+            img.src = imagePath;
+          });
+
+          return { locationsImage: imagePath };
         };
 
         const [gameDataFiles, resolvedImagePaths] = await Promise.all([
@@ -183,6 +174,7 @@ export const AppContextProvider = ({
 
         // indexedDB operations have to be done before setGameData to ensure this happens before worldmap component initializes
         setImagePaths(resolvedImagePaths);
+        setTileUrls(resolvedTileUrls);
         setGameData({
           locationDataMap: locationData.map,
           colorToNameMap: locationData.colorToNameMap,
@@ -213,6 +205,7 @@ export const AppContextProvider = ({
       value={{
         gameData,
         imagePaths,
+        tileUrls,
         isLoading,
         error,
       }}

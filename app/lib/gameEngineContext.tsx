@@ -10,6 +10,7 @@ import React, {
 import { LoadingScreenComponent } from "../components/loadingScreen.component";
 import type { GameDataVersion } from "../config/gameData.config";
 import { GameEngine, GameEngineDomRefs, ImagePaths } from "./gameEngine";
+import type { TileUrlGrid } from "./tiling/tileTypes";
 import { Observable } from "./observable";
 import type { GameData } from "./types/general";
 
@@ -51,6 +52,7 @@ export function useHoveredLocation() {
 export function GameEngineProvider({
   gameData,
   imagePaths,
+  tileUrls,
   version,
   domRefs,
   loadFileOnStart,
@@ -58,6 +60,7 @@ export function GameEngineProvider({
 }: {
   gameData: GameData;
   imagePaths: ImagePaths;
+  tileUrls: TileUrlGrid;
   version: GameDataVersion;
   domRefs: GameEngineDomRefs;
   loadFileOnStart: string | null;
@@ -75,7 +78,7 @@ export function GameEngineProvider({
     async function run() {
       try {
         engine = new GameEngine(gameData, version);
-        await engine.init(domRefs, imagePaths);
+        await engine.init(domRefs, imagePaths, tileUrls);
         if (disposed) return;
 
         if (loadFileOnStart) {
@@ -101,7 +104,7 @@ export function GameEngineProvider({
       engine?.dispose();
       setEngine(null);
     };
-  }, [gameData, version, domRefs, imagePaths, loadFileOnStart]);
+  }, [gameData, version, domRefs, imagePaths, tileUrls, loadFileOnStart]);
 
   if (error) return <LoadingScreenComponent message={error} error />;
   if (!engine) return <LoadingScreenComponent message="Loading map..." />;

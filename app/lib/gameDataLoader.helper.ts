@@ -25,6 +25,7 @@ import {
   ZodProximityComputationRule,
 } from "@/app/lib/types/proximityComputationRules";
 import { BaseRoadRecord } from "@/app/lib/types/roads";
+import { TileLayer, TileUrlGrid } from "@/app/lib/tiling/tileTypes";
 import {
   FILE_TYPE_TO_MANIFEST_KEY,
   GameDataFileType,
@@ -350,6 +351,31 @@ export class GameDataLoaderHelper {
   ): string {
     const manifestEntry = this.getManifestEntry(manifest, fileType);
     return this.getGameDataFileUrl(version, manifestEntry.name);
+  }
+
+  public static buildTileUrlGrid(
+    version: string,
+    manifest: VersionManifest,
+  ): TileUrlGrid {
+    const buildLayer = (
+      layer: TileLayer,
+      rows: VersionManifest["tiles"][TileLayer],
+    ): string[][] =>
+      rows.map((row, rowIndex) =>
+        row.map((entry, colIndex) => {
+          if (entry.compressed) {
+            throw new Error(
+              `[GameDataLoaderHelper] Tile ${layer}[${rowIndex}][${colIndex}] is marked compressed, which per-tile image fetching does not support`,
+            );
+          }
+          return this.getGameDataFileUrl(version, entry.name);
+        }),
+      );
+
+    return {
+      terrain: buildLayer("terrain", manifest.tiles.terrain),
+      border: buildLayer("border", manifest.tiles.border),
+    };
   }
 
   public static async loadGameDataFileForVersion<

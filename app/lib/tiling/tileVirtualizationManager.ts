@@ -1,21 +1,30 @@
 "use client";
 
-import {
-  LayerName,
-  TileId,
-  MountedLayerKey,
-  ALL_LAYER_NAMES,
-} from "@/app/lib/types/coordinateSpaces";
-import { LayerInvalidationModel } from "@/app/lib/layerInvalidation.model";
+import { TILE_SIZE } from "@/app/components/worldMap.config";
 import { CameraController } from "@/app/lib/cameraController";
-import { LayerVisibilityModel, ILayerVisibilityState } from "@/app/lib/layerVisibility.model";
+import { LayerInvalidationModel } from "@/app/lib/layerInvalidation.model";
+import {
+  ILayerVisibilityState,
+  LayerVisibilityModel,
+} from "@/app/lib/layerVisibility.model";
+import { createTileLoadingOverlay } from "@/app/lib/tiling/tileLoadingOverlay";
+import {
+  makeTileId,
+  mountedKey,
+  mountedKeyLayer,
+  parseMountedLayerKey,
+  visibleTileRange,
+} from "@/app/lib/tiling/tileMath";
 import { TileRenderer } from "@/app/lib/tiling/tileRenderer";
 import {
-  mountedKey, mountedKeyLayer, parseMountedLayerKey,
-  makeTileId, visibleTileRange,
-} from "@/app/lib/tiling/tileMath";
-import { TILE_SIZE } from "@/app/components/worldMap.config";
+  ALL_LAYER_NAMES,
+  LayerName,
+  MountedLayerKey,
+  TileId,
+} from "@/app/lib/types/coordinateSpaces";
 import { get2dContext } from "@/app/lib/utils/canvasUtils";
+
+const FETCHED_LAYERS: ReadonlySet<LayerName> = new Set(["terrain", "border"]);
 
 const TILE = TILE_SIZE;
 
@@ -36,6 +45,8 @@ type TileEntry = {
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
   dirty: boolean;
+  overlay: HTMLDivElement | null;
+  retried: boolean;
 };
 
 export class TileVirtualizationManager {
@@ -140,7 +151,8 @@ export class TileVirtualizationManager {
       }
 
       for (const key of [...this.mounted.keys()]) {
-        if (mountedKeyLayer(key) === layer && !needed.has(key)) this.unmount(key);
+        if (mountedKeyLayer(key) === layer && !needed.has(key))
+          this.unmount(key);
       }
 
       for (const key of needed) {
@@ -150,14 +162,24 @@ export class TileVirtualizationManager {
         let entry = this.mounted.get(key);
         if (!entry) entry = this.mountTile(layer, tile, key);
         if (entry.dirty) {
-          this.tileRenderer.renderTile(layer, tile, entry.ctx);
+          this.tileRenderer.renderTile(
+            layer,
+            tile,
+            entry.ctx,
+            (bitmap) => this.paintIfStillMounted(key, bitmap),
+            (err) => this.markTileError(key, err),
+          );
           entry.dirty = false;
         }
       }
     }
   }
 
-  private mountTile(layer: LayerName, tile: TileId, key: MountedLayerKey): TileEntry {
+  private mountTile(
+    layer: LayerName,
+    tile: TileId,
+    key: MountedLayerKey,
+  ): TileEntry {
     const pooled = this.pool[layer].pop();
     const canvas = pooled ?? document.createElement("canvas");
     if (!pooled) {
@@ -166,19 +188,32 @@ export class TileVirtualizationManager {
     } else {
       get2dContext(canvas).clearRect(0, 0, TILE, TILE);
     }
-    canvas.style.cssText = [
+    const positionCss = [
       "position:absolute",
       `left:${tile.col * TILE}px`,
       `top:${tile.row * TILE}px`,
       `width:${TILE}px`,
       `height:${TILE}px`,
-      "image-rendering:pixelated",
-      "z-index:1",
     ].join(";");
+    canvas.style.cssText = `${positionCss};image-rendering:pixelated;z-index:1`;
 
     this.layerContainers[layer].appendChild(canvas);
     const ctx = get2dContext(canvas);
-    const entry: TileEntry = { canvas, ctx, dirty: true };
+    const entry: TileEntry = {
+      canvas,
+      ctx,
+      dirty: true,
+      overlay: null,
+      retried: false,
+    };
+
+    if (FETCHED_LAYERS.has(layer)) {
+      const overlay = createTileLoadingOverlay(TILE);
+      overlay.style.cssText = `${positionCss};z-index:2`;
+      this.layerContainers[layer].appendChild(overlay);
+      entry.overlay = overlay;
+    }
+
     this.mounted.set(key, entry);
     return entry;
   }
@@ -187,9 +222,47 @@ export class TileVirtualizationManager {
     const entry = this.mounted.get(key);
     if (!entry) return;
     entry.canvas.parentElement?.removeChild(entry.canvas);
+    entry.overlay?.parentElement?.removeChild(entry.overlay);
     const layer = mountedKeyLayer(key);
     this.pool[layer].push(entry.canvas);
     this.mounted.delete(key);
+  }
+
+  private paintIfStillMounted(key: MountedLayerKey, bitmap: ImageBitmap): void {
+    const current = this.mounted.get(key);
+    if (!current) return; // tile with provided key got unmounted since the fetch started -> discard
+    current.ctx.drawImage(bitmap, 0, 0);
+    this.clearLoadingOverlay(key);
+  }
+
+  private clearLoadingOverlay(key: MountedLayerKey): void {
+    const entry = this.mounted.get(key);
+    if (!entry?.overlay) return;
+    entry.overlay.parentElement?.removeChild(entry.overlay);
+    entry.overlay = null;
+  }
+
+  private markTileError(key: MountedLayerKey, err: unknown): void {
+    const entry = this.mounted.get(key);
+    if (!entry) return; // unmounted since the fetch started
+    console.error(
+      `[TileVirtualizationManager] tile fetch failed for ${key}`,
+      err,
+    );
+    if (!entry.retried) {
+      entry.retried = true;
+      const { col, row } = parseMountedLayerKey(key);
+      const tile = makeTileId(col, row);
+      this.tileRenderer.renderTile(
+        mountedKeyLayer(key),
+        tile,
+        entry.ctx,
+        (bitmap) => this.paintIfStillMounted(key, bitmap),
+        (retryErr) => this.markTileError(key, retryErr),
+      );
+      return;
+    }
+    entry.overlay?.classList.add("opacity-40");
   }
 
   private unmountLayer(layer: LayerName): void {

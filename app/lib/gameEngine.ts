@@ -26,13 +26,13 @@ import { LayerInvalidationModel } from "./layerInvalidation.model";
 import { Observable } from "./observable";
 import { ObservableCombiner } from "./observableCombiner";
 import { LocationColorIndex } from "./locationColorIndex";
-import { BufferTileSource } from "./tiling/bufferTileSource";
 import { TileRenderer } from "./tiling/tileRenderer";
 import { TileVirtualizationManager } from "./tiling/tileVirtualizationManager";
 import { LocationHierarchyService } from "./locationHierarchy.service";
 import { LocationsHelper } from "./locations.helper";
 import { worldMapConfig } from "../components/worldMap.config";
 import { SelectionModel } from "./selection.model";
+import type { TileUrlGrid } from "./tiling/tileTypes";
 import type { GameData, LocationIdentifier } from "./types/general";
 import type { GameDataVersion } from "../config/gameData.config";
 import type { RefObject } from "react";
@@ -45,8 +45,6 @@ export interface GameEngineDomRefs {
 
 export interface ImagePaths {
   locationsImage: string;
-  borderLayer: string;
-  terrainLayer: string;
 }
 
 export class GameEngine {
@@ -126,21 +124,18 @@ export class GameEngine {
   async init(
     domRefs: GameEngineDomRefs,
     imagePaths: ImagePaths,
+    tileUrls: TileUrlGrid,
   ): Promise<void> {
     // 1. Async asset loading
     const locationColorIndex = new LocationColorIndex();
-    const tileSource = new BufferTileSource();
-    await Promise.all([
-      locationColorIndex.init(imagePaths.locationsImage),
-      tileSource.init(imagePaths.terrainLayer, imagePaths.borderLayer),
-    ]);
+    await locationColorIndex.init(imagePaths.locationsImage);
 
     // 2. Rendering pipeline
     this.layerInvalidationController.init(this.gameData);
     const tileRenderer = new TileRenderer(
       this.layerInvalidationController,
       locationColorIndex,
-      tileSource,
+      tileUrls,
     );
     this.tileManager = new TileVirtualizationManager(
       domRefs.world.current!,

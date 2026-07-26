@@ -6,9 +6,10 @@ import {
   defaultAreaColor,
 } from "@/app/lib/drawing/color.helper";
 import { DrawingHelper } from "@/app/lib/drawing/drawing.helper";
+import { TileUrlGrid } from "@/app/lib/tiling/tileTypes";
 import { LayerInvalidationModel } from "@/app/lib/layerInvalidation.model";
 import { LocationColorIndex } from "@/app/lib/locationColorIndex";
-import { BufferTileSource } from "@/app/lib/tiling/bufferTileSource";
+import { getTileImage } from "@/app/lib/tiling/tileImageCache";
 import {
   bboxIntersectsTile,
   pointBbox,
@@ -65,20 +66,25 @@ export class TileRenderer {
   constructor(
     private layerInvalidation: LayerInvalidationModel,
     private idMap: LocationColorIndex,
-    private tiles: BufferTileSource,
+    private tileUrlGrid: TileUrlGrid,
   ) {}
 
   renderTile(
     layer: LayerName,
     tile: TileId,
     ctx: CanvasRenderingContext2D,
+    onTileImageReady?: (bitmap: ImageBitmap) => void,
+    onTileError?: (err: unknown) => void,
   ): void {
     switch (layer) {
       case "color":
         return this.idMap.drawColorTile(tile, ctx);
       case "terrain":
-      case "border":
-        return this.tiles.blit(layer, tile, ctx);
+      case "border": {
+        const url = this.tileUrlGrid[layer][tile.row][tile.col];
+        getTileImage(url).then(onTileImageReady).catch(onTileError);
+        return;
+      }
       case "areas":
         return this.drawAreasTile(tile, ctx);
       case "maritimePresences":

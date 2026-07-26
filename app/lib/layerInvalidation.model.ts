@@ -1,25 +1,24 @@
 "use client";
 
-import { Observable } from "@/app/lib/observable";
-import { ObservableCombiner } from "@/app/lib/observableCombiner";
-import { ColorSearchModel } from "@/app/lib/colorSearch.model";
-import { GameStateModel } from "@/app/lib/gameState.model";
-import { ProximityComputationModel } from "@/app/lib/proximityComputation.model";
-import { CameraController } from "@/app/lib/cameraController";
 import { ActionEventDispatcher } from "@/app/lib/actionEventDispatcher";
+import { CameraController, IZoomState } from "@/app/lib/cameraController";
+import { ColorSearchModel } from "@/app/lib/colorSearch.model";
 import {
   EditModeModel,
-  roadSliceFromState,
   maritimeSliceFromState,
+  roadSliceFromState,
 } from "@/app/lib/editMode.model";
+import { GameStateModel } from "@/app/lib/gameState.model";
+import { Observable } from "@/app/lib/observable";
+import { ProximityComputationModel } from "@/app/lib/proximityComputation.model";
+import { RoadsHelper } from "@/app/lib/roads.helper";
 import { TileBucketIndex } from "@/app/lib/tiling/tileBucketIndex";
 import { LayerName, MapPoint, asMap } from "@/app/lib/types/coordinateSpaces";
-import { LocationIdentifier, GameData } from "@/app/lib/types/general";
 import { GameState } from "@/app/lib/types/gameState";
-import { RoadsHelper } from "@/app/lib/roads.helper";
-import { IZoomState } from "@/app/lib/cameraController";
-import { ITemporaryLocationData } from "@/app/lib/types/temporaryLocationData";
+import { GameData, LocationIdentifier } from "@/app/lib/types/general";
+import type { Model, ModelInitArgs } from "@/app/lib/types/model";
 import { ResolvedRoad } from "@/app/lib/types/renderTypes";
+import { ITemporaryLocationData } from "@/app/lib/types/temporaryLocationData";
 export type { ResolvedRoad } from "@/app/lib/types/renderTypes";
 
 function computeHighlights(
@@ -43,14 +42,18 @@ function computeHighlights(
   ).sort();
 }
 
-export class LayerInvalidationModel extends Observable<{
-  dirty: Set<LayerName>;
-}> {
+export interface LayerInvalidationInitArgs extends ModelInitArgs {
+  gameData: GameData;
+}
+
+export class LayerInvalidationModel
+  extends Observable<{ dirty: Set<LayerName> }>
+  implements Model<{ dirty: Set<LayerName> }, LayerInvalidationInitArgs>
+{
   private buckets = new TileBucketIndex();
   private resolvedRoads: ResolvedRoad[] = [];
   private highlightSet: LocationIdentifier[] = [];
   private gameData: GameData | null = null;
-  private subs: Array<() => void> = [];
 
   constructor(
     private colorSearch: ColorSearchModel,
@@ -63,64 +66,47 @@ export class LayerInvalidationModel extends Observable<{
     super();
   }
 
-  init(gameData: GameData): void {
-    this.dispose();
-    if (gameData !== this.gameData) {
-      this.buckets = new TileBucketIndex();
-    }
+  init({ gameData, params }: LayerInvalidationInitArgs): void {
+    this.buckets = new TileBucketIndex();
     this.gameData = gameData;
 
-    this.subs.push(
-      this.colorSearch.subscribe(({ completedLocations }) => {
+    params.createManagedSubscription(
+      this.colorSearch,
+      ({ completedLocations }) => {
         for (const { loc, coords } of completedLocations) {
           this.buckets.ingest(loc, coords.map(asMap));
         }
         this.markDirty("areas", "indicators", "maritimePresences");
-      }),
+      },
     );
 
-    const gameStateCombiner = new ObservableCombiner([
-      this.gameState,
-      this.proximity,
-    ]);
-    this.subs.push(gameStateCombiner.dispose.bind(gameStateCombiner));
-    this.subs.push(
-      gameStateCombiner.debounce(10).subscribe(({ values: [gameState] }) => {
+    params.createManagedCombinerSubscription(
+      [this.gameState, this.proximity],
+      ({ values: [gameState] }) => {
         this.ensureCoordsFor(Object.keys(gameState.ownedLocations));
         this.resolvedRoads = this.resolveRoads(gameState);
         this.markDirty("areas", "roads", "maritimePresences");
-      }),
+      },
+      10,
     );
 
-    const constructibleCombiner = new ObservableCombiner([
-      this.gameState,
-      this.camera,
-    ]);
-    this.subs.push(constructibleCombiner.dispose.bind(constructibleCombiner));
-    this.subs.push(
-      constructibleCombiner
-        .debounce(10)
-        .subscribe(() => this.markDirty("constructibles")),
+    params.createManagedCombinerSubscription(
+      [this.gameState, this.camera],
+      () => this.markDirty("constructibles"),
+      10,
     );
 
-    const indicatorsCombiner = new ObservableCombiner([
-      this.actionEvents.hoveredLocation,
-      this.actionEvents.prolongedHoverLocation,
-      this.editMode,
-    ]);
-    this.subs.push(indicatorsCombiner.dispose.bind(indicatorsCombiner));
-    this.subs.push(
-      indicatorsCombiner.subscribe(
-        ({ values: [hover, prolonged, editMode] }) => {
-          this.highlightSet = computeHighlights(
-            hover as { locations: LocationIdentifier[] },
-            prolonged as { locations: LocationIdentifier[] },
-            editMode as ReturnType<EditModeModel["getSnapshot"]>,
-          );
-          this.ensureCoordsFor(this.highlightSet);
-          this.markDirty("indicators");
-        },
-      ),
+    params.createManagedCombinerSubscription(
+      [
+        this.actionEvents.hoveredLocation,
+        this.actionEvents.prolongedHoverLocation,
+        this.editMode,
+      ],
+      ({ values: [hover, prolonged, editMode] }) => {
+        this.highlightSet = computeHighlights(hover, prolonged, editMode);
+        this.ensureCoordsFor(this.highlightSet);
+        this.markDirty("indicators");
+      },
     );
   }
 
@@ -160,9 +146,7 @@ export class LayerInvalidationModel extends Observable<{
     return this.gameState.getSnapshot().capitalLocation;
   }
   proximityCost(loc: LocationIdentifier): number {
-    return (
-      this.proximity.getSnapshot().result?.[loc]?.cost ?? -1
-    );
+    return this.proximity.getSnapshot().result?.[loc]?.cost ?? -1;
   }
   temporaryLocationData(
     loc: LocationIdentifier,
@@ -182,10 +166,5 @@ export class LayerInvalidationModel extends Observable<{
   private markDirty(...layers: LayerName[]): void {
     this.subject = { dirty: new Set(layers) };
     this.notifyListeners();
-  }
-
-  dispose(): void {
-    this.subs.forEach((u) => u());
-    this.subs = [];
   }
 }

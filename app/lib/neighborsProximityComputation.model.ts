@@ -1,4 +1,5 @@
 import { Observable } from "./observable";
+import type { Model, ModelInitArgs } from "./types/model";
 import { LocationIdentifier } from "./types/general";
 import { workerManager } from "@/app/lib/workerManager";
 import { GameStateModel } from "@/app/lib/gameState.model";
@@ -16,10 +17,11 @@ export type NeighborsProximityResults = {
   >;
 };
 
-export class NeighborsProximityModel extends Observable<NeighborsProximityResults> {
+export class NeighborsProximityModel
+  extends Observable<NeighborsProximityResults>
+  implements Model<NeighborsProximityResults>
+{
   private lastCompletedTaskId: string | null = null;
-  private unsubscribeWorkerManager: (() => void) | null = null;
-  private unsubscribeGameState: (() => void) | null = null;
 
   constructor(private gameState: GameStateModel) {
     super();
@@ -28,34 +30,27 @@ export class NeighborsProximityModel extends Observable<NeighborsProximityResult
     };
   }
 
-  public init(): void {
-    this.unsubscribeWorkerManager?.();
-    this.unsubscribeGameState?.();
-    this.unsubscribeWorkerManager = null;
-    this.unsubscribeGameState = null;
+  public init({ params }: ModelInitArgs): void {
+    params.createManagedSubscription(workerManager, ({ lastCompletedTask }) => {
+      if (!lastCompletedTask) return;
+      if (lastCompletedTask.type !== "computeNeighbors") return;
+      if (lastCompletedTask.taskId === this.lastCompletedTaskId) return;
 
-    this.unsubscribeWorkerManager = workerManager.subscribe(
-      ({ lastCompletedTask }) => {
-        if (!lastCompletedTask) return;
-        if (lastCompletedTask.type !== "computeNeighbors") return;
-        if (lastCompletedTask.taskId === this.lastCompletedTaskId) return;
+      this.lastCompletedTaskId = lastCompletedTask.taskId;
 
-        this.lastCompletedTaskId = lastCompletedTask.taskId;
+      const data = ZodWorkerTaskComputeNeighborsResult.parse(
+        lastCompletedTask.data,
+      );
 
-        const data = ZodWorkerTaskComputeNeighborsResult.parse(
-          lastCompletedTask.data,
-        );
+      this.subject.computationResults[data.locationName] = {
+        neighbors: data.neighbors,
+        status: "completed",
+      };
 
-        this.subject.computationResults[data.locationName] = {
-          neighbors: data.neighbors,
-          status: "completed",
-        };
+      this.notifyListeners();
+    });
 
-        this.notifyListeners();
-      },
-    );
-
-    this.unsubscribeGameState = this.gameState.subscribe(() => {
+    params.createManagedSubscription(this.gameState, () => {
       this.subject = {
         computationResults: ArrayHelper.reduceToRecord(
           Object.entries(this.subject.computationResults),

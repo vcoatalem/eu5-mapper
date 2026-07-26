@@ -24,7 +24,7 @@ import {
 } from "./neighborsProximityComputation.model";
 import { LayerInvalidationModel } from "./layerInvalidation.model";
 import { Observable } from "./observable";
-import { ObservableCombiner } from "./observableCombiner";
+import { DisposableBag } from "./disposableBag";
 import { LocationColorIndex } from "./locationColorIndex";
 import { TileRenderer } from "./tiling/tileRenderer";
 import { TileVirtualizationManager } from "./tiling/tileVirtualizationManager";
@@ -35,6 +35,7 @@ import { SelectionModel } from "./selection.model";
 import type { TileUrlGrid } from "./tiling/tileTypes";
 import type { GameData, LocationIdentifier } from "./types/general";
 import type { GameDataVersion } from "../config/gameData.config";
+import type { ModelInitParams } from "./types/model";
 import type { RefObject } from "react";
 
 export interface GameEngineDomRefs {
@@ -77,7 +78,13 @@ export class GameEngine {
   readonly selectionController: SelectionModel;
 
   private tileManager: TileVirtualizationManager | null = null;
-  private subs: Array<() => void> = [];
+  private readonly disposables = new DisposableBag();
+  private readonly modelInitParams: ModelInitParams = {
+    createManagedSubscription: this.disposables.createManagedSubscription,
+    createManagedEventListener: this.disposables.createManagedEventListener,
+    createManagedCombinerSubscription:
+      this.disposables.createManagedCombinerSubscription,
+  };
 
   constructor(
     private gameData: GameData,
@@ -131,7 +138,10 @@ export class GameEngine {
     await locationColorIndex.init(imagePaths.locationsImage);
 
     // 2. Rendering pipeline
-    this.layerInvalidationController.init(this.gameData);
+    this.layerInvalidationController.init({
+      gameData: this.gameData,
+      params: this.modelInitParams,
+    });
     const tileRenderer = new TileRenderer(
       this.layerInvalidationController,
       locationColorIndex,
@@ -144,15 +154,16 @@ export class GameEngine {
       this.cameraController,
       this.layerVisibilityController,
     );
+    this.disposables.manage(() => this.tileManager?.dispose());
 
     // 3. Camera DOM setup
-    this.cameraController.initCamera(
-      domRefs.container,
-      domRefs.world,
-      domRefs.hitSurface,
+    this.cameraController.init({
+      container: domRefs.container,
+      worldRef: domRefs.world,
+      hitSurfaceRef: domRefs.hitSurface,
       locationColorIndex,
-    );
-    this.cameraController.init(domRefs.hitSurface.current!);
+      params: this.modelInitParams,
+    });
     this.setInitialCameraPosition(domRefs);
 
     // 4. Drag handling
@@ -193,7 +204,7 @@ export class GameEngine {
     hitSurface.addEventListener("mouseup", stopDrag);
     hitSurface.addEventListener("mouseleave", stopDrag);
 
-    this.subs.push(() => {
+    this.disposables.manage(() => {
       hitSurface.removeEventListener("mousedown", handleMouseDown);
       hitSurface.removeEventListener("mousemove", handleMouseMove);
       hitSurface.removeEventListener("mouseup", stopDrag);
@@ -214,19 +225,29 @@ export class GameEngine {
       getLocationsAtPointer,
       "acquire",
     );
+    this.disposables.manage(() =>
+      this.actionEventsController.clearEventListenersForElement(hitSurface),
+    );
 
     // 6. Cross-model mediation
     this.wireInteractionSubscriptions();
 
     // 7. Non-blocking inits
     this.gameStateController.init(this.gameData, this.version);
-    this.proximityController.init();
-    this.neighborsProximityController.init();
+    this.proximityController.init({ params: this.modelInitParams });
+    this.neighborsProximityController.init({ params: this.modelInitParams });
     this.locationSearchController.init(this.gameData);
-    this.colorSearchController.init(worldMapConfig, this.gameData);
+    this.colorSearchController.init({
+      mapConfig: worldMapConfig,
+      gameData: this.gameData,
+      params: this.modelInitParams,
+    });
     this.editModeController.init();
-    this.shortestPathController.init();
-    this.layerVisibilityController.init(this.cameraController);
+    this.shortestPathController.init({ params: this.modelInitParams });
+    this.layerVisibilityController.init({
+      camera: this.cameraController,
+      params: this.modelInitParams,
+    });
 
     // Init worker graph
     if (workerManager.isAvailable()) {
@@ -286,13 +307,9 @@ export class GameEngine {
 
   private wireInteractionSubscriptions(): void {
     // Hover (maritime mode) → SelectionModel
-    const hoverMaritime = new ObservableCombiner([
-      this.actionEventsController.hoveredLocation,
-      this.editModeController,
-    ]);
-    this.subs.push(hoverMaritime.dispose.bind(hoverMaritime));
-    this.subs.push(
-      hoverMaritime.subscribe(({ values: [{ locations }, editModeState] }) => {
+    this.disposables.createManagedCombinerSubscription(
+      [this.actionEventsController.hoveredLocation, this.editModeController],
+      ({ values: [{ locations }, editModeState] }) => {
         const maritimePresenceEditState = maritimeSliceFromState(editModeState);
         if (roadSliceFromState(editModeState).isModeEnabled) return;
         if (maritimePresenceEditState.selectedLocation) return;
@@ -313,124 +330,110 @@ export class GameEngine {
           return;
         }
         this.selectionController.update(location, null);
-      }),
+      },
     );
 
     // Prolonged hover → SelectionModel + pan-on-search
-    const prolongedHover = new ObservableCombiner([
-      this.actionEventsController.prolongedHoverLocation,
-      this.editModeController,
-    ]);
-    this.subs.push(prolongedHover.dispose.bind(prolongedHover));
-    this.subs.push(
-      prolongedHover.subscribe(
-        ({ values: [{ locations, type, mouseCoordinate }, editModeState] }) => {
-          if (type === "search") {
-            if (locations.length > 0) {
-              const coordinates =
-                this.gameData.locationDataMap[locations[0]]?.centerCoordinates;
-              if (coordinates)
-                this.cameraController.panToCoordinate(coordinates);
-            }
+    this.disposables.createManagedCombinerSubscription(
+      [
+        this.actionEventsController.prolongedHoverLocation,
+        this.editModeController,
+      ],
+      ({ values: [{ locations, type, mouseCoordinate }, editModeState] }) => {
+        if (type === "search") {
+          if (locations.length > 0) {
+            const coordinates =
+              this.gameData.locationDataMap[locations[0]]?.centerCoordinates;
+            if (coordinates) this.cameraController.panToCoordinate(coordinates);
+          }
+          return;
+        }
+        if (editModeState.modeEnabled === "road") return;
+        if (editModeState.modeEnabled === "maritime") return;
+        if (locations.length === 1) {
+          const locationName = locations[0];
+          if (
+            !this.gameData.locationDataMap[locationName]?.ownable &&
+            !this.gameData.locationDataMap[locationName]?.isSea &&
+            !this.gameData.locationDataMap[locationName]?.isLake
+          )
             return;
-          }
-          if (editModeState.modeEnabled === "road") return;
-          if (editModeState.modeEnabled === "maritime") return;
-          if (locations.length === 1) {
-            const locationName = locations[0];
-            if (
-              !this.gameData.locationDataMap[locationName]?.ownable &&
-              !this.gameData.locationDataMap[locationName]?.isSea &&
-              !this.gameData.locationDataMap[locationName]?.isLake
-            )
-              return;
-            this.selectionController.update(locationName, mouseCoordinate);
-          } else {
-            this.selectionController.clear();
-          }
-        },
-      ),
+          this.selectionController.update(locationName, mouseCoordinate);
+        } else {
+          this.selectionController.clear();
+        }
+      },
     );
 
     // Click → model mutations + SelectionModel
-    const click = new ObservableCombiner([
-      this.actionEventsController.clickedLocationSource,
-      this.editModeController,
-    ]);
-    this.subs.push(click.dispose.bind(click));
-    this.subs.push(
-      click.subscribe(
-        ({
-          values: [{ locations, type, mouseCoordinate }, mapEditModeState],
-          changedIndex,
-        }) => {
-          if (changedIndex !== 0) return;
-          const primaryLocation = locations?.[0] ?? null;
-          const locationData =
-            this.gameData.locationDataMap[primaryLocation ?? ""] ?? null;
-          switch (true) {
-            case locationData && mapEditModeState.modeEnabled === "capital":
-              if (!LocationsHelper.isLocationEligibleForCapital(locationData))
-                return;
-              return this.editModeController.askForConfirmation(
-                "capital",
-                locationData.name,
-              );
-            case locations.length > 0 &&
-              type === "acquire" &&
-              mapEditModeState.modeEnabled === "acquire":
-              return this.gameStateController.toggleLocationsOwnership(
-                locations,
-              );
-            case locationData && mapEditModeState.modeEnabled === "road":
-              if (!LocationsHelper.isLocationEligibleForRoad(locationData))
-                return;
+    this.disposables.createManagedCombinerSubscription(
+      [this.actionEventsController.clickedLocationSource, this.editModeController],
+      ({
+        values: [{ locations, type, mouseCoordinate }, mapEditModeState],
+        changedIndex,
+      }) => {
+        if (changedIndex !== 0) return;
+        const primaryLocation = locations?.[0] ?? null;
+        const locationData =
+          this.gameData.locationDataMap[primaryLocation ?? ""] ?? null;
+        switch (true) {
+          case locationData && mapEditModeState.modeEnabled === "capital":
+            if (!LocationsHelper.isLocationEligibleForCapital(locationData))
+              return;
+            return this.editModeController.askForConfirmation(
+              "capital",
+              locationData.name,
+            );
+          case locations.length > 0 &&
+            type === "acquire" &&
+            mapEditModeState.modeEnabled === "acquire":
+            return this.gameStateController.toggleLocationsOwnership(
+              locations,
+            );
+          case locationData && mapEditModeState.modeEnabled === "road":
+            if (!LocationsHelper.isLocationEligibleForRoad(locationData))
+              return;
+            this.selectionController.clear();
+            this.editModeController.selectLocation("road", locationData.name);
+            this.cameraController
+              .panToCoordinate(locationData.centerCoordinates, 300, {
+                x: -25,
+                y: 25,
+              })
+              .then(() => {
+                this.selectionController.update(
+                  primaryLocation,
+                  mouseCoordinate,
+                );
+              });
+            break;
+          case locationData && mapEditModeState.modeEnabled === "maritime":
+            if (!LocationsHelper.isLocationEligibleForMaritime(locationData))
+              return;
+            if (
+              mapEditModeState.maritime.selectedLocation === locationData.name
+            ) {
               this.selectionController.clear();
-              this.editModeController.selectLocation("road", locationData.name);
-              this.cameraController
-                .panToCoordinate(locationData.centerCoordinates, 300, {
-                  x: -25,
-                  y: 25,
-                })
-                .then(() => {
-                  this.selectionController.update(
-                    primaryLocation,
-                    mouseCoordinate,
-                  );
-                });
-              break;
-            case locationData && mapEditModeState.modeEnabled === "maritime":
-              if (!LocationsHelper.isLocationEligibleForMaritime(locationData))
-                return;
-              if (
-                mapEditModeState.maritime.selectedLocation === locationData.name
-              ) {
-                this.selectionController.clear();
-                return this.editModeController.clearLocation("maritime");
-              }
-              this.selectionController.update(primaryLocation, mouseCoordinate);
-              return this.editModeController.selectLocation(
-                "maritime",
-                locationData.name,
-              );
-            case !!(primaryLocation && type === "goto"):
-              const coordinates =
-                this.gameData.locationDataMap[primaryLocation]
-                  ?.centerCoordinates;
-              if (coordinates)
-                this.cameraController.panToCoordinate(coordinates, 600);
-              break;
-          }
-        },
-      ),
+              return this.editModeController.clearLocation("maritime");
+            }
+            this.selectionController.update(primaryLocation, mouseCoordinate);
+            return this.editModeController.selectLocation(
+              "maritime",
+              locationData.name,
+            );
+          case !!(primaryLocation && type === "goto"):
+            const coordinates =
+              this.gameData.locationDataMap[primaryLocation]
+                ?.centerCoordinates;
+            if (coordinates)
+              this.cameraController.panToCoordinate(coordinates, 600);
+            break;
+        }
+      },
     );
   }
 
   dispose(): void {
-    this.tileManager?.dispose();
-    this.layerInvalidationController.dispose();
-    this.cameraController.cleanup();
-    this.subs.forEach((u) => u());
-    this.subs = [];
+    this.disposables.dispose();
   }
 }

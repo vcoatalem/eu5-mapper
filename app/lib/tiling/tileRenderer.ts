@@ -6,7 +6,6 @@ import {
   defaultAreaColor,
 } from "@/app/lib/drawing/color.helper";
 import { DrawingHelper } from "@/app/lib/drawing/drawing.helper";
-import { TileUrlGrid } from "@/app/lib/tiling/tileTypes";
 import { LayerInvalidationModel } from "@/app/lib/layerInvalidation.model";
 import { LocationColorIndex } from "@/app/lib/locationColorIndex";
 import { getTileImage } from "@/app/lib/tiling/tileImageCache";
@@ -16,6 +15,7 @@ import {
   roadBbox,
   tileKey,
 } from "@/app/lib/tiling/tileMath";
+import { TileUrlGrid } from "@/app/lib/tiling/tileTypes";
 import { Coordinate } from "@/app/lib/types/coordinate";
 import { LayerName, TileId } from "@/app/lib/types/coordinateSpaces";
 import { LocationRank } from "@/app/lib/types/locationRank";
@@ -77,8 +77,8 @@ export class TileRenderer {
     onTileError?: (err: unknown) => void,
   ): void {
     switch (layer) {
-      case "color":
-        return this.idMap.drawColorTile(tile, ctx);
+      /*  case "color":
+        return this.idMap.drawColorTile(tile, ctx); */
       case "terrain":
       case "border": {
         const url = this.tileUrlGrid[layer][tile.row][tile.col];
